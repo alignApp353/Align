@@ -110,6 +110,12 @@ label{display:block;margin-bottom:8px;font-size:13px;font-weight:900}
 .chip.selected{background:#EDF3F9;border-color:var(--brand-dark);color:var(--brand-dark)}
 .quick-note{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.45}
 .company-ai-link{width:100%;margin-top:10px;min-height:44px;border:1px solid rgba(52,95,145,.25);border-radius:14px;background:#EDF3F9;color:var(--brand-dark);font-size:12px;font-weight:900}
+.market-pay-card{margin-top:16px;padding:14px;border:1px solid #C9D9E8;border-radius:16px;background:#F2F7FB}
+.market-pay-title{font-size:12px;font-weight:900;color:var(--brand-dark)}
+.market-pay-range{margin-top:5px;font-size:20px;font-weight:900;color:var(--text)}
+.market-pay-note{margin-top:5px;font-size:10px;line-height:1.45;color:var(--muted)}
+.market-pay-button{width:100%;min-height:48px;margin-top:16px;border:1px solid rgba(52,95,145,.28);border-radius:15px;background:#EDF3F9;color:var(--brand-dark);font-size:12px;font-weight:900}
+.market-pay-button:disabled{opacity:.55}
 
 
 .suggest-empty{padding:14px;color:var(--muted);font-size:12px;line-height:1.45}
@@ -223,6 +229,16 @@ label{display:block;margin-bottom:8px;font-size:13px;font-weight:900}
         </div>
       </div>
       <div class="help">Enter a real pay range. The maximum must be equal to or higher than the minimum.</div>
+
+      <button class="market-pay-button" id="suggest-pay-btn" type="button">
+        ✨ Suggest market pay
+      </button>
+
+      <div class="market-pay-card" id="market-pay-card" hidden>
+        <div class="market-pay-title">Suggested market range</div>
+        <div class="market-pay-range" id="market-pay-range"></div>
+        <div class="market-pay-note" id="market-pay-note"></div>
+      </div>
     </div>
 
     <div class="step" data-step="4">
@@ -716,6 +732,147 @@ function choose(containerId, callback){
 choose('job-type-options', value => jobType = value);
 choose('work-style-options', value => workStyle = value);
 
+
+function roundedPay(value,period){
+  const number=Number(value);
+  if(!Number.isFinite(number))return null;
+
+  if(period==='hour')return Math.round(number*2)/2;
+  if(period==='week')return Math.round(number/50)*50;
+  if(period==='month')return Math.round(number/100)*100;
+  return Math.round(number/1000)*1000;
+}
+
+function salaryValuesForPeriod(profile,period){
+  if(period==='hour'){
+    return {
+      min:roundedPay(profile.hourly_25,'hour'),
+      median:roundedPay(profile.hourly_median,'hour'),
+      max:roundedPay(profile.hourly_75,'hour')
+    };
+  }
+
+  const annual25=Number(profile.annual_25);
+  const annualMedian=Number(profile.annual_median);
+  const annual75=Number(profile.annual_75);
+
+  if(![annual25,annual75].every(Number.isFinite))return null;
+
+  if(period==='week'){
+    return {
+      min:roundedPay(annual25/52,'week'),
+      median:roundedPay(annualMedian/52,'week'),
+      max:roundedPay(annual75/52,'week')
+    };
+  }
+
+  if(period==='month'){
+    return {
+      min:roundedPay(annual25/12,'month'),
+      median:roundedPay(annualMedian/12,'month'),
+      max:roundedPay(annual75/12,'month')
+    };
+  }
+
+  return {
+    min:roundedPay(annual25,'year'),
+    median:roundedPay(annualMedian,'year'),
+    max:roundedPay(annual75,'year')
+  };
+}
+
+function marketPayLabel(value,period){
+  if(value===null||value===undefined)return'';
+  const maximumFractionDigits=period==='hour'?2:0;
+  return Number(value).toLocaleString('en-US',{
+    style:'currency',
+    currency:'USD',
+    minimumFractionDigits:0,
+    maximumFractionDigits
+  });
+}
+
+async function suggestMarketPay(){
+  clearMessage();
+
+  if(!selectedOnetCode){
+    showMessage('Select a suggested job title first so Alygnn can match the correct occupation.');
+    showStep(1);
+    el('title').focus();
+    return;
+  }
+
+  const button=el('suggest-pay-btn');
+  button.disabled=true;
+  button.textContent='Finding market pay…';
+
+  const locationType=selectedLocation?.location_type||'';
+  const stateCode=
+    locationType==='remote'
+      ? null
+      : (selectedLocation?.state_code||null);
+
+  const areaCode=
+    locationType==='metro'
+      ? (selectedLocation?.source_id||null)
+      : null;
+
+  const {data,error}=await sb.rpc('suggest_market_pay',{
+    occupation_code_input:selectedOnetCode,
+    state_code_input:stateCode,
+    area_code_input:areaCode
+  });
+
+  button.disabled=false;
+  button.textContent='✨ Suggest market pay';
+
+  if(error){
+    console.error('Market-pay suggestion failed:',error);
+    showMessage(`Market pay is unavailable: ${error.message||'database error'}`);
+    return;
+  }
+
+  const profile=Array.isArray(data)?data[0]:data;
+
+  if(!profile){
+    showMessage('No reliable wage estimate was available for this occupation. Enter the range manually.');
+    return;
+  }
+
+  const period=el('pay-period').value;
+  const values=salaryValuesForPeriod(profile,period);
+
+  if(!values||values.min===null||values.max===null){
+    showMessage('This occupation does not have a usable range for the selected pay period.');
+    return;
+  }
+
+  el('pay-min').value=values.min;
+  el('pay-max').value=values.max;
+
+  const periodText={
+    hour:'hour',
+    week:'week',
+    month:'month',
+    year:'year'
+  }[period];
+
+  el('market-pay-range').textContent=
+    `${marketPayLabel(values.min,period)}–${marketPayLabel(values.max,period)} per ${periodText}`;
+
+  const sourceLabel={
+    metro:'metro-area',
+    state:'state',
+    national:'national'
+  }[profile.geographic_level]||profile.geographic_level;
+
+  el('market-pay-note').textContent=
+    `Based on the ${profile.source_year} BLS OEWS ${sourceLabel} estimate for ${profile.occupation_title} in ${profile.area_title}. This is guidance, not a required rate.`;
+
+  el('market-pay-card').hidden=false;
+  showMessage('The suggested range was added. You can edit it before publishing.','success');
+}
+
 function buildSalary(){
   const min = Number(el('pay-min').value);
   const max = Number(el('pay-max').value);
@@ -898,6 +1055,13 @@ el('use-role-data-btn').addEventListener('click',()=>{
     'Role-specific responsibilities and skills were added. Review and edit them before publishing.',
     'success'
   );
+});
+
+
+el('suggest-pay-btn').addEventListener('click',suggestMarketPay);
+
+el('pay-period').addEventListener('change',()=>{
+  el('market-pay-card').hidden=true;
 });
 
 el('description').addEventListener('input', () => {
