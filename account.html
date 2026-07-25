@@ -777,6 +777,73 @@ async function loadAppliedJobs(){
   if(emptyState) emptyState.style.display = 'none';
 }
 
+// Mirrors loadAppliedJobs() for the "Skipped jobs" list — reads this
+// candidate's own skipped_jobs rows (RLS: auth.uid() = candidate_id) and
+// joins in the job's title/company/location. Each row links to
+// job-details.html with just a job id (no app id, since a skip never
+// creates an application row) — job-details.html already handles that
+// case gracefully by simply not showing an application-status badge.
+async function loadSkippedJobs(){
+  if(!currentUserId) return;
+
+  const listEl = document.getElementById('skipped-jobs-list');
+  const emptyState = document.getElementById('skipped-empty-state');
+
+  const { data: skips, error: skipsError } = await sb
+    .from('skipped_jobs')
+    .select('id, job_id, skipped_at')
+    .eq('candidate_id', currentUserId)
+    .order('skipped_at', { ascending: false });
+
+  if(skipsError){
+    console.error('Failed to load skipped jobs:', skipsError);
+    return;
+  }
+
+  if(!skips || skips.length === 0){
+    return; // static empty state in the HTML already covers this
+  }
+
+  const jobIds = [...new Set(skips.map(s => s.job_id))];
+
+  const { data: jobsData, error: jobsError } = await sb
+    .from('jobs')
+    .select('id, title, company, location, job_type')
+    .in('id', jobIds);
+
+  if(jobsError){
+    console.error('Failed to load job details for skipped jobs:', jobsError);
+  }
+
+  const jobMap = {};
+  (jobsData || []).forEach(j => { jobMap[j.id] = j; });
+
+  const rows = skips
+    .map(skip => ({ skip, job: jobMap[skip.job_id] }))
+    .filter(r => r.job);
+
+  if(rows.length === 0) return;
+
+  listEl.innerHTML = rows.map(({ job }) => {
+    const metaParts = [job.company, job.job_type, job.location].filter(Boolean).join(' · ');
+    const detailsUrl = `job-details.html?job=${encodeURIComponent(job.id)}`;
+
+    return `
+      <div class="job-row-item" role="button" tabindex="0"
+        onclick="window.location.href='${detailsUrl}'"
+        onkeydown="if(event.key==='Enter'){ window.location.href='${detailsUrl}'; }">
+        <div>
+          <div class="job-row-title">${escapeHtml(job.title || 'Untitled role')}</div>
+          <div class="job-row-meta">${escapeHtml(metaParts)}</div>
+        </div>
+        <span class="job-row-status">Skipped</span>
+      </div>
+    `;
+  }).join('');
+
+  if(emptyState) emptyState.style.display = 'none';
+}
+
 function getInitials(name){
   if(!name) return '?';
 
@@ -1664,6 +1731,7 @@ async function initAccountPage(){
   renderResumeCardFast(profile?.resume_file_path);
   initProfileDetails(profile?.resume_data);
   await loadAppliedJobs();
+  await loadSkippedJobs();
 
   showPage();
 }
