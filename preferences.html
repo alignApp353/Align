@@ -167,7 +167,7 @@
   .salary-chip:hover { border-color: var(--brand); color: var(--brand); }
   .salary-chip.active { background: var(--brand); color: white; border-color: var(--brand); }
 
-  .location-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .location-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; max-width: 420px; }
   .input-group { display: flex; flex-direction: column; gap: 6px; position: relative; }
   .input-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); font-weight: 500; }
   .input-field {
@@ -310,7 +310,7 @@
   @media (max-width: 860px) {
     .page { grid-template-columns: 1fr; }
     .sidebar { display: none; }
-    .location-grid { grid-template-columns: 1fr; }
+    .location-grid { grid-template-columns: 1fr; max-width: 100%; }
     .toggle-grid { grid-template-columns: 1fr; }
     .benefits-grid { grid-template-columns: 1fr; }
     .jobtype-grid { grid-template-columns: 1fr 1fr; }
@@ -464,35 +464,12 @@
       <div class="location-grid">
         <div class="input-group">
           <label class="input-label">City</label>
-          <input type="text" class="input-field" placeholder="e.g. New York" id="city-input"
+          <input type="text" class="input-field" placeholder="e.g. New York, NY" id="city-input"
             autocomplete="off"
             oninput="checkSection('sc-location'); renderCitySuggestions();"
             onfocus="renderCitySuggestions();"
             onblur="setTimeout(hideCitySuggestions, 150)">
           <div class="city-suggestions" id="city-suggestions"></div>
-        </div>
-        <div class="input-group">
-          <label class="input-label">State</label>
-          <select class="input-field" id="state-input" onchange="checkSection('sc-location')">
-            <option value="">Select state</option>
-            <option>Alabama</option><option>Alaska</option><option>Arizona</option>
-            <option>Arkansas</option><option>California</option><option>Colorado</option>
-            <option>Connecticut</option><option>Delaware</option><option>Florida</option>
-            <option>Georgia</option><option>Hawaii</option><option>Idaho</option>
-            <option>Illinois</option><option>Indiana</option><option>Iowa</option>
-            <option>Kansas</option><option>Kentucky</option><option>Louisiana</option>
-            <option>Maine</option><option>Maryland</option><option>Massachusetts</option>
-            <option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
-            <option>Missouri</option><option>Montana</option><option>Nebraska</option>
-            <option>Nevada</option><option>New Hampshire</option><option>New Jersey</option>
-            <option>New Mexico</option><option>New York</option><option>North Carolina</option>
-            <option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
-            <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option>
-            <option>South Carolina</option><option>South Dakota</option><option>Tennessee</option>
-            <option>Texas</option><option>Utah</option><option>Vermont</option>
-            <option>Virginia</option><option>Washington</option><option>West Virginia</option>
-            <option>Wisconsin</option><option>Wyoming</option>
-          </select>
         </div>
       </div>
     </div>
@@ -715,7 +692,9 @@
   // A representative list of major U.S. cities for the search-suggestion
   // dropdown — not exhaustive (there are tens of thousands of U.S. towns
   // and cities), so typing anything not listed here still works fine as
-  // free text; this just makes common ones easy to pick.
+  // free text; this just makes common ones easy to pick. Each entry is
+  // stored as the full "City, ST" pair since the state dropdown was
+  // removed and this single field now carries both.
   const KNOWN_CITIES = [
     'New York, NY','Los Angeles, CA','Chicago, IL','Houston, TX','Phoenix, AZ',
     'Philadelphia, PA','San Antonio, TX','San Diego, CA','Dallas, TX','Austin, TX',
@@ -742,6 +721,44 @@
     'Tallahassee, FL','Savannah, GA','Augusta, GA','Athens, GA','Myrtle Beach, SC',
     'Remote','Remote - United States'
   ];
+
+  // Full US state names, keyed by their two-letter abbreviation, so we
+  // can turn "Durham, NC" into a proper `state` value for anything on
+  // the backend (job matching, filters, etc.) that still expects a
+  // full state name rather than an abbreviation.
+  const STATE_ABBR_TO_NAME = {
+    AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas', CA:'California',
+    CO:'Colorado', CT:'Connecticut', DE:'Delaware', DC:'District of Columbia',
+    FL:'Florida', GA:'Georgia', HI:'Hawaii', ID:'Idaho', IL:'Illinois',
+    IN:'Indiana', IA:'Iowa', KS:'Kansas', KY:'Kentucky', LA:'Louisiana',
+    ME:'Maine', MD:'Maryland', MA:'Massachusetts', MI:'Michigan', MN:'Minnesota',
+    MS:'Mississippi', MO:'Missouri', MT:'Montana', NE:'Nebraska', NV:'Nevada',
+    NH:'New Hampshire', NJ:'New Jersey', NM:'New Mexico', NY:'New York',
+    NC:'North Carolina', ND:'North Dakota', OH:'Ohio', OK:'Oklahoma', OR:'Oregon',
+    PA:'Pennsylvania', RI:'Rhode Island', SC:'South Carolina', SD:'South Dakota',
+    TN:'Tennessee', TX:'Texas', UT:'Utah', VT:'Vermont', VA:'Virginia',
+    WA:'Washington', WV:'West Virginia', WI:'Wisconsin', WY:'Wyoming'
+  };
+
+  // Splits a combined "City, ST" (or "City, State") string into its
+  // parts so we can keep saving separate `city` / `state` fields to
+  // Supabase even though there's now only one visible input. Falls
+  // back gracefully if the person only typed a city, or typed
+  // "Remote" with no state at all.
+  function parseCityState(value) {
+    const trimmed = (value || '').trim();
+    if (!trimmed) return { city: '', state: '' };
+
+    const parts = trimmed.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length < 2) return { city: trimmed, state: '' };
+
+    const city = parts[0];
+    const statePart = parts[1];
+    const abbrMatch = statePart.toUpperCase();
+    const state = STATE_ABBR_TO_NAME[abbrMatch] || statePart;
+
+    return { city, state };
+  }
 
   function fmtSalary(val) {
     if (val >= 300000) return '$300k+';
@@ -838,7 +855,17 @@
     if (!saved) return;
 
     if (saved.query) document.getElementById('role-input').value = saved.query;
-    if (saved.city) document.getElementById('city-input').value = saved.city;
+
+    // Prefer the combined `location` string if present (new format);
+    // fall back to rebuilding it from separate city/state fields saved
+    // by the old two-field version of this page.
+    if (saved.location) {
+      document.getElementById('city-input').value = saved.location;
+    } else if (saved.city) {
+      document.getElementById('city-input').value = saved.state
+        ? `${saved.city}, ${saved.state}`
+        : saved.city;
+    }
 
     if (typeof saved.salary_min === 'number' && typeof saved.salary_max === 'number') {
       document.getElementById('salary-min').value = saved.salary_min;
@@ -1018,9 +1045,8 @@
   }
 
   function checkSection(id) {
-    const city = document.getElementById('city-input')?.value;
-    const state = document.getElementById('state-input')?.value;
-    if (city || state) markDone(id); else clearDone(id);
+    const city = document.getElementById('city-input')?.value.trim();
+    if (city) markDone(id); else clearDone(id);
     updateProgress();
   }
 
@@ -1050,8 +1076,8 @@
 
   function collectPreferences() {
     const role = document.getElementById('role-input').value.trim();
-    const city = document.getElementById('city-input').value.trim();
-    const state = document.getElementById('state-input').value.trim();
+    const locationInput = document.getElementById('city-input').value.trim();
+    const { city, state } = parseCityState(locationInput);
     const salaryMin = parseInt(document.getElementById('salary-min').value, 10);
     const salaryMax = parseInt(document.getElementById('salary-max').value, 10);
 
@@ -1071,9 +1097,11 @@
 
     return {
       query: role || '',
+      // Kept for any existing backend/matching logic that still reads
+      // `city` / `state` separately, derived from the single input.
       city: city,
       state: state,
-      location: city && state ? `${city}, ${state}` : city || state || '',
+      location: locationInput,
       salary_min: salaryMin,
       salary_max: salaryMax,
       workStyle: workStyle,
