@@ -338,8 +338,31 @@
     const { data: { session } } = await sb.auth.getSession();
     currentUserId = session?.user?.id || null;
 
-    const prefRaw = sessionStorage.getItem('preferences');
-    const pref = prefRaw ? JSON.parse(prefRaw) : {};
+    // FIX: this used to only ever read sessionStorage.getItem('preferences').
+    // That works during the very first onboarding pass (upload → preferences
+    // → swipe, before an account exists), but preferences.html deletes that
+    // sessionStorage entry immediately after saving to Supabase for anyone
+    // logged in — so on every subsequent visit, `pref` was silently just
+    // `{}` and none of salary/location/work style was ever actually being
+    // filtered on, even though the person had set it. Now: logged-in users
+    // get their real saved preferences from profiles.preferences; the
+    // sessionStorage fallback only covers the pre-login case.
+    let pref = {};
+    if (currentUserId) {
+      const { data: profile, error: profileError } = await sb
+        .from('profiles')
+        .select('preferences')
+        .eq('id', currentUserId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.warn('Could not load saved preferences:', profileError);
+      }
+      pref = profile?.preferences || {};
+    } else {
+      const prefRaw = sessionStorage.getItem('preferences');
+      pref = prefRaw ? JSON.parse(prefRaw) : {};
+    }
 
     try {
       const { data, error } = await sb
@@ -384,6 +407,22 @@
         results = results.filter(job =>
           (job.title || '').toLowerCase().includes(queryText) ||
           (job.description || '').toLowerCase().includes(queryText)
+        );
+      }
+
+      // NEW: location filter. A remote job always passes regardless of the
+      // person's city preference (remote has no fixed location to match
+      // against); anything else must mention the preferred city/state
+      // somewhere in its location string. Uses `city` first since that now
+      // holds the full "City, State" the person typed on the preferences
+      // page, falling back to the old separate city/state fields for
+      // anyone whose preferences were saved before that change.
+      const locationPref = (pref.city || pref.location || '').trim().toLowerCase();
+      if (locationPref) {
+        results = results.filter(job =>
+          job.work_style === 'Remote' ||
+          (job.location || '').toLowerCase().includes(locationPref) ||
+          locationPref.includes((job.location || '').toLowerCase())
         );
       }
 
