@@ -320,6 +320,20 @@
   }
   .info-item span { font-size: 14px; font-weight: 500; color: var(--text); }
 
+  .entries-section { margin-bottom: 20px; }
+  .entries-label {
+    font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 10px; display: block;
+  }
+  .entry-line {
+    font-size: 13px; color: var(--text);
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .entry-line:last-child { border-bottom: none; }
+  .entry-line .entry-sub { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+  .entries-empty { font-size: 12px; color: var(--text-muted); font-style: italic; }
+
   .skills-section { margin-bottom: 20px; }
   .skills-label {
     font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
@@ -557,21 +571,23 @@
 
             <div class="info-grid">
               <div class="info-item">
-                <label>Experience</label>
-                <span>—</span>
-              </div>
-              <div class="info-item">
-                <label>Education</label>
-                <span>—</span>
-              </div>
-              <div class="info-item">
                 <label>Location</label>
-                <span>—</span>
+                <span id="info-location">—</span>
               </div>
               <div class="info-item">
                 <label>Email</label>
-                <span>—</span>
+                <span id="info-email">—</span>
               </div>
+            </div>
+
+            <div class="entries-section">
+              <span class="entries-label">Experience detected</span>
+              <div id="experience-entries"><div class="entries-empty">No work experience detected.</div></div>
+            </div>
+
+            <div class="entries-section">
+              <span class="entries-label">Education detected</span>
+              <div id="education-entries"><div class="entries-empty">No education detected.</div></div>
             </div>
 
             <div class="skills-section">
@@ -582,7 +598,7 @@
             </div>
 
             <div class="edit-note">
-              These details will be used to match you with jobs. You can update them anytime in your profile settings.
+              These details will be used to match you with jobs. You can review and edit everything anytime from your account page.
             </div>
           </div>
         </div>
@@ -720,17 +736,53 @@
     return { type: 'text', content: text.substring(0, 4000) };
   }
 
-  function formatEducation(edu) {
-    if (!edu) return '—';
-    if (typeof edu === 'string') return edu;
-    if (typeof edu === 'object') {
-      const parts = [];
-      if (edu.degree) parts.push(edu.degree);
-      if (edu.field) parts.push(edu.field);
-      if (edu.school) parts.push(edu.school);
-      return parts.length > 0 ? parts.join(', ') : '—';
+  function escapeHtml(value) {
+    return String(value || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function formatDateRange(startYear, endYear) {
+    if (startYear && endYear) return `${startYear} – ${endYear}`;
+    return startYear || endYear || '';
+  }
+
+  // Renders the itemized experience[] / education[] arrays the parser now
+  // returns — one line per job or degree — instead of the old single
+  // aggregate "X years" / "degree string" summary. This is purely a
+  // preview on this confirm screen; the full itemized data is what
+  // actually gets saved to profiles.resume_data via saveResumeIfLoggedIn,
+  // which is what lets account.html populate its Experience/Education
+  // sections automatically.
+  function renderExperienceEntries(experience) {
+    const container = document.getElementById('experience-entries');
+    if (!Array.isArray(experience) || experience.length === 0) {
+      container.innerHTML = '<div class="entries-empty">No work experience detected.</div>';
+      return;
     }
-    return '—';
+    container.innerHTML = experience.map(entry => `
+      <div class="entry-line">
+        <div>${escapeHtml(entry.title || 'Untitled role')}${entry.company ? ' — ' + escapeHtml(entry.company) : ''}</div>
+        ${(entry.startYear || entry.endYear) ? `<div class="entry-sub">${escapeHtml(formatDateRange(entry.startYear, entry.endYear))}</div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  function renderEducationEntries(education) {
+    const container = document.getElementById('education-entries');
+    if (!Array.isArray(education) || education.length === 0) {
+      container.innerHTML = '<div class="entries-empty">No education detected.</div>';
+      return;
+    }
+    container.innerHTML = education.map(entry => `
+      <div class="entry-line">
+        <div>${escapeHtml(entry.degree || 'Degree')}${entry.school ? ' — ' + escapeHtml(entry.school) : ''}</div>
+        ${(entry.startYear || entry.endYear) ? `<div class="entry-sub">${escapeHtml(formatDateRange(entry.startYear, entry.endYear))}</div>` : ''}
+      </div>
+    `).join('');
   }
 
   function showConfirm(data) {
@@ -747,25 +799,15 @@
       document.getElementById('extracted-name').textContent = name;
       document.getElementById('extracted-role').textContent = data.title || 'Professional';
 
-      const infoItems = document.querySelectorAll('.info-item span');
-      if (infoItems[0]) {
-  if (data.experience_years) {
-    const yrs = Math.floor(data.experience_years);
-    const mos = Math.round((data.experience_years - yrs) * 12);
-    if (yrs === 0) infoItems[0].textContent = mos + ' months';
-    else if (mos === 0) infoItems[0].textContent = yrs + (yrs === 1 ? ' year' : ' years');
-    else infoItems[0].textContent = yrs + (yrs === 1 ? ' year' : ' years') + ', ' + mos + ' months';
-  } else {
-    infoItems[0].textContent = '—';
-  }
-}
-      if (infoItems[1]) infoItems[1].textContent = formatEducation(data.education);
-      if (infoItems[2]) infoItems[2].textContent = data.location || '—';
-      if (infoItems[3]) infoItems[3].textContent = data.email || '—';
+      document.getElementById('info-location').textContent = data.location || '—';
+      document.getElementById('info-email').textContent = data.email || '—';
+
+      renderExperienceEntries(data.experience);
+      renderEducationEntries(data.education);
 
       if (data.skills && data.skills.length > 0) {
         const skillsWrap = document.querySelector('.skills-wrap');
-        skillsWrap.innerHTML = data.skills.slice(0, 8).map(s => '<span class="skill-tag">' + s + '</span>').join('');
+        skillsWrap.innerHTML = data.skills.slice(0, 8).map(s => '<span class="skill-tag">' + escapeHtml(s) + '</span>').join('');
       }
       sessionStorage.setItem('resumeData', JSON.stringify(data));
       saveResumeIfLoggedIn(data);
@@ -776,6 +818,11 @@
   // that account's row in the database — both the parsed data AND
   // the actual file itself, so it can be viewed later from the
   // account page instead of being thrown away after parsing.
+  //
+  // `data` now already contains itemized `experience` and `education`
+  // arrays in exactly the shape account.html's Profile Details section
+  // reads from resume_data, so no reshaping is needed here — saving it
+  // as-is is what makes those sections populate on first load.
   async function saveResumeIfLoggedIn(data) {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
