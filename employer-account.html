@@ -152,6 +152,33 @@
     opacity:.45;
     cursor:not-allowed;
   }
+
+  .account-candidate-row{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px 20px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:10px;
+  }
+  .account-candidate-avatar{
+    width:40px; height:40px; border-radius:50%;
+    background:var(--brand-tint); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'DM Serif Display',serif; font-size:15px; color:var(--brand);
+    flex-shrink:0;
+  }
+  .account-candidate-info{ flex:1; min-width:0; }
+  .account-candidate-name{ font-size:14px; font-weight:500; color:var(--text); margin-bottom:2px; }
+  .account-candidate-role{ font-size:12px; color:var(--text-muted); }
+  .account-candidate-status{
+    font-size:11px; font-weight:500; padding:4px 12px; border-radius:100px;
+    border:1px solid var(--border); color:var(--text-muted); white-space:nowrap; flex-shrink:0;
+  }
+  .account-candidate-status.status-accepted{ border-color:var(--mint); color:#2d8a57; background:var(--mint-tint); }
+  .account-candidate-status.status-rejected{ border-color:var(--rose); color:#a05858; background:var(--rose-tint); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -232,8 +259,13 @@
   </div>
 
   <div class="section">
-    <div class="section-header"><h2>Candidates</h2></div>
-    <div class="empty-state">No candidates yet. Once people apply to your jobs, you'll see them here.</div>
+    <div class="section-header">
+      <h2>Candidates</h2>
+      <a href="employer-dashboard.html" class="section-link">View all →</a>
+    </div>
+    <div id="account-candidates-list">
+      <div class="empty-state">No candidates yet. Once people apply to your jobs, you'll see them here.</div>
+    </div>
   </div>
 
   <div class="section">
@@ -262,6 +294,10 @@
 
   let currentUserId = null;
   let currentProfile = null;
+  // Populated by loadEmployerJobs() — reused by loadCandidates() to look
+  // up which job title an application belongs to, same as
+  // employer-dashboard.html does.
+  let employerJobs = [];
 
   async function waitForSession(maxWaitMs = 5000) {
     const started = Date.now();
@@ -597,9 +633,12 @@
     }
 
     if (!jobs || jobs.length === 0) {
+      employerJobs = [];
       jobsBox.innerHTML = '<div class="empty-state">No jobs posted yet. Once you post a role, it\'ll show up here.</div>';
       return;
     }
+
+    employerJobs = jobs;
 
     jobsBox.innerHTML = jobs.map(job => `
       <div class="account-job-row">
@@ -611,6 +650,96 @@
         <a href="employer-dashboard.html" class="section-link">Manage →</a>
       </div>
     `).join('');
+  }
+
+  // ---- Candidates (compact summary version of employer-dashboard.html's
+  // Candidates panel) — same data source and RLS requirements:
+  //   1. Employers can SELECT applications where job_id belongs to them
+  //   2. Employers can SELECT profiles of candidates who applied to their jobs
+  //   3. Employers can UPDATE applications for their own jobs (for Accept/Pass)
+  // This previously had no loadCandidates() at all — the section was just
+  // static empty-state HTML that never queried anything.
+  async function loadCandidates() {
+    const listEl = document.getElementById('account-candidates-list');
+    if (!currentUserId || !listEl) return;
+
+    if (employerJobs.length === 0) {
+      listEl.innerHTML = '<div class="empty-state">No candidates yet. Once people apply to your jobs, you\'ll see them here.</div>';
+      return;
+    }
+
+    const jobIds = employerJobs.map(j => j.id);
+
+    const { data: apps, error: appsError } = await sb
+      .from('applications')
+      .select('id, job_id, candidate_id, status, applied_at')
+      .in('job_id', jobIds)
+      .order('applied_at', { ascending: false });
+
+    if (appsError) {
+      console.error('Failed to load applications:', appsError);
+      listEl.innerHTML = '<div class="empty-state">Could not load candidates right now. Open the console for the Supabase error.</div>';
+      return;
+    }
+
+    if (!apps || apps.length === 0) {
+      listEl.innerHTML = '<div class="empty-state">No candidates yet. Once people apply to your jobs, you\'ll see them here.</div>';
+      return;
+    }
+
+    const candidateIds = [...new Set(apps.map(a => a.candidate_id))];
+
+    const { data: profilesData, error: profilesError } = await sb
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', candidateIds);
+
+    if (profilesError) {
+      console.error('Failed to load candidate profiles:', profilesError);
+    }
+
+    const profileMap = {};
+    (profilesData || []).forEach(p => { profileMap[p.id] = p; });
+
+    const jobMap = {};
+    employerJobs.forEach(j => { jobMap[j.id] = j; });
+
+    const rows = apps
+      .map(app => ({
+        applicationId: app.id,
+        candidateId: app.candidate_id,
+        status: app.status || 'applied',
+        jobTitle: jobMap[app.job_id]?.title || 'a job',
+        name: profileMap[app.candidate_id]?.full_name || 'Candidate'
+      }))
+      // Only show applications where we could actually load the candidate's
+      // profile — if this filters everyone out, the "Employers can view
+      // profiles of their applicants" RLS policy on profiles is missing.
+      .filter(r => profileMap[r.candidateId]);
+
+    if (rows.length === 0) {
+      listEl.innerHTML = '<div class="empty-state">No candidates yet. Once people apply to your jobs, you\'ll see them here.</div>';
+      return;
+    }
+
+    listEl.innerHTML = rows.map(r => {
+      const statusClass = r.status === 'accepted' ? 'status-accepted'
+        : r.status === 'rejected' ? 'status-rejected' : '';
+      const statusLabel = r.status === 'accepted' ? 'Accepted'
+        : r.status === 'rejected' ? 'Passed' : 'New applicant';
+      const isDecided = r.status === 'accepted' || r.status === 'rejected';
+
+      return `
+        <div class="account-candidate-row">
+          <div class="account-candidate-avatar">${escapeHtml(getInitials(r.name))}</div>
+          <div class="account-candidate-info">
+            <div class="account-candidate-name">${escapeHtml(r.name)}</div>
+            <div class="account-candidate-role">Applied to ${escapeHtml(r.jobTitle)}</div>
+          </div>
+          <span class="account-candidate-status ${statusClass}">${statusLabel}</span>
+        </div>
+      `;
+    }).join('');
   }
 
   function goToDashboard() {
@@ -674,6 +803,7 @@
 
     updateVerificationBanner();
     await loadEmployerJobs();
+    await loadCandidates();
   }
 
   initEmployerAccountPage();
