@@ -354,18 +354,28 @@
 
       // Never show a job again once the person has applied to it — without
       // this, the same job kept reappearing indefinitely, and nothing
-      // stopped duplicate applications from piling up for it.
+      // stopped duplicate applications from piling up for it. Same idea
+      // now applies to skipped jobs via the skipped_jobs table, so a
+      // left-swipe is a real, permanent decision rather than something
+      // that resurfaces on the next reload.
       if (currentUserId) {
-        const { data: existingApps, error: appsError } = await sb
-          .from('applications')
-          .select('job_id')
-          .eq('candidate_id', currentUserId);
+        const [{ data: existingApps, error: appsError }, { data: existingSkips, error: skipsError }] = await Promise.all([
+          sb.from('applications').select('job_id').eq('candidate_id', currentUserId),
+          sb.from('skipped_jobs').select('job_id').eq('candidate_id', currentUserId),
+        ]);
 
         if (appsError) {
           console.warn('Could not load existing applications:', appsError);
         } else {
           const appliedJobIds = new Set((existingApps || []).map(a => a.job_id));
           results = results.filter(job => !appliedJobIds.has(job.id));
+        }
+
+        if (skipsError) {
+          console.warn('Could not load existing skips:', skipsError);
+        } else {
+          const skippedJobIds = new Set((existingSkips || []).map(s => s.job_id));
+          results = results.filter(job => !skippedJobIds.has(job.id));
         }
       }
 
@@ -654,6 +664,33 @@
     }
   }
 
+  // Mirrors recordApplication() for a left-swipe. Previously a skip only
+  // ever changed the in-memory `skipped` counter for this session — nothing
+  // was written to Supabase, so account.html's "Skipped jobs" list had
+  // nothing to read. This writes to the new skipped_jobs table (candidates
+  // have RLS rights on their own rows there, same pattern as applications).
+  async function recordSkip(job) {
+    if (!currentUserId || !job?.id) return;
+    try {
+      const { error } = await sb
+        .from('skipped_jobs')
+        .insert({
+          candidate_id: currentUserId,
+          job_id: job.id
+        });
+
+      if (error) {
+        // Duplicate skip (already skipped this job before) isn't a real
+        // failure from the person's perspective.
+        if (error.code !== '23505') {
+          console.warn('Could not record skip:', error);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not record skip server-side:', err);
+    }
+  }
+
   function animateSwipe(direction) {
     setupTopCard();
     if (!activeCard) return;
@@ -670,6 +707,7 @@
     } else {
       skipped++;
       showToast('Skipped');
+      recordSkip(job);
     }
 
     currentIndex++;
@@ -695,6 +733,21 @@
     }
   }
 
+  async function undoPersistedRecord(last) {
+    if (!currentUserId || !last.job?.id) return;
+    try {
+      if (last.direction === 'right') {
+        await sb.from('applications').delete()
+          .eq('candidate_id', currentUserId).eq('job_id', last.job.id);
+      } else {
+        await sb.from('skipped_jobs').delete()
+          .eq('candidate_id', currentUserId).eq('job_id', last.job.id);
+      }
+    } catch (err) {
+      console.warn('Could not undo persisted record:', err);
+    }
+  }
+
   function undo() {
     if (!history.length) {
       showToast('Nothing to undo');
@@ -707,6 +760,7 @@
     else skipped = Math.max(0, skipped - 1);
 
     currentIndex = last.index;
+    undoPersistedRecord(last);
     renderCards();
     showToast('↩ Undone');
   }
