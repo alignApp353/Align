@@ -379,6 +379,12 @@ select.form-input{
   align-items:center;
   justify-content:space-between;
   gap:12px;
+  cursor:pointer;
+  transition:border-color .2s, transform .2s;
+}
+.job-row-item:hover{
+  border-color:var(--brand);
+  transform:translateY(-1px);
 }
 .job-row-title{ font-size:14px; font-weight:500; color:var(--text); margin-bottom:3px; }
 .job-row-meta{ font-size:12px; color:var(--text-muted); }
@@ -702,7 +708,9 @@ async function checkFieldSpelling(inputEl, type){
 // Loads this candidate's own applications (RLS already lets a candidate
 // read their own rows) and joins in the job's title/company/location so
 // the "Applied jobs" list actually shows something, instead of the
-// static empty state it always displayed before.
+// static empty state it always displayed before. Each row is clickable
+// and takes the person to job-details.html for the full listing plus
+// their application status.
 async function loadAppliedJobs(){
   if(!currentUserId) return;
 
@@ -751,9 +759,12 @@ async function loadAppliedJobs(){
       : app.status === 'rejected' ? 'Not selected' : 'Applied';
 
     const metaParts = [job.company, job.job_type, job.location].filter(Boolean).join(' · ');
+    const detailsUrl = `job-details.html?job=${encodeURIComponent(job.id)}&app=${encodeURIComponent(app.id)}`;
 
     return `
-      <div class="job-row-item">
+      <div class="job-row-item" role="button" tabindex="0"
+        onclick="window.location.href='${detailsUrl}'"
+        onkeydown="if(event.key==='Enter'){ window.location.href='${detailsUrl}'; }">
         <div>
           <div class="job-row-title">${escapeHtml(job.title || 'Untitled role')}</div>
           <div class="job-row-meta">${escapeHtml(metaParts)}</div>
