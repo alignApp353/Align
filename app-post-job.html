@@ -315,7 +315,7 @@ const stepCopy = [
   ['Schedule','How will this job work?','Choose the employment type and where the work takes place.'],
   ['Pay','What does this role pay?','Clear pay information helps candidates make better decisions.'],
   ['Details','Describe the opportunity','Give candidates enough information to understand the actual role.'],
-  ['Review','Review your job post','Check everything before publishing it to Alygnn.']
+  ['Preview','See it like a candidate','Review the card, then open the full ad before publishing.']
 ];
 
 let currentStep = 1;
@@ -964,52 +964,79 @@ function showStep(step){
   el('subheading').textContent = copy[2];
   el('progress-bar').style.width = `${step * 20}%`;
   el('previous-btn').textContent = step === 1 ? 'Cancel' : 'Back';
-  el('next-btn').textContent = step === 5 ? 'Publish Job' : 'Continue';
+  el('next-btn').textContent = step === 5 ? 'Preview as Candidate' : 'Continue';
 
   if(step === 5) updatePreview();
   clearMessage();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-async function publishJob(){
+function saveDraftAndOpenPreview(){
   if(!employerVerified){
-    showMessage('Your business profile must be approved before you can publish a job.');
+    showMessage('Your business profile must be approved before you can preview and publish a job.');
     el('verification-lock').hidden = false;
     return;
   }
 
   const job = getJob();
-  const button = el('next-btn');
-  button.disabled = true;
-  button.textContent = 'Publishing…';
-
-  const jobPayload={
-    employer_id:session.user.id,
-    title:job.title,
-    company:job.company,
-    location:job.location,
-    job_type:job.job_type,
-    work_style:job.work_style,
-    salary:job.salary,
-    description:job.description,
-    requirements:job.requirements,
-    benefits:job.benefits,
-    status:'active',
-    created_at:new Date().toISOString()
+  const draft = {
+    ...job,
+    employer_id: session.user.id,
+    company_logo: profile?.company_logo || profile?.logo_url || localStorage.getItem('companyLogo') || '',
+    company_headline: profile?.company_headline || '',
+    company_website: profile?.company_website || '',
+    pay_period: el('pay-period').value,
+    pay_min: Number(el('pay-min').value) || null,
+    pay_max: Number(el('pay-max').value) || null,
+    created_at: new Date().toISOString()
   };
 
-  const { error } = await sb.from('jobs').insert(jobPayload);
+  sessionStorage.setItem('alygnnJobDraft', JSON.stringify(draft));
+  location.href = 'app-job-preview.html';
+}
 
-  if(error){
-    console.error('Job posting failed:',error);
-    showMessage('The job could not be published. Check your jobs table and Supabase policies.');
-    button.disabled = false;
-    button.textContent = 'Publish Job';
-    return;
+function restoreDraft(){
+  const raw = sessionStorage.getItem('alygnnJobDraft');
+  if(!raw) return;
+
+  try{
+    const draft = JSON.parse(raw);
+    if(draft.title) el('title').value = draft.title;
+    if(draft.location) el('location').value = draft.location;
+    if(draft.description) el('description').value = draft.description;
+    if(draft.requirements) el('requirements').value = draft.requirements;
+    if(draft.benefits) el('benefits').value = draft.benefits;
+    if(draft.pay_period) el('pay-period').value = draft.pay_period;
+    if(draft.pay_min != null) el('pay-min').value = draft.pay_min;
+    if(draft.pay_max != null) el('pay-max').value = draft.pay_max;
+
+    if(draft.job_type){
+      jobType = draft.job_type;
+      document.querySelectorAll('#job-type-options .choice').forEach(button => {
+        button.classList.toggle('active', button.dataset.value === jobType);
+      });
+    }
+
+    if(draft.work_style){
+      workStyle = draft.work_style;
+      document.querySelectorAll('#work-style-options .choice').forEach(button => {
+        button.classList.toggle('active', button.dataset.value === workStyle);
+      });
+    }
+
+    selectedOnetCode = draft.onet_soc_code || '';
+    selectedLocation = draft.location_city ? {
+      city: draft.location_city,
+      state_code: draft.location_state || null,
+      postal_code: draft.location_postal_code || null,
+      latitude: draft.location_latitude ?? null,
+      longitude: draft.location_longitude ?? null
+    } : null;
+
+    el('description-count').textContent = el('description').value.length;
+  }catch(error){
+    console.warn('Could not restore saved job draft:', error);
   }
-
-  showMessage('Your job is live. Opening your dashboard…','success');
-  setTimeout(() => location.replace('app-employer-dashboard.html'),900);
 }
 
 el('next-btn').addEventListener('click', async () => {
@@ -1025,7 +1052,7 @@ el('next-btn').addEventListener('click', async () => {
     return;
   }
 
-  await publishJob();
+  saveDraftAndOpenPreview();
 });
 
 el('previous-btn').addEventListener('click', () => {
@@ -1097,6 +1124,7 @@ el('description').addEventListener('input', () => {
 
     el('verification-lock').hidden = employerVerified;
     setupSuggestions();
+    restoreDraft();
     showStep(1);
   }catch(error){
     console.error(error);
