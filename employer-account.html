@@ -179,6 +179,44 @@
   }
   .account-candidate-status.status-accepted{ border-color:var(--mint); color:#2d8a57; background:var(--mint-tint); }
   .account-candidate-status.status-rejected{ border-color:var(--rose); color:#a05858; background:var(--rose-tint); }
+  .account-candidate-row{ cursor:pointer; transition:border-color .2s, transform .2s; }
+  .account-candidate-row:hover{ border-color:var(--brand); transform:translateY(-1px); }
+  .account-candidates-more{
+    text-align:center; font-size:13px; color:var(--brand); text-decoration:none;
+    display:block; padding:12px; font-weight:500;
+  }
+  .account-candidates-more:hover{ text-decoration:underline; }
+
+  /* Candidate full-profile modal — ported from employer-dashboard.html
+     so clicking a candidate here opens the same info without leaving
+     the account page. */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,37,48,0.45); z-index: 300; align-items: center; justify-content: center; padding: 24px; }
+  .modal-overlay.show { display: flex; }
+  .modal-box { background: var(--card-bg); border-radius: 20px; max-width: 560px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 32px; position: relative; }
+  .modal-close { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 18px; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 4px; }
+  .modal-close:hover { color: var(--text); }
+  .modal-top { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; padding-right: 30px; }
+  .modal-avatar { width: 60px; height: 60px; border-radius: 50%; background: var(--brand-tint); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; border: 1px solid var(--border); font-family: 'DM Serif Display', serif; color: var(--brand); }
+  .modal-name { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text); margin-bottom: 2px; }
+  .modal-role { font-size: 13px; color: var(--text-muted); }
+  .modal-section-title { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); font-weight: 500; margin: 20px 0 8px; }
+  .modal-section-title:first-of-type { margin-top: 4px; }
+  .modal-text { font-size: 14px; color: var(--text); line-height: 1.6; }
+  .modal-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .modal-tags .tag { font-size: 11px; padding: 3px 10px; border-radius: 100px; border: 1px solid var(--border); color: var(--text-muted); }
+  .modal-list { list-style: disc; padding-left: 18px; font-size: 14px; color: var(--text); line-height: 1.7; }
+  .modal-contact { font-size: 13px; color: var(--text-muted); }
+  .modal-resume-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--brand); color: white; border: none; text-decoration: none; border-radius: 10px; padding: 10px 18px; font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; margin-top: 4px; }
+  .modal-resume-btn:hover { opacity: 0.88; }
+  .modal-resume-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 24px; }
+  .modal-empty { font-size: 13px; color: var(--text-muted); font-style: italic; }
+  .btn-accept { flex: 1; background: var(--mint); color: white; border: none; border-radius: 8px; padding: 9px; font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+  .btn-accept:hover { opacity: 0.85; }
+  .btn-accept:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-pass { flex: 1; background: white; color: var(--text-muted); border: 1px solid var(--border); border-radius: 8px; padding: 9px; font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+  .btn-pass:hover { border-color: var(--rose); color: var(--rose); }
+  .btn-pass:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -284,6 +322,10 @@
     </div>
   </div>
 
+</div>
+
+<div class="modal-overlay" id="candidate-modal-overlay" onclick="if (event.target === this) closeCandidateModal()">
+  <div class="modal-box" id="candidate-modal-box"></div>
 </div>
 
 <script>
@@ -652,18 +694,14 @@
     `).join('');
   }
 
-  // ---- Candidates (compact summary version of employer-dashboard.html's
-  // Candidates panel) — same data source and RLS requirements:
-  //   1. Employers can SELECT applications where job_id belongs to them
-  //   2. Employers can SELECT profiles of candidates who applied to their jobs
-  //   3. Employers can UPDATE applications for their own jobs (for Accept/Pass)
-  // This previously had no loadCandidates() at all — the section was just
-  // static empty-state HTML that never queried anything.
+  let accountCandidates = [];
+
   async function loadCandidates() {
     const listEl = document.getElementById('account-candidates-list');
     if (!currentUserId || !listEl) return;
 
     if (employerJobs.length === 0) {
+      accountCandidates = [];
       listEl.innerHTML = '<div class="empty-state">No candidates yet. Once people apply to your jobs, you\'ll see them here.</div>';
       return;
     }
@@ -683,15 +721,19 @@
     }
 
     if (!apps || apps.length === 0) {
+      accountCandidates = [];
       listEl.innerHTML = '<div class="empty-state">No candidates yet. Once people apply to your jobs, you\'ll see them here.</div>';
       return;
     }
 
     const candidateIds = [...new Set(apps.map(a => a.candidate_id))];
 
+    // Includes resume_file_path/resume_data (unlike the earlier compact-only
+    // version) since the modal needs the full profile to show skills,
+    // experience, education, and a resume link.
     const { data: profilesData, error: profilesError } = await sb
       .from('profiles')
-      .select('id, full_name')
+      .select('id, full_name, resume_file_path, resume_data')
       .in('id', candidateIds);
 
     if (profilesError) {
@@ -704,42 +746,220 @@
     const jobMap = {};
     employerJobs.forEach(j => { jobMap[j.id] = j; });
 
-    const rows = apps
+    accountCandidates = apps
       .map(app => ({
         applicationId: app.id,
-        candidateId: app.candidate_id,
         status: app.status || 'applied',
-        jobTitle: jobMap[app.job_id]?.title || 'a job',
-        name: profileMap[app.candidate_id]?.full_name || 'Candidate'
+        job: jobMap[app.job_id] || null,
+        profile: profileMap[app.candidate_id] || null
       }))
       // Only show applications where we could actually load the candidate's
       // profile — if this filters everyone out, the "Employers can view
       // profiles of their applicants" RLS policy on profiles is missing.
-      .filter(r => profileMap[r.candidateId]);
+      .filter(c => c.profile);
 
-    if (rows.length === 0) {
+    renderAccountCandidates();
+  }
+
+  // Shows just the first 3 candidates on the account page (full list with
+  // Accept/Pass/filters lives on employer-dashboard.html) — with a "View
+  // all N candidates" link beneath if there are more than 3.
+  function renderAccountCandidates() {
+    const listEl = document.getElementById('account-candidates-list');
+    if (!listEl) return;
+
+    if (accountCandidates.length === 0) {
       listEl.innerHTML = '<div class="empty-state">No candidates yet. Once people apply to your jobs, you\'ll see them here.</div>';
       return;
     }
 
-    listEl.innerHTML = rows.map(r => {
-      const statusClass = r.status === 'accepted' ? 'status-accepted'
-        : r.status === 'rejected' ? 'status-rejected' : '';
-      const statusLabel = r.status === 'accepted' ? 'Accepted'
-        : r.status === 'rejected' ? 'Passed' : 'New applicant';
-      const isDecided = r.status === 'accepted' || r.status === 'rejected';
+    const PREVIEW_COUNT = 3;
+    const visible = accountCandidates.slice(0, PREVIEW_COUNT);
+    const remaining = accountCandidates.length - visible.length;
+
+    const rowsHtml = visible.map(c => {
+      const name = c.profile.full_name || 'Candidate';
+      const jobTitle = c.job ? c.job.title : 'a job';
+      const statusClass = c.status === 'accepted' ? 'status-accepted'
+        : c.status === 'rejected' ? 'status-rejected' : '';
+      const statusLabel = c.status === 'accepted' ? 'Accepted'
+        : c.status === 'rejected' ? 'Passed' : 'New applicant';
 
       return `
-        <div class="account-candidate-row">
-          <div class="account-candidate-avatar">${escapeHtml(getInitials(r.name))}</div>
+        <div class="account-candidate-row" onclick="openCandidateModal('${c.applicationId}')">
+          <div class="account-candidate-avatar">${escapeHtml(getInitials(name))}</div>
           <div class="account-candidate-info">
-            <div class="account-candidate-name">${escapeHtml(r.name)}</div>
-            <div class="account-candidate-role">Applied to ${escapeHtml(r.jobTitle)}</div>
+            <div class="account-candidate-name">${escapeHtml(name)}</div>
+            <div class="account-candidate-role">Applied to ${escapeHtml(jobTitle)}</div>
           </div>
           <span class="account-candidate-status ${statusClass}">${statusLabel}</span>
         </div>
       `;
     }).join('');
+
+    const moreHtml = remaining > 0
+      ? `<a class="account-candidates-more" href="employer-dashboard.html">… view all ${accountCandidates.length} candidates →</a>`
+      : '';
+
+    listEl.innerHTML = rowsHtml + moreHtml;
+  }
+
+  // ---- Candidate full-profile modal — ported directly from
+  // employer-dashboard.html so clicking a candidate here shows the same
+  // info without navigating away. ----
+  function openCandidateModal(applicationId) {
+    const c = accountCandidates.find(cand => cand.applicationId === applicationId);
+    if (!c) return;
+
+    document.getElementById('candidate-modal-box').innerHTML = renderCandidateModal(c);
+    document.getElementById('candidate-modal-overlay').classList.add('show');
+  }
+
+  function closeCandidateModal() {
+    document.getElementById('candidate-modal-overlay').classList.remove('show');
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeCandidateModal();
+  });
+
+  function renderCandidateModal(c) {
+    const profile = c.profile;
+    const name = profile.full_name || 'Candidate';
+    const initials = getInitials(name);
+    const jobTitle = c.job ? c.job.title : 'a job';
+    const resumePath = profile.resume_file_path;
+    const isDecided = c.status === 'accepted' || c.status === 'rejected';
+
+    let resumeData = null;
+    try {
+      resumeData = typeof profile.resume_data === 'string'
+        ? JSON.parse(profile.resume_data)
+        : (profile.resume_data || null);
+    } catch (e) {
+      resumeData = null;
+    }
+
+    const skills = Array.isArray(resumeData?.skills) ? resumeData.skills : [];
+    const experience = Array.isArray(resumeData?.experience) ? resumeData.experience : [];
+    const education = Array.isArray(resumeData?.education) ? resumeData.education : [];
+    const summary = typeof resumeData?.summary === 'string' ? resumeData.summary : '';
+    const email = resumeData?.email || '';
+    const phone = resumeData?.phone || '';
+
+    const skillsHtml = skills.length
+      ? `<div class="modal-tags">${skills.map(s => `<span class="tag">${escapeHtml(s)}</span>`).join('')}</div>`
+      : `<div class="modal-empty">No skills listed.</div>`;
+
+    const experienceHtml = experience.length
+      ? `<ul class="modal-list">${experience.map(exp => {
+          const label = typeof exp === 'string'
+            ? exp
+            : [exp.title, exp.company, exp.dates].filter(Boolean).join(' — ');
+          return `<li>${escapeHtml(label)}</li>`;
+        }).join('')}</ul>`
+      : `<div class="modal-empty">No work experience listed.</div>`;
+
+    const educationHtml = education.length
+      ? `<ul class="modal-list">${education.map(ed => {
+          const label = typeof ed === 'string'
+            ? ed
+            : [ed.degree, ed.school, ed.dates].filter(Boolean).join(' — ');
+          return `<li>${escapeHtml(label)}</li>`;
+        }).join('')}</ul>`
+      : `<div class="modal-empty">No education listed.</div>`;
+
+    const contactLine = [email, phone].filter(Boolean).map(escapeHtml).join(' · ');
+
+    return `
+      <button type="button" class="modal-close" onclick="closeCandidateModal()" aria-label="Close">✕</button>
+      <div class="modal-top">
+        <div class="modal-avatar">${escapeHtml(initials)}</div>
+        <div>
+          <div class="modal-name">${escapeHtml(name)}</div>
+          <div class="modal-role">Applied to ${escapeHtml(jobTitle)}</div>
+        </div>
+      </div>
+
+      ${contactLine ? `<div class="modal-contact" style="margin-top:6px;">${contactLine}</div>` : ''}
+
+      ${summary ? `<div class="modal-section-title">Summary</div><div class="modal-text">${escapeHtml(summary)}</div>` : ''}
+
+      <div class="modal-section-title">Skills</div>
+      ${skillsHtml}
+
+      <div class="modal-section-title">Experience</div>
+      ${experienceHtml}
+
+      <div class="modal-section-title">Education</div>
+      ${educationHtml}
+
+      ${resumePath
+        ? `<div class="modal-section-title">Resume</div><button type="button" class="modal-resume-btn" onclick="openResume('${escapeHtml(resumePath)}', this)">📄 View resume</button>`
+        : `<div class="modal-section-title">Resume</div><div class="modal-empty">This candidate hasn't uploaded a resume.</div>`}
+
+      <div class="modal-actions">
+        <button class="btn-accept" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'accepted'); closeCandidateModal();">Accept</button>
+        <button class="btn-pass" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'rejected'); closeCandidateModal();">Pass</button>
+      </div>
+    `;
+  }
+
+  async function openResume(path, btn) {
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Opening…';
+
+    try {
+      const { data, error } = await sb.storage
+        .from('resumes')
+        .createSignedUrl(path, 60);
+
+      if (error || !data?.signedUrl) {
+        console.error('Failed to create signed resume URL:', error);
+        showToast('Could not open this resume. It may not exist, or you may not have access to it.');
+        return;
+      }
+
+      window.open(data.signedUrl, '_blank', 'noopener');
+    } catch (err) {
+      console.error('openResume error:', err);
+      showToast('Could not open this resume.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  }
+
+  async function updateApplicationStatus(applicationId, status) {
+    const { error } = await sb
+      .from('applications')
+      .update({ status })
+      .eq('id', applicationId);
+
+    if (error) {
+      console.error('Failed to update application status:', error);
+      showToast('Could not update candidate status. You may need the employer UPDATE policy on applications.');
+      return;
+    }
+
+    showToast(status === 'accepted' ? 'Candidate accepted.' : 'Candidate passed.');
+    await loadCandidates();
+  }
+
+  let accountToastTimer;
+  function showToast(msg) {
+    let t = document.getElementById('account-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'account-toast';
+      t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:white;padding:10px 20px;border-radius:100px;font-size:13px;font-weight:500;transition:transform .3s ease;z-index:400;white-space:nowrap;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(accountToastTimer);
+    accountToastTimer = setTimeout(() => { t.style.transform = 'translateX(-50%) translateY(80px)'; }, 2600);
   }
 
   function goToDashboard() {
