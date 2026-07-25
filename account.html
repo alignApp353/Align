@@ -788,6 +788,16 @@ async function loadAppliedJobs(){
 
     const metaParts = [job.company, job.job_type, job.location].filter(Boolean).join(' · ');
     const detailsUrl = `job-details.html?job=${encodeURIComponent(job.id)}&app=${encodeURIComponent(app.id)}`;
+    const jobIdAttr = escapeHtml(job.id);
+
+    // Only offer "Skip" (withdraw) while the application is still pending —
+    // once an employer has accepted or rejected it, there's a real decision
+    // on record and this shouldn't let the person quietly erase that.
+    const skipButtonHtml = app.status === 'applied' || !app.status
+      ? `<div class="job-row-buttons">
+          <button type="button" class="job-action-btn restore" onclick="event.stopPropagation(); withdrawApplication('${jobIdAttr}')">Skip</button>
+        </div>`
+      : '';
 
     return `
       <div class="job-row-item" role="button" tabindex="0"
@@ -797,12 +807,46 @@ async function loadAppliedJobs(){
           <div class="job-row-title">${escapeHtml(job.title || 'Untitled role')}</div>
           <div class="job-row-meta">${escapeHtml(metaParts)}</div>
         </div>
-        <span class="job-row-status ${statusClass}">${statusLabel}</span>
+        <div class="job-row-actions">
+          <span class="job-row-status ${statusClass}">${statusLabel}</span>
+          ${skipButtonHtml}
+        </div>
       </div>
     `;
   }).join('');
 
   if(emptyState) emptyState.style.display = 'none';
+}
+
+// Mirrors applyFromSkipped() in the other direction — removes the
+// application (so it no longer shows on the employer's Candidates page)
+// and records it as a skip instead, in case someone applied by mistake.
+async function withdrawApplication(jobId){
+  if(!currentUserId || !jobId) return;
+
+  const { error: deleteError } = await sb
+    .from('applications')
+    .delete()
+    .eq('candidate_id', currentUserId)
+    .eq('job_id', jobId);
+
+  if(deleteError){
+    console.error('Failed to withdraw application:', deleteError);
+    showToast('Could not skip — try again.');
+    return;
+  }
+
+  const { error: insertError } = await sb
+    .from('skipped_jobs')
+    .insert({ candidate_id: currentUserId, job_id: jobId });
+
+  if(insertError && insertError.code !== '23505'){
+    console.error('Failed to record skip after withdrawing:', insertError);
+  }
+
+  showToast('Moved to skipped.');
+  await loadAppliedJobs();
+  await loadSkippedJobs();
 }
 
 // Mirrors loadAppliedJobs() for the "Skipped jobs" list — reads this
@@ -866,7 +910,6 @@ async function loadSkippedJobs(){
           <div class="job-row-meta">${escapeHtml(metaParts)}</div>
         </div>
         <div class="job-row-actions">
-          <span class="job-row-status">Skipped</span>
           <div class="job-row-buttons">
             <button type="button" class="job-action-btn apply" onclick="event.stopPropagation(); applyFromSkipped('${jobIdAttr}')">Apply</button>
             <button type="button" class="job-action-btn restore" onclick="event.stopPropagation(); restoreSkippedJob('${jobIdAttr}')">Undo skip</button>
