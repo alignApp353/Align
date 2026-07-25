@@ -499,6 +499,25 @@ select.form-input{
   text-decoration:underline;
 }
 
+.resume-card-wrap{
+  flex:1;
+  min-width:200px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.resume-card-wrap .link-card{
+  flex:1;
+  min-width:0;
+}
+#resume-replace-link{
+  font-size:12px;
+  color:var(--text-muted);
+  text-decoration:underline;
+  text-align:center;
+}
+#resume-replace-link:hover{ color:var(--brand); }
+
 @media(max-width:640px){
   nav{
     padding:0 18px;
@@ -628,11 +647,14 @@ select.form-input{
         <div class="sub">Update salary, location, work style</div>
       </a>
 
-      <a href="align-upload.html" class="link-card" id="resume-card">
-        <span class="icon">📄</span>
-        <div class="label" id="resume-card-label">Upload resume</div>
-        <div class="sub" id="resume-card-sub">Add your resume so employers can see your background</div>
-      </a>
+      <div class="resume-card-wrap">
+        <a href="align-upload.html" class="link-card" id="resume-card">
+          <span class="icon">📄</span>
+          <div class="label" id="resume-card-label">Upload resume</div>
+          <div class="sub" id="resume-card-sub">Add your resume so employers can see your background</div>
+        </a>
+        <a href="align-upload.html" id="resume-replace-link" style="display:none;">Replace resume</a>
+      </div>
 
       <a href="account-settings.html" class="link-card">
         <span class="icon">🔒</span>
@@ -662,6 +684,8 @@ const initialsEl = document.getElementById('avatar-initials');
 const resumeCard = document.getElementById('resume-card');
 const resumeLabel = document.getElementById('resume-card-label');
 const resumeSub = document.getElementById('resume-card-sub');
+const resumeReplaceLink = document.getElementById('resume-replace-link');
+let currentResumeFilePath = null;
 
 function showPage(){
   loadingEl.classList.add('hide');
@@ -1035,18 +1059,52 @@ async function saveProfileField(column, value){
 }
 
 function renderResumeCardFast(resumeFilePath){
+  currentResumeFilePath = resumeFilePath || null;
+
   if(!resumeFilePath){
     resumeLabel.textContent = 'Upload resume';
     resumeSub.textContent = 'Add your resume so employers can see your background';
     resumeCard.href = 'align-upload.html';
     resumeCard.removeAttribute('target');
+    resumeCard.onclick = null;
+    resumeReplaceLink.style.display = 'none';
     return;
   }
 
+  // FIX: this previously just relabeled the card to say "View resume" but
+  // left its href pointing at align-upload.html — the upload flow — so
+  // clicking it always sent the person back to "drop your resume here"
+  // instead of actually opening the file they'd already uploaded. Now it
+  // fetches a short-lived signed URL for the real file in storage and
+  // opens that. Replacing the file still needs align-upload.html, so
+  // that's kept as its own small link beneath the card.
   resumeLabel.textContent = 'View resume';
-  resumeSub.innerHTML = 'Open or replace your uploaded resume';
-  resumeCard.href = 'align-upload.html';
-  resumeCard.removeAttribute('target');
+  resumeSub.textContent = 'Open your uploaded resume';
+  resumeCard.href = '#';
+  resumeCard.onclick = openResumeFile;
+  resumeReplaceLink.style.display = 'block';
+}
+
+async function openResumeFile(e){
+  e.preventDefault();
+  if(!currentResumeFilePath) return;
+
+  const orig = resumeLabel.textContent;
+  resumeLabel.textContent = 'Opening…';
+
+  const { data, error } = await sb.storage
+    .from('resumes')
+    .createSignedUrl(currentResumeFilePath, 60);
+
+  resumeLabel.textContent = orig;
+
+  if(error || !data?.signedUrl){
+    console.error('Failed to get resume URL:', error);
+    showToast('Could not open resume — try again.');
+    return;
+  }
+
+  window.open(data.signedUrl, '_blank');
 }
 
 function escapeHtml(value){
