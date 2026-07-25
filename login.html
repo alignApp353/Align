@@ -372,6 +372,25 @@
       return;
     }
 
+    // Supabase's signUp() does NOT return an error for an email that's
+    // already registered — by design, so the API can't be used to probe
+    // which emails exist. Instead, when this happens, it returns a user
+    // object whose `identities` array is empty. (A genuinely brand-new
+    // signup always has at least one identity — the "email" one just
+    // created.) So this is the only reliable way to detect "this email
+    // already has an account" and stop the flow here instead of showing
+    // the false "Account created!" message and re-upserting over the
+    // existing profile row.
+    const isExistingAccount = !!data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0;
+
+    if (isExistingAccount) {
+      btn.disabled = false; btn.textContent = orig;
+      showMsg('An account with this email already exists. Try signing in instead.');
+      switchTab('login');
+      document.getElementById('email').value = email;
+      return;
+    }
+
     // Save role, name, and company to the profiles table immediately.
     // This ensures account.html can route correctly without relying
     // solely on user_metadata — which is what was causing the
