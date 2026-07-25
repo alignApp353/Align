@@ -401,6 +401,34 @@ select.form-input{
 .job-row-status.status-accepted{ border-color:var(--sage); color:#2d8a57; background:rgba(140,182,155,.12); }
 .job-row-status.status-rejected{ border-color:#D79A9A; color:#a05858; background:rgba(215,154,154,.12); }
 
+.job-row-actions{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:8px;
+  flex-shrink:0;
+}
+.job-row-buttons{
+  display:flex;
+  gap:6px;
+}
+.job-action-btn{
+  font-size:11px;
+  font-weight:500;
+  padding:5px 12px;
+  border-radius:100px;
+  border:1px solid var(--border);
+  background:white;
+  cursor:pointer;
+  font-family:'DM Sans', Arial, sans-serif;
+  transition:all .2s;
+  white-space:nowrap;
+}
+.job-action-btn:hover{ border-color:var(--brand); color:var(--brand); }
+.job-action-btn.apply{ color:#2d8a57; border-color:var(--sage); background:rgba(140,182,155,.08); }
+.job-action-btn.apply:hover{ background:rgba(140,182,155,.18); border-color:var(--sage); color:#2d8a57; }
+.job-action-btn.restore{ color:var(--text-muted); }
+
 .field-error{
   font-size:11px;
   color:#a05858;
@@ -827,6 +855,7 @@ async function loadSkippedJobs(){
   listEl.innerHTML = rows.map(({ job }) => {
     const metaParts = [job.company, job.job_type, job.location].filter(Boolean).join(' · ');
     const detailsUrl = `job-details.html?job=${encodeURIComponent(job.id)}`;
+    const jobIdAttr = escapeHtml(job.id);
 
     return `
       <div class="job-row-item" role="button" tabindex="0"
@@ -836,12 +865,71 @@ async function loadSkippedJobs(){
           <div class="job-row-title">${escapeHtml(job.title || 'Untitled role')}</div>
           <div class="job-row-meta">${escapeHtml(metaParts)}</div>
         </div>
-        <span class="job-row-status">Skipped</span>
+        <div class="job-row-actions">
+          <span class="job-row-status">Skipped</span>
+          <div class="job-row-buttons">
+            <button type="button" class="job-action-btn apply" onclick="event.stopPropagation(); applyFromSkipped('${jobIdAttr}')">Apply</button>
+            <button type="button" class="job-action-btn restore" onclick="event.stopPropagation(); restoreSkippedJob('${jobIdAttr}')">Undo skip</button>
+          </div>
+        </div>
       </div>
     `;
   }).join('');
 
   if(emptyState) emptyState.style.display = 'none';
+}
+
+// Lets someone fix an accidental skip directly from the account page —
+// "Apply" records a real application (same insert loadAppliedJobs already
+// reads) and removes the skipped_jobs row so the job doesn't show up in
+// both lists at once. "Undo skip" just removes the skipped_jobs row,
+// which puts the job back into rotation in the swipe deck (loadJobs()
+// there excludes anything still in skipped_jobs).
+async function applyFromSkipped(jobId){
+  if(!currentUserId || !jobId) return;
+
+  const { error: insertError } = await sb
+    .from('applications')
+    .insert({ candidate_id: currentUserId, job_id: jobId, status: 'applied' });
+
+  if(insertError && insertError.code !== '23505'){
+    console.error('Failed to apply from skipped list:', insertError);
+    showToast('Could not apply — try again.');
+    return;
+  }
+
+  const { error: deleteError } = await sb
+    .from('skipped_jobs')
+    .delete()
+    .eq('candidate_id', currentUserId)
+    .eq('job_id', jobId);
+
+  if(deleteError){
+    console.error('Failed to clear skipped row after applying:', deleteError);
+  }
+
+  showToast('✓ Added to applications!');
+  await loadAppliedJobs();
+  await loadSkippedJobs();
+}
+
+async function restoreSkippedJob(jobId){
+  if(!currentUserId || !jobId) return;
+
+  const { error } = await sb
+    .from('skipped_jobs')
+    .delete()
+    .eq('candidate_id', currentUserId)
+    .eq('job_id', jobId);
+
+  if(error){
+    console.error('Failed to undo skip:', error);
+    showToast('Could not undo — try again.');
+    return;
+  }
+
+  showToast('Undone — you\'ll see this job again in your swipe deck.');
+  await loadSkippedJobs();
 }
 
 function getInitials(name){
