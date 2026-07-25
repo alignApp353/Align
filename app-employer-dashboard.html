@@ -1,579 +1,1641 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#F6F8F7">
-<title>Employer Dashboard | Alygnn</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
-:root{--brand:#5D7FA3;--brand-dark:#345F91;--sage:#8CB69B;--bg:#F6F8F7;--card:#fff;--text:#172333;--muted:#59697A;--border:#DDE3E8;--green:#2A9D5B;--green-bg:#EAF7EF;--blue-bg:#EBF2FA;--purple-bg:#F1EDFB;--amber:#D99016;--amber-bg:#FFF4DE}
-[hidden]{display:none!important}html,body{width:100%;min-height:100%}body{background:var(--bg);color:var(--text);padding-bottom:calc(78px + env(safe-area-inset-bottom))}button,a,input{font:inherit}button{cursor:pointer}
-.header{position:sticky;top:0;z-index:50;min-height:78px;padding:calc(12px + env(safe-area-inset-top)) 18px 12px;display:grid;grid-template-columns:48px 1fr 48px;align-items:center;background:rgba(246,248,247,.96);border-bottom:1px solid var(--border);backdrop-filter:blur(18px)}
-.icon-btn{width:44px;height:44px;border:1px solid var(--border);border-radius:50%;background:#fff;color:var(--text);display:flex;align-items:center;justify-content:center;font-size:21px;box-shadow:0 4px 14px rgba(23,35,51,.06)}
-.logo{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:29px;color:var(--brand)}.logo span{color:var(--sage)}
-.notification{position:relative}.notification-badge{position:absolute;top:-2px;right:-2px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#E64141;color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
-.page{max-width:560px;margin:0 auto;padding:21px 16px 30px}.welcome h1{font-size:25px;line-height:1.15;letter-spacing:-.3px}.welcome p{margin-top:6px;color:var(--muted);font-size:14px;min-height:20px;transition:opacity .2s ease}
-.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:20px}.metric{min-height:156px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:21px;display:flex;flex-direction:column;justify-content:space-between}
-.metric-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:900}.metric-icon.jobs{background:var(--blue-bg);color:#2E68B7}.metric-icon.people{background:var(--green-bg);color:var(--green)}.metric-icon.calendar{background:var(--purple-bg);color:#6548C7}.metric-icon.hired{background:var(--amber-bg);color:var(--amber)}
-.metric-label{font-size:13px;font-weight:700}.metric-value{margin-top:4px;font-size:30px;font-weight:900;letter-spacing:-.7px}.metric-note{margin-top:4px;font-size:11px;color:var(--muted)}.metric-note.positive{color:var(--green)}
-.section{margin-top:16px;background:#fff;border:1px solid var(--border);border-radius:22px;overflow:hidden}.section-head{padding:17px 16px 13px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border)}.section-title{font-size:16px;font-weight:900}.section-link{border:none;background:transparent;color:var(--brand-dark);font-size:12px;font-weight:900}
-.candidate-row{width:100%;padding:14px 15px;border:none;border-bottom:1px solid var(--border);background:#fff;display:grid;grid-template-columns:49px 1fr auto;gap:12px;align-items:center;text-align:left}.candidate-row:last-child{border-bottom:none}.candidate-row:active{background:#F8FAFB}.avatar{width:49px;height:49px;border-radius:50%;background:linear-gradient(145deg,#EEF3F7,#DDE6ED);color:var(--brand-dark);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px}.candidate-name{font-size:14px;font-weight:900}.candidate-job{margin-top:3px;color:var(--muted);font-size:11px}.candidate-meta{margin-top:7px;display:flex;flex-wrap:wrap;gap:7px;align-items:center}.score-pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:5px 9px;background:var(--green-bg);color:var(--green);font-size:10px;font-weight:900}.score-number{font-size:12px}.fit-label,.status{border-radius:999px;padding:5px 8px;font-size:10px;font-weight:900}.fit-exceptional,.fit-excellent{background:var(--green-bg);color:var(--green)}.fit-strong{background:var(--blue-bg);color:#2E68B7}.fit-good{background:#E9F6F4;color:#247C72}.fit-moderate{background:var(--amber-bg);color:var(--amber)}.fit-review{background:#EEF1F4;color:#5A6672}.status.new{color:var(--green);background:var(--green-bg)}.status.interview{background:var(--blue-bg);color:#2E68B7}.status.reviewed{background:#EEF1F4;color:#5A6672}.chevron{color:#8A98A8;font-size:23px}
-.activity-row{padding:14px 15px;display:grid;grid-template-columns:42px 1fr auto;gap:11px;align-items:center;border-bottom:1px solid var(--border)}.activity-row:last-child{border-bottom:none}.activity-icon{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:18px}.activity-icon.application{background:var(--green-bg);color:var(--green)}.activity-icon.interview{background:var(--purple-bg);color:#6548C7}.activity-icon.job{background:var(--amber-bg);color:var(--amber)}.activity-title{font-size:12px;font-weight:800;line-height:1.35}.activity-sub{margin-top:3px;color:var(--muted);font-size:11px}.activity-time{color:var(--muted);font-size:10px;white-space:nowrap}
-.post-btn{width:100%;min-height:55px;margin-top:16px;border:none;border-radius:17px;background:var(--brand-dark);color:#fff;font-size:15px;font-weight:900;box-shadow:0 8px 21px rgba(52,95,145,.18)}
-.empty{padding:28px 18px;text-align:center;color:var(--muted);font-size:13px;line-height:1.55}.loading-overlay{position:fixed;inset:0;z-index:100;background:rgba(246,248,247,.96);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px}.spinner{width:42px;height:42px;border:4px solid #E5EAEE;border-top-color:var(--brand);border-radius:50%;animation:spin .75s linear infinite}.loading-copy{color:var(--muted);font-size:13px;font-weight:700}@keyframes spin{to{transform:rotate(360deg)}}
-.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:60;min-height:72px;padding:9px 7px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(3,1fr);backdrop-filter:blur(18px)}.nav-item{border:none;background:transparent;color:#6C7988;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:9px;font-weight:800}.nav-icon{font-size:20px}.nav-item.active{color:var(--brand-dark)}
-.menu-sheet{position:fixed;inset:0;z-index:90;background:rgba(23,35,51,.28);display:flex;align-items:flex-end}.menu-panel{width:100%;background:#fff;border-radius:25px 25px 0 0;padding:12px 18px calc(24px + env(safe-area-inset-bottom))}.menu-grip{width:45px;height:5px;margin:0 auto 18px;border-radius:999px;background:#DCE2E7}.menu-title{font-size:20px;font-weight:900;margin-bottom:10px}.menu-link{width:100%;min-height:52px;border:none;border-bottom:1px solid var(--border);background:#fff;color:var(--text);display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:800}.score-sheet{position:fixed;inset:0;z-index:95;background:rgba(23,35,51,.34);display:flex;align-items:flex-end}.score-panel{width:100%;max-height:88vh;overflow:auto;background:#fff;border-radius:25px 25px 0 0;padding:12px 20px calc(24px + env(safe-area-inset-bottom))}.score-hero{text-align:center;padding:8px 0 18px}.score-hero-number{font-size:54px;line-height:1;font-weight:900;color:var(--brand-dark)}.score-hero-label{margin-top:5px;font-size:11px;font-weight:900;letter-spacing:1.4px;color:var(--muted)}.score-hero-fit{margin-top:9px;font-size:15px;font-weight:900}.score-copy{padding:16px 0;border-top:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--muted)}.score-scale{display:grid;gap:9px}.score-scale-row{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border:1px solid var(--border);border-radius:13px;font-size:12px;font-weight:800}.score-close{width:100%;min-height:49px;margin-top:16px;border:none;border-radius:14px;background:var(--brand-dark);color:#fff;font-weight:900}.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));z-index:120;transform:translate(-50%,18px);width:calc(100% - 32px);max-width:440px;padding:13px 15px;border-radius:14px;background:#172333;color:#fff;font-size:12px;font-weight:800;text-align:center;opacity:0;pointer-events:none;transition:.2s ease}.toast.show{opacity:1;transform:translate(-50%,0)}
-@media(max-width:370px){.page{padding-left:12px;padding-right:12px}.metric{min-height:146px;padding:14px}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#F6F8F7">
+  <title>Employer Workspace | Alygnn</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+      font-family:'DM Sans',Arial,sans-serif!important;
+    }
+
+    :root{
+      --brand:#5D7FA3;
+      --brand-dark:#345F91;
+      --brand-soft:#EAF0F6;
+      --sage:#8CB69B;
+      --bg:#F6F8F7;
+      --card:#FFFFFF;
+      --text:#172333;
+      --muted:#647282;
+      --border:#DDE3E8;
+      --border-soft:#E9EEF1;
+      --green:#2A9D5B;
+      --green-bg:#EAF7EF;
+      --blue-bg:#EBF2FA;
+      --purple:#6A52C7;
+      --purple-bg:#F1EDFB;
+      --amber:#D99016;
+      --amber-bg:#FFF4DE;
+      --danger:#C74747;
+      --danger-bg:#FCECEC;
+      --shadow-sm:0 7px 22px rgba(23,35,51,.06);
+      --shadow-md:0 18px 50px rgba(23,35,51,.10);
+    }
+
+    [hidden]{display:none!important}
+
+    html,body{
+      width:100%;
+      min-height:100%;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    body{
+      padding-bottom:calc(88px + env(safe-area-inset-bottom));
+      overflow-x:hidden;
+    }
+
+    button,a,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+
+    .shell{
+      width:100%;
+      max-width:760px;
+      margin:0 auto;
+    }
+
+    .header{
+      position:sticky;
+      top:0;
+      z-index:50;
+      min-height:78px;
+      padding:calc(12px + env(safe-area-inset-top)) 16px 11px;
+      display:grid;
+      grid-template-columns:46px 1fr 46px;
+      align-items:center;
+      background:rgba(246,248,247,.92);
+      border-bottom:1px solid rgba(221,227,232,.8);
+      backdrop-filter:blur(22px);
+      -webkit-backdrop-filter:blur(22px);
+    }
+
+    .icon-btn{
+      width:42px;
+      height:42px;
+      border:1px solid var(--border);
+      border-radius:50%;
+      background:#fff;
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:19px;
+      box-shadow:var(--shadow-sm);
+      transition:.18s ease;
+    }
+
+    .icon-btn:active{transform:scale(.96)}
+
+    .logo{
+      text-align:center;
+      font-family:'DM Serif Display',Georgia,serif!important;
+      font-size:29px;
+      letter-spacing:-.2px;
+      color:var(--brand);
+    }
+
+    .logo span{color:var(--sage)}
+
+    .notification{position:relative}
+
+    .notification-badge{
+      position:absolute;
+      top:-2px;
+      right:-2px;
+      min-width:18px;
+      height:18px;
+      padding:0 5px;
+      border-radius:999px;
+      background:#E64141;
+      color:#fff;
+      font-size:9px;
+      font-weight:900;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:2px solid var(--bg);
+    }
+
+    .page{padding:22px 16px 34px}
+
+    .view{
+      animation:fade .2s ease;
+      transform-origin:top center;
+    }
+
+    .view.enter{animation:slide .24s cubic-bezier(.2,.7,.2,1)}
+
+    @keyframes fade{
+      from{opacity:.35}
+      to{opacity:1}
+    }
+
+    @keyframes slide{
+      from{opacity:.25;transform:translateY(10px)}
+      to{opacity:1;transform:none}
+    }
+
+    .eyebrow{
+      color:var(--brand-dark);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:1.3px;
+      text-transform:uppercase;
+      margin-bottom:7px;
+    }
+
+    .welcome h1,.page-title{
+      font-size:30px;
+      line-height:1.08;
+      letter-spacing:-.8px;
+      font-weight:900;
+    }
+
+    .welcome p,.page-sub{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.55;
+    }
+
+    .hero-card{
+      margin-top:18px;
+      padding:20px;
+      border-radius:24px;
+      background:
+        radial-gradient(circle at top right,rgba(140,182,155,.28),transparent 34%),
+        linear-gradient(145deg,#355F90,#527CA8);
+      color:#fff;
+      box-shadow:0 22px 55px rgba(52,95,145,.22);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .hero-card:after{
+      content:'';
+      position:absolute;
+      width:120px;
+      height:120px;
+      border-radius:50%;
+      right:-40px;
+      bottom:-45px;
+      background:rgba(255,255,255,.08);
+    }
+
+    .hero-top{
+      display:flex;
+      justify-content:space-between;
+      gap:18px;
+      position:relative;
+      z-index:1;
+    }
+
+    .hero-label{
+      font-size:11px;
+      font-weight:800;
+      opacity:.84;
+      text-transform:uppercase;
+      letter-spacing:1px;
+    }
+
+    .hero-title{
+      margin-top:7px;
+      max-width:360px;
+      font-size:23px;
+      line-height:1.2;
+      font-weight:900;
+      letter-spacing:-.4px;
+    }
+
+    .hero-score{
+      min-width:78px;
+      height:78px;
+      border-radius:22px;
+      background:rgba(255,255,255,.13);
+      border:1px solid rgba(255,255,255,.24);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      backdrop-filter:blur(10px);
+    }
+
+    .hero-score strong{
+      font-size:28px;
+      line-height:1;
+    }
+
+    .hero-score span{
+      margin-top:5px;
+      font-size:9px;
+      font-weight:900;
+      opacity:.82;
+      text-transform:uppercase;
+    }
+
+    .hero-actions{
+      position:relative;
+      z-index:1;
+      display:flex;
+      flex-wrap:wrap;
+      gap:9px;
+      margin-top:20px;
+    }
+
+    .hero-btn{
+      min-height:42px;
+      padding:0 14px;
+      border-radius:13px;
+      border:1px solid rgba(255,255,255,.26);
+      background:rgba(255,255,255,.12);
+      color:#fff;
+      font-size:11px;
+      font-weight:900;
+    }
+
+    .hero-btn.primary{
+      background:#fff;
+      color:var(--brand-dark);
+      border-color:#fff;
+    }
+
+    .metrics{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+      margin-top:18px;
+    }
+
+    .metric{
+      min-height:148px;
+      padding:16px;
+      background:#fff;
+      border:1px solid var(--border-soft);
+      border-radius:22px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      text-align:left;
+      box-shadow:0 10px 30px rgba(23,35,51,.04);
+      transition:.18s ease;
+    }
+
+    .metric:active{transform:scale(.985)}
+
+    .metric-icon{
+      width:43px;
+      height:43px;
+      border-radius:14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:18px;
+      font-weight:900;
+    }
+
+    .metric-icon.jobs{background:var(--blue-bg);color:#2E68B7}
+    .metric-icon.people{background:var(--green-bg);color:var(--green)}
+    .metric-icon.calendar{background:var(--purple-bg);color:var(--purple)}
+    .metric-icon.hired{background:var(--amber-bg);color:var(--amber)}
+
+    .metric-label{
+      font-size:12px;
+      font-weight:800;
+      color:#425264;
+    }
+
+    .metric-value{
+      margin-top:5px;
+      font-size:31px;
+      font-weight:900;
+      letter-spacing:-.8px;
+    }
+
+    .metric-note{
+      margin-top:4px;
+      font-size:10px;
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    .section{
+      margin-top:17px;
+      background:#fff;
+      border:1px solid var(--border-soft);
+      border-radius:24px;
+      overflow:hidden;
+      box-shadow:0 12px 34px rgba(23,35,51,.045);
+    }
+
+    .section-head{
+      padding:17px 16px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      border-bottom:1px solid var(--border-soft);
+    }
+
+    .section-title{
+      font-size:16px;
+      font-weight:900;
+      letter-spacing:-.2px;
+    }
+
+    .section-link{
+      border:none;
+      background:transparent;
+      color:var(--brand-dark);
+      font-size:11px;
+      font-weight:900;
+    }
+
+    .toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:18px;
+    }
+
+    .primary-btn,.secondary-btn,.danger-btn{
+      min-height:47px;
+      border-radius:14px;
+      padding:0 16px;
+      font-size:12px;
+      font-weight:900;
+      transition:.18s ease;
+    }
+
+    .primary-btn{border:none;background:var(--brand-dark);color:#fff;box-shadow:0 10px 22px rgba(52,95,145,.17)}
+    .secondary-btn{border:1px solid var(--border);background:#fff;color:var(--text)}
+    .danger-btn{border:1px solid #F0C5C5;background:var(--danger-bg);color:var(--danger)}
+    .primary-btn:active,.secondary-btn:active,.danger-btn:active{transform:scale(.98)}
+
+    .job-card{
+      padding:18px 16px;
+      border-bottom:1px solid var(--border-soft);
+    }
+
+    .job-card:last-child{border-bottom:none}
+
+    .job-top{
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+    }
+
+    .job-title{
+      font-size:17px;
+      font-weight:900;
+      line-height:1.3;
+      letter-spacing:-.2px;
+    }
+
+    .job-meta{
+      margin-top:5px;
+      color:var(--muted);
+      font-size:11px;
+    }
+
+    .status-badge{
+      height:26px;
+      padding:0 10px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      white-space:nowrap;
+      font-size:9px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.4px;
+    }
+
+    .status-badge.active{background:var(--green-bg);color:var(--green)}
+    .status-badge.paused{background:var(--amber-bg);color:#A46908}
+    .status-badge.draft{background:#EEF1F4;color:#66717D}
+    .status-badge.closed{background:var(--danger-bg);color:var(--danger)}
+
+    .job-stats{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:8px;
+      margin-top:16px;
+    }
+
+    .job-stat{
+      padding:12px 10px;
+      border-radius:15px;
+      background:#F8FAFB;
+      border:1px solid var(--border-soft);
+    }
+
+    .job-stat strong{
+      display:block;
+      font-size:18px;
+      line-height:1;
+    }
+
+    .job-stat span{
+      display:block;
+      margin-top:5px;
+      color:var(--muted);
+      font-size:9px;
+      font-weight:800;
+      line-height:1.25;
+    }
+
+    .job-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:14px;
+    }
+
+    .mini-btn{
+      min-height:36px;
+      padding:0 11px;
+      border:1px solid var(--border);
+      border-radius:11px;
+      background:#fff;
+      color:var(--text);
+      font-size:10px;
+      font-weight:900;
+    }
+
+    .mini-btn.primary{background:var(--brand-dark);border-color:var(--brand-dark);color:#fff}
+    .mini-btn.danger{color:var(--danger);background:var(--danger-bg);border-color:#F2D0D0}
+
+    .searchbar{
+      margin-top:17px;
+      display:grid;
+      grid-template-columns:1fr 150px;
+      gap:9px;
+    }
+
+    .searchbar input,.searchbar select{
+      width:100%;
+      min-height:47px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:#fff;
+      padding:0 13px;
+      color:var(--text);
+      outline:none;
+      box-shadow:0 7px 18px rgba(23,35,51,.03);
+    }
+
+    .candidate-row{
+      width:100%;
+      padding:15px 16px;
+      border:none;
+      border-bottom:1px solid var(--border-soft);
+      background:#fff;
+      display:grid;
+      grid-template-columns:50px 1fr auto;
+      gap:12px;
+      align-items:center;
+      text-align:left;
+    }
+
+    .candidate-row:last-child{border-bottom:none}
+    .candidate-row:active{background:#FAFBFC}
+
+    .avatar{
+      width:50px;
+      height:50px;
+      border-radius:16px;
+      background:linear-gradient(145deg,#EEF3F7,#DDE6ED);
+      color:var(--brand-dark);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      font-size:14px;
+    }
+
+    .candidate-name{font-size:14px;font-weight:900}
+    .candidate-job{margin-top:3px;color:var(--muted);font-size:11px}
+
+    .candidate-meta{
+      margin-top:7px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:7px;
+    }
+
+    .score,.fit-label,.app-status{
+      border-radius:999px;
+      padding:5px 8px;
+      font-size:9px;
+      font-weight:900;
+    }
+
+    .score{color:var(--brand-dark);background:var(--blue-bg)}
+    .fit-label{color:var(--green);background:var(--green-bg)}
+    .app-status{background:#EEF1F4;color:#5A6672}
+    .chevron{color:#8A98A8;font-size:23px}
+
+    .activity-row{
+      padding:14px 16px;
+      display:grid;
+      grid-template-columns:42px 1fr auto;
+      gap:11px;
+      align-items:center;
+      border-bottom:1px solid var(--border-soft);
+    }
+
+    .activity-row:last-child{border-bottom:none}
+
+    .activity-icon{
+      width:42px;
+      height:42px;
+      border-radius:13px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--blue-bg);
+      color:var(--brand-dark);
+      font-weight:900;
+    }
+
+    .activity-title{font-size:12px;font-weight:800}
+    .activity-sub,.activity-time{margin-top:3px;color:var(--muted);font-size:10px}
+    .activity-time{white-space:nowrap}
+
+    .empty{
+      padding:34px 20px;
+      text-align:center;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.55;
+    }
+
+    .empty strong{
+      display:block;
+      color:var(--text);
+      font-size:15px;
+      margin-bottom:5px;
+    }
+
+    .settings-card{
+      margin-top:16px;
+      padding:18px;
+      background:#fff;
+      border:1px solid var(--border-soft);
+      border-radius:22px;
+      box-shadow:0 12px 34px rgba(23,35,51,.045);
+    }
+
+    .settings-card h3{font-size:15px}
+    .settings-card p{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.55}
+
+    .settings-link{
+      width:100%;
+      min-height:55px;
+      border:none;
+      border-bottom:1px solid var(--border-soft);
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      text-align:left;
+      font-size:13px;
+      font-weight:800;
+    }
+
+    .settings-link:last-child{border-bottom:none}
+
+    .bottom-nav{
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      z-index:60;
+      min-height:78px;
+      padding:8px 4px calc(10px + env(safe-area-inset-bottom));
+      background:rgba(255,255,255,.96);
+      border-top:1px solid rgba(221,227,232,.9);
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      backdrop-filter:blur(22px);
+      -webkit-backdrop-filter:blur(22px);
+    }
+
+    .nav-item{
+      border:none;
+      background:transparent;
+      color:#748190;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:4px;
+      font-size:8px;
+      font-weight:900;
+      position:relative;
+    }
+
+    .nav-icon{font-size:18px;line-height:1}
+
+    .nav-item.active{color:var(--brand-dark)}
+
+    .nav-item.active:before{
+      content:'';
+      position:absolute;
+      top:-8px;
+      width:30px;
+      height:3px;
+      border-radius:999px;
+      background:var(--brand-dark);
+    }
+
+    .loading{
+      position:fixed;
+      inset:0;
+      z-index:120;
+      background:rgba(246,248,247,.98);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      gap:13px;
+    }
+
+    .spinner{
+      width:42px;
+      height:42px;
+      border:4px solid #E5EAEE;
+      border-top-color:var(--brand);
+      border-radius:50%;
+      animation:spin .75s linear infinite;
+    }
+
+    .loading-copy{color:var(--muted);font-size:12px;font-weight:800}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .sheet{
+      position:fixed;
+      inset:0;
+      z-index:100;
+      background:rgba(23,35,51,.36);
+      display:flex;
+      align-items:flex-end;
+    }
+
+    .sheet-panel{
+      width:100%;
+      max-height:92vh;
+      overflow:auto;
+      background:#fff;
+      border-radius:27px 27px 0 0;
+      padding:12px 18px calc(25px + env(safe-area-inset-bottom));
+      box-shadow:0 -20px 60px rgba(23,35,51,.14);
+    }
+
+    .sheet-grip{
+      width:44px;
+      height:5px;
+      margin:0 auto 17px;
+      border-radius:999px;
+      background:#DCE2E7;
+    }
+
+    .sheet-title{font-size:23px;font-weight:900}
+    .sheet-sub{margin-top:5px;color:var(--muted);font-size:12px}
+
+    .score-card{
+      margin-top:16px;
+      padding:18px;
+      border-radius:19px;
+      background:linear-gradient(145deg,var(--blue-bg),#F3F7FB);
+      display:flex;
+      align-items:center;
+      gap:15px;
+      border:1px solid #DDE8F2;
+    }
+
+    .score-number{font-size:42px;font-weight:900;color:var(--brand-dark)}
+    .score-copy strong{display:block;font-size:10px;letter-spacing:1px}
+    .score-copy span{display:block;margin-top:4px;color:var(--green);font-size:12px;font-weight:900}
+
+    .profile-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+      margin-top:15px;
+    }
+
+    .profile-box{
+      padding:14px;
+      border:1px solid var(--border-soft);
+      border-radius:15px;
+      background:#FAFBFC;
+    }
+
+    .profile-box span{
+      color:var(--muted);
+      font-size:9px;
+      font-weight:800;
+      text-transform:uppercase;
+    }
+
+    .profile-box strong{
+      display:block;
+      margin-top:5px;
+      font-size:12px;
+    }
+
+    .sheet-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:18px;
+    }
+
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:98px;
+      z-index:130;
+      width:calc(100% - 32px);
+      max-width:480px;
+      padding:13px 15px;
+      border-radius:14px;
+      background:#172333;
+      color:#fff;
+      text-align:center;
+      font-size:12px;
+      font-weight:800;
+      opacity:0;
+      transform:translate(-50%,12px);
+      pointer-events:none;
+      transition:.2s;
+    }
+
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+
+    @media(max-width:560px){
+      .job-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+
+    @media(max-width:390px){
+      .page{padding-left:12px;padding-right:12px}
+      .searchbar{grid-template-columns:1fr}
+      .hero-title{font-size:21px}
+      .hero-score{min-width:72px;height:72px}
+    }
+  </style>
 </head>
 <body>
-<div class="loading-overlay" id="loading-overlay"><div class="spinner"></div><div class="loading-copy">Loading employer dashboard…</div></div>
-<header class="header"><button class="icon-btn" id="menu-btn" type="button">☰</button><div class="logo">Alygnn<span>.</span></div><button class="icon-btn notification" id="notifications-btn" type="button">♧<span class="notification-badge" id="notification-count">0</span></button></header>
-<main class="page">
-<section class="welcome"><h1 id="greeting">Welcome back</h1><p id="dashboard-message">Better hiring starts here.</p></section>
-<section class="metrics">
-<article class="metric"><div class="metric-icon jobs">▣</div><div><div class="metric-label">Active Jobs</div><div class="metric-value" id="active-jobs">0</div><div class="metric-note" id="paused-jobs">0 paused</div></div></article>
-<article class="metric"><div class="metric-icon people">♙</div><div><div class="metric-label">New Applicants</div><div class="metric-value" id="new-applicants">0</div><div class="metric-note positive" id="applicant-note">No new activity yet</div></div></article>
-<article class="metric"><div class="metric-icon calendar">□</div><div><div class="metric-label">Interviews Today</div><div class="metric-value" id="interviews-today">0</div><div class="metric-note" id="interview-note">Nothing scheduled</div></div></article>
-<article class="metric"><div class="metric-icon hired">✓</div><div><div class="metric-label">Hired This Month</div><div class="metric-value" id="hired-month">0</div><div class="metric-note positive" id="hired-note">Track hires here</div></div></article>
-</section>
-<section class="section"><div class="section-head"><h2 class="section-title">Best Fits</h2><button class="section-link" id="view-candidates-btn" type="button">View all</button></div><div id="candidate-list"></div></section>
-<section class="section"><div class="section-head"><h2 class="section-title">Hiring Activity</h2></div><div id="activity-list"></div></section>
-<button class="post-btn" id="post-job-btn" type="button">＋ Post a Job</button>
-</main>
-<nav class="bottom-nav" aria-label="Employer navigation"><button class="nav-item active" type="button"><span class="nav-icon">▦</span><span>Dashboard</span></button><button class="nav-item" id="company-nav" type="button"><span class="nav-icon">◯</span><span>Company</span></button><button class="nav-item" id="settings-nav" type="button"><span class="nav-icon">⚙</span><span>Settings</span></button></nav>
-<div class="menu-sheet" id="menu-sheet" hidden><div class="menu-panel"><div class="menu-grip"></div><div class="menu-title">Employer Menu</div><button class="menu-link" data-page="app-employer-dashboard.html">Dashboard <span>›</span></button><button class="menu-link" data-page="app-employer-account.html">Company profile <span>›</span></button><button class="menu-link" data-page="app-account-settings.html">Account settings <span>›</span></button><button class="menu-link" id="sign-out-btn" type="button">Sign out <span>›</span></button></div></div>
-<div class="score-sheet" id="score-sheet" hidden><div class="score-panel"><div class="menu-grip"></div><div class="score-hero"><div class="score-hero-number" id="score-modal-number">--</div><div class="score-hero-label">ALYGNN SCORE</div><div class="score-hero-fit" id="score-modal-fit">Score pending</div></div><div class="score-copy">The Alygnn Score summarizes how closely a candidate aligns with the selected job using available experience, skills, education, location, and job preferences. It is designed to support—not replace—your hiring judgment.</div><div class="score-scale"><div class="score-scale-row"><span>95–100</span><span>Exceptional Fit</span></div><div class="score-scale-row"><span>90–94</span><span>Excellent Fit</span></div><div class="score-scale-row"><span>80–89</span><span>Strong Fit</span></div><div class="score-scale-row"><span>70–79</span><span>Good Fit</span></div><div class="score-scale-row"><span>60–69</span><span>Moderate Fit</span></div><div class="score-scale-row"><span>Below 60</span><span>Needs Review</span></div></div><button class="score-close" id="score-close-btn" type="button">Close</button></div></div>
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script>
-const sb = supabase.createClient(
-  'https://auth.alygnn.com',
-  'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
-  {
-    auth:{
-      persistSession:true,
-      autoRefreshToken:true,
-      detectSessionInUrl:true
-    }
-  }
-);
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="loading-copy">Loading employer workspace…</div>
+  </div>
 
-const els = {
-  loadingOverlay: document.getElementById('loading-overlay'),
-  loadingCopy: document.querySelector('.loading-copy'),
-  menuBtn: document.getElementById('menu-btn'),
-  menuSheet: document.getElementById('menu-sheet'),
-  notificationsBtn: document.getElementById('notifications-btn'),
-  notificationCount: document.getElementById('notification-count'),
-  greeting: document.getElementById('greeting'),
-  dashboardMessage: document.getElementById('dashboard-message'),
-  activeJobs: document.getElementById('active-jobs'),
-  pausedJobs: document.getElementById('paused-jobs'),
-  newApplicants: document.getElementById('new-applicants'),
-  applicantNote: document.getElementById('applicant-note'),
-  interviewsToday: document.getElementById('interviews-today'),
-  interviewNote: document.getElementById('interview-note'),
-  hiredMonth: document.getElementById('hired-month'),
-  hiredNote: document.getElementById('hired-note'),
-  candidateList: document.getElementById('candidate-list'),
-  activityList: document.getElementById('activity-list'),
-  companyNav: document.getElementById('company-nav'),
-  settingsNav: document.getElementById('settings-nav'),
-  postJobBtn: document.getElementById('post-job-btn'),
-  viewCandidatesBtn: document.getElementById('view-candidates-btn'),
-  signOutBtn: document.getElementById('sign-out-btn'),
-  scoreSheet: document.getElementById('score-sheet'),
-  scoreModalNumber: document.getElementById('score-modal-number'),
-  scoreModalFit: document.getElementById('score-modal-fit'),
-  scoreCloseBtn: document.getElementById('score-close-btn'),
-  toast: document.getElementById('toast')
-};
+  <div class="shell">
+    <header class="header">
+      <button class="icon-btn" id="menu-btn" type="button" aria-label="Open settings">☰</button>
+      <div class="logo">Alygnn<span>.</span></div>
+      <button class="icon-btn notification" id="notifications-btn" type="button" aria-label="Notifications">
+        ○
+        <span class="notification-badge" id="notification-count">0</span>
+      </button>
+    </header>
 
-let session = null;
-let employerJobs = [];
-let applications = [];
+    <main class="page">
+      <section class="view" id="dashboard-view">
+        <div class="eyebrow">Employer workspace</div>
+        <div class="welcome">
+          <h1 id="greeting">Welcome back</h1>
+          <p id="dashboard-message">Let’s build your team.</p>
+        </div>
 
-const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
-  '&':'&amp;',
-  '<':'&lt;',
-  '>':'&gt;',
-  '"':'&quot;',
-  "'":'&#039;'
-})[char]);
+        <section class="hero-card">
+          <div class="hero-top">
+            <div>
+              <div class="hero-label">Hiring snapshot</div>
+              <div class="hero-title" id="hero-title">Your hiring activity is ready for review.</div>
+            </div>
+            <div class="hero-score">
+              <strong id="hero-score">—</strong>
+              <span>Avg. score</span>
+            </div>
+          </div>
+          <div class="hero-actions">
+            <button class="hero-btn primary" data-view="applicants" type="button">Review applicants</button>
+            <button class="hero-btn" id="hero-post-job" type="button">Post a job</button>
+          </div>
+        </section>
 
-const initials = name => {
-  const parts = String(name || 'Candidate').trim().split(/\s+/);
-  return ((parts[0]?.[0] || 'C') + (parts[1]?.[0] || '')).toUpperCase();
-};
+        <div class="metrics">
+          <button class="metric" data-view="jobs" type="button">
+            <div class="metric-icon jobs">▣</div>
+            <div>
+              <div class="metric-label">Open Jobs</div>
+              <div class="metric-value" id="active-jobs">0</div>
+              <div class="metric-note" id="paused-jobs">0 paused</div>
+            </div>
+          </button>
 
-function hideLoading(){
-  if(!els.loadingOverlay) return;
-  els.loadingOverlay.hidden = true;
-  els.loadingOverlay.style.display = 'none';
-}
+          <button class="metric" data-view="applicants" type="button">
+            <div class="metric-icon people">◉</div>
+            <div>
+              <div class="metric-label">New Applications</div>
+              <div class="metric-value" id="new-applicants">0</div>
+              <div class="metric-note" id="applicant-note">No new activity</div>
+            </div>
+          </button>
 
-function withTimeout(promise, milliseconds = 7000){
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timed out')), milliseconds)
-    )
-  ]);
-}
+          <button class="metric" type="button">
+            <div class="metric-icon calendar">□</div>
+            <div>
+              <div class="metric-label">Today’s Interviews</div>
+              <div class="metric-value" id="interviews-today">0</div>
+              <div class="metric-note" id="interview-note">Nothing scheduled</div>
+            </div>
+          </button>
 
-function timeAgo(value){
-  if(!value) return 'Recently';
-  const date = new Date(value);
-  if(Number.isNaN(date.getTime())) return 'Recently';
+          <button class="metric" type="button">
+            <div class="metric-icon hired">✓</div>
+            <div>
+              <div class="metric-label">Recent Hires</div>
+              <div class="metric-value" id="hired-month">0</div>
+              <div class="metric-note" id="hired-note">Track hires here</div>
+            </div>
+          </button>
+        </div>
 
-  const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
-  if(minutes < 60) return Math.max(1, minutes) + 'm ago';
+        <section class="section">
+          <div class="section-head">
+            <h2 class="section-title">My Jobs</h2>
+            <button class="section-link" data-view="jobs" type="button">View all</button>
+          </div>
+          <div id="dashboard-jobs"></div>
+        </section>
 
-  const hours = Math.floor(minutes / 60);
-  if(hours < 24) return hours + 'h ago';
+        <section class="section">
+          <div class="section-head">
+            <h2 class="section-title">Best Fits</h2>
+            <button class="section-link" data-view="applicants" type="button">View all</button>
+          </div>
+          <div id="best-fits"></div>
+        </section>
 
-  return Math.floor(hours / 24) + 'd ago';
-}
+        <section class="section">
+          <div class="section-head">
+            <h2 class="section-title">Hiring Activity</h2>
+          </div>
+          <div id="activity-list"></div>
+        </section>
 
-function isToday(value){
-  if(!value) return false;
-  const date = new Date(value);
-  return !Number.isNaN(date.getTime()) &&
-    date.toDateString() === new Date().toDateString();
-}
+        <button class="primary-btn" id="post-job-btn" type="button" style="width:100%;margin-top:17px">Post a Job</button>
+      </section>
 
-function isThisMonth(value){
-  if(!value) return false;
-  const date = new Date(value);
-  const now = new Date();
+      <section class="view" id="jobs-view" hidden>
+        <div class="eyebrow">Employer workspace</div>
+        <h1 class="page-title">My Jobs</h1>
+        <p class="page-sub">Manage every opening, track performance, and move faster from one place.</p>
+        <div class="toolbar">
+          <button class="primary-btn" id="post-job-btn-2" type="button">Post a Job</button>
+        </div>
+        <section class="section">
+          <div id="jobs-list"></div>
+        </section>
+      </section>
 
-  return !Number.isNaN(date.getTime()) &&
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth();
-}
+      <section class="view" id="applicants-view" hidden>
+        <div class="eyebrow">Employer workspace</div>
+        <h1 class="page-title">Applicants</h1>
+        <p class="page-sub">Review candidates across every role and prioritize the strongest fits.</p>
+        <div class="searchbar">
+          <input id="candidate-search" type="search" placeholder="Search candidates">
+          <select id="candidate-sort">
+            <option value="score">Highest Alygnn Score</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+          </select>
+        </div>
+        <section class="section">
+          <div id="applicants-list"></div>
+        </section>
+      </section>
 
-function fullName(profile){
-  return profile?.full_name ||
-    profile?.name ||
-    [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') ||
-    'Candidate';
-}
+      <section class="view" id="company-view" hidden>
+        <div class="eyebrow">Employer workspace</div>
+        <h1 class="page-title">Company</h1>
+        <p class="page-sub">Manage how your business appears to candidates and strengthen your employer brand.</p>
 
-function greetingForHour(hour){
-  if(hour < 12) return 'Good morning';
-  if(hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}
+        <div class="settings-card">
+          <h3>Company profile</h3>
+          <p>Update your company name, website, description, logo, and employer branding.</p>
+          <div class="toolbar">
+            <button class="primary-btn" id="open-company-page" type="button">Edit company profile</button>
+          </div>
+        </div>
 
-function fitForScore(score){
-  const value = Number(score || 0);
-  if(value >= 95) return { label:'Exceptional Fit', className:'fit-exceptional' };
-  if(value >= 90) return { label:'Excellent Fit', className:'fit-excellent' };
-  if(value >= 80) return { label:'Strong Fit', className:'fit-strong' };
-  if(value >= 70) return { label:'Good Fit', className:'fit-good' };
-  if(value >= 60) return { label:'Moderate Fit', className:'fit-moderate' };
-  return { label:'Needs Review', className:'fit-review' };
-}
+        <div class="settings-card">
+          <h3>Team members</h3>
+          <p>Invite recruiters and hiring managers to collaborate. Team access can be added after the core hiring workflow is complete.</p>
+        </div>
+      </section>
 
-function showToast(message){
-  if(!els.toast) return;
-  els.toast.textContent = message;
-  els.toast.classList.add('show');
-  clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => els.toast.classList.remove('show'), 2600);
-}
+      <section class="view" id="settings-view" hidden>
+        <div class="eyebrow">Employer workspace</div>
+        <h1 class="page-title">Settings</h1>
+        <p class="page-sub">Control your account, notification preferences, and hiring experience.</p>
 
-function setDashboardMessage(){
-  const messages = [
-    'Let’s build your team.',
-    'Better hiring starts here.',
-    'Great teams start here.',
-    'Helping you hire with confidence.',
-    'Find talent that aligns.',
-    'One great hire can change everything.'
-  ];
+        <section class="section">
+          <button class="settings-link" id="open-account-settings" type="button">Account settings <span>›</span></button>
+          <button class="settings-link" id="notification-settings" type="button">Notification preferences <span>›</span></button>
+          <button class="settings-link" id="sign-out-btn" type="button">Sign out <span>›</span></button>
+        </section>
+      </section>
+    </main>
+  </div>
 
-  let message = '';
-  const newCount = applications.filter(application =>
-    ['new','applied','pending'].includes(String(application.status || 'new').toLowerCase())
-  ).length;
-  const interviews = applications.filter(application =>
-    String(application.status || '').toLowerCase().includes('interview') &&
-    isToday(application.interview_at || application.interview_date || application.updated_at)
-  ).length;
+  <nav class="bottom-nav" aria-label="Employer navigation">
+    <button class="nav-item active" data-view="dashboard" type="button"><span class="nav-icon">▦</span><span>Dashboard</span></button>
+    <button class="nav-item" data-view="jobs" type="button"><span class="nav-icon">▣</span><span>Jobs</span></button>
+    <button class="nav-item" data-view="applicants" type="button"><span class="nav-icon">◉</span><span>Applicants</span></button>
+    <button class="nav-item" data-view="company" type="button"><span class="nav-icon">○</span><span>Company</span></button>
+    <button class="nav-item" data-view="settings" type="button"><span class="nav-icon">⚙</span><span>Settings</span></button>
+  </nav>
 
-  if(newCount) message = `${newCount} new applicant${newCount === 1 ? '' : 's'} waiting for review.`;
-  else if(interviews) message = `${interviews} interview${interviews === 1 ? '' : 's'} scheduled today.`;
-  else {
-    const dayKey = new Date().toISOString().slice(0,10);
-    const index = [...dayKey].reduce((sum, char) => sum + char.charCodeAt(0), 0) % messages.length;
-    message = messages[index];
-  }
+  <div class="sheet" id="candidate-sheet" hidden>
+    <div class="sheet-panel">
+      <div class="sheet-grip"></div>
+      <button class="icon-btn" id="close-candidate" style="float:right" type="button">×</button>
+      <h2 class="sheet-title" id="sheet-name">Candidate</h2>
+      <p class="sheet-sub" id="sheet-job">Position</p>
 
-  els.dashboardMessage.textContent = message;
-}
+      <div class="score-card">
+        <div class="score-number" id="sheet-score">—</div>
+        <div class="score-copy">
+          <strong>ALYGNN SCORE</strong>
+          <span id="sheet-fit">Score pending</span>
+        </div>
+      </div>
 
-function openScoreDetails(score){
-  const numericScore = Math.round(Number(score || 0));
-  const fit = fitForScore(numericScore);
-  els.scoreModalNumber.textContent = numericScore || '--';
-  els.scoreModalFit.textContent = numericScore ? fit.label : 'Score pending';
-  els.scoreSheet.hidden = false;
-}
+      <div class="profile-grid">
+        <div class="profile-box"><span>Status</span><strong id="sheet-status">New</strong></div>
+        <div class="profile-box"><span>Applied</span><strong id="sheet-applied">Recently</strong></div>
+        <div class="profile-box"><span>Email</span><strong id="sheet-email">Not available</strong></div>
+        <div class="profile-box"><span>Location</span><strong id="sheet-location">Not available</strong></div>
+      </div>
 
-function statusClass(status){
-  const value = String(status || 'new').toLowerCase();
-  if(value.includes('interview')) return 'interview';
-  if(value.includes('review')) return 'reviewed';
-  return 'new';
-}
+      <div class="sheet-actions">
+        <button class="primary-btn" data-candidate-action="interview" type="button">Schedule Interview</button>
+        <button class="secondary-btn" data-candidate-action="reviewed" type="button">Mark Reviewed</button>
+        <button class="secondary-btn" data-candidate-action="hired" type="button">Hire</button>
+        <button class="danger-btn" data-candidate-action="rejected" type="button">Reject</button>
+      </div>
+    </div>
+  </div>
 
-function jobTitleFor(application){
-  return employerJobs.find(job =>
-    String(job.id) === String(application.job_id)
-  )?.title || application.job_title || 'Position';
-}
+  <div class="toast" id="toast"></div>
 
-async function queryEmployerJobs(userId){
-  for(const column of ['employer_id','created_by','user_id','owner_id']){
-    try{
-      const result = await withTimeout(
-        sb.from('jobs')
-          .select('*')
-          .eq(column, userId)
-          .order('created_at', { ascending:false }),
-        6000
-      );
-
-      if(!result.error) return result.data || [];
-    }catch(error){
-      console.warn(`Jobs query timed out for ${column}`, error);
-    }
-  }
-
-  return [];
-}
-
-async function queryApplications(jobIds){
-  if(!jobIds.length) return [];
-
-  try{
-    const { data, error } = await withTimeout(
-      sb.from('applications')
-        .select('*')
-        .in('job_id', jobIds)
-        .order('created_at', { ascending:false }),
-      6000
+  <script>
+    const sb = supabase.createClient(
+      'https://auth.alygnn.com',
+      'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+      {
+        auth:{
+          persistSession:true,
+          autoRefreshToken:true,
+          detectSessionInUrl:true
+        }
+      }
     );
 
-    return error ? [] : data || [];
-  }catch(error){
-    console.warn('Applications query timed out', error);
-    return [];
-  }
-}
+    const state = {
+      session:null,
+      jobs:[],
+      applications:[],
+      profiles:new Map(),
+      activeCandidate:null,
+      currentView:'dashboard'
+    };
 
-async function queryProfiles(profileIds){
-  if(!profileIds.length) return new Map();
+    const $ = id => document.getElementById(id);
 
-  try{
-    const { data, error } = await withTimeout(
-      sb.from('profiles').select('*').in('id', profileIds),
-      6000
+    const els = {
+      loading:$('loading'),
+      greeting:$('greeting'),
+      dashboardMessage:$('dashboard-message'),
+      notificationCount:$('notification-count'),
+      activeJobs:$('active-jobs'),
+      pausedJobs:$('paused-jobs'),
+      newApplicants:$('new-applicants'),
+      applicantNote:$('applicant-note'),
+      interviewsToday:$('interviews-today'),
+      interviewNote:$('interview-note'),
+      hiredMonth:$('hired-month'),
+      hiredNote:$('hired-note'),
+      dashboardJobs:$('dashboard-jobs'),
+      bestFits:$('best-fits'),
+      activityList:$('activity-list'),
+      jobsList:$('jobs-list'),
+      applicantsList:$('applicants-list'),
+      candidateSearch:$('candidate-search'),
+      candidateSort:$('candidate-sort'),
+      candidateSheet:$('candidate-sheet'),
+      heroTitle:$('hero-title'),
+      heroScore:$('hero-score'),
+      toast:$('toast')
+    };
+
+    const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#039;'
+    })[char]);
+
+    const initials = name => String(name || 'Candidate')
+      .trim()
+      .split(/\s+/)
+      .slice(0,2)
+      .map(value => value[0] || '')
+      .join('')
+      .toUpperCase() || 'C';
+
+    const fullName = profile => profile?.full_name ||
+      profile?.name ||
+      [profile?.first_name,profile?.last_name].filter(Boolean).join(' ') ||
+      'Candidate';
+
+    function timeAgo(value){
+      if(!value) return 'Recently';
+      const date = new Date(value);
+      if(Number.isNaN(date.getTime())) return 'Recently';
+
+      const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
+      if(minutes < 60) return Math.max(1,minutes) + 'm ago';
+
+      const hours = Math.floor(minutes / 60);
+      if(hours < 24) return hours + 'h ago';
+
+      return Math.floor(hours / 24) + 'd ago';
+    }
+
+    function fitLabel(score){
+      if(score >= 95) return 'Exceptional Fit';
+      if(score >= 90) return 'Excellent Fit';
+      if(score >= 80) return 'Strong Fit';
+      if(score >= 70) return 'Good Fit';
+      if(score >= 60) return 'Moderate Fit';
+      return 'Needs Review';
+    }
+
+    const appProfile = application => state.profiles.get(String(
+      application.candidate_id ||
+      application.user_id ||
+      application.profile_id ||
+      ''
+    )) || {};
+
+    const jobFor = application => state.jobs.find(job =>
+      String(job.id) === String(application.job_id)
     );
 
-    if(error) return new Map();
-    return new Map((data || []).map(profile => [String(profile.id), profile]));
-  }catch(error){
-    console.warn('Profiles query timed out', error);
-    return new Map();
-  }
-}
+    function toast(message){
+      els.toast.textContent = message;
+      els.toast.classList.add('show');
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => els.toast.classList.remove('show'),2200);
+    }
 
-function renderMetrics(){
-  const active = employerJobs.filter(job =>
-    !['paused','closed','draft','inactive'].includes(
-      String(job.status || 'active').toLowerCase()
-    )
-  ).length;
+    function setView(name){
+      state.currentView = name;
 
-  const paused = employerJobs.filter(job =>
-    String(job.status || '').toLowerCase() === 'paused'
-  ).length;
+      document.querySelectorAll('.view').forEach(view => {
+        view.hidden = view.id !== name + '-view';
+      });
 
-  const fresh = applications.filter(application =>
-    ['new','applied','pending'].includes(
-      String(application.status || 'new').toLowerCase()
-    )
-  ).length;
+      document.querySelectorAll('.nav-item').forEach(button => {
+        button.classList.toggle('active',button.dataset.view === name);
+      });
 
-  const interviews = applications.filter(application =>
-    String(application.status || '').toLowerCase().includes('interview') &&
-    isToday(
-      application.interview_at ||
-      application.interview_date ||
-      application.updated_at
-    )
-  ).length;
+      const view = $(name + '-view');
+      view?.classList.remove('enter');
+      requestAnimationFrame(() => view?.classList.add('enter'));
+      window.scrollTo({top:0,behavior:'smooth'});
+      renderAll();
+    }
 
-  const hired = applications.filter(application =>
-    String(application.status || '').toLowerCase().includes('hire') &&
-    isThisMonth(application.hired_at || application.updated_at)
-  ).length;
+    function greeting(){
+      const hour = new Date().getHours();
+      const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+      const name = state.session?.user?.user_metadata?.full_name ||
+        state.session?.user?.user_metadata?.name ||
+        state.session?.user?.email?.split('@')[0] ||
+        'there';
 
-  els.activeJobs.textContent = active;
-  els.pausedJobs.textContent = paused + ' paused';
-  els.newApplicants.textContent = fresh;
-  els.applicantNote.textContent = fresh
-    ? fresh + ' waiting for review'
-    : 'No new activity yet';
-  els.interviewsToday.textContent = interviews;
-  els.interviewNote.textContent = interviews
-    ? interviews + ' scheduled today'
-    : 'Nothing scheduled';
-  els.hiredMonth.textContent = hired;
-  els.hiredNote.textContent = hired
-    ? hired + ' hire' + (hired === 1 ? '' : 's') + ' this month'
-    : 'Track hires here';
-  els.notificationCount.textContent = fresh;
-  els.notificationCount.hidden = fresh === 0;
-  setDashboardMessage();
-}
+      els.greeting.textContent = part + ', ' + String(name).trim().split(/\s+/)[0];
 
-function renderCandidates(profileMap){
-  if(!applications.length){
-    els.candidateList.innerHTML =
-      '<div class="empty">Your strongest candidates will appear here after people apply to your jobs.</div>';
-    return;
-  }
+      const fresh = state.applications.filter(application =>
+        ['new','applied','pending'].includes(String(application.status || 'new').toLowerCase())
+      ).length;
 
-  els.candidateList.innerHTML = [...applications]
-    .sort((a,b) => Number(b.match_score || 0) - Number(a.match_score || 0))
-    .slice(0,5)
-    .map(application => {
-      const profileId = String(
-        application.candidate_id ||
-        application.user_id ||
-        application.profile_id ||
-        ''
+      els.dashboardMessage.textContent = fresh
+        ? `You have ${fresh} new application${fresh === 1 ? '' : 's'} waiting.`
+        : 'Your hiring workspace is ready.';
+    }
+
+    function renderHero(){
+      const scored = state.applications
+        .map(application => Number(application.match_score || application.alygnn_score || 0))
+        .filter(score => score > 0);
+
+      const average = scored.length
+        ? Math.round(scored.reduce((total,score) => total + score,0) / scored.length)
+        : 0;
+
+      const fresh = state.applications.filter(application =>
+        ['new','applied','pending'].includes(String(application.status || 'new').toLowerCase())
+      ).length;
+
+      els.heroScore.textContent = average || '—';
+      els.heroTitle.textContent = fresh
+        ? `${fresh} candidate${fresh === 1 ? '' : 's'} waiting for your review.`
+        : state.jobs.length
+          ? 'Your open roles are live and ready for the next strong candidate.'
+          : 'Post your first role and start building your team.';
+    }
+
+    function renderMetrics(){
+      const active = state.jobs.filter(job =>
+        !['paused','closed','draft','inactive'].includes(String(job.status || 'active').toLowerCase())
+      ).length;
+
+      const paused = state.jobs.filter(job =>
+        String(job.status || '').toLowerCase() === 'paused'
+      ).length;
+
+      const fresh = state.applications.filter(application =>
+        ['new','applied','pending'].includes(String(application.status || 'new').toLowerCase())
+      ).length;
+
+      const interviews = state.applications.filter(application => {
+        const status = String(application.status || '').toLowerCase();
+        const interviewDate = new Date(
+          application.interview_at ||
+          application.interview_date ||
+          application.updated_at
+        );
+
+        return status.includes('interview') &&
+          !Number.isNaN(interviewDate.getTime()) &&
+          interviewDate.toDateString() === new Date().toDateString();
+      }).length;
+
+      const now = new Date();
+      const hired = state.applications.filter(application => {
+        const status = String(application.status || '').toLowerCase();
+        const hiredDate = new Date(application.hired_at || application.updated_at);
+
+        return status.includes('hire') &&
+          !Number.isNaN(hiredDate.getTime()) &&
+          hiredDate.getMonth() === now.getMonth() &&
+          hiredDate.getFullYear() === now.getFullYear();
+      }).length;
+
+      els.activeJobs.textContent = active;
+      els.pausedJobs.textContent = paused + ' paused';
+      els.newApplicants.textContent = fresh;
+      els.applicantNote.textContent = fresh ? fresh + ' waiting for review' : 'No new activity';
+      els.interviewsToday.textContent = interviews;
+      els.interviewNote.textContent = interviews ? interviews + ' scheduled today' : 'Nothing scheduled';
+      els.hiredMonth.textContent = hired;
+      els.hiredNote.textContent = hired ? hired + ' this month' : 'Track hires here';
+      els.notificationCount.textContent = fresh;
+      els.notificationCount.hidden = fresh === 0;
+    }
+
+    function statusClass(status){
+      const value = String(status || 'active').toLowerCase();
+      return ['paused','draft','closed'].includes(value) ? value : 'active';
+    }
+
+    function jobApplications(job){
+      return state.applications.filter(application =>
+        String(application.job_id) === String(job.id)
       );
+    }
 
-      const profile = profileMap.get(profileId) || {};
-      const name = fullName(profile);
-      const score = Math.round(Number(application.match_score || application.alygnn_score || 0));
-      const fit = fitForScore(score);
-      const status = String(application.status || 'new').toLowerCase();
+    function jobCard(job,compact = false){
+      const apps = jobApplications(job);
+      const scores = apps
+        .map(application => Number(application.match_score || application.alygnn_score || 0))
+        .filter(score => score > 0);
+      const average = scores.length
+        ? Math.round(scores.reduce((total,score) => total + score,0) / scores.length)
+        : 0;
+      const status = String(job.status || 'active').toLowerCase();
+      const views = Number(job.views || job.view_count || 0);
+      const saves = Number(job.saves || job.save_count || 0);
 
       return `
-        <button class="candidate-row" type="button" data-score="${score}" aria-label="View Alygnn Score details for ${escapeHtml(name)}">
+        <article class="job-card">
+          <div class="job-top">
+            <div>
+              <div class="job-title">${escapeHtml(job.title || 'Untitled position')}</div>
+              <div class="job-meta">Posted ${timeAgo(job.created_at || job.updated_at)}</div>
+            </div>
+            <span class="status-badge ${statusClass(status)}">${escapeHtml(status)}</span>
+          </div>
+
+          <div class="job-stats">
+            <div class="job-stat"><strong>${apps.length}</strong><span>Applications</span></div>
+            <div class="job-stat"><strong>${average || '—'}</strong><span>Average Alygnn Score</span></div>
+            <div class="job-stat"><strong>${views}</strong><span>Views</span></div>
+            <div class="job-stat"><strong>${saves}</strong><span>Saves</span></div>
+          </div>
+
+          ${compact ? '' : `
+            <div class="job-actions">
+              <button class="mini-btn primary" data-job-action="applicants" data-job-id="${job.id}">View Applicants</button>
+              <button class="mini-btn" data-job-action="edit" data-job-id="${job.id}">Edit</button>
+              <button class="mini-btn" data-job-action="duplicate" data-job-id="${job.id}">Duplicate</button>
+              <button class="mini-btn" data-job-action="${status === 'paused' ? 'activate' : 'pause'}" data-job-id="${job.id}">${status === 'paused' ? 'Activate' : 'Pause'}</button>
+              <button class="mini-btn danger" data-job-action="delete" data-job-id="${job.id}">Delete</button>
+            </div>
+          `}
+        </article>
+      `;
+    }
+
+    function renderJobs(){
+      const empty = '<div class="empty"><strong>No jobs yet</strong>Post your first job to begin receiving applicants.</div>';
+      els.jobsList.innerHTML = state.jobs.length
+        ? state.jobs.map(job => jobCard(job)).join('')
+        : empty;
+      els.dashboardJobs.innerHTML = state.jobs.length
+        ? state.jobs.slice(0,2).map(job => jobCard(job,true)).join('')
+        : empty;
+    }
+
+    function candidateCard(application){
+      const profile = appProfile(application);
+      const name = fullName(profile);
+      const score = Math.round(Number(application.match_score || application.alygnn_score || 0));
+      const status = String(application.status || 'new');
+
+      return `
+        <button class="candidate-row" type="button" data-app-id="${application.id}">
           <div class="avatar">${escapeHtml(initials(name))}</div>
           <div>
             <div class="candidate-name">${escapeHtml(name)}</div>
-            <div class="candidate-job">${escapeHtml(jobTitleFor(application))}</div>
+            <div class="candidate-job">${escapeHtml(jobFor(application)?.title || application.job_title || 'Position')}</div>
             <div class="candidate-meta">
-              <span class="score-pill">${score ? `<span class="score-number">${score}</span> Alygnn Score` : 'Alygnn Score pending'}</span>
-              ${score ? `<span class="fit-label ${fit.className}">${fit.label}</span>` : ''}
-              <span class="status ${statusClass(status)}">
-                ${escapeHtml(status.charAt(0).toUpperCase() + status.slice(1))}
-              </span>
+              <span class="score">${score ? score + ' Alygnn Score' : 'Score pending'}</span>
+              ${score ? `<span class="fit-label">${fitLabel(score)}</span>` : ''}
+              <span class="app-status">${escapeHtml(status)}</span>
             </div>
           </div>
           <div class="chevron">›</div>
         </button>
       `;
-    })
-    .join('');
-}
-
-function renderActivity(profileMap){
-  if(!applications.length && !employerJobs.length){
-    els.activityList.innerHTML =
-      '<div class="empty">Applications, interviews, and job updates will appear here.</div>';
-    return;
-  }
-
-  const activity = [];
-
-  applications.slice(0,5).forEach(application => {
-    const profileId = String(
-      application.candidate_id ||
-      application.user_id ||
-      application.profile_id ||
-      ''
-    );
-
-    const name = fullName(profileMap.get(profileId) || {});
-    const status = String(application.status || '').toLowerCase();
-
-    activity.push({
-      type: status.includes('interview') ? 'interview' : 'application',
-      icon: status.includes('interview') ? '□' : '♙',
-      title: status.includes('interview')
-        ? 'Interview update for ' + name
-        : name + ' applied',
-      sub: jobTitleFor(application),
-      time: timeAgo(
-        application.updated_at ||
-        application.created_at ||
-        application.applied_at
-      )
-    });
-  });
-
-  employerJobs.slice(0,2).forEach(job => {
-    activity.push({
-      type:'job',
-      icon:'▣',
-      title:'Job listing ' +
-        (String(job.status || 'active').toLowerCase() === 'active'
-          ? 'is active'
-          : 'was updated'),
-      sub:job.title || 'Position',
-      time:timeAgo(job.updated_at || job.created_at)
-    });
-  });
-
-  els.activityList.innerHTML = activity.slice(0,6).map(item => `
-    <div class="activity-row">
-      <div class="activity-icon ${escapeHtml(item.type)}">${escapeHtml(item.icon)}</div>
-      <div>
-        <div class="activity-title">${escapeHtml(item.title)}</div>
-        <div class="activity-sub">${escapeHtml(item.sub)}</div>
-      </div>
-      <div class="activity-time">${escapeHtml(item.time)}</div>
-    </div>
-  `).join('');
-}
-
-const go = page => {
-  window.location.href = page;
-};
-
-els.menuBtn.addEventListener('click', () => {
-  els.menuSheet.hidden = false;
-});
-
-els.menuSheet.addEventListener('click', event => {
-  if(event.target === els.menuSheet){
-    els.menuSheet.hidden = true;
-  }
-});
-
-document.querySelectorAll('.menu-link[data-page]').forEach(button => {
-  button.addEventListener('click', () => go(button.dataset.page));
-});
-
-els.companyNav.addEventListener('click', () =>
-  go('app-employer-account.html')
-);
-
-els.settingsNav.addEventListener('click', () =>
-  go('app-account-settings.html')
-);
-
-els.postJobBtn.addEventListener('click', () =>
-  go('app-post-job.html')
-);
-
-els.viewCandidatesBtn.addEventListener('click', () =>
-  showToast('The full Applicants page will be connected next.')
-);
-
-els.notificationsBtn.addEventListener('click', () =>
-  showToast('Notifications are being prepared for the employer portal.')
-);
-
-els.candidateList.addEventListener('click', event => {
-  const row = event.target.closest('.candidate-row');
-  if(row) openScoreDetails(row.dataset.score);
-});
-
-els.scoreCloseBtn.addEventListener('click', () => {
-  els.scoreSheet.hidden = true;
-});
-
-els.scoreSheet.addEventListener('click', event => {
-  if(event.target === els.scoreSheet) els.scoreSheet.hidden = true;
-});
-
-els.signOutBtn.addEventListener('click', async () => {
-  try{
-    await sb.auth.signOut();
-  }finally{
-    window.location.replace('app-employer-login.html?logout=1');
-  }
-});
-
-async function initializeDashboard(){
-  // Never allow the loading screen to remain forever.
-  const fallbackTimer = setTimeout(hideLoading, 2500);
-
-  try{
-    const { data, error } = await withTimeout(sb.auth.getSession(), 5000);
-
-    if(error || !data?.session){
-      clearTimeout(fallbackTimer);
-      window.location.replace('app-employer-login.html');
-      return;
     }
 
-    session = data.session;
+    function filteredApplicants(){
+      let list = [...state.applications];
+      const query = els.candidateSearch.value.trim().toLowerCase();
 
-    const displayName =
-      session.user.user_metadata?.full_name ||
-      session.user.user_metadata?.name ||
-      session.user.email?.split('@')[0] ||
-      'there';
+      if(query){
+        list = list.filter(application => {
+          const profile = appProfile(application);
+          return fullName(profile).toLowerCase().includes(query) ||
+            (jobFor(application)?.title || '').toLowerCase().includes(query);
+        });
+      }
 
-    const firstName = String(displayName).trim().split(/\s+/)[0];
-    els.greeting.textContent = `${greetingForHour(new Date().getHours())}, ${firstName}`;
+      if(els.candidateSort.value === 'score'){
+        list.sort((a,b) => Number(b.match_score || b.alygnn_score || 0) - Number(a.match_score || a.alygnn_score || 0));
+      }
 
-    // Show the dashboard immediately. Data loads afterward.
-    renderMetrics();
-    renderCandidates(new Map());
-    renderActivity(new Map());
-    hideLoading();
-    clearTimeout(fallbackTimer);
+      if(els.candidateSort.value === 'newest'){
+        list.sort((a,b) => new Date(b.applied_at || b.created_at || 0) - new Date(a.applied_at || a.created_at || 0));
+      }
 
-    employerJobs = await queryEmployerJobs(session.user.id);
-    applications = await queryApplications(
-      employerJobs.map(job => job.id).filter(Boolean)
-    );
+      if(els.candidateSort.value === 'oldest'){
+        list.sort((a,b) => new Date(a.applied_at || a.created_at || 0) - new Date(b.applied_at || b.created_at || 0));
+      }
 
-    const profileIds = [...new Set(
-      applications
-        .map(application =>
-          application.candidate_id ||
-          application.user_id ||
-          application.profile_id
-        )
-        .filter(Boolean)
-        .map(String)
-    )];
+      return list;
+    }
 
-    const profileMap = await queryProfiles(profileIds);
+    function renderApplicants(){
+      const list = filteredApplicants();
+      const empty = '<div class="empty"><strong>No applicants yet</strong>Candidates will appear after they apply to your jobs.</div>';
 
-    renderMetrics();
-    renderCandidates(profileMap);
-    renderActivity(profileMap);
+      els.applicantsList.innerHTML = list.length
+        ? list.map(candidateCard).join('')
+        : empty;
 
-  }catch(error){
-    console.error('Dashboard initialization failed:', error);
+      const top = [...state.applications]
+        .sort((a,b) => Number(b.match_score || b.alygnn_score || 0) - Number(a.match_score || a.alygnn_score || 0))
+        .slice(0,5);
 
-    renderMetrics();
-    renderCandidates(new Map());
-    renderActivity(new Map());
-    hideLoading();
-    clearTimeout(fallbackTimer);
-  }
-}
+      els.bestFits.innerHTML = top.length
+        ? top.map(candidateCard).join('')
+        : empty;
+    }
 
-initializeDashboard();
-</script>
+    function renderActivity(){
+      const items = [];
+
+      state.applications.slice(0,5).forEach(application => {
+        items.push({
+          icon:'◉',
+          title:fullName(appProfile(application)) + ' applied',
+          sub:jobFor(application)?.title || 'Position',
+          time:timeAgo(application.updated_at || application.applied_at || application.created_at)
+        });
+      });
+
+      state.jobs.slice(0,2).forEach(job => {
+        items.push({
+          icon:'▣',
+          title:'Job listing ' + (String(job.status || 'active').toLowerCase() === 'active' ? 'is active' : 'was updated'),
+          sub:job.title || 'Position',
+          time:timeAgo(job.updated_at || job.created_at)
+        });
+      });
+
+      els.activityList.innerHTML = items.length
+        ? items.slice(0,6).map(item => `
+            <div class="activity-row">
+              <div class="activity-icon">${item.icon}</div>
+              <div>
+                <div class="activity-title">${escapeHtml(item.title)}</div>
+                <div class="activity-sub">${escapeHtml(item.sub)}</div>
+              </div>
+              <div class="activity-time">${item.time}</div>
+            </div>
+          `).join('')
+        : '<div class="empty">Hiring activity will appear here.</div>';
+    }
+
+    function renderAll(){
+      greeting();
+      renderHero();
+      renderMetrics();
+      renderJobs();
+      renderApplicants();
+      renderActivity();
+    }
+
+    function openCandidate(id){
+      const application = state.applications.find(item => String(item.id) === String(id));
+      if(!application) return;
+
+      state.activeCandidate = application;
+      const profile = appProfile(application);
+      const score = Math.round(Number(application.match_score || application.alygnn_score || 0));
+
+      $('sheet-name').textContent = fullName(profile);
+      $('sheet-job').textContent = jobFor(application)?.title || application.job_title || 'Position';
+      $('sheet-score').textContent = score || '—';
+      $('sheet-fit').textContent = score ? fitLabel(score) : 'Score pending';
+      $('sheet-status').textContent = String(application.status || 'new');
+      $('sheet-applied').textContent = timeAgo(application.applied_at || application.created_at);
+      $('sheet-email').textContent = profile.email || 'Not available';
+      $('sheet-location').textContent = profile.location || profile.city || 'Not available';
+      els.candidateSheet.hidden = false;
+    }
+
+    async function updateApplicationStatus(status){
+      const application = state.activeCandidate;
+      if(!application) return;
+
+      const payload = {
+        status,
+        updated_at:new Date().toISOString()
+      };
+
+      if(status === 'hired') payload.hired_at = new Date().toISOString();
+
+      const { error } = await sb
+        .from('applications')
+        .update(payload)
+        .eq('id',application.id);
+
+      if(error){
+        console.error(error);
+        toast('Could not update candidate.');
+        return;
+      }
+
+      application.status = status;
+      Object.assign(application,payload);
+      els.candidateSheet.hidden = true;
+      renderAll();
+      toast('Candidate updated.');
+    }
+
+    async function handleJobAction(action,id){
+      const job = state.jobs.find(item => String(item.id) === String(id));
+      if(!job) return;
+
+      if(action === 'applicants'){
+        setView('applicants');
+        return;
+      }
+
+      if(action === 'edit'){
+        sessionStorage.setItem('alygnnEditJobId',String(id));
+        location.href = 'app-post-job.html';
+        return;
+      }
+
+      if(action === 'duplicate'){
+        const copy = {...job};
+        delete copy.id;
+        copy.title = (job.title || 'Job') + ' Copy';
+        copy.status = 'draft';
+        copy.created_at = new Date().toISOString();
+        copy.updated_at = new Date().toISOString();
+
+        const { data,error } = await sb.from('jobs').insert(copy).select().single();
+
+        if(error){
+          console.error(error);
+          toast('Could not duplicate job.');
+          return;
+        }
+
+        state.jobs.unshift(data);
+        renderAll();
+        toast('Job duplicated.');
+        return;
+      }
+
+      if(action === 'delete'){
+        if(!confirm('Delete this job? This cannot be undone.')) return;
+
+        const { error } = await sb.from('jobs').delete().eq('id',id);
+
+        if(error){
+          console.error(error);
+          toast('Could not delete job.');
+          return;
+        }
+
+        state.jobs = state.jobs.filter(item => String(item.id) !== String(id));
+        renderAll();
+        toast('Job deleted.');
+        return;
+      }
+
+      if(['pause','activate'].includes(action)){
+        const status = action === 'pause' ? 'paused' : 'active';
+        const { error } = await sb
+          .from('jobs')
+          .update({status,updated_at:new Date().toISOString()})
+          .eq('id',id);
+
+        if(error){
+          console.error(error);
+          toast('Could not update job.');
+          return;
+        }
+
+        job.status = status;
+        renderAll();
+        toast(status === 'paused' ? 'Job paused.' : 'Job activated.');
+      }
+    }
+
+    async function queryJobs(userId){
+      for(const column of ['employer_id','created_by','user_id','owner_id']){
+        const result = await sb
+          .from('jobs')
+          .select('*')
+          .eq(column,userId)
+          .order('created_at',{ascending:false});
+
+        if(!result.error) return result.data || [];
+      }
+
+      return [];
+    }
+
+    async function initialize(){
+      try{
+        const { data,error } = await sb.auth.getSession();
+
+        if(error || !data?.session){
+          location.replace('app-employer-login.html');
+          return;
+        }
+
+        state.session = data.session;
+        state.jobs = await queryJobs(state.session.user.id);
+
+        const jobIds = state.jobs.map(job => job.id).filter(Boolean);
+
+        if(jobIds.length){
+          const applicationResult = await sb
+            .from('applications')
+            .select('*')
+            .in('job_id',jobIds)
+            .order('applied_at',{ascending:false});
+
+          if(applicationResult.error){
+            console.error('Applications query failed:', applicationResult.error);
+          }
+          state.applications = applicationResult.error ? [] : applicationResult.data || [];
+
+          const profileIds = [...new Set(
+            state.applications
+              .map(application => application.candidate_id || application.user_id || application.profile_id)
+              .filter(Boolean)
+              .map(String)
+          )];
+
+          if(profileIds.length){
+            const profileResult = await sb
+              .from('profiles')
+              .select('*')
+              .in('id',profileIds);
+
+            if(!profileResult.error){
+              state.profiles = new Map((profileResult.data || []).map(profile => [String(profile.id),profile]));
+            }
+          }
+        }
+
+        renderAll();
+      }catch(error){
+        console.error('Employer workspace failed to initialize:',error);
+        renderAll();
+      }finally{
+        els.loading.hidden = true;
+      }
+    }
+
+    document.addEventListener('click',event => {
+      const nav = event.target.closest('[data-view]');
+      if(nav){
+        setView(nav.dataset.view);
+        return;
+      }
+
+      const job = event.target.closest('[data-job-action]');
+      if(job){
+        handleJobAction(job.dataset.jobAction,job.dataset.jobId);
+        return;
+      }
+
+      const candidate = event.target.closest('[data-app-id]');
+      if(candidate){
+        openCandidate(candidate.dataset.appId);
+        return;
+      }
+
+      const candidateAction = event.target.closest('[data-candidate-action]');
+      if(candidateAction){
+        updateApplicationStatus(candidateAction.dataset.candidateAction);
+      }
+    });
+
+    els.candidateSearch.addEventListener('input',renderApplicants);
+    els.candidateSort.addEventListener('change',renderApplicants);
+
+    $('post-job-btn').onclick = $('post-job-btn-2').onclick = $('hero-post-job').onclick = () => {
+      location.href = 'app-post-job.html';
+    };
+
+    $('open-company-page').onclick = () => location.href = 'app-employer-account.html';
+    $('open-account-settings').onclick = () => location.href = 'app-account-settings.html';
+    $('notification-settings').onclick = () => toast('Notification preferences are next on the roadmap.');
+    $('notifications-btn').onclick = () => toast('You have ' + els.notificationCount.textContent + ' new application notifications.');
+    $('menu-btn').onclick = () => setView('settings');
+    $('close-candidate').onclick = () => els.candidateSheet.hidden = true;
+
+    els.candidateSheet.addEventListener('click',event => {
+      if(event.target === els.candidateSheet) els.candidateSheet.hidden = true;
+    });
+
+    $('sign-out-btn').onclick = async () => {
+      await sb.auth.signOut();
+      location.replace('app-employer-login.html?logout=1');
+    };
+
+    initialize();
+  </script>
 </body>
 </html>
