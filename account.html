@@ -401,6 +401,17 @@ select.form-input{
 .job-row-status.status-accepted{ border-color:var(--sage); color:#2d8a57; background:rgba(140,182,155,.12); }
 .job-row-status.status-rejected{ border-color:#D79A9A; color:#a05858; background:rgba(215,154,154,.12); }
 
+.job-list-view-all{
+  display:block;
+  text-align:center;
+  font-size:13px;
+  font-weight:500;
+  color:var(--brand);
+  text-decoration:none;
+  padding:12px;
+}
+.job-list-view-all:hover{ text-decoration:underline; }
+
 .job-row-actions{
   display:flex;
   flex-direction:column;
@@ -692,11 +703,47 @@ function showPage(){
   pageEl.classList.add('ready');
 }
 
+const JOB_LIST_PREVIEW_LIMIT = 3;
+
+// Shows only the first N rows in a job list, with a "view all" link
+// appended if there are more. Called after every render (loadAppliedJobs /
+// loadSkippedJobs) and again whenever the search box is cleared.
+function applyJobListPreview(kind){
+  const list = document.getElementById(kind + '-jobs-list');
+  if(!list) return;
+
+  const existingLink = document.getElementById(kind + '-view-all-link');
+  if(existingLink) existingLink.remove();
+
+  const rows = [...list.querySelectorAll('.job-row-item')];
+  rows.forEach((row, i) => {
+    row.style.display = i < JOB_LIST_PREVIEW_LIMIT ? '' : 'none';
+  });
+
+  if(rows.length > JOB_LIST_PREVIEW_LIMIT){
+    const link = document.createElement('a');
+    link.id = kind + '-view-all-link';
+    link.href = '#';
+    link.className = 'job-list-view-all';
+    link.textContent = `… view all ${rows.length} ${kind === 'applied' ? 'applied' : 'skipped'} jobs →`;
+    link.onclick = (e) => {
+      e.preventDefault();
+      rows.forEach(row => { row.style.display = ''; });
+      link.remove();
+    };
+    list.appendChild(link);
+  }
+}
+
 // Filters any element with class "job-row-item" inside the given list
 // (#applied-jobs-list or #skipped-jobs-list) by its text content. Safe to
 // call with zero jobs — future code that renders real applied/skipped job
 // cards just needs to give each card class="job-row-item" and this will
 // work automatically with no further changes.
+//
+// While a search query is present, this searches every row regardless of
+// the 3-row preview collapse (so a match that's currently hidden by
+// "view all" still surfaces). Clearing the search restores the collapse.
 function filterJobList(kind){
   const input = document.getElementById(kind + '-search-input');
   const list = document.getElementById(kind + '-jobs-list');
@@ -704,11 +751,22 @@ function filterJobList(kind){
   if(!input || !list) return;
 
   const query = input.value.trim().toLowerCase();
+
+  if(!query){
+    applyJobListPreview(kind);
+    const cards = list.querySelectorAll('.job-row-item');
+    if(emptyState && cards.length > 0) emptyState.style.display = 'none';
+    return;
+  }
+
+  const link = document.getElementById(kind + '-view-all-link');
+  if(link) link.style.display = 'none';
+
   const cards = list.querySelectorAll('.job-row-item');
   let visibleCount = 0;
 
   cards.forEach(card => {
-    const matches = !query || card.textContent.toLowerCase().includes(query);
+    const matches = card.textContent.toLowerCase().includes(query);
     card.style.display = matches ? '' : 'none';
     if(matches) visibleCount++;
   });
@@ -845,6 +903,7 @@ async function loadAppliedJobs(){
   }).join('');
 
   if(emptyState) emptyState.style.display = 'none';
+  applyJobListPreview('applied');
 }
 
 // Mirrors applyFromSkipped() in the other direction — removes the
@@ -949,6 +1008,7 @@ async function loadSkippedJobs(){
   }).join('');
 
   if(emptyState) emptyState.style.display = 'none';
+  applyJobListPreview('skipped');
 }
 
 // Lets someone fix an accidental skip directly from the account page —
