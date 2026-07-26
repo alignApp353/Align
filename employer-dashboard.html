@@ -127,10 +127,20 @@
   .btn-pass:hover { border-color: var(--rose); color: var(--rose); }
   .btn-pass:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  /* ---- Post Job layout: form + live preview ---- */
-  .post-job-grid { display: grid; grid-template-columns: minmax(0, 640px) minmax(280px, 380px); gap: 24px; align-items: start; }
+  /* ---- Post Job wizard: single centered card, one step at a time,
+     matching the Alygnn mobile app's "Step X of 5" flow. ---- */
+  .wizard-wrap { max-width: 640px; margin: 0 auto; }
 
-  .form-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 36px; }
+  .wizard-progress-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .wizard-step-label { font-size: 13px; font-weight: 500; color: var(--brand); }
+  .wizard-step-name { font-size: 14px; color: var(--text-muted); }
+  .wizard-progress-track { height: 6px; background: var(--border); border-radius: 100px; overflow: hidden; margin-bottom: 28px; }
+  .wizard-progress-fill { height: 100%; background: var(--brand); border-radius: 100px; transition: width 0.3s ease; width: 20%; }
+
+  .wizard-title { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--text); letter-spacing: -0.5px; margin-bottom: 6px; }
+  .wizard-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 22px; line-height: 1.5; }
+
+  .form-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 32px; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
   .form-group.full { grid-column: 1 / -1; }
@@ -141,7 +151,7 @@
   .form-input::placeholder { color: #aab4bc; }
   textarea.form-input { resize: vertical; min-height: 120px; }
   select.form-input { cursor: pointer; }
-  .btn-post { background: var(--brand); color: white; border: none; border-radius: 12px; padding: 14px 32px; font-size: 15px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
+  .btn-post { background: var(--brand); color: white; border: none; border-radius: 12px; padding: 14px 32px; font-size: 15px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
   .btn-post:hover { opacity: 0.88; transform: translateY(-1px); }
   .btn-post.locked, .btn-primary.locked { opacity: .45; cursor: not-allowed; transform: none; }
   .verification-lock {
@@ -176,6 +186,9 @@
   .btn-ai.loading .ai-label { display: none; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* Wide, full-width variant of .btn-ai for "Suggest market pay" on the Pay step */
+  .btn-ai-block { width: 100%; justify-content: center; padding: 12px; border-radius: 12px; font-size: 13px; }
+
   /* ---- Indeed-style pay builder ---- */
   .pay-builder { display: flex; flex-direction: column; gap: 10px; }
   .pay-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -189,6 +202,32 @@
   }
   .pay-prefix-input input { padding-left: 26px; }
   .pay-preview-line { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Wizard steps: only one visible at a time */
+  .wizard-step { display: none; }
+  .wizard-step.active { display: block; }
+
+  .wizard-nav { display: flex; gap: 12px; margin-top: 24px; }
+  .btn-wizard-back {
+    flex: 1; background: white; color: var(--text); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-wizard-back:hover { border-color: var(--brand); }
+  .btn-wizard-continue {
+    flex: 2; background: var(--brand); color: white; border: none;
+    border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-wizard-continue:hover { opacity: 0.88; }
+  .btn-wizard-continue.locked { opacity: .45; cursor: not-allowed; }
+
+  .wizard-cancel-edit {
+    display: block; text-align: center; font-size: 13px; color: var(--text-muted);
+    background: none; border: none; cursor: pointer; margin-top: 14px;
+    text-decoration: underline; font-family: 'DM Sans', sans-serif;
+  }
+  .wizard-cancel-edit:hover { color: var(--text); }
 
   /* ---- Search-to-add pickers (requirements + benefits) ---- */
   .chip-selected-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
@@ -218,26 +257,6 @@
   .chip-result-row:hover { background: var(--brand-light); }
   .chip-results-empty { padding: 10px 16px; font-size: 12px; color: var(--text-muted); }
   .chip-count-note { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
-
-  /* ---- Live preview panel ---- */
-  .preview-card {
-    background: var(--card-bg); border: 1px solid var(--border);
-    border-radius: 20px; padding: 28px; position: sticky; top: 88px;
-  }
-  .preview-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); font-weight: 500; margin-bottom: 16px; }
-  .preview-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text); line-height: 1.25; margin-bottom: 6px; word-break: break-word; }
-  .preview-title.placeholder { color: #aab4bc; }
-  .preview-company { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
-  .preview-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.6; }
-  .preview-salary { display: inline-block; font-size: 13px; font-weight: 500; color: var(--mint); background: var(--mint-light); border-radius: 100px; padding: 4px 12px; margin-bottom: 16px; }
-  .preview-section-title { font-size: 12px; font-weight: 500; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 6px; }
-  .preview-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
-  .preview-desc.placeholder { color: #aab4bc; font-style: italic; }
-  .preview-reqs { list-style: disc; padding-left: 18px; font-size: 13px; color: var(--text-muted); line-height: 1.7; }
-  .preview-reqs .placeholder { list-style: none; margin-left: -18px; color: #aab4bc; font-style: italic; }
-  .preview-benefit-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-  .preview-benefit-tag { font-size: 11px; padding: 3px 10px; border-radius: 100px; background: var(--mint-light); color: var(--text); }
-  .preview-divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
 
   .empty-state { background: var(--card-bg); border: 1px dashed var(--border); border-radius: 14px; padding: 40px 28px; text-align: center; color: var(--text-muted); font-size: 14px; }
   .empty-state .empty-icon { font-size: 32px; margin-bottom: 12px; }
@@ -271,11 +290,6 @@
   .modal-empty { font-size: 13px; color: var(--text-muted); font-style: italic; }
 
   @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-
-  @media (max-width: 1150px) {
-    .post-job-grid { grid-template-columns: 1fr; }
-    .preview-card { position: static; }
-  }
 
   @media (max-width: 860px) {
     .layout { grid-template-columns: 1fr; }
@@ -384,7 +398,7 @@
       </div>
     </div>
 
-    <!-- POST JOB -->
+    <!-- POST JOB (5-step wizard, matches the Alygnn mobile app flow) -->
     <div class="panel" id="panel-post">
       <div class="page-header">
         <div class="page-title" id="post-form-title">Post a Job</div>
@@ -394,9 +408,22 @@
         Your business must be approved by Alygnn before you can post jobs.
       </div>
 
-      <div class="post-job-grid">
+      <div class="wizard-wrap">
+        <div class="wizard-progress-row">
+          <span class="wizard-step-label" id="wizard-step-label">Step 1 of 5</span>
+          <span class="wizard-step-name" id="wizard-step-name">Basics</span>
+        </div>
+        <div class="wizard-progress-track">
+          <div class="wizard-progress-fill" id="wizard-progress-fill"></div>
+        </div>
+
         <div class="form-card">
-          <div class="form-grid">
+
+          <!-- STEP 1 — Basics -->
+          <div class="wizard-step active" id="wizard-step-1">
+            <div class="wizard-title">What's the role?</div>
+            <div class="wizard-sub">Start with the job title and how it's classified.</div>
+
             <div class="form-group">
               <label class="form-label">Job title</label>
               <input type="text" class="form-input" id="f-title" placeholder="e.g. Senior Designer" oninput="updatePreview()">
@@ -406,31 +433,43 @@
               <input type="text" class="form-input" id="f-company" placeholder="Your company" oninput="updatePreview()" readonly style="background: var(--bg); color: var(--text-muted); cursor: not-allowed;">
               <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Matches your verified company profile. <a href="employer-account.html" style="color: var(--brand);">Edit in account settings</a>.</p>
             </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Job type</label>
+                <select class="form-input" id="f-type" onchange="updatePreview()">
+                  <option>Full-time</option>
+                  <option>Part-time</option>
+                  <option>Contract</option>
+                  <option>Internship</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Job location type</label>
+                <select class="form-input" id="f-style" onchange="updatePreview()">
+                  <option value="Remote">Remote</option>
+                  <option value="Hybrid">Hybrid</option>
+                  <option value="On-site">In person</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 2 — Location -->
+          <div class="wizard-step" id="wizard-step-2">
+            <div class="wizard-title">Where's this based?</div>
+            <div class="wizard-sub">This is what candidates will see and filter by.</div>
+
             <div class="form-group">
               <label class="form-label">Location</label>
               <input type="text" class="form-input" id="f-location" placeholder="Start typing a city, like Raleigh, NC" autocomplete="off" oninput="updatePreview()">
               <small style="font-size:11px; color:var(--text-muted); margin-top:2px;">Select a real location from Google suggestions.</small>
             </div>
-            <div class="form-group">
-              <label class="form-label">Job type</label>
-              <select class="form-input" id="f-type" onchange="updatePreview()">
-                <option>Full-time</option>
-                <option>Part-time</option>
-                <option>Contract</option>
-                <option>Internship</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Job location type</label>
-              <select class="form-input" id="f-style" onchange="updatePreview()">
-                <option value="Remote">Remote</option>
-                <option value="Hybrid">Hybrid</option>
-                <option value="On-site">In person</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <!-- spacer to keep grid aligned; pay builder spans full width below -->
-            </div>
+          </div>
+
+          <!-- STEP 3 — Pay -->
+          <div class="wizard-step" id="wizard-step-3">
+            <div class="wizard-title">What does this role pay?</div>
+            <div class="wizard-sub">Clear pay information helps candidates make better decisions.</div>
 
             <div class="form-group full">
               <label class="form-label">Pay</label>
@@ -460,10 +499,20 @@
                   </div>
                 </div>
                 <div class="pay-preview-line" id="pay-preview-line">Enter an amount to see a preview.</div>
+                <button type="button" class="btn-ai btn-ai-block" id="suggest-pay-btn" onclick="suggestMarketPay()">
+                  <span class="spinner"></span>
+                  <span class="ai-label">✨ Suggest market pay</span>
+                </button>
               </div>
               <!-- Hidden field kept for backward compatibility with existing validation / Supabase column -->
               <input type="hidden" id="f-salary">
             </div>
+          </div>
+
+          <!-- STEP 4 — Description -->
+          <div class="wizard-step" id="wizard-step-4">
+            <div class="wizard-title">Describe the role</div>
+            <div class="wizard-sub">Let AI draft it from what you've entered so far, or write your own.</div>
 
             <div class="form-group full">
               <div class="form-label-row">
@@ -476,6 +525,12 @@
               <textarea class="form-input" id="f-desc" placeholder="Describe the role, responsibilities, and what you're looking for..." oninput="updatePreview()"></textarea>
               <small style="font-size:11px; color:var(--text-muted); margin-top:2px;">Fill in job title and company first, then generate a draft you can edit.</small>
             </div>
+          </div>
+
+          <!-- STEP 5 — Requirements & Benefits -->
+          <div class="wizard-step" id="wizard-step-5">
+            <div class="wizard-title">Requirements & benefits</div>
+            <div class="wizard-sub">Select at least 3 requirements. Benefits are optional.</div>
 
             <!-- REQUIREMENTS: search to add from a fixed list -->
             <div class="form-group full">
@@ -502,30 +557,18 @@
               <input type="hidden" id="f-benefits">
             </div>
           </div>
-          <button class="btn-post" id="post-job-btn" onclick="postJob()">Post job →</button>
-          <button class="btn-view" id="cancel-edit-btn" onclick="cancelEdit()" style="display:none; margin-left:8px;">Cancel edit</button>
-        </div>
 
-        <!-- LIVE PREVIEW -->
-        <div class="preview-card">
-          <div class="preview-label">Live preview</div>
-          <div class="preview-title placeholder" id="pv-title">Job title will appear here</div>
-          <div class="preview-company" id="pv-company"></div>
-          <div class="preview-meta" id="pv-meta"></div>
-          <div id="pv-salary-wrap"></div>
+          <div class="wizard-nav">
+            <button type="button" class="btn-wizard-back" id="wizard-back-btn" onclick="wizardBack()" style="display:none;">Back</button>
+            <button type="button" class="btn-wizard-continue" id="wizard-continue-btn" onclick="wizardContinue()">Continue</button>
+          </div>
 
-          <hr class="preview-divider">
+          <button type="button" class="wizard-cancel-edit" id="cancel-edit-btn" onclick="cancelEdit()" style="display:none;">Cancel edit</button>
 
-          <div class="preview-section-title">Description</div>
-          <div class="preview-desc placeholder" id="pv-desc">Your job description will show up here as you type.</div>
-
-          <div class="preview-section-title">Requirements</div>
-          <ul class="preview-reqs" id="pv-reqs">
-            <li class="placeholder">Select requirements above to see them listed here.</li>
-          </ul>
-
-          <div class="preview-section-title" id="pv-benefits-title" style="display:none;">Benefits</div>
-          <div class="preview-benefit-tags" id="pv-benefits"></div>
+          <!-- Kept off-screen so postJob()/updateVerificationUI() (which look up
+               #post-job-btn) keep working unchanged — the wizard's own Continue
+               button on the last step calls postJob() directly instead. -->
+          <button class="btn-post" id="post-job-btn" onclick="postJob()" style="display:none;">Post job →</button>
         </div>
       </div>
     </div>
@@ -989,7 +1032,7 @@
 
   // The actual data-fetching side effects for a given panel.
   function loadPanelData(name) {
-    if (name === 'post') updatePreview();
+    if (name === 'post') { updatePreview(); resetWizardToStep1(); }
     if (name === 'candidates') loadCandidates();
   }
 
@@ -1037,6 +1080,155 @@
     if (postBtn) {
       postBtn.classList.add('locked');
       postBtn.disabled = true;
+    }
+
+    // Keep the wizard's own Continue/Post button (step 5) in sync with
+    // verification status too, not just the hidden legacy #post-job-btn.
+    if (typeof renderWizardStep === 'function') renderWizardStep();
+  }
+
+  // ---- Post Job wizard (5 steps, matches the mobile app's step-by-step
+  // flow) — Basics, Location, Pay, Description, Requirements & Benefits.
+  const TOTAL_WIZARD_STEPS = 5;
+  const WIZARD_STEP_NAMES = ['Basics', 'Location', 'Pay', 'Description', 'Requirements'];
+  let currentWizardStep = 1;
+
+  function renderWizardStep() {
+    const stepLabel = document.getElementById('wizard-step-label');
+    if (!stepLabel) return; // panel-post markup not on this page load yet
+
+    document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
+    const activeStepEl = document.getElementById('wizard-step-' + currentWizardStep);
+    if (activeStepEl) activeStepEl.classList.add('active');
+
+    stepLabel.textContent = `Step ${currentWizardStep} of ${TOTAL_WIZARD_STEPS}`;
+    document.getElementById('wizard-step-name').textContent = WIZARD_STEP_NAMES[currentWizardStep - 1];
+    document.getElementById('wizard-progress-fill').style.width = (currentWizardStep / TOTAL_WIZARD_STEPS * 100) + '%';
+
+    document.getElementById('wizard-back-btn').style.display = currentWizardStep === 1 ? 'none' : 'block';
+
+    const continueBtn = document.getElementById('wizard-continue-btn');
+    if (currentWizardStep === TOTAL_WIZARD_STEPS) {
+      continueBtn.textContent = editingJobId ? 'Save changes →' : 'Post job →';
+      continueBtn.classList.toggle('locked', !employerVerified);
+    } else {
+      continueBtn.textContent = 'Continue';
+      continueBtn.classList.remove('locked');
+    }
+  }
+
+  function resetWizardToStep1() {
+    currentWizardStep = 1;
+    renderWizardStep();
+  }
+
+  // Lightweight per-step validation, reusing the same checks postJob()'s
+  // full validateJob() already runs — this just runs the subset relevant
+  // to the fields on the step someone's trying to leave, so mistakes get
+  // caught as they go instead of all piling up at the final "Post job".
+  function validateWizardStep(step) {
+    if (step === 1) {
+      const title = document.getElementById('f-title').value.trim();
+      const company = document.getElementById('f-company').value.trim();
+      if (!isValidJobTitle(title)) return 'Enter a real job title, like "Customer Service Representative" or "Sales Account Manager".';
+      if (!isValidCompanyName(company)) return 'Enter a real company name.';
+      return '';
+    }
+    if (step === 2) {
+      const location = document.getElementById('f-location').value.trim();
+      const workStyle = document.getElementById('f-style').value;
+      if (!isValidLocation(location, workStyle)) {
+        return workStyle === 'Remote'
+          ? 'Enter a valid location, like "Remote - United States".'
+          : 'Enter a real location, like "Raleigh, NC".';
+      }
+      return '';
+    }
+    if (step === 3) {
+      const salary = buildSalaryString();
+      if (!isValidSalary(salary)) return 'Enter a pay amount above so candidates know what this role pays.';
+      return '';
+    }
+    if (step === 4) {
+      const description = document.getElementById('f-desc').value.trim();
+      if (!isValidDescription(description)) return 'Job description must be at least 180 characters and explain the real role, responsibilities, and work.';
+      return '';
+    }
+    return '';
+  }
+
+  function wizardContinue() {
+    const err = validateWizardStep(currentWizardStep);
+    if (err) {
+      showToast(err);
+      return;
+    }
+
+    if (currentWizardStep === TOTAL_WIZARD_STEPS) {
+      postJob();
+      return;
+    }
+
+    currentWizardStep = Math.min(currentWizardStep + 1, TOTAL_WIZARD_STEPS);
+    renderWizardStep();
+  }
+
+  function wizardBack() {
+    currentWizardStep = Math.max(currentWizardStep - 1, 1);
+    renderWizardStep();
+  }
+
+  // ---- AI market pay suggestion (Pay step) ----
+  // Calls a small Supabase Edge Function (suggest-market-pay) that asks
+  // Claude for a realistic pay range given the role/location/job type
+  // entered so far. Requires that function to be deployed — see the
+  // companion suggest-market-pay Edge Function file.
+  async function suggestMarketPay() {
+    const btn = document.getElementById('suggest-pay-btn');
+    const title = document.getElementById('f-title').value.trim();
+
+    if (!isValidJobTitle(title)) {
+      showToast('Enter a real job title first, like "Sales Manager".');
+      return;
+    }
+
+    const payload = {
+      title,
+      location: document.getElementById('f-location').value.trim(),
+      job_type: document.getElementById('f-type').value,
+      work_style: document.getElementById('f-style').value,
+      period: document.getElementById('f-pay-period').value
+    };
+
+    btn.disabled = true;
+    btn.classList.add('loading');
+
+    try {
+      const { data, error } = await sb.functions.invoke('suggest-market-pay', {
+        body: payload
+      });
+
+      if (error || !data || typeof data.min !== 'number' || typeof data.max !== 'number') {
+        console.error('Suggest market pay failed:', error);
+        showToast('Could not suggest pay for this role. Try again in a moment.');
+        return;
+      }
+
+      document.getElementById('f-pay-type').value = 'range';
+      onPayTypeChange();
+      document.getElementById('f-pay-min').value = Math.round(data.min);
+      document.getElementById('f-pay-max').value = Math.round(data.max);
+      if (data.period) document.getElementById('f-pay-period').value = data.period;
+
+      updatePreview();
+      const periodNow = document.getElementById('f-pay-period').value;
+      showToast(`✨ Suggested $${Math.round(data.min).toLocaleString()}–$${Math.round(data.max).toLocaleString()} per ${periodNow}`);
+    } catch (err) {
+      console.error('Suggest market pay error:', err);
+      showToast('Could not suggest pay for this role. Try again in a moment.');
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('loading');
     }
   }
 
@@ -1631,70 +1823,19 @@
     }
   }
 
-  // ---- Live preview ----
+  // Trimmed down from its old form: this used to also write into a live
+  // preview panel (pv-title, pv-desc, pv-reqs, etc.) that no longer exists
+  // now that Post a Job is a step wizard matching the mobile app — those
+  // elements are gone, so writing to them would throw. All that's left is
+  // syncing the hidden f-salary field (used by validateJob/collectJobForm)
+  // and the small pay-preview-line hint text under the pay builder.
   function updatePreview() {
-    const title = document.getElementById('f-title').value.trim();
-    const company = document.getElementById('f-company').value.trim();
-    const location = document.getElementById('f-location').value.trim();
-    const jobType = document.getElementById('f-type').value;
-    const workStyle = document.getElementById('f-style').value;
-    const description = document.getElementById('f-desc').value.trim();
-    const reqsRaw = document.getElementById('f-reqs').value;
-    const benefitsRaw = document.getElementById('f-benefits').value;
-
     const salaryString = buildSalaryString();
     document.getElementById('f-salary').value = salaryString;
 
     const payLine = document.getElementById('pay-preview-line');
     if (payLine && !payLine.textContent.startsWith('Currently saved')) {
       payLine.textContent = salaryString ? salaryString : 'Enter an amount to see a preview.';
-    }
-
-    const titleEl = document.getElementById('pv-title');
-    if (title) {
-      titleEl.textContent = title;
-      titleEl.classList.remove('placeholder');
-    } else {
-      titleEl.textContent = 'Job title will appear here';
-      titleEl.classList.add('placeholder');
-    }
-
-    document.getElementById('pv-company').textContent = company;
-
-    const metaParts = [jobType, formatWorkStyleLabel(workStyle), location].filter(Boolean);
-    document.getElementById('pv-meta').textContent = metaParts.join(' · ');
-
-    const salaryWrap = document.getElementById('pv-salary-wrap');
-    salaryWrap.innerHTML = salaryString
-      ? `<div class="preview-salary">${escapeHtml(salaryString)}</div>`
-      : '';
-
-    const descEl = document.getElementById('pv-desc');
-    if (description) {
-      descEl.textContent = description;
-      descEl.classList.remove('placeholder');
-    } else {
-      descEl.textContent = 'Your job description will show up here as you type.';
-      descEl.classList.add('placeholder');
-    }
-
-    const reqLines = reqsRaw.split('\n').map(r => r.trim()).filter(Boolean);
-    const reqsEl = document.getElementById('pv-reqs');
-    if (reqLines.length === 0) {
-      reqsEl.innerHTML = '<li class="placeholder">Select requirements above to see them listed here.</li>';
-    } else {
-      reqsEl.innerHTML = reqLines.map(r => `<li>${escapeHtml(r)}</li>`).join('');
-    }
-
-    const benefitLines = benefitsRaw.split('\n').map(b => b.trim()).filter(Boolean);
-    const benefitsTitleEl = document.getElementById('pv-benefits-title');
-    const benefitsEl = document.getElementById('pv-benefits');
-    if (benefitLines.length === 0) {
-      benefitsTitleEl.style.display = 'none';
-      benefitsEl.innerHTML = '';
-    } else {
-      benefitsTitleEl.style.display = 'block';
-      benefitsEl.innerHTML = benefitLines.map(b => `<span class="preview-benefit-tag">${escapeHtml(b)}</span>`).join('');
     }
   }
 
@@ -2024,7 +2165,7 @@
 
     document.getElementById('post-form-title').textContent = 'Edit Job';
     document.getElementById('post-job-btn').textContent = 'Save changes →';
-    document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+    document.getElementById('cancel-edit-btn').style.display = 'block';
 
     showPanel('post');
   }
