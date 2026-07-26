@@ -467,8 +467,14 @@
 
             <div class="form-group">
               <label class="form-label">Location</label>
-              <input type="text" class="form-input" id="f-location" placeholder="Start typing a city, like Raleigh, NC" autocomplete="off" oninput="updatePreview()">
-              <small style="font-size:11px; color:var(--text-muted); margin-top:2px;">Select a real location from Google suggestions.</small>
+              <div class="chip-search-wrap">
+                <input type="text" class="form-input" id="f-location" placeholder="Start typing a city, like Raleigh, NC" autocomplete="off"
+                  oninput="updatePreview(); renderLocationSuggestions();"
+                  onfocus="renderLocationSuggestions();"
+                  onblur="setTimeout(hideLocationSuggestions, 150)">
+                <div class="chip-results" id="location-suggestions"></div>
+              </div>
+              <small style="font-size:11px; color:var(--text-muted); margin-top:2px;">Pick a city from the list, or type your own in "City, ST" format.</small>
             </div>
           </div>
 
@@ -1011,6 +1017,79 @@
 
   function hideTitleSuggestions() {
     const box = document.getElementById('title-suggestions');
+    if (box) box.classList.remove('show');
+  }
+
+  // A representative list of major U.S. cities for the location
+  // suggestion dropdown — not exhaustive (there are tens of thousands of
+  // U.S. towns and cities), so typing anything not listed here still
+  // works fine as free text; this just makes common ones easy to pick.
+  // Same list and pattern used on the job-seeker preferences page, and
+  // replaces the old Google Places Autocomplete dependency entirely
+  // (that API key was failing to load — "This page can't load Google
+  // Maps correctly" — which also meant isValidLocation() could never be
+  // satisfied for non-remote jobs, silently blocking every employer from
+  // posting an on-site or hybrid role).
+  const KNOWN_CITIES = [
+    'New York, NY','Los Angeles, CA','Chicago, IL','Houston, TX','Phoenix, AZ',
+    'Philadelphia, PA','San Antonio, TX','San Diego, CA','Dallas, TX','Austin, TX',
+    'Jacksonville, FL','Fort Worth, TX','San Jose, CA','Columbus, OH','Charlotte, NC',
+    'Raleigh, NC','Durham, NC','Greensboro, NC','Winston-Salem, NC','Wilmington, NC',
+    'Fayetteville, NC','Cary, NC','High Point, NC','Asheville, NC','Concord, NC',
+    'San Francisco, CA','Indianapolis, IN','Seattle, WA','Denver, CO','Washington, DC',
+    'Boston, MA','Nashville, TN','Detroit, MI','Portland, OR','Memphis, TN',
+    'Oklahoma City, OK','Las Vegas, NV','Louisville, KY','Baltimore, MD','Milwaukee, WI',
+    'Albuquerque, NM','Tucson, AZ','Fresno, CA','Sacramento, CA','Kansas City, MO',
+    'Mesa, AZ','Atlanta, GA','Omaha, NE','Colorado Springs, CO','Miami, FL',
+    'Tampa, FL','Orlando, FL','Virginia Beach, VA','Long Beach, CA',
+    'Oakland, CA','Minneapolis, MN','Tulsa, OK','Arlington, TX','New Orleans, LA',
+    'Wichita, KS','Cleveland, OH','Bakersfield, CA','Aurora, CO','Anaheim, CA',
+    'Honolulu, HI','Santa Ana, CA','Riverside, CA','Corpus Christi, TX','Lexington, KY',
+    'Stockton, CA','Henderson, NV','St. Paul, MN','St. Louis, MO','Cincinnati, OH',
+    'Pittsburgh, PA','Greenville, SC','Columbia, SC','Charleston, SC','Richmond, VA',
+    'Norfolk, VA','Chesapeake, VA','Newport News, VA','Baton Rouge, LA','Shreveport, LA',
+    'Boise, ID','Spokane, WA','Tacoma, WA','Bellevue, WA','Salt Lake City, UT',
+    'Provo, UT','Albany, NY','Buffalo, NY','Rochester, NY','Syracuse, NY',
+    'Hartford, CT','Providence, RI','Jersey City, NJ','Newark, NJ','Trenton, NJ',
+    'Chattanooga, TN','Knoxville, TN','Jackson, MS','Little Rock, AR','Des Moines, IA',
+    'Madison, WI','Green Bay, WI','Fort Lauderdale, FL','St. Petersburg, FL',
+    'Tallahassee, FL','Savannah, GA','Augusta, GA','Athens, GA','Myrtle Beach, SC'
+  ];
+
+  function renderLocationSuggestions() {
+    const input = document.getElementById('f-location');
+    const box = document.getElementById('location-suggestions');
+    if (!input || !box) return;
+
+    const query = input.value.trim().toLowerCase();
+    const matches = (query === ''
+      ? KNOWN_CITIES
+      : KNOWN_CITIES.filter(c => c.toLowerCase().includes(query))
+    ).slice(0, MAX_RESULTS_SHOWN);
+
+    if (matches.length === 0) {
+      box.classList.remove('show');
+      box.innerHTML = '';
+      return;
+    }
+
+    box.innerHTML = matches.map(city => {
+      const escaped = city.replace(/'/g, "\\'");
+      return `<div class="chip-result-row" onmousedown="event.preventDefault(); selectLocationSuggestion('${escaped}')">${escapeHtml(city)}</div>`;
+    }).join('');
+    box.classList.add('show');
+  }
+
+  function selectLocationSuggestion(city) {
+    const input = document.getElementById('f-location');
+    input.value = city;
+    selectedGooglePlace = { formatted_address: city };
+    hideLocationSuggestions();
+    updatePreview();
+  }
+
+  function hideLocationSuggestions() {
+    const box = document.getElementById('location-suggestions');
     if (box) box.classList.remove('show');
   }
 
@@ -2031,10 +2110,11 @@
       return /remote|united states|usa|u\.s\.|[A-Za-z]{3,}/i.test(clean);
     }
 
-    if (window.google && google.maps && google.maps.places) {
-      return !!selectedGooglePlace && clean === normalizeText(selectedGooglePlace.formatted_address || selectedGooglePlace.name || clean);
-    }
-
+    // No longer checks window.google/selectedGooglePlace — the location
+    // field is now backed by our own KNOWN_CITIES list rather than Google
+    // Places Autocomplete (see renderLocationSuggestions), so any
+    // "City, ST"-shaped text is accepted whether it came from a
+    // suggestion click or was typed by hand.
     return /^[A-Za-z .'-]{3,},\s*[A-Za-z]{2,}(,\s*[A-Za-z .'-]+)?$/.test(clean);
   }
 
@@ -2130,7 +2210,13 @@
         return;
       }
 
-      document.getElementById('f-desc').value = data.description;
+      // AI output tends to come back with a blank line (double/triple
+      // newline) between every paragraph, which renders in the textarea
+      // as a big empty gap. Collapsing runs of 2+ newlines down to one
+      // keeps paragraphs as separate lines without that gap.
+      const cleanedDescription = String(data.description).replace(/\n{2,}/g, '\n').trim();
+
+      document.getElementById('f-desc').value = cleanedDescription;
       updatePreview();
       showToast('✨ Draft generated — feel free to edit it.');
     } catch (err) {
@@ -2142,42 +2228,13 @@
     }
   }
 
-  function initLocationAutocomplete() {
-    const input = document.getElementById('f-location');
-    if (!input || !(window.google && google.maps && google.maps.places)) return;
-
-    locationAutocomplete = new google.maps.places.Autocomplete(input, {
-      types: ['(cities)'],
-      componentRestrictions: { country: 'us' },
-      fields: ['formatted_address', 'name', 'place_id', 'address_components']
-    });
-
-    input.addEventListener('input', () => {
-      selectedGooglePlace = null;
-    });
-
-    locationAutocomplete.addListener('place_changed', () => {
-      const place = locationAutocomplete.getPlace();
-
-      if (!place || !place.place_id) {
-        selectedGooglePlace = null;
-        showToast('Please select a location from the Google suggestions.');
-        return;
-      }
-
-      selectedGooglePlace = {
-        formatted_address: place.formatted_address || place.name || input.value,
-        place_id: place.place_id
-      };
-
-      input.value = selectedGooglePlace.formatted_address;
-      updatePreview();
-    });
-  }
-
-  window.initAlygnnPlaces = function () {
-    initLocationAutocomplete();
-  };
+  // Google Places Autocomplete removed — the API key was failing to load
+  // ("This page can't load Google Maps correctly"), which also meant
+  // isValidLocation() could never be satisfied for non-remote jobs since
+  // it required a Google-selected place. The location field now uses our
+  // own KNOWN_CITIES suggestion list instead (see renderLocationSuggestions
+  // above), which doesn't depend on any external API being configured
+  // correctly.
 
   async function postJob() {
     if (!employerVerified) {
@@ -2299,7 +2356,7 @@
 </script>
 
 
-<!-- Google Places Autocomplete -->
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAFG0kmiUVY0uWa-NoC9YJFg5X571uVwt0&libraries=places&callback=initAlygnnPlaces"></script>
+<!-- Google Places Autocomplete removed — location suggestions now come
+     from the local KNOWN_CITIES list instead (see script above). -->
 </body>
 </html>
