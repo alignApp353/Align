@@ -2060,6 +2060,46 @@
     showToast('Interview saved.');
     closeInterviewModal();
     await loadInterviews();
+
+    // Best-effort — a failed email shouldn't undo the interview that
+    // already saved successfully, so this is fire-and-forget with just a
+    // console warning (and a follow-up toast) if it doesn't go through.
+    notifyCandidateOfInterview({
+      candidateId,
+      jobId,
+      scheduledAtIso,
+      locationVal,
+      videoLinkVal,
+      notesVal
+    });
+  }
+
+  async function notifyCandidateOfInterview({ candidateId, jobId, scheduledAtIso, locationVal, videoLinkVal, notesVal }) {
+    const job = jobs.find(j => j.id === jobId);
+    const jobTitle = job ? job.title : 'the role';
+    const companyName = currentProfile?.company_name || document.getElementById('nav-user-name').textContent || '';
+
+    try {
+      const { data, error: emailError } = await sb.functions.invoke('send-interview-email', {
+        body: {
+          candidate_id: candidateId,
+          job_title: jobTitle,
+          company_name: companyName,
+          formatted_datetime: formatInterviewDate(scheduledAtIso) + ' (employer\'s local time)',
+          location: locationVal || null,
+          video_link: videoLinkVal || null,
+          notes: notesVal || null
+        }
+      });
+
+      if (emailError || !data?.success) {
+        console.error('Failed to send interview email:', emailError || data);
+        showToast('Interview saved, but the notification email did not send.');
+      }
+    } catch (err) {
+      console.error('notifyCandidateOfInterview error:', err);
+      showToast('Interview saved, but the notification email did not send.');
+    }
   }
 
   async function cancelInterview(interviewId) {
