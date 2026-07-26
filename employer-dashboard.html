@@ -1838,7 +1838,7 @@
 
     const { data, error } = await sb
       .from('interviews')
-      .select('id, application_id, job_id, candidate_id, scheduled_at, location_or_link, notes')
+      .select('id, application_id, job_id, candidate_id, scheduled_at, location_or_link, video_link, notes')
       .eq('employer_id', currentUser.id)
       .order('scheduled_at', { ascending: true });
 
@@ -1873,6 +1873,7 @@
       candidateId: r.candidate_id,
       scheduledAt: r.scheduled_at,
       locationOrLink: r.location_or_link,
+      videoLink: r.video_link,
       notes: r.notes,
       candidateName: profileMap[r.candidate_id]?.full_name || 'Candidate',
       jobTitle: jobMap[r.job_id]?.title || 'a job'
@@ -1899,12 +1900,23 @@
       return;
     }
 
-    listEl.innerHTML = interviews.map(iv => `
+    listEl.innerHTML = interviews.map(iv => {
+      const metaParts = [
+        formatInterviewDate(iv.scheduledAt),
+        iv.locationOrLink || null
+      ].filter(Boolean).join(' · ');
+
+      const videoLinkHtml = iv.videoLink
+        ? `<div class="job-meta" style="margin-top:2px;"><a href="${escapeHtml(iv.videoLink)}" target="_blank" rel="noopener" style="color:var(--brand);">${escapeHtml(iv.videoLink)}</a></div>`
+        : '';
+
+      return `
       <div class="job-row">
         <div class="job-status active"></div>
         <div class="job-info">
           <div class="job-title-text">${escapeHtml(iv.candidateName)} — ${escapeHtml(iv.jobTitle)}</div>
-          <div class="job-meta">${escapeHtml(formatInterviewDate(iv.scheduledAt))}${iv.locationOrLink ? ' · ' + escapeHtml(iv.locationOrLink) : ''}</div>
+          <div class="job-meta">${escapeHtml(metaParts)}</div>
+          ${videoLinkHtml}
           ${iv.notes ? `<div class="job-meta" style="margin-top:4px;">${escapeHtml(iv.notes)}</div>` : ''}
         </div>
         <div class="job-actions">
@@ -1912,7 +1924,8 @@
           <button class="btn-danger" onclick="cancelInterview('${iv.id}')">Cancel</button>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
   function openInterviewModal(applicationId, jobId, candidateId, candidateName, jobTitle) {
@@ -1920,6 +1933,7 @@
 
     const scheduledAtLocal = existing ? toDatetimeLocalValue(existing.scheduledAt) : '';
     const locationVal = existing ? (existing.locationOrLink || '') : '';
+    const videoLinkVal = existing ? (existing.videoLink || '') : '';
     const notesVal = existing ? (existing.notes || '') : '';
 
     document.getElementById('interview-modal-box').innerHTML = `
@@ -1937,8 +1951,19 @@
         <input type="datetime-local" class="form-input" id="iv-datetime" value="${escapeHtml(scheduledAtLocal)}">
       </div>
       <div class="form-group">
-        <label class="form-label">Location or video link</label>
-        <input type="text" class="form-input" id="iv-location" placeholder="e.g. Zoom link, or 123 Main St" value="${escapeHtml(locationVal)}">
+        <label class="form-label">Location <span style="text-transform:none; font-weight:400;">(optional if remote)</span></label>
+        <div class="chip-search-wrap">
+          <input type="text" class="form-input" id="iv-location" placeholder="Start typing a city, like Raleigh, NC" autocomplete="off"
+            value="${escapeHtml(locationVal)}"
+            oninput="renderIvLocationSuggestions();"
+            onfocus="renderIvLocationSuggestions();"
+            onblur="setTimeout(hideIvLocationSuggestions, 150)">
+          <div class="chip-results" id="iv-location-suggestions"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Video link <span style="text-transform:none; font-weight:400;">(optional)</span></label>
+        <input type="text" class="form-input" id="iv-video-link" placeholder="e.g. Zoom, Google Meet, or Teams link" value="${escapeHtml(videoLinkVal)}">
       </div>
       <div class="form-group">
         <label class="form-label">Notes <span style="text-transform:none; font-weight:400;">(optional)</span></label>
@@ -1956,6 +1981,46 @@
     document.getElementById('interview-modal-overlay').classList.add('show');
   }
 
+  // City suggestions for the interview location field — reuses the same
+  // KNOWN_CITIES list the Post a Job location step uses, but with its own
+  // element IDs (iv-location / iv-location-suggestions) since this modal's
+  // HTML is regenerated fresh each time it opens.
+  function renderIvLocationSuggestions() {
+    const input = document.getElementById('iv-location');
+    const box = document.getElementById('iv-location-suggestions');
+    if (!input || !box) return;
+
+    const query = input.value.trim().toLowerCase();
+    const matches = (query === ''
+      ? KNOWN_CITIES
+      : KNOWN_CITIES.filter(c => c.toLowerCase().includes(query))
+    ).slice(0, MAX_RESULTS_SHOWN);
+
+    if (matches.length === 0) {
+      box.classList.remove('show');
+      box.innerHTML = '';
+      return;
+    }
+
+    box.innerHTML = matches.map(city => {
+      const escaped = city.replace(/'/g, "\\'");
+      return `<div class="chip-result-row" onmousedown="event.preventDefault(); selectIvLocationSuggestion('${escaped}')">${escapeHtml(city)}</div>`;
+    }).join('');
+    box.classList.add('show');
+  }
+
+  function selectIvLocationSuggestion(city) {
+    const input = document.getElementById('iv-location');
+    if (input) input.value = city;
+    hideIvLocationSuggestions();
+  }
+
+  function hideIvLocationSuggestions() {
+    const box = document.getElementById('iv-location-suggestions');
+    if (box) box.classList.remove('show');
+  }
+
+
   function closeInterviewModal() {
     document.getElementById('interview-modal-overlay').classList.remove('show');
   }
@@ -1963,6 +2028,7 @@
   async function saveInterview(applicationId, jobId, candidateId) {
     const datetimeVal = document.getElementById('iv-datetime').value;
     const locationVal = document.getElementById('iv-location').value.trim();
+    const videoLinkVal = document.getElementById('iv-video-link').value.trim();
     const notesVal = document.getElementById('iv-notes').value.trim();
 
     if (!datetimeVal) {
@@ -1981,6 +2047,7 @@
         employer_id: currentUser.id,
         scheduled_at: scheduledAtIso,
         location_or_link: locationVal || null,
+        video_link: videoLinkVal || null,
         notes: notesVal || null
       }, { onConflict: 'application_id' });
 
