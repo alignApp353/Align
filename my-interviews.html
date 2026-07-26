@@ -587,6 +587,12 @@ select.form-input{
   border-radius:14px;
   padding:18px 20px;
   margin-bottom:10px;
+  cursor:pointer;
+  transition:border-color .2s, transform .2s;
+}
+.interview-card:hover{
+  border-color:var(--brand);
+  transform:translateY(-1px);
 }
 .interview-card-top{
   display:flex;
@@ -728,9 +734,12 @@ async function loadInterviews(){
     const job = jobMap[iv.job_id];
     const jobTitle = job ? job.title : 'a role';
     const company = job ? job.company : '';
+    const detailsUrl = `job-details.html?job=${encodeURIComponent(iv.job_id)}`;
 
     return `
-      <div class="interview-card">
+      <div class="interview-card" role="button" tabindex="0"
+        onclick="if(!event.target.closest('a')) window.location.href='${detailsUrl}';"
+        onkeydown="if(event.key==='Enter'){ window.location.href='${detailsUrl}'; }">
         <div class="interview-card-top">
           <div class="interview-card-title">${escapeHtml(jobTitle)}${company ? ' — ' + escapeHtml(company) : ''}</div>
           <span class="interview-card-when">${escapeHtml(formatInterviewDate(iv.scheduled_at))}</span>
