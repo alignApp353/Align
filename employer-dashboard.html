@@ -2087,9 +2087,15 @@
 
   function isValidJobTitle(title) {
     const clean = normalizeText(title);
-    if (clean.length < 6 || clean.length > 80) return false;
+    if (clean.length < 3 || clean.length > 80) return false;
     if (containsBlockedJunk(clean) || hasRepeatedJunk(clean)) return false;
-    if (countRealWords(clean) < 2) return false;
+    // FIX: this used to require at least 2 "real words" (3+ letters each),
+    // which silently rejected every legitimate single-word job title —
+    // Electrician, Welder, Cashier, Bartender, Receptionist, Bookkeeper,
+    // Photographer, and others that are literally on our own
+    // JOB_TITLE_OPTIONS suggestion list. One real word is enough; the
+    // length/junk/character checks already guard against garbage input.
+    if (countRealWords(clean) < 1) return false;
     return /^[A-Za-z0-9&.,'’()\-/ ]+$/.test(clean);
   }
 
