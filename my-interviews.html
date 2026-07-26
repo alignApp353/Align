@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>Interviews — Alygnn</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root{
+  --brand:#5D7FA3;
+  --sage:#8CB69B;
+  --bg:#F6F8F7;
+  --card-bg:#FCFCFA;
+  --text:#1A2530;
+  --text-muted:#4A5968;
+  --border:#DDE3E8;
+}
+
+*,
+*::before,
+*::after{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:'DM Sans', Arial, sans-serif !important;
+}
+
+html,
+body{
+  min-height:100%;
+  background:var(--bg);
+  color:var(--text);
+}
+
+body{
+  min-height:100vh;
+}
+
+nav{
+  position:sticky;
+  top:0;
+  z-index:100;
+  height:64px;
+  padding:0 5%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:rgba(246,248,247,.92);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+
+.logo{
+  font-family:'DM Serif Display', serif !important;
+  font-size:22px;
+  color:var(--brand);
+  letter-spacing:-.5px;
+  text-decoration:none;
+}
+
+.logo span{
+  font-family:'DM Serif Display', serif !important;
+  color:var(--sage);
+}
+
+.nav-links{
+  display:flex;
+  align-items:center;
+  gap:28px;
+}
+
+.nav-links a{
+  color:var(--text-muted);
+  text-decoration:none;
+  font-size:14px;
+  padding:6px 0;
+  border-bottom:2px solid transparent;
+}
+
+.nav-links a.active{
+  color:var(--text);
+  border-bottom-color:var(--brand);
+}
+
+.nav-links a:hover{
+  color:var(--text);
+}
+
+.page{
+  max-width:880px;
+  margin:0 auto;
+  padding:56px 6% 100px;
+  opacity:0;
+  transform:translateY(8px);
+  transition:opacity .25s ease, transform .25s ease;
+}
+
+.page.ready{
+  opacity:1;
+  transform:translateY(0);
+}
+
+.loading{
+  max-width:880px;
+  margin:0 auto;
+  padding:56px 6%;
+  color:var(--text-muted);
+  font-size:14px;
+}
+
+.loading.hide{
+  display:none;
+}
+
+.profile-card{
+  display:flex;
+  align-items:center;
+  gap:22px;
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:32px;
+  margin-bottom:40px;
+}
+
+.avatar{
+  width:76px;
+  height:76px;
+  border-radius:50%;
+  background:var(--brand);
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  font-family:'DM Serif Display', serif !important;
+  font-size:1.7rem;
+}
+
+.avatar span{
+  font-family:'DM Serif Display', serif !important;
+}
+
+.profile-info{
+  flex:1;
+  min-width:0;
+}
+
+.profile-info h1{
+  font-family:'DM Serif Display', serif !important;
+  font-size:1.6rem;
+  letter-spacing:-.5px;
+  margin-bottom:4px;
+  color:var(--text);
+  word-break:break-word;
+}
+
+.profile-info p{
+  color:var(--text-muted);
+  font-size:14px;
+  font-weight:300;
+  word-break:break-word;
+}
+
+[contenteditable="true"]{
+  outline:none;
+  border-radius:6px;
+}
+
+[contenteditable="true"]:hover{
+  background:rgba(93,127,163,.06);
+}
+
+[contenteditable="true"]:focus{
+  background:rgba(93,127,163,.08);
+}
+
+[contenteditable="true"]:empty::before{
+  content:attr(data-placeholder);
+  color:#9BA8B3;
+  font-style:italic;
+}
+
+#profile-name:empty::before{
+  font-family:'DM Serif Display', serif !important;
+  font-style:normal;
+}
+
+.section{
+  margin-bottom:40px;
+}
+
+.section-header{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  margin-bottom:16px;
+}
+
+.section-header h2{
+  font-family:'DM Serif Display', serif !important;
+  font-size:1.15rem;
+  letter-spacing:-.3px;
+}
+
+.empty-state{
+  background:var(--card-bg);
+  border:1px dashed var(--border);
+  border-radius:14px;
+  padding:28px;
+  text-align:center;
+  color:var(--text-muted);
+  font-size:14px;
+}
+
+.form-input{
+  background:white;
+  border:1.5px solid var(--border);
+  border-radius:12px;
+  padding:12px 16px;
+  font-size:14px;
+  font-family:'DM Sans', Arial, sans-serif;
+  color:var(--text);
+  outline:none;
+  transition:border-color .2s;
+  width:100%;
+}
+.form-input:focus{ border-color:var(--brand); }
+.form-input::placeholder{ color:#9BA8B3; }
+
+.links-row{
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+}
+
+.detail-card{
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:24px;
+}
+
+.detail-field{
+  margin-bottom:20px;
+}
+.detail-field:last-child{ margin-bottom:0; }
+
+.detail-label{
+  font-size:12px;
+  font-weight:500;
+  color:var(--text-muted);
+  display:block;
+  margin-bottom:8px;
+}
+
+textarea.form-input{
+  resize:vertical;
+  min-height:70px;
+}
+
+.skills-chip-wrap{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+.skill-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  color:white;
+  background:var(--brand);
+  border-radius:100px;
+  padding:6px 8px 6px 14px;
+}
+.skill-chip button{
+  background:rgba(255,255,255,.25);
+  border:none;
+  color:white;
+  border-radius:50%;
+  width:18px;
+  height:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:11px;
+  line-height:1;
+}
+.skill-chip button:hover{ background:rgba(255,255,255,.4); }
+
+.entry-row-wrap{
+  margin-bottom:10px;
+}
+.entry-row-wrap .entry-row{
+  margin-bottom:6px;
+}
+
+.entry-row{
+  display:grid;
+  grid-template-columns:1.4fr 1.4fr .8fr .8fr auto;
+  gap:10px;
+  margin-bottom:10px;
+  align-items:center;
+}
+
+select.form-input{
+  cursor:pointer;
+}
+
+.btn-remove-entry{
+  background:rgba(215,154,154,.15);
+  color:#a05858;
+  border:none;
+  border-radius:8px;
+  padding:10px 12px;
+  cursor:pointer;
+  font-size:13px;
+  font-family:'DM Sans', Arial, sans-serif;
+}
+.btn-remove-entry:hover{ opacity:.8; }
+
+.btn-add-entry{
+  background:rgba(93,127,163,.08);
+  color:var(--brand);
+  border:1px solid rgba(93,127,163,.25);
+  border-radius:100px;
+  padding:8px 16px;
+  font-size:13px;
+  font-weight:500;
+  cursor:pointer;
+  font-family:'DM Sans', Arial, sans-serif;
+}
+.btn-add-entry:hover{ opacity:.85; }
+
+.btn-save-profile{
+  background:var(--brand);
+  color:white;
+  border:none;
+  border-radius:12px;
+  padding:12px 24px;
+  font-size:14px;
+  font-weight:500;
+  font-family:'DM Sans', Arial, sans-serif;
+  cursor:pointer;
+  margin-top:4px;
+}
+.btn-save-profile:hover{ opacity:.88; }
+.btn-save-profile:disabled{ opacity:.6; cursor:not-allowed; }
+
+.detail-empty-note{
+  font-size:12px;
+  color:var(--text-muted);
+  font-style:italic;
+  margin-bottom:10px;
+}
+
+@media(max-width:640px){
+  .entry-row{ grid-template-columns:1fr; }
+}
+
+.job-row-item{
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:16px 20px;
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  cursor:pointer;
+  transition:border-color .2s, transform .2s;
+}
+.job-row-item:hover{
+  border-color:var(--brand);
+  transform:translateY(-1px);
+}
+.job-row-title{ font-size:14px; font-weight:500; color:var(--text); margin-bottom:3px; }
+.job-row-meta{ font-size:12px; color:var(--text-muted); }
+.job-row-status{
+  font-size:11px;
+  font-weight:500;
+  padding:4px 12px;
+  border-radius:100px;
+  border:1px solid var(--border);
+  color:var(--text-muted);
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.job-row-status.status-accepted{ border-color:var(--sage); color:#2d8a57; background:rgba(140,182,155,.12); }
+
+.job-row-interview{
+  margin-top:8px;
+  padding:10px 12px;
+  background:rgba(93,127,163,.06);
+  border:1px solid rgba(93,127,163,.2);
+  border-radius:10px;
+}
+.job-row-interview-title{
+  font-size:12px;
+  font-weight:500;
+  color:var(--brand);
+  margin-bottom:3px;
+}
+.job-row-interview-detail{
+  font-size:12px;
+  color:var(--text-muted);
+  line-height:1.5;
+}
+.job-row-interview-detail a{
+  color:var(--brand);
+  word-break:break-all;
+}
+.job-row-status.status-rejected{ border-color:#D79A9A; color:#a05858; background:rgba(215,154,154,.12); }
+
+.job-list-view-all{
+  display:block;
+  text-align:center;
+  font-size:13px;
+  font-weight:500;
+  color:var(--brand);
+  text-decoration:none;
+  padding:12px;
+}
+.job-list-view-all:hover{ text-decoration:underline; }
+
+.job-row-actions{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:8px;
+  flex-shrink:0;
+}
+.job-row-buttons{
+  display:flex;
+  gap:6px;
+}
+.job-row-actions.job-row-actions-inline{
+  flex-direction:row;
+  align-items:center;
+  gap:8px;
+}
+.job-action-btn{
+  font-size:11px;
+  font-weight:500;
+  padding:5px 12px;
+  border-radius:100px;
+  border:1px solid var(--border);
+  background:white;
+  cursor:pointer;
+  font-family:'DM Sans', Arial, sans-serif;
+  transition:all .2s;
+  white-space:nowrap;
+}
+.job-action-btn:hover{ border-color:var(--brand); color:var(--brand); }
+.job-action-btn.apply{ color:#2d8a57; border-color:var(--sage); background:rgba(140,182,155,.08); }
+.job-action-btn.apply:hover{ background:rgba(140,182,155,.18); border-color:var(--sage); color:#2d8a57; }
+.job-action-btn.restore{ color:var(--text-muted); }
+
+.field-error{
+  font-size:11px;
+  color:#a05858;
+  margin-top:-4px;
+  margin-bottom:8px;
+}
+
+.toast{
+  position:fixed;
+  bottom:32px;
+  left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:var(--text);
+  color:white;
+  padding:10px 20px;
+  border-radius:100px;
+  font-size:13px;
+  font-weight:500;
+  transition:transform .3s ease;
+  z-index:200;
+  white-space:nowrap;
+}
+.toast.show{ transform:translateX(-50%) translateY(0); }
+
+.link-card{
+  flex:1;
+  min-width:200px;
+  display:block;
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:20px;
+  text-decoration:none;
+  color:var(--text);
+  transition:border-color .2s, transform .2s;
+}
+
+.link-card:hover{
+  border-color:var(--brand);
+  transform:translateY(-2px);
+}
+
+.link-card .icon{
+  font-size:1.3rem;
+  margin-bottom:8px;
+  display:block;
+}
+
+.link-card .label{
+  font-weight:500;
+  font-size:15px;
+}
+
+.link-card .sub{
+  font-size:13px;
+  color:var(--text-muted);
+  margin-top:2px;
+  font-weight:300;
+}
+
+.link-card .sub a{
+  color:var(--brand);
+  text-decoration:underline;
+}
+
+.resume-card-wrap{
+  flex:1;
+  min-width:200px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.resume-card-wrap .link-card{
+  flex:1;
+  min-width:0;
+}
+#resume-replace-link{
+  font-size:12px;
+  color:var(--text-muted);
+  text-decoration:underline;
+  text-align:center;
+}
+#resume-replace-link:hover{ color:var(--brand); }
+
+@media(max-width:640px){
+  nav{
+    padding:0 18px;
+  }
+
+  .nav-links{
+    gap:14px;
+  }
+
+  .nav-links a{
+    font-size:13px;
+  }
+
+  .profile-card{
+    padding:24px;
+    align-items:flex-start;
+  }
+
+  .avatar{
+    width:60px;
+    height:60px;
+    font-size:1.35rem;
+  }
+
+  .page{
+    padding-top:36px;
+  }
+}
+
+.interview-card{
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:18px 20px;
+  margin-bottom:10px;
+}
+.interview-card-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:8px;
+}
+.interview-card-title{
+  font-size:14px;
+  font-weight:500;
+  color:var(--text);
+}
+.interview-card-when{
+  font-size:12px;
+  font-weight:500;
+  color:var(--brand);
+  background:rgba(93,127,163,.08);
+  border:1px solid rgba(93,127,163,.2);
+  border-radius:100px;
+  padding:4px 12px;
+  white-space:nowrap;
+}
+.interview-card-detail{
+  font-size:13px;
+  color:var(--text-muted);
+  line-height:1.6;
+}
+.interview-card-detail a{
+  color:var(--brand);
+  word-break:break-all;
+}
+</style>
+
+<body>
+
+<nav>
+  <a href="index.html" class="logo">Alygnn<span>.</span></a>
+  <div class="nav-links">
+    <a href="index.html">← Home</a>
+    <a href="account.html">Account</a>
+    <a href="swipe.html">Swipe</a>
+  </div>
+</nav>
+
+<div class="loading" id="loading">Loading your interviews...</div>
+
+<div class="page" id="page">
+
+  <a href="account.html" style="display:inline-block; margin-bottom:20px; font-size:13px; color:var(--text-muted); text-decoration:none;">← Back to account</a>
+
+  <div class="section">
+    <div class="section-header">
+      <h2>Interviews</h2>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Interviews that employers have scheduled with you, most recent first.</p>
+
+    <div id="interviews-list">
+      <div class="empty-state" id="interviews-empty-state">No interviews scheduled yet. Once an employer sets one up, it'll show here.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://auth.alygnn.com';
+const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUserId = null;
+
+const pageEl = document.getElementById('page');
+const loadingEl = document.getElementById('loading');
+
+function showPage(){
+  loadingEl.classList.add('hide');
+  pageEl.classList.add('ready');
+}
+
+function escapeHtml(value){
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function formatInterviewDate(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return '';
+  return d.toLocaleString(undefined, {
+    weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+  });
+}
+
+// Requires the "Candidates view their own interviews" RLS policy on the
+// interviews table (auth.uid() = candidate_id). Read-only — a candidate
+// can see what's scheduled but not edit or cancel it; that stays
+// employer-only on employer-dashboard.html.
+async function loadInterviews(){
+  const listEl = document.getElementById('interviews-list');
+  const emptyState = document.getElementById('interviews-empty-state');
+
+  const { data: interviewsData, error: interviewsError } = await sb
+    .from('interviews')
+    .select('id, job_id, scheduled_at, location_or_link, video_link, notes')
+    .eq('candidate_id', currentUserId)
+    .order('scheduled_at', { ascending: true });
+
+  if(interviewsError){
+    console.error('Failed to load interviews:', interviewsError);
+    listEl.innerHTML = '<div class="empty-state">Could not load your interviews right now. Try again shortly.</div>';
+    return;
+  }
+
+  if(!interviewsData || interviewsData.length === 0){
+    return; // static empty state already covers this
+  }
+
+  const jobIds = [...new Set(interviewsData.map(iv => iv.job_id))];
+
+  const { data: jobsData, error: jobsError } = await sb
+    .from('jobs')
+    .select('id, title, company')
+    .in('id', jobIds);
+
+  if(jobsError){
+    console.error('Failed to load job details for interviews:', jobsError);
+  }
+
+  const jobMap = {};
+  (jobsData || []).forEach(j => { jobMap[j.id] = j; });
+
+  listEl.innerHTML = interviewsData.map(iv => {
+    const job = jobMap[iv.job_id];
+    const jobTitle = job ? job.title : 'a role';
+    const company = job ? job.company : '';
+
+    return `
+      <div class="interview-card">
+        <div class="interview-card-top">
+          <div class="interview-card-title">${escapeHtml(jobTitle)}${company ? ' — ' + escapeHtml(company) : ''}</div>
+          <span class="interview-card-when">${escapeHtml(formatInterviewDate(iv.scheduled_at))}</span>
+        </div>
+        ${iv.location_or_link ? `<div class="interview-card-detail">📍 ${escapeHtml(iv.location_or_link)}</div>` : ''}
+        ${iv.video_link ? `<div class="interview-card-detail">🔗 <a href="${escapeHtml(iv.video_link)}" target="_blank" rel="noopener">${escapeHtml(iv.video_link)}</a></div>` : ''}
+        ${iv.notes ? `<div class="interview-card-detail" style="margin-top:4px;">${escapeHtml(iv.notes)}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  if(emptyState) emptyState.style.display = 'none';
+}
+
+async function initInterviewsPage(){
+  const { data: { session } } = await sb.auth.getSession();
+
+  if(!session){
+    window.location.href = 'login.html';
+    return;
+  }
+
+  currentUserId = session.user.id;
+
+  await loadInterviews();
+  showPage();
+}
+
+initInterviewsPage();
+</script>
+
+</body>
+</html>
