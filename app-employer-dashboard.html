@@ -43,6 +43,39 @@
       --shadow-md:0 18px 50px rgba(23,35,51,.10);
     }
 
+    html[data-theme="dark"]{
+      --bg:#0B111A;
+      --card:#121B27;
+      --text:#F3F7FA;
+      --muted:#A9B5C2;
+      --border:#293545;
+      --border-soft:#202C3A;
+      --brand-soft:#19283A;
+      --green-bg:#153024;
+      --blue-bg:#172A40;
+      --purple-bg:#241E3B;
+      --amber-bg:#392B13;
+      --danger-bg:#3B1E22;
+      --shadow-sm:0 7px 22px rgba(0,0,0,.22);
+      --shadow-md:0 18px 50px rgba(0,0,0,.32);
+      color-scheme:dark;
+    }
+
+    html[data-theme="dark"] .header{background:rgba(11,17,26,.92);border-bottom-color:rgba(41,53,69,.88)}
+    html[data-theme="dark"] .icon-btn,
+    html[data-theme="dark"] .metric,
+    html[data-theme="dark"] .section,
+    html[data-theme="dark"] .settings-card,
+    html[data-theme="dark"] .settings-link,
+    html[data-theme="dark"] .candidate-row,
+    html[data-theme="dark"] .sheet-panel,
+    html[data-theme="dark"] .bottom-nav{background:var(--card)}
+    html[data-theme="dark"] .job-stat,
+    html[data-theme="dark"] .profile-box,
+    html[data-theme="dark"] .appearance-option{background:#0F1823}
+    html[data-theme="dark"] input,
+    html[data-theme="dark"] select{background:var(--card);color:var(--text)}
+
     [hidden]{display:none!important}
 
     html,body{
@@ -617,6 +650,49 @@
 
     .settings-link:last-child{border-bottom:none}
 
+    .settings-group-title{
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.8px;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-bottom:12px;
+    }
+
+    .appearance-options{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:9px;
+    }
+
+    .appearance-option{
+      min-height:86px;
+      padding:12px 8px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:#F8FAFB;
+      color:var(--text);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+      font-size:11px;
+      font-weight:900;
+      transition:.18s ease;
+    }
+
+    .appearance-option .appearance-icon{font-size:21px;line-height:1}
+    .appearance-option.active{
+      border-color:var(--brand-dark);
+      background:var(--blue-bg);
+      color:var(--brand-dark);
+      box-shadow:0 0 0 2px rgba(52,95,145,.08);
+    }
+    html[data-theme="dark"] .appearance-option.active{color:#8EB5DF}
+
+    .preference-note{margin-top:11px;color:var(--muted);font-size:11px;line-height:1.5}
+
     .bottom-nav{
       position:fixed;
       left:0;
@@ -816,7 +892,7 @@
 
   <div class="shell">
     <header class="header">
-      <button class="icon-btn" id="menu-btn" type="button" aria-label="Open settings">☰</button>
+      <div aria-hidden="true"></div>
       <div class="logo">Alygnn<span>.</span></div>
       <button class="icon-btn notification" id="notifications-btn" type="button" aria-label="Notifications">
         ○
@@ -964,11 +1040,28 @@
       <section class="view" id="settings-view" hidden>
         <div class="eyebrow">Employer workspace</div>
         <h1 class="page-title">Settings</h1>
-        <p class="page-sub">Control your account, notification preferences, and hiring experience.</p>
+        <p class="page-sub">Personalize your workspace and manage your employer account.</p>
+
+        <div class="settings-card">
+          <div class="settings-group-title">Appearance</div>
+          <div class="appearance-options" role="radiogroup" aria-label="Appearance preference">
+            <button class="appearance-option" data-theme-choice="auto" role="radio" aria-checked="false" type="button">
+              <span class="appearance-icon">◐</span><span>Auto</span>
+            </button>
+            <button class="appearance-option" data-theme-choice="light" role="radio" aria-checked="false" type="button">
+              <span class="appearance-icon">☀</span><span>Light</span>
+            </button>
+            <button class="appearance-option" data-theme-choice="dark" role="radio" aria-checked="false" type="button">
+              <span class="appearance-icon">◒</span><span>Dark</span>
+            </button>
+          </div>
+          <p class="preference-note">Auto follows your phone’s light or dark appearance. Your selection is saved on this device.</p>
+        </div>
 
         <section class="section">
-          <button class="settings-link" id="open-account-settings" type="button">Account settings <span>›</span></button>
           <button class="settings-link" id="notification-settings" type="button">Notification preferences <span>›</span></button>
+          <button class="settings-link" id="security-settings" type="button">Account &amp; security <span>›</span></button>
+          <button class="settings-link" id="support-settings" type="button">Help &amp; support <span>›</span></button>
           <button class="settings-link" id="sign-out-btn" type="button">Sign out <span>›</span></button>
         </section>
       </section>
@@ -1060,6 +1153,41 @@
       activeProfile:null,
       currentView:'dashboard'
     };
+
+    const THEME_STORAGE_KEY = 'alygnnEmployerTheme';
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+
+    function savedThemePreference(){
+      const value = localStorage.getItem(THEME_STORAGE_KEY);
+      return ['auto','light','dark'].includes(value) ? value : 'auto';
+    }
+
+    function resolvedTheme(preference){
+      return preference === 'auto' ? (systemTheme.matches ? 'dark' : 'light') : preference;
+    }
+
+    function applyTheme(preference,showConfirmation=false){
+      const safePreference = ['auto','light','dark'].includes(preference) ? preference : 'auto';
+      const theme = resolvedTheme(safePreference);
+      document.documentElement.dataset.theme = theme;
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme === 'dark' ? '#0B111A' : '#F6F8F7');
+      document.querySelectorAll('[data-theme-choice]').forEach(button => {
+        const active = button.dataset.themeChoice === safePreference;
+        button.classList.toggle('active',active);
+        button.setAttribute('aria-checked',String(active));
+      });
+      if(showConfirmation) toast((safePreference === 'auto' ? 'Auto appearance' : safePreference[0].toUpperCase()+safePreference.slice(1)+' mode') + ' selected.');
+    }
+
+    function setThemePreference(preference){
+      localStorage.setItem(THEME_STORAGE_KEY,preference);
+      applyTheme(preference,true);
+    }
+
+    applyTheme(savedThemePreference());
+    systemTheme.addEventListener?.('change',() => {
+      if(savedThemePreference() === 'auto') applyTheme('auto');
+    });
 
     const $ = id => document.getElementById(id);
 
@@ -1722,10 +1850,15 @@
     };
 
     $('open-company-page').onclick = () => location.href = 'app-employer-account.html';
-    $('open-account-settings').onclick = () => location.href = 'app-account-settings.html';
-    $('notification-settings').onclick = () => toast('Notification preferences are next on the roadmap.');
+    $('notification-settings').onclick = () => toast('Notification preferences are coming next.');
+    $('security-settings').onclick = () => toast('Account and security controls are coming next.');
+    $('support-settings').onclick = () => toast('Help and support are coming next.');
     $('notifications-btn').onclick = () => toast('You have ' + els.notificationCount.textContent + ' new application notifications.');
-    $('menu-btn').onclick = () => setView('settings');
+    document.querySelectorAll('[data-theme-choice]').forEach(button => {
+      button.addEventListener('click',() => setThemePreference(button.dataset.themeChoice));
+    });
+    applyTheme(savedThemePreference());
+
     $('view-resume-btn').onclick = () => {
       const data = state.activeCandidate ? candidateData(state.activeCandidate) : null;
       if(!data) return;
