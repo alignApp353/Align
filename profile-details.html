@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>Profile details — Alygnn</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root{
+  --brand:#5D7FA3;
+  --sage:#8CB69B;
+  --bg:#F6F8F7;
+  --card-bg:#FCFCFA;
+  --text:#1A2530;
+  --text-muted:#4A5968;
+  --border:#DDE3E8;
+}
+
+*,
+*::before,
+*::after{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:'DM Sans', Arial, sans-serif !important;
+}
+
+html,
+body{
+  min-height:100%;
+  background:var(--bg);
+  color:var(--text);
+}
+
+body{
+  min-height:100vh;
+}
+
+nav{
+  position:sticky;
+  top:0;
+  z-index:100;
+  height:64px;
+  padding:0 5%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:rgba(246,248,247,.92);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+
+.logo{
+  font-family:'DM Serif Display', serif !important;
+  font-size:22px;
+  color:var(--brand);
+  letter-spacing:-.5px;
+  text-decoration:none;
+}
+
+.logo span{
+  font-family:'DM Serif Display', serif !important;
+  color:var(--sage);
+}
+
+.nav-links{
+  display:flex;
+  align-items:center;
+  gap:28px;
+}
+
+.nav-links a{
+  color:var(--text-muted);
+  text-decoration:none;
+  font-size:14px;
+  padding:6px 0;
+  border-bottom:2px solid transparent;
+}
+
+.nav-links a.active{
+  color:var(--text);
+  border-bottom-color:var(--brand);
+}
+
+.nav-links a:hover{
+  color:var(--text);
+}
+
+.page{
+  max-width:880px;
+  margin:0 auto;
+  padding:56px 6% 100px;
+  opacity:0;
+  transform:translateY(8px);
+  transition:opacity .25s ease, transform .25s ease;
+}
+
+.page.ready{
+  opacity:1;
+  transform:translateY(0);
+}
+
+.loading{
+  max-width:880px;
+  margin:0 auto;
+  padding:56px 6%;
+  color:var(--text-muted);
+  font-size:14px;
+}
+
+.loading.hide{
+  display:none;
+}
+
+.profile-card{
+  display:flex;
+  align-items:center;
+  gap:22px;
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:32px;
+  margin-bottom:40px;
+}
+
+.avatar{
+  width:76px;
+  height:76px;
+  border-radius:50%;
+  background:var(--brand);
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  font-family:'DM Serif Display', serif !important;
+  font-size:1.7rem;
+}
+
+.avatar span{
+  font-family:'DM Serif Display', serif !important;
+}
+
+.profile-info{
+  flex:1;
+  min-width:0;
+}
+
+.profile-info h1{
+  font-family:'DM Serif Display', serif !important;
+  font-size:1.6rem;
+  letter-spacing:-.5px;
+  margin-bottom:4px;
+  color:var(--text);
+  word-break:break-word;
+}
+
+.profile-info p{
+  color:var(--text-muted);
+  font-size:14px;
+  font-weight:300;
+  word-break:break-word;
+}
+
+[contenteditable="true"]{
+  outline:none;
+  border-radius:6px;
+}
+
+[contenteditable="true"]:hover{
+  background:rgba(93,127,163,.06);
+}
+
+[contenteditable="true"]:focus{
+  background:rgba(93,127,163,.08);
+}
+
+[contenteditable="true"]:empty::before{
+  content:attr(data-placeholder);
+  color:#9BA8B3;
+  font-style:italic;
+}
+
+#profile-name:empty::before{
+  font-family:'DM Serif Display', serif !important;
+  font-style:normal;
+}
+
+.section{
+  margin-bottom:40px;
+}
+
+.section-header{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  margin-bottom:16px;
+}
+
+.section-header h2{
+  font-family:'DM Serif Display', serif !important;
+  font-size:1.15rem;
+  letter-spacing:-.3px;
+}
+
+.empty-state{
+  background:var(--card-bg);
+  border:1px dashed var(--border);
+  border-radius:14px;
+  padding:28px;
+  text-align:center;
+  color:var(--text-muted);
+  font-size:14px;
+}
+
+.form-input{
+  background:white;
+  border:1.5px solid var(--border);
+  border-radius:12px;
+  padding:12px 16px;
+  font-size:14px;
+  font-family:'DM Sans', Arial, sans-serif;
+  color:var(--text);
+  outline:none;
+  transition:border-color .2s;
+  width:100%;
+}
+.form-input:focus{ border-color:var(--brand); }
+.form-input::placeholder{ color:#9BA8B3; }
+
+.links-row{
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+}
+
+.detail-card{
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:24px;
+}
+
+.detail-field{
+  margin-bottom:20px;
+}
+.detail-field:last-child{ margin-bottom:0; }
+
+.detail-label{
+  font-size:12px;
+  font-weight:500;
+  color:var(--text-muted);
+  display:block;
+  margin-bottom:8px;
+}
+
+textarea.form-input{
+  resize:vertical;
+  min-height:70px;
+}
+
+.skills-chip-wrap{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+.skill-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  color:white;
+  background:var(--brand);
+  border-radius:100px;
+  padding:6px 8px 6px 14px;
+}
+.skill-chip button{
+  background:rgba(255,255,255,.25);
+  border:none;
+  color:white;
+  border-radius:50%;
+  width:18px;
+  height:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:11px;
+  line-height:1;
+}
+.skill-chip button:hover{ background:rgba(255,255,255,.4); }
+
+.entry-row-wrap{
+  margin-bottom:10px;
+}
+.entry-row-wrap .entry-row{
+  margin-bottom:6px;
+}
+
+.entry-row{
+  display:grid;
+  grid-template-columns:1.4fr 1.4fr .8fr .8fr auto;
+  gap:10px;
+  margin-bottom:10px;
+  align-items:center;
+}
+
+select.form-input{
+  cursor:pointer;
+}
+
+.btn-remove-entry{
+  background:rgba(215,154,154,.15);
+  color:#a05858;
+  border:none;
+  border-radius:8px;
+  padding:10px 12px;
+  cursor:pointer;
+  font-size:13px;
+  font-family:'DM Sans', Arial, sans-serif;
+}
+.btn-remove-entry:hover{ opacity:.8; }
+
+.btn-add-entry{
+  background:rgba(93,127,163,.08);
+  color:var(--brand);
+  border:1px solid rgba(93,127,163,.25);
+  border-radius:100px;
+  padding:8px 16px;
+  font-size:13px;
+  font-weight:500;
+  cursor:pointer;
+  font-family:'DM Sans', Arial, sans-serif;
+}
+.btn-add-entry:hover{ opacity:.85; }
+
+.btn-save-profile{
+  background:var(--brand);
+  color:white;
+  border:none;
+  border-radius:12px;
+  padding:12px 24px;
+  font-size:14px;
+  font-weight:500;
+  font-family:'DM Sans', Arial, sans-serif;
+  cursor:pointer;
+  margin-top:4px;
+}
+.btn-save-profile:hover{ opacity:.88; }
+.btn-save-profile:disabled{ opacity:.6; cursor:not-allowed; }
+
+.detail-empty-note{
+  font-size:12px;
+  color:var(--text-muted);
+  font-style:italic;
+  margin-bottom:10px;
+}
+
+@media(max-width:640px){
+  .entry-row{ grid-template-columns:1fr; }
+}
+
+.job-row-item{
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:16px 20px;
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  cursor:pointer;
+  transition:border-color .2s, transform .2s;
+}
+.job-row-item:hover{
+  border-color:var(--brand);
+  transform:translateY(-1px);
+}
+.job-row-title{ font-size:14px; font-weight:500; color:var(--text); margin-bottom:3px; }
+.job-row-meta{ font-size:12px; color:var(--text-muted); }
+.job-row-status{
+  font-size:11px;
+  font-weight:500;
+  padding:4px 12px;
+  border-radius:100px;
+  border:1px solid var(--border);
+  color:var(--text-muted);
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.job-row-status.status-accepted{ border-color:var(--sage); color:#2d8a57; background:rgba(140,182,155,.12); }
+
+.job-row-interview{
+  margin-top:8px;
+  padding:10px 12px;
+  background:rgba(93,127,163,.06);
+  border:1px solid rgba(93,127,163,.2);
+  border-radius:10px;
+}
+.job-row-interview-title{
+  font-size:12px;
+  font-weight:500;
+  color:var(--brand);
+  margin-bottom:3px;
+}
+.job-row-interview-detail{
+  font-size:12px;
+  color:var(--text-muted);
+  line-height:1.5;
+}
+.job-row-interview-detail a{
+  color:var(--brand);
+  word-break:break-all;
+}
+.job-row-status.status-rejected{ border-color:#D79A9A; color:#a05858; background:rgba(215,154,154,.12); }
+
+.job-list-view-all{
+  display:block;
+  text-align:center;
+  font-size:13px;
+  font-weight:500;
+  color:var(--brand);
+  text-decoration:none;
+  padding:12px;
+}
+.job-list-view-all:hover{ text-decoration:underline; }
+
+.job-row-actions{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:8px;
+  flex-shrink:0;
+}
+.job-row-buttons{
+  display:flex;
+  gap:6px;
+}
+.job-row-actions.job-row-actions-inline{
+  flex-direction:row;
+  align-items:center;
+  gap:8px;
+}
+.job-action-btn{
+  font-size:11px;
+  font-weight:500;
+  padding:5px 12px;
+  border-radius:100px;
+  border:1px solid var(--border);
+  background:white;
+  cursor:pointer;
+  font-family:'DM Sans', Arial, sans-serif;
+  transition:all .2s;
+  white-space:nowrap;
+}
+.job-action-btn:hover{ border-color:var(--brand); color:var(--brand); }
+.job-action-btn.apply{ color:#2d8a57; border-color:var(--sage); background:rgba(140,182,155,.08); }
+.job-action-btn.apply:hover{ background:rgba(140,182,155,.18); border-color:var(--sage); color:#2d8a57; }
+.job-action-btn.restore{ color:var(--text-muted); }
+
+.field-error{
+  font-size:11px;
+  color:#a05858;
+  margin-top:-4px;
+  margin-bottom:8px;
+}
+
+.toast{
+  position:fixed;
+  bottom:32px;
+  left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:var(--text);
+  color:white;
+  padding:10px 20px;
+  border-radius:100px;
+  font-size:13px;
+  font-weight:500;
+  transition:transform .3s ease;
+  z-index:200;
+  white-space:nowrap;
+}
+.toast.show{ transform:translateX(-50%) translateY(0); }
+
+.link-card{
+  flex:1;
+  min-width:200px;
+  display:block;
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:20px;
+  text-decoration:none;
+  color:var(--text);
+  transition:border-color .2s, transform .2s;
+}
+
+.link-card:hover{
+  border-color:var(--brand);
+  transform:translateY(-2px);
+}
+
+.link-card .icon{
+  font-size:1.3rem;
+  margin-bottom:8px;
+  display:block;
+}
+
+.link-card .label{
+  font-weight:500;
+  font-size:15px;
+}
+
+.link-card .sub{
+  font-size:13px;
+  color:var(--text-muted);
+  margin-top:2px;
+  font-weight:300;
+}
+
+.link-card .sub a{
+  color:var(--brand);
+  text-decoration:underline;
+}
+
+.resume-card-wrap{
+  flex:1;
+  min-width:200px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.resume-card-wrap .link-card{
+  flex:1;
+  min-width:0;
+}
+#resume-replace-link{
+  font-size:12px;
+  color:var(--text-muted);
+  text-decoration:underline;
+  text-align:center;
+}
+#resume-replace-link:hover{ color:var(--brand); }
+
+@media(max-width:640px){
+  nav{
+    padding:0 18px;
+  }
+
+  .nav-links{
+    gap:14px;
+  }
+
+  .nav-links a{
+    font-size:13px;
+  }
+
+  .profile-card{
+    padding:24px;
+    align-items:flex-start;
+  }
+
+  .avatar{
+    width:60px;
+    height:60px;
+    font-size:1.35rem;
+  }
+
+  .page{
+    padding-top:36px;
+  }
+}
+</style>
+
+<body>
+
+<nav>
+  <a href="index.html" class="logo">Alygnn<span>.</span></a>
+  <div class="nav-links">
+    <a href="index.html">← Home</a>
+    <a href="account.html">Account</a>
+    <a href="swipe.html">Swipe</a>
+  </div>
+</nav>
+
+<div class="loading" id="loading">Loading your profile details...</div>
+
+<div class="page" id="page">
+
+  <a href="account.html" style="display:inline-block; margin-bottom:20px; font-size:13px; color:var(--text-muted); text-decoration:none;">← Back to account</a>
+
+  <div class="section">
+    <div class="section-header">
+      <h2>Profile details</h2>
+      <span style="font-size:12px;color:var(--text-muted);" id="profile-details-status"></span>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">This is what employers see when they view your application — fill it in if your resume didn't capture everything.</p>
+
+    <div class="detail-card">
+      <div class="detail-field">
+        <label class="detail-label">Summary</label>
+        <textarea class="form-input" id="pd-summary" spellcheck="true" placeholder="A couple sentences about your background and what you're looking for..."></textarea>
+      </div>
+
+      <div class="detail-field">
+        <label class="detail-label">Skills</label>
+        <div class="skills-chip-wrap" id="pd-skills-wrap"></div>
+        <input type="text" class="form-input" id="pd-skills-input" spellcheck="true" placeholder="Type a skill and press Enter" autocomplete="off">
+      </div>
+
+      <div class="detail-field">
+        <label class="detail-label">Experience</label>
+        <div class="detail-empty-note" id="pd-experience-empty" style="display:none;">No work experience added yet.</div>
+        <div id="pd-experience-list"></div>
+        <button type="button" class="btn-add-entry" onclick="addExperienceRow()">+ Add experience</button>
+      </div>
+
+      <div class="detail-field">
+        <label class="detail-label">Education</label>
+        <div class="detail-empty-note" id="pd-education-empty" style="display:none;">No education added yet.</div>
+        <div id="pd-education-list"></div>
+        <button type="button" class="btn-add-entry" onclick="addEducationRow()">+ Add education</button>
+      </div>
+
+      <button type="button" class="btn-save-profile" id="pd-save-btn" onclick="saveProfileDetails()">Save profile details</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://auth.alygnn.com';
+const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUserId = null;
+
+const pageEl = document.getElementById('page');
+const loadingEl = document.getElementById('loading');
+
+function showPage(){
+  loadingEl.classList.add('hide');
+  pageEl.classList.add('ready');
+}
+
+function escapeHtml(value){
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+let toastTimer;
+function showToast(msg, actionFn){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  t.style.cursor = actionFn ? 'pointer' : 'default';
+  t.onclick = actionFn ? () => { actionFn(); t.classList.remove('show'); } : null;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), actionFn ? 6000 : 2600);
+}
+
+// Advisory only — never blocks saving. Reuses the same AI-backed check
+// the requirements/benefits picker uses, but purely to offer a "did you
+// mean X?" suggestion the person can tap to accept. Because it can't
+// block anything, a case it judges wrong (like it once did with "fl
+// consulting") just means no suggestion shows up — not a locked-out save.
+async function checkRealisticText(type, text){
+  try{
+    const { data, error } = await sb.functions.invoke('validate-chip-entry', {
+      body: { type, text }
+    });
+    if(error || !data) return null;
+    return data;
+  } catch(e){
+    return null;
+  }
+}
+
+async function checkFieldSpelling(inputEl, type){
+  const value = inputEl.value.trim();
+  if(!value || value.length < 3) return;
+
+  const result = await checkRealisticText(type, value);
+  if(!result || !result.corrected) return;
+
+  const corrected = normalizeText(result.corrected);
+  if(!corrected || corrected.toLowerCase() === value.toLowerCase()) return;
+
+  showToast(`Did you mean "${corrected}"? Tap to fix.`, () => {
+    inputEl.value = corrected;
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+}
+
+
+// ---- Profile details (skills / experience / education) ----
+// This is stored in profiles.resume_data as JSON, using the same field
+// names (skills, experience, education, summary, email, phone) the
+// employer dashboard's candidate modal already reads — so filling this in
+// here shows up there with no changes needed on that side. Any other keys
+// already present in resume_data (e.g. from AI resume parsing) are kept
+// and merged back in on save rather than overwritten.
+let resumeDataState = {};
+let experienceRows = [];
+let educationRows = [];
+
+function initProfileDetails(rawResumeData){
+  let parsed = {};
+  try{
+    parsed = typeof rawResumeData === 'string'
+      ? JSON.parse(rawResumeData)
+      : (rawResumeData || {});
+  } catch(e){
+    parsed = {};
+  }
+
+  resumeDataState = parsed || {};
+
+  document.getElementById('pd-summary').value = resumeDataState.summary || '';
+
+  const skills = Array.isArray(resumeDataState.skills) ? resumeDataState.skills : [];
+  resumeDataState.skills = skills.slice();
+  renderSkillChips();
+
+  experienceRows = (Array.isArray(resumeDataState.experience) ? resumeDataState.experience : [])
+    .map(entry => {
+      if(typeof entry === 'string') return { title: entry, company: '', startYear: '', endYear: '', customTitle: !JOB_TITLE_OPTIONS.includes(entry) };
+      const base = (entry.startYear || entry.endYear)
+        ? { startYear: entry.startYear || '', endYear: entry.endYear || '' }
+        : parseDatesToYears(entry.dates || '');
+      const title = entry.title || '';
+      return {
+        title, company: entry.company || '',
+        startYear: base.startYear, endYear: base.endYear,
+        customTitle: !!title && !JOB_TITLE_OPTIONS.includes(title)
+      };
+    });
+
+  educationRows = (Array.isArray(resumeDataState.education) ? resumeDataState.education : [])
+    .map(entry => {
+      if(typeof entry === 'string') return { degree: entry, school: '', startYear: '', endYear: '', customDegree: !DEGREE_OPTIONS.includes(entry), customSchool: true };
+      const base = (entry.startYear || entry.endYear)
+        ? { startYear: entry.startYear || '', endYear: entry.endYear || '' }
+        : parseDatesToYears(entry.dates || '');
+      const degree = entry.degree || '';
+      const school = entry.school || '';
+      return {
+        degree, school,
+        startYear: base.startYear, endYear: base.endYear,
+        customDegree: !!degree && !DEGREE_OPTIONS.includes(degree),
+        customSchool: !!school && !UNIVERSITY_OPTIONS.includes(school)
+      };
+    });
+
+  renderExperienceRows();
+  renderEducationRows();
+
+  const skillsInput = document.getElementById('pd-skills-input');
+  skillsInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' || e.key === ','){
+      e.preventDefault();
+      const value = skillsInput.value.trim().replace(/,$/, '');
+      skillsInput.value = '';
+      if(value) addSkill(value);
+    }
+  });
+}
+
+function addSkill(value){
+  const clean = value.trim();
+  if(!clean) return;
+  if(!isValidShortField(clean, 2)){
+    showToast('Enter a real skill, like "Excel" or "Customer service".');
+    return;
+  }
+  const exists = resumeDataState.skills.some(s => s.toLowerCase() === clean.toLowerCase());
+  if(exists) return;
+
+  resumeDataState.skills.push(clean);
+  renderSkillChips();
+}
+
+function removeSkill(value){
+  resumeDataState.skills = resumeDataState.skills.filter(s => s !== value);
+  renderSkillChips();
+}
+
+function renderSkillChips(){
+  const wrap = document.getElementById('pd-skills-wrap');
+  wrap.innerHTML = '';
+
+  resumeDataState.skills.forEach(skill => {
+    const chip = document.createElement('span');
+    chip.className = 'skill-chip';
+    chip.appendChild(document.createTextNode(skill));
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = '✕';
+    removeBtn.setAttribute('aria-label', 'Remove ' + skill);
+    removeBtn.addEventListener('click', () => removeSkill(skill));
+
+    chip.appendChild(removeBtn);
+    wrap.appendChild(chip);
+  });
+}
+
+function addExperienceRow(){
+  experienceRows.push({ title: '', company: '', startYear: '', endYear: '', customTitle: false });
+  renderExperienceRows();
+}
+
+function removeExperienceRow(index){
+  experienceRows.splice(index, 1);
+  renderExperienceRows();
+}
+
+function updateExperienceField(index, field, value){
+  if(!experienceRows[index]) return;
+  experienceRows[index][field] = value;
+}
+
+function onTitleSelectChange(index, value){
+  if(!experienceRows[index]) return;
+  if(value === '__other__'){
+    experienceRows[index].customTitle = true;
+    experienceRows[index].title = '';
+  } else {
+    experienceRows[index].customTitle = false;
+    experienceRows[index].title = value;
+  }
+  renderExperienceRows();
+}
+
+function renderExperienceRows(){
+  const list = document.getElementById('pd-experience-list');
+  const emptyNote = document.getElementById('pd-experience-empty');
+
+  emptyNote.style.display = experienceRows.length === 0 ? 'block' : 'none';
+
+  list.innerHTML = experienceRows.map((row, i) => {
+    const titleIsCustom = row.customTitle || (row.title && !JOB_TITLE_OPTIONS.includes(row.title));
+
+    return `
+      <div class="entry-row-wrap">
+        <div class="entry-row">
+          <select class="form-input" onchange="onTitleSelectChange(${i}, this.value)">${buildPickerOptions(JOB_TITLE_OPTIONS, row.title, titleIsCustom, 'Job title')}</select>
+          <input type="text" class="form-input" placeholder="Company" spellcheck="true" value="${escapeHtml(row.company)}" oninput="updateExperienceField(${i}, 'company', this.value)" onblur="checkFieldSpelling(this, 'company name')">
+          <select class="form-input" onchange="updateExperienceField(${i}, 'startYear', this.value)">${buildYearOptions(row.startYear, false)}</select>
+          <select class="form-input" onchange="updateExperienceField(${i}, 'endYear', this.value)">${buildYearOptions(row.endYear, true)}</select>
+          <button type="button" class="btn-remove-entry" onclick="removeExperienceRow(${i})">Remove</button>
+        </div>
+        ${titleIsCustom ? `<input type="text" class="form-input" placeholder="Enter your job title" spellcheck="true" value="${escapeHtml(row.title)}" oninput="updateExperienceField(${i}, 'title', this.value)" onblur="checkFieldSpelling(this, 'job title')">` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function addEducationRow(){
+  educationRows.push({ degree: '', school: '', startYear: '', endYear: '', customDegree: false, customSchool: false });
+  renderEducationRows();
+}
+
+function removeEducationRow(index){
+  educationRows.splice(index, 1);
+  renderEducationRows();
+}
+
+function updateEducationField(index, field, value){
+  if(!educationRows[index]) return;
+  educationRows[index][field] = value;
+}
+
+function onDegreeSelectChange(index, value){
+  if(!educationRows[index]) return;
+  if(value === '__other__'){
+    educationRows[index].customDegree = true;
+    educationRows[index].degree = '';
+  } else {
+    educationRows[index].customDegree = false;
+    educationRows[index].degree = value;
+  }
+  renderEducationRows();
+}
+
+function onSchoolSelectChange(index, value){
+  if(!educationRows[index]) return;
+  if(value === '__other__'){
+    educationRows[index].customSchool = true;
+    educationRows[index].school = '';
+  } else {
+    educationRows[index].customSchool = false;
+    educationRows[index].school = value;
+  }
+  renderEducationRows();
+}
+
+function buildPickerOptions(options, selectedValue, isCustom, placeholder){
+  let html = `<option value="">${placeholder}</option>`;
+  options.forEach(opt => {
+    html += `<option value="${escapeHtml(opt)}" ${!isCustom && selectedValue === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>`;
+  });
+  html += `<option value="__other__" ${isCustom ? 'selected' : ''}>Other (type your own)</option>`;
+  return html;
+}
+
+function renderEducationRows(){
+  const list = document.getElementById('pd-education-list');
+  const emptyNote = document.getElementById('pd-education-empty');
+
+  emptyNote.style.display = educationRows.length === 0 ? 'block' : 'none';
+
+  list.innerHTML = educationRows.map((row, i) => {
+    const degreeIsCustom = row.customDegree || (row.degree && !DEGREE_OPTIONS.includes(row.degree));
+    const schoolIsCustom = row.customSchool || (row.school && !UNIVERSITY_OPTIONS.includes(row.school));
+
+    return `
+      <div class="entry-row-wrap">
+        <div class="entry-row">
+          <select class="form-input" onchange="onDegreeSelectChange(${i}, this.value)">${buildPickerOptions(DEGREE_OPTIONS, row.degree, degreeIsCustom, 'Degree')}</select>
+          <select class="form-input" onchange="onSchoolSelectChange(${i}, this.value)">${buildPickerOptions(UNIVERSITY_OPTIONS, row.school, schoolIsCustom, 'School')}</select>
+          <select class="form-input" onchange="updateEducationField(${i}, 'startYear', this.value)">${buildYearOptions(row.startYear, false)}</select>
+          <select class="form-input" onchange="updateEducationField(${i}, 'endYear', this.value)">${buildYearOptions(row.endYear, true)}</select>
+          <button type="button" class="btn-remove-entry" onclick="removeEducationRow(${i})">Remove</button>
+        </div>
+        ${degreeIsCustom ? `<input type="text" class="form-input" placeholder="Enter your degree or program" spellcheck="true" value="${escapeHtml(row.degree)}" oninput="updateEducationField(${i}, 'degree', this.value)" onblur="checkFieldSpelling(this, 'degree or program')" style="margin-bottom:8px;">` : ''}
+        ${schoolIsCustom ? `<input type="text" class="form-input" placeholder="Enter your school name" spellcheck="true" value="${escapeHtml(row.school)}" oninput="updateEducationField(${i}, 'school', this.value)" onblur="checkFieldSpelling(this, 'school name')">` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function normalizeText(value){
+  return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+const PROFANITY_BLOCKLIST = [
+  'fuck', 'shit', 'bitch', 'asshole', 'dick', 'pussy', 'cunt', 'bastard',
+  'slut', 'whore', 'cock', 'nigger', 'nigga', 'faggot', 'retard',
+  'blowjob', 'handjob', 'porn', 'kill yourself', 'sex', 'anal', 'penis',
+  'vagina', 'rape', 'nazi', 'hitler'
+];
+
+function containsProfanity(value){
+  const text = normalizeText(value).toLowerCase();
+  return PROFANITY_BLOCKLIST.some(word => {
+    if(word.includes(' ')) return text.includes(word);
+    return new RegExp('\\b' + word + '\\b', 'i').test(text);
+  });
+}
+
+function hasRepeatedJunk(value){
+  const clean = normalizeText(value).toLowerCase();
+  if(!clean) return true;
+  if(/^(.)\1{3,}$/.test(clean.replace(/\s/g, ''))) return true;
+  if(/^[a-z]{1,2}(\s+[a-z]{1,2}){0,4}$/.test(clean)) return true;
+  if(/^[^a-zA-Z0-9]+$/.test(clean)) return true;
+  return false;
+}
+
+// Catches keyboard-mash "words" that pass every other check (right length,
+// real letters, no profanity) but aren't actual words — e.g. "eclkmv" or
+// "sv". Real English words almost always mix vowels and consonants; a run
+// of 4+ consonants in a row, or a word of 3+ letters with zero vowels, is
+// a strong signal of gibberish rather than a genuine (if unusual) name.
+const KNOWN_ABBREVIATIONS = new Set([
+  'llc', 'inc', 'co', 'ltd', 'corp', 'llp', 'plc', 'gmbh',
+  'st', 'dr', 'mr', 'ms', 'mrs', 'jr', 'sr',
+  'phd', 'mba', 'jd', 'md', 'ba', 'bs', 'ma', 'ms', 'aa', 'as',
+  'rn', 'cpa', 'cfa', 'pmp', 'cpr', 'ged', 'gpa', 'usa', 'uk'
+]);
+
+function looksLikeGibberish(value){
+  const words = normalizeText(value).toLowerCase().match(/[a-z']+/g) || [];
+  return words.some(word => {
+    // Short words (2-3 letters) are almost always legitimate abbreviations
+    // (state codes like FL, NC, initials, HR, PR) — only flag the
+    // no-vowel-at-all rule for longer words to avoid false positives here.
+    if(word.length < 4) return false;
+    if(KNOWN_ABBREVIATIONS.has(word)) return false;
+    if(!/[aeiou]/.test(word)) return true;
+    if(/[^aeiou]{5,}/.test(word)) return true;
+    return false;
+  });
+}
+
+function containsBlockedJunk(value){
+  const text = normalizeText(value).toLowerCase();
+  const blocked = [
+    'test', 'asdf', 'qwerty', 'fake', 'random', 'dummy', 'sample',
+    'lorem ipsum', 'abc', '123', 'sklcnsa', 'slkcnsa', 'aaa', 'zzz', 'none', 'n/a'
+  ];
+  return blocked.some(word => text === word || text.includes(word));
+}
+
+function countRealWords(value){
+  const words = normalizeText(value).match(/[A-Za-z][A-Za-z'-]{1,}/g) || [];
+  return words.length;
+}
+
+// Job title / company / degree / school fields: needs to look like a real
+// word or short phrase — not keyboard mashing, a placeholder, or
+// profanity.
+function isValidShortField(value, minLen){
+  const clean = normalizeText(value);
+  if(clean.length < (minLen || 2) || clean.length > 80) return false;
+  if(containsProfanity(clean)) return false;
+  if(containsBlockedJunk(clean)) return false;
+  if(hasRepeatedJunk(clean)) return false;
+  if(looksLikeGibberish(clean)) return false;
+  if(countRealWords(clean) < 1) return false;
+  return /^[A-Za-z0-9&.,'’()\-\/ ]+$/.test(clean);
+}
+
+// ---- Year dropdowns for experience/education dates ----
+const CURRENT_YEAR = new Date().getFullYear();
+const EARLIEST_YEAR = CURRENT_YEAR - 60;
+
+// A representative list of common job titles across industries — like the
+// degree/school lists, not exhaustive (job titles are effectively
+// unlimited), so "Other" covers anything not listed here.
+const JOB_TITLE_OPTIONS = [
+  'Cashier',
+  'Sales Associate',
+  'Retail Associate',
+  'Customer Service Representative',
+  'Server',
+  'Bartender',
+  'Barista',
+  'Host / Hostess',
+  'Line Cook',
+  'Prep Cook',
+  'Kitchen Manager',
+  'Restaurant Manager',
+  'Shift Supervisor',
+  'Store Manager',
+  'Assistant Manager',
+  'Warehouse Associate',
+  'Delivery Driver',
+  'Forklift Operator',
+  'Receptionist',
+  'Administrative Assistant',
+  'Office Manager',
+  'Executive Assistant',
+  'Data Entry Clerk',
+  'Bookkeeper',
+  'Accountant',
+  'Accounts Payable Clerk',
+  'Payroll Specialist',
+  'Financial Analyst',
+  'HR Coordinator',
+  'HR Generalist',
+  'Recruiter',
+  'Sales Representative',
+  'Account Executive',
+  'Account Manager',
+  'Business Development Representative',
+  'Marketing Coordinator',
+  'Marketing Manager',
+  'Social Media Manager',
+  'Content Writer',
+  'Graphic Designer',
+  'Web Developer',
+  'Software Engineer',
+  'IT Support Specialist',
+  'Systems Administrator',
+  'Data Analyst',
+  'Project Manager',
+  'Product Manager',
+  'Operations Manager',
+  'General Manager',
+  'Teacher',
+  'Teaching Assistant',
+  'Tutor',
+  'Childcare Provider',
+  'Nanny',
+  'Camp Counselor',
+  'Registered Nurse',
+  'Certified Nursing Assistant',
+  'Medical Assistant',
+  'Pharmacy Technician',
+  'Dental Assistant',
+  'Physical Therapist Assistant',
+  'Personal Trainer',
+  'Fitness Instructor',
+  'Security Guard',
+  'Custodian',
+  'Maintenance Technician',
+  'Electrician',
+  'Plumber',
+  'HVAC Technician',
+  'Construction Laborer',
+  'Landscaper',
+  'Auto Mechanic',
+  'Truck Driver',
+  'Real Estate Agent',
+  'Property Manager',
+  'Paralegal',
+  'Legal Assistant',
+  'Photographer',
+  'Event Coordinator',
+  'Hair Stylist',
+  'Esthetician',
+  'Veterinary Assistant',
+  'Research Assistant',
+  'Intern'
+];
+
+const DEGREE_OPTIONS = [
+  'High School Diploma',
+  'GED',
+  "Associate's Degree",
+  "Bachelor's Degree",
+  "Master's Degree",
+  'MBA',
+  'PhD / Doctorate',
+  'J.D. (Law)',
+  'M.D. (Medicine)',
+  'Professional Certification',
+  'Trade / Vocational Certificate'
+];
+
+// A representative list of well-known institutions, not an exhaustive
+// worldwide directory (there are tens of thousands) — "Other" covers
+// anything not listed here.
+const UNIVERSITY_OPTIONS = [
+  'East Carolina University',
+  'University of North Carolina at Chapel Hill',
+  'North Carolina State University',
+  'Duke University',
+  'Wake Forest University',
+  'UNC Charlotte',
+  'UNC Greensboro',
+  'UNC Wilmington',
+  'Appalachian State University',
+  'Western Carolina University',
+  'North Carolina Central University',
+  'North Carolina A&T State University',
+  'Elon University',
+  'Davidson College',
+  'High Point University',
+  'University of South Carolina',
+  'Clemson University',
+  'University of Virginia',
+  'Virginia Tech',
+  'Georgia Institute of Technology',
+  'University of Georgia',
+  'Florida State University',
+  'University of Florida',
+  'University of Miami',
+  'University of Tennessee',
+  'Vanderbilt University',
+  'University of Alabama',
+  'Auburn University',
+  'Louisiana State University',
+  'University of Texas at Austin',
+  'Texas A&M University',
+  'Rice University',
+  'University of Oklahoma',
+  'University of Arkansas',
+  'University of Mississippi',
+  'Ohio State University',
+  'University of Michigan',
+  'Michigan State University',
+  'Penn State University',
+  'University of Pittsburgh',
+  'Temple University',
+  'Rutgers University',
+  'Princeton University',
+  'Columbia University',
+  'Cornell University',
+  'New York University',
+  'Syracuse University',
+  'Boston University',
+  'Boston College',
+  'Harvard University',
+  'MIT',
+  'Yale University',
+  'Brown University',
+  'University of Connecticut',
+  'Georgetown University',
+  'George Washington University',
+  'University of Maryland',
+  'Johns Hopkins University',
+  'University of Delaware',
+  'Indiana University',
+  'Purdue University',
+  'University of Illinois',
+  'Northwestern University',
+  'University of Chicago',
+  'University of Wisconsin–Madison',
+  'University of Minnesota',
+  'University of Iowa',
+  'University of Missouri',
+  'Washington University in St. Louis',
+  'University of Kansas',
+  'University of Nebraska',
+  'University of Colorado Boulder',
+  'Colorado State University',
+  'University of Arizona',
+  'Arizona State University',
+  'University of Utah',
+  'Brigham Young University',
+  'University of Nevada, Las Vegas',
+  'University of California, Los Angeles',
+  'University of California, Berkeley',
+  'University of California, San Diego',
+  'University of California, Irvine',
+  'University of Southern California',
+  'Stanford University',
+  'San Diego State University',
+  'University of Washington',
+  'Washington State University',
+  'University of Oregon',
+  'Oregon State University',
+  'Community College (2-year)',
+  'Online / Distance Learning Program'
+];
+
+function buildYearOptions(selectedValue, includePresent){
+  let html = `<option value="" ${selectedValue ? '' : 'selected'}>${includePresent ? 'End year' : 'Start year'}</option>`;
+  if(includePresent){
+    html += `<option value="Present" ${selectedValue === 'Present' ? 'selected' : ''}>Present</option>`;
+  }
+  for(let y = CURRENT_YEAR; y >= EARLIEST_YEAR; y--){
+    html += `<option value="${y}" ${String(selectedValue) === String(y) ? 'selected' : ''}>${y}</option>`;
+  }
+  return html;
+}
+
+// Old rows (saved before the dropdown UI existed) stored a free-text
+// "dates" string like "2001–2024" or "2020 - Present". Best-effort parse
+// it into startYear/endYear so those rows still populate correctly
+// instead of showing blank dropdowns.
+function parseDatesToYears(datesStr){
+  const clean = normalizeText(datesStr);
+  const years = clean.match(/(19|20)\d{2}/g) || [];
+  const isPresent = /present|current|ongoing/i.test(clean);
+  return {
+    startYear: years[0] || '',
+    endYear: isPresent ? 'Present' : (years[1] || '')
+  };
+}
+
+function formatDatesLabel(startYear, endYear){
+  if(!startYear && !endYear) return '';
+  if(startYear && endYear) return `${startYear} – ${endYear}`;
+  return startYear || endYear || '';
+}
+
+// Reuses the validate-chip-entry Edge Function (now fixed to accept these
+// field types — see the 400 errors this used to throw before that fix).
+// Only checks free-text entries the person actually typed themselves
+// (company is always free-text; title/degree/school only when "Other" was
+// picked) — values chosen straight from the trusted dropdown lists skip
+// this entirely. Returns null if fine, or { message, fix } if the save
+// should be blocked — fix() applies the AI's suggested correction and
+// re-renders when the person taps the toast.
+async function checkFreeTextField(fieldLabel, typeForApi, value, applyFix){
+  if(!value) return null;
+
+  const result = await checkRealisticText(typeForApi, value);
+  if(!result) return null; // infra hiccup — don't block on that
+
+  const corrected = normalizeText(result.corrected || '');
+  const changed = corrected && corrected.toLowerCase() !== value.toLowerCase();
+
+  if(changed){
+    return {
+      message: `${fieldLabel}: did you mean "${corrected}"? Tap to fix.`,
+      fix: () => applyFix(corrected)
+    };
+  }
+  if(!result.valid){
+    return { message: `${fieldLabel}: "${value}" doesn't look like a real ${typeForApi}.` };
+  }
+  return null;
+}
+
+async function validateExperienceRow(row, index){
+  const hasAnything = row.title || row.company || row.startYear || row.endYear;
+  if(!hasAnything) return null;
+
+  const label = `Experience #${index + 1}`;
+
+  if(!row.title || !isValidShortField(row.title, 2)){
+    return { message: `${label}: enter a real job title, like "Sales Associate".` };
+  }
+  if(!row.company || !isValidShortField(row.company, 2)){
+    return { message: `${label}: enter a real company name.` };
+  }
+  if(!row.startYear){
+    return { message: `${label}: pick a start year.` };
+  }
+  if(!row.endYear){
+    return { message: `${label}: pick an end year, or "Present" if it's ongoing.` };
+  }
+  if(row.endYear !== 'Present' && Number(row.endYear) < Number(row.startYear)){
+    return { message: `${label}: end year can't be before the start year.` };
+  }
+
+  if(row.customTitle){
+    const check = await checkFreeTextField(label, 'job title', row.title, (fixed) => {
+      row.title = fixed;
+      renderExperienceRows();
+    });
+    if(check) return check;
+  }
+
+  const companyCheck = await checkFreeTextField(label, 'company name', row.company, (fixed) => {
+    row.company = fixed;
+    renderExperienceRows();
+  });
+  if(companyCheck) return companyCheck;
+
+  return null;
+}
+
+async function validateEducationRow(row, index){
+  const hasAnything = row.degree || row.school || row.startYear || row.endYear;
+  if(!hasAnything) return null;
+
+  const label = `Education #${index + 1}`;
+
+  if(!row.degree || !isValidShortField(row.degree, 2)){
+    return { message: `${label}: enter a real degree or program, like "B.A. Economics".` };
+  }
+  if(!row.school || !isValidShortField(row.school, 2)){
+    return { message: `${label}: enter a real school name.` };
+  }
+  if(!row.startYear){
+    return { message: `${label}: pick a start year.` };
+  }
+  if(!row.endYear){
+    return { message: `${label}: pick an end year, or "Present" if it's ongoing.` };
+  }
+  if(row.endYear !== 'Present' && Number(row.endYear) < Number(row.startYear)){
+    return { message: `${label}: end year can't be before the start year.` };
+  }
+
+  if(row.customDegree){
+    const check = await checkFreeTextField(label, 'degree or program', row.degree, (fixed) => {
+      row.degree = fixed;
+      renderEducationRows();
+    });
+    if(check) return check;
+  }
+  if(row.customSchool){
+    const check = await checkFreeTextField(label, 'school name', row.school, (fixed) => {
+      row.school = fixed;
+      renderEducationRows();
+    });
+    if(check) return check;
+  }
+
+  return null;
+}
+
+
+async function saveProfileDetails(){
+  if(!currentUserId) return;
+
+  const btn = document.getElementById('pd-save-btn');
+  const statusEl = document.getElementById('profile-details-status');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+  statusEl.textContent = '';
+
+  for(let i = 0; i < experienceRows.length; i++){
+    const result = await validateExperienceRow(experienceRows[i], i);
+    if(result){
+      showToast(result.message, result.fix);
+      btn.disabled = false;
+      btn.textContent = orig;
+      return;
+    }
+  }
+  for(let i = 0; i < educationRows.length; i++){
+    const result = await validateEducationRow(educationRows[i], i);
+    if(result){
+      showToast(result.message, result.fix);
+      btn.disabled = false;
+      btn.textContent = orig;
+      return;
+    }
+  }
+
+  btn.textContent = 'Saving…';
+
+  const finalResumeData = {
+    ...resumeDataState,
+    summary: document.getElementById('pd-summary').value.trim(),
+    skills: resumeDataState.skills,
+    experience: experienceRows
+      .filter(r => r.title || r.company || r.startYear || r.endYear)
+      .map(r => ({ ...r, dates: formatDatesLabel(r.startYear, r.endYear) })),
+    education: educationRows
+      .filter(r => r.degree || r.school || r.startYear || r.endYear)
+      .map(r => ({ ...r, dates: formatDatesLabel(r.startYear, r.endYear) }))
+  };
+
+  const { error } = await sb
+    .from('profiles')
+    .upsert({ id: currentUserId, resume_data: finalResumeData }, { onConflict: 'id' });
+
+  btn.disabled = false;
+  btn.textContent = orig;
+
+  if(error){
+    console.error('Failed to save profile details:', error);
+    statusEl.textContent = 'Could not save — try again.';
+    statusEl.style.color = '#a05858';
+    return;
+  }
+
+  resumeDataState = finalResumeData;
+  statusEl.textContent = 'Saved ✓';
+  statusEl.style.color = '#2d8a57';
+  setTimeout(() => { statusEl.textContent = ''; }, 2500);
+}
+
+
+async function initProfileDetailsPage(){
+  const { data: { session } } = await sb.auth.getSession();
+
+  if(!session){
+    window.location.href = 'login.html';
+    return;
+  }
+
+  currentUserId = session.user.id;
+
+  const { data: profile, error } = await sb
+    .from('profiles')
+    .select('resume_data')
+    .eq('id', currentUserId)
+    .maybeSingle();
+
+  if(error && error.code !== 'PGRST116'){
+    console.error('Failed to load profile details:', error);
+  }
+
+  initProfileDetails(profile?.resume_data);
+  showPage();
+}
+
+initProfileDetailsPage();
+</script>
+
+</body>
+</html>
