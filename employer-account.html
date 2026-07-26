@@ -682,7 +682,11 @@
 
     employerJobs = jobs;
 
-    jobsBox.innerHTML = jobs.map(job => `
+    const PREVIEW_COUNT = 3;
+    const visibleJobs = jobs.slice(0, PREVIEW_COUNT);
+    const remaining = jobs.length - visibleJobs.length;
+
+    const rowsHtml = visibleJobs.map(job => `
       <div class="account-job-row">
         <div class="account-job-dot"></div>
         <div class="account-job-info">
@@ -692,6 +696,12 @@
         <a href="employer-dashboard.html" class="section-link">Manage →</a>
       </div>
     `).join('');
+
+    const moreHtml = remaining > 0
+      ? `<a class="account-candidates-more" href="employer-dashboard.html">… view all ${jobs.length} posted jobs →</a>`
+      : '';
+
+    jobsBox.innerHTML = rowsHtml + moreHtml;
   }
 
   let accountCandidates = [];
