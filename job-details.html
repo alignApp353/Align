@@ -204,6 +204,12 @@ nav{
     <div class="applied-note" id="applied-note"></div>
   </div>
 
+  <div class="section" id="interview-section" style="display:none;">
+    <h2>Interview scheduled</h2>
+    <div class="field-grid" id="interview-field-grid"></div>
+    <p id="interview-notes" style="margin-top:12px;"></p>
+  </div>
+
   <div class="section" id="description-section" style="display:none;">
     <h2>Description</h2>
     <p id="job-description"></p>
@@ -260,6 +266,15 @@ function fmtDate(value){
   const d = new Date(value);
   if(isNaN(d.getTime())) return '';
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function fmtDateTime(value){
+  if(!value) return '';
+  const d = new Date(value);
+  if(isNaN(d.getTime())) return '';
+  return d.toLocaleString(undefined, {
+    weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit'
+  });
 }
 
 function fmtSalary(min, max){
@@ -328,6 +343,21 @@ async function loadApplicationInfo(jobId, appId, candidateId){
   return (!error && data) ? data : null;
 }
 
+// Requires the "Candidates view their own interviews" RLS policy on the
+// interviews table. Looked up by job_id + candidate_id rather than
+// application_id, since a candidate arriving here from my-interviews.html
+// only has the job id in the URL, not the application id.
+async function loadInterviewInfo(jobId, candidateId){
+  const { data, error } = await sb
+    .from('interviews')
+    .select('scheduled_at, location_or_link, video_link, notes')
+    .eq('job_id', jobId)
+    .eq('candidate_id', candidateId)
+    .maybeSingle();
+
+  return (!error && data) ? data : null;
+}
+
 // Known job-table fields we know how to present nicely, in display order.
 // Fields not in this list (e.g. internal ids, employer_id, view counters)
 // are simply skipped rather than dumped raw onto the page.
@@ -340,7 +370,7 @@ const DETAIL_FIELD_MAP = [
   { key: 'industry', label: 'Industry' },
 ];
 
-function renderJob(job, appInfo){
+function renderJob(job, appInfo, interviewInfo){
   document.title = `${job.title || 'Job'} — Alygnn`;
 
   document.getElementById('job-title').textContent = job.title || 'Untitled role';
@@ -368,6 +398,34 @@ function renderJob(job, appInfo){
   const appliedNoteEl = document.getElementById('applied-note');
   if(appInfo?.applied_at){
     appliedNoteEl.textContent = `You applied on ${fmtDate(appInfo.applied_at)}`;
+  }
+
+  if(interviewInfo){
+    document.getElementById('interview-section').style.display = '';
+
+    const ivGridEl = document.getElementById('interview-field-grid');
+    const ivFields = [
+      { label: 'Date & time', value: fmtDateTime(interviewInfo.scheduled_at) },
+      interviewInfo.location_or_link ? { label: 'Location', value: interviewInfo.location_or_link } : null,
+      interviewInfo.video_link ? { label: 'Video link', value: interviewInfo.video_link, isLink: true } : null,
+    ].filter(Boolean);
+
+    ivGridEl.innerHTML = ivFields.map(f => `
+      <div>
+        <div class="field-label">${escapeHtml(f.label)}</div>
+        <div class="field-value">${f.isLink
+          ? `<a href="${escapeHtml(f.value)}" target="_blank" rel="noopener" style="color:var(--brand);">${escapeHtml(f.value)}</a>`
+          : escapeHtml(f.value)}</div>
+      </div>
+    `).join('');
+
+    const notesEl = document.getElementById('interview-notes');
+    if(interviewInfo.notes){
+      notesEl.textContent = interviewInfo.notes;
+      notesEl.style.display = '';
+    } else {
+      notesEl.style.display = 'none';
+    }
   }
 
   if(job.description){
@@ -430,8 +488,9 @@ async function initJobDetailsPage(){
   }
 
   const appInfo = await loadApplicationInfo(jobId, appId, session.user.id);
+  const interviewInfo = await loadInterviewInfo(jobId, session.user.id);
 
-  renderJob(job, appInfo);
+  renderJob(job, appInfo, interviewInfo);
   showPage();
 }
 
