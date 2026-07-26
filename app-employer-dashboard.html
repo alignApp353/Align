@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#F6F8F7">
-  <title>Employer Workspace | Alygnn</title>
+  <title>Employer Workspace V3 | Alygnn</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -789,6 +789,17 @@
       .job-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
     }
 
+
+    .candidate-summary{margin-top:16px;padding:16px;border:1px solid var(--border-soft);border-radius:18px;background:#F9FBFC}
+    .candidate-summary h3,.detail-section h3{font-size:14px;font-weight:900}
+    .candidate-summary p{margin-top:7px;color:var(--muted);font-size:12px;line-height:1.6}
+    .detail-section{margin-top:16px;padding-top:16px;border-top:1px solid var(--border-soft)}
+    .chip-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+    .detail-chip{padding:7px 10px;border-radius:999px;background:var(--brand-soft);color:var(--brand-dark);font-size:10px;font-weight:800}
+    .resume-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:11px}
+    .profile-alert{margin-top:14px;padding:12px 13px;border-radius:14px;background:var(--amber-bg);color:#8A5D0B;font-size:11px;font-weight:700;line-height:1.5}
+    .score-explain{margin-top:10px;color:var(--muted);font-size:10px;line-height:1.5}
+
     @media(max-width:390px){
       .page{padding-left:12px;padding-right:12px}
       .searchbar{grid-template-columns:1fr}
@@ -990,9 +1001,31 @@
       <div class="profile-grid">
         <div class="profile-box"><span>Status</span><strong id="sheet-status">New</strong></div>
         <div class="profile-box"><span>Applied</span><strong id="sheet-applied">Recently</strong></div>
-        <div class="profile-box"><span>Email</span><strong id="sheet-email">Not available</strong></div>
-        <div class="profile-box"><span>Location</span><strong id="sheet-location">Not available</strong></div>
+        <div class="profile-box"><span>Email</span><strong id="sheet-email">Not provided</strong></div>
+        <div class="profile-box"><span>Location</span><strong id="sheet-location">Not provided</strong></div>
+        <div class="profile-box"><span>Experience</span><strong id="sheet-experience">Not provided</strong></div>
+        <div class="profile-box"><span>Availability</span><strong id="sheet-availability">Not provided</strong></div>
       </div>
+
+      <div class="candidate-summary" id="candidate-summary-wrap">
+        <h3>Candidate summary</h3>
+        <p id="sheet-summary">Profile details will appear here.</p>
+      </div>
+
+      <div class="detail-section" id="skills-section">
+        <h3>Skills</h3>
+        <div class="chip-list" id="sheet-skills"></div>
+      </div>
+
+      <div class="detail-section" id="resume-section">
+        <h3>Resume</h3>
+        <div class="resume-actions">
+          <button class="secondary-btn" id="view-resume-btn" type="button">View Resume</button>
+          <button class="secondary-btn" id="download-resume-btn" type="button">Download Resume</button>
+        </div>
+      </div>
+
+      <div class="profile-alert" id="profile-alert" hidden></div>
 
       <div class="sheet-actions">
         <button class="primary-btn" data-candidate-action="interview" type="button">Schedule Interview</button>
@@ -1024,6 +1057,7 @@
       applications:[],
       profiles:new Map(),
       activeCandidate:null,
+      activeProfile:null,
       currentView:'dashboard'
     };
 
@@ -1071,40 +1105,73 @@
       .join('')
       .toUpperCase() || 'C';
 
-    const fullName = profile => profile?.full_name ||
-      profile?.name ||
-      [profile?.first_name,profile?.last_name].filter(Boolean).join(' ') ||
-      'Candidate';
+    const firstValue = (...values) => values.find(value => value !== undefined && value !== null && String(value).trim() !== '');
 
-    function timeAgo(value){
-      if(!value) return 'Recently';
-      const date = new Date(value);
-      if(Number.isNaN(date.getTime())) return 'Recently';
+    const fullName = (profile,application={}) => firstValue(
+      profile?.full_name,
+      profile?.name,
+      [profile?.first_name,profile?.last_name].filter(Boolean).join(' '),
+      application?.candidate_name,
+      application?.applicant_name,
+      application?.full_name,
+      [application?.first_name,application?.last_name].filter(Boolean).join(' '),
+      application?.candidate_email?.split('@')[0],
+      application?.email?.split('@')[0]
+    ) || 'Applicant';
 
-      const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
-      if(minutes < 60) return Math.max(1,minutes) + 'm ago';
-
-      const hours = Math.floor(minutes / 60);
-      if(hours < 24) return hours + 'h ago';
-
-      return Math.floor(hours / 24) + 'd ago';
-    }
-
-    function fitLabel(score){
-      if(score >= 95) return 'Exceptional Fit';
-      if(score >= 90) return 'Excellent Fit';
-      if(score >= 80) return 'Strong Fit';
-      if(score >= 70) return 'Good Fit';
-      if(score >= 60) return 'Moderate Fit';
-      return 'Needs Review';
-    }
+    const normalizeList = value => {
+      if(Array.isArray(value)) return value.filter(Boolean).map(String);
+      if(!value) return [];
+      if(typeof value === 'object') return Object.values(value).filter(Boolean).map(String);
+      return String(value).split(/[,;|\n]/).map(item => item.trim()).filter(Boolean);
+    };
 
     const appProfile = application => state.profiles.get(String(
-      application.candidate_id ||
-      application.user_id ||
-      application.profile_id ||
-      ''
+      application.candidate_id || application.user_id || application.profile_id || ''
     )) || {};
+
+    const candidateData = application => {
+      const profile = appProfile(application);
+      return {
+        profile,
+        name:fullName(profile,application),
+        email:firstValue(profile.email,profile.contact_email,application.candidate_email,application.applicant_email,application.email),
+        location:firstValue(profile.location,profile.city,profile.city_state,application.location,application.candidate_location),
+        experience:firstValue(profile.years_experience,profile.experience_years,profile.experience,application.years_experience),
+        availability:firstValue(profile.availability,profile.start_date,application.availability),
+        education:firstValue(profile.education,profile.highest_education,application.education),
+        summary:firstValue(profile.professional_summary,profile.summary,profile.bio,profile.about,application.summary),
+        skills:normalizeList(firstValue(profile.skills,profile.skill_list,profile.top_skills,application.skills)),
+        resumeUrl:firstValue(profile.resume_url,profile.resume_file_url,profile.resume_path,application.resume_url,application.resume_path),
+        resumeText:firstValue(profile.resume_text,profile.resume_content,application.resume_text)
+      };
+    };
+
+    function provisionalScore(application){
+      const stored = Number(application.match_score || application.alygnn_score || 0);
+      if(stored > 0) return {score:Math.round(stored),source:'stored'};
+
+      const data = candidateData(application);
+      const job = jobFor(application) || {};
+      const jobText = [job.title,job.description,job.requirements,job.benefits].filter(Boolean).join(' ').toLowerCase();
+      const skills = data.skills.map(skill => skill.toLowerCase());
+      let signals = 0;
+      let points = 45;
+
+      if(skills.length){
+        signals++;
+        const matches = skills.filter(skill => skill.length > 2 && jobText.includes(skill)).length;
+        points += Math.min(25,matches * 6 + Math.min(7,skills.length));
+      }
+      if(data.experience){ signals++; points += 10; }
+      if(data.location){ signals++; points += 6; }
+      if(data.education){ signals++; points += 5; }
+      if(data.availability){ signals++; points += 5; }
+      if(data.summary || data.resumeText){ signals++; points += 4; }
+
+      if(signals < 2) return {score:null,source:'insufficient'};
+      return {score:Math.max(55,Math.min(96,Math.round(points))),source:'profile'};
+    }
 
     const jobFor = application => state.jobs.find(job =>
       String(job.id) === String(application.job_id)
@@ -1288,20 +1355,19 @@
     }
 
     function candidateCard(application){
-      const profile = appProfile(application);
-      const name = fullName(profile);
-      const score = Math.round(Number(application.match_score || application.alygnn_score || 0));
+      const data = candidateData(application);
+      const scoreInfo = provisionalScore(application);
       const status = String(application.status || 'new');
 
       return `
         <button class="candidate-row" type="button" data-app-id="${application.id}">
-          <div class="avatar">${escapeHtml(initials(name))}</div>
+          <div class="avatar">${escapeHtml(initials(data.name))}</div>
           <div>
-            <div class="candidate-name">${escapeHtml(name)}</div>
+            <div class="candidate-name">${escapeHtml(data.name)}</div>
             <div class="candidate-job">${escapeHtml(jobFor(application)?.title || application.job_title || 'Position')}</div>
             <div class="candidate-meta">
-              <span class="score">${score ? score + ' Alygnn Score' : 'Score pending'}</span>
-              ${score ? `<span class="fit-label">${fitLabel(score)}</span>` : ''}
+              <span class="score">${scoreInfo.score ? scoreInfo.score + ' Alygnn Score' : 'Profile incomplete'}</span>
+              ${scoreInfo.score ? `<span class="fit-label">${fitLabel(scoreInfo.score)}</span>` : ''}
               <span class="app-status">${escapeHtml(status)}</span>
             </div>
           </div>
@@ -1317,7 +1383,7 @@
       if(query){
         list = list.filter(application => {
           const profile = appProfile(application);
-          return fullName(profile).toLowerCase().includes(query) ||
+          return fullName(profile,application).toLowerCase().includes(query) ||
             (jobFor(application)?.title || '').toLowerCase().includes(query);
         });
       }
@@ -1360,7 +1426,7 @@
       state.applications.slice(0,5).forEach(application => {
         items.push({
           icon:'◉',
-          title:fullName(appProfile(application)) + ' applied',
+          title:candidateData(application).name + ' applied',
           sub:jobFor(application)?.title || 'Position',
           time:timeAgo(application.updated_at || application.applied_at || application.created_at)
         });
@@ -1403,17 +1469,46 @@
       if(!application) return;
 
       state.activeCandidate = application;
-      const profile = appProfile(application);
-      const score = Math.round(Number(application.match_score || application.alygnn_score || 0));
+      const data = candidateData(application);
+      state.activeProfile = data.profile;
+      const scoreInfo = provisionalScore(application);
 
-      $('sheet-name').textContent = fullName(profile);
+      $('sheet-name').textContent = data.name;
       $('sheet-job').textContent = jobFor(application)?.title || application.job_title || 'Position';
-      $('sheet-score').textContent = score || '—';
-      $('sheet-fit').textContent = score ? fitLabel(score) : 'Score pending';
+      $('sheet-score').textContent = scoreInfo.score || '—';
+      $('sheet-fit').textContent = scoreInfo.score ? fitLabel(scoreInfo.score) : 'Profile incomplete';
       $('sheet-status').textContent = String(application.status || 'new');
       $('sheet-applied').textContent = timeAgo(application.applied_at || application.created_at);
-      $('sheet-email').textContent = profile.email || 'Not available';
-      $('sheet-location').textContent = profile.location || profile.city || 'Not available';
+      $('sheet-email').textContent = data.email || 'Not provided';
+      $('sheet-location').textContent = data.location || 'Not provided';
+      $('sheet-experience').textContent = data.experience ? (String(data.experience).match(/year/i) ? data.experience : data.experience + ' years') : 'Not provided';
+      $('sheet-availability').textContent = data.availability || 'Not provided';
+      $('sheet-summary').textContent = data.summary || data.resumeText || 'This candidate has not added a professional summary yet.';
+
+      const skills = data.skills;
+      $('sheet-skills').innerHTML = skills.length
+        ? skills.slice(0,12).map(skill => `<span class="detail-chip">${escapeHtml(skill)}</span>`).join('')
+        : '<span class="detail-chip">No skills added yet</span>';
+
+      const resumeAvailable = Boolean(data.resumeUrl || data.resumeText);
+      $('view-resume-btn').disabled = !resumeAvailable;
+      $('download-resume-btn').disabled = !data.resumeUrl;
+      $('view-resume-btn').style.opacity = resumeAvailable ? '1' : '.45';
+      $('download-resume-btn').style.opacity = data.resumeUrl ? '1' : '.45';
+
+      const missing = [];
+      if(!data.email) missing.push('email');
+      if(!data.location) missing.push('location');
+      if(!skills.length) missing.push('skills');
+      if(!resumeAvailable) missing.push('resume');
+      const alert = $('profile-alert');
+      if(missing.length){
+        alert.hidden = false;
+        alert.textContent = 'Candidate profile is missing: ' + missing.join(', ') + '. The candidate should complete their profile for a more accurate Alygnn Score.';
+      }else{
+        alert.hidden = true;
+      }
+
       els.candidateSheet.hidden = false;
     }
 
@@ -1567,14 +1662,21 @@
           )];
 
           if(profileIds.length){
-            const profileResult = await sb
-              .from('profiles')
-              .select('*')
-              .in('id',profileIds);
+            let loadedProfiles = [];
+            const byId = await sb.from('profiles').select('*').in('id',profileIds);
+            if(!byId.error) loadedProfiles.push(...(byId.data || []));
 
-            if(!profileResult.error){
-              state.profiles = new Map((profileResult.data || []).map(profile => [String(profile.id),profile]));
+            const missingIds = profileIds.filter(id => !loadedProfiles.some(profile => String(profile.id) === String(id)));
+            if(missingIds.length){
+              const byUserId = await sb.from('profiles').select('*').in('user_id',missingIds);
+              if(!byUserId.error) loadedProfiles.push(...(byUserId.data || []));
             }
+
+            state.profiles = new Map();
+            loadedProfiles.forEach(profile => {
+              if(profile.id) state.profiles.set(String(profile.id),profile);
+              if(profile.user_id) state.profiles.set(String(profile.user_id),profile);
+            });
           }
         }
 
@@ -1624,6 +1726,30 @@
     $('notification-settings').onclick = () => toast('Notification preferences are next on the roadmap.');
     $('notifications-btn').onclick = () => toast('You have ' + els.notificationCount.textContent + ' new application notifications.');
     $('menu-btn').onclick = () => setView('settings');
+    $('view-resume-btn').onclick = () => {
+      const data = state.activeCandidate ? candidateData(state.activeCandidate) : null;
+      if(!data) return;
+      if(data.resumeUrl){ window.open(data.resumeUrl,'_blank','noopener'); return; }
+      if(data.resumeText){
+        const win = window.open('','_blank');
+        if(win) win.document.write('<pre style="white-space:pre-wrap;font-family:Arial;padding:24px">'+escapeHtml(data.resumeText)+'</pre>');
+        return;
+      }
+      toast('No resume has been uploaded.');
+    };
+
+    $('download-resume-btn').onclick = () => {
+      const data = state.activeCandidate ? candidateData(state.activeCandidate) : null;
+      if(!data?.resumeUrl){ toast('No downloadable resume is available.'); return; }
+      const link = document.createElement('a');
+      link.href = data.resumeUrl;
+      link.download = (data.name || 'candidate').replace(/[^a-z0-9]+/gi,'-') + '-resume';
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    };
+
     $('close-candidate').onclick = () => els.candidateSheet.hidden = true;
 
     els.candidateSheet.addEventListener('click',event => {
