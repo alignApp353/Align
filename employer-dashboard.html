@@ -426,7 +426,13 @@
 
             <div class="form-group">
               <label class="form-label">Job title</label>
-              <input type="text" class="form-input" id="f-title" placeholder="e.g. Senior Designer" oninput="updatePreview()">
+              <div class="chip-search-wrap">
+                <input type="text" class="form-input" id="f-title" placeholder="e.g. Senior Designer" autocomplete="off"
+                  oninput="updatePreview(); renderTitleSuggestions();"
+                  onfocus="renderTitleSuggestions();"
+                  onblur="setTimeout(hideTitleSuggestions, 150)">
+                <div class="chip-results" id="title-suggestions"></div>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Company name</label>
@@ -937,6 +943,75 @@
     chipState[type].custom = (presetValues || []).filter(v => !presetsFor(type).includes(v));
     renderSelectedChips(type);
     syncChipHiddenField(type);
+  }
+
+  // A representative list of common job titles across industries — like the
+  // requirements/benefits presets, not exhaustive (job titles are
+  // effectively unlimited), so typing anything not listed here still
+  // works fine as free text; this just makes common ones easy to pick.
+  // Kept in sync with the same list job seekers pick from when adding
+  // work experience on their own account page.
+  const JOB_TITLE_OPTIONS = [
+    'Cashier', 'Sales Associate', 'Retail Associate', 'Customer Service Representative',
+    'Server', 'Bartender', 'Barista', 'Host / Hostess', 'Line Cook', 'Prep Cook',
+    'Kitchen Manager', 'Restaurant Manager', 'Shift Supervisor', 'Store Manager',
+    'Assistant Manager', 'Warehouse Associate', 'Delivery Driver', 'Forklift Operator',
+    'Receptionist', 'Administrative Assistant', 'Office Manager', 'Executive Assistant',
+    'Data Entry Clerk', 'Bookkeeper', 'Accountant', 'Accounts Payable Clerk',
+    'Payroll Specialist', 'Financial Analyst', 'HR Coordinator', 'HR Generalist',
+    'Recruiter', 'Sales Representative', 'Account Executive', 'Account Manager',
+    'Business Development Representative', 'Marketing Coordinator', 'Marketing Manager',
+    'Social Media Manager', 'Content Writer', 'Graphic Designer', 'Web Developer',
+    'Software Engineer', 'IT Support Specialist', 'Systems Administrator', 'Data Analyst',
+    'Project Manager', 'Product Manager', 'Operations Manager', 'General Manager',
+    'Teacher', 'Teaching Assistant', 'Tutor', 'Childcare Provider', 'Nanny',
+    'Camp Counselor', 'Registered Nurse', 'Certified Nursing Assistant', 'Medical Assistant',
+    'Pharmacy Technician', 'Dental Assistant', 'Physical Therapist Assistant',
+    'Personal Trainer', 'Fitness Instructor', 'Security Guard', 'Custodian',
+    'Maintenance Technician', 'Electrician', 'Plumber', 'HVAC Technician',
+    'Construction Laborer', 'Landscaper', 'Auto Mechanic', 'Truck Driver',
+    'Real Estate Agent', 'Property Manager', 'Paralegal', 'Legal Assistant',
+    'Photographer', 'Event Coordinator', 'Hair Stylist', 'Esthetician',
+    'Veterinary Assistant', 'Research Assistant', 'Intern', 'Welder', 'Machinist',
+    'Quality Control Inspector', 'Production Supervisor', 'Field Technician',
+    'Volleyball Coach', 'Coach', 'Chef', 'Sous Chef', 'Housekeeper',
+    'Front Desk Agent', 'Concierge', 'Call Center Representative'
+  ];
+
+  function renderTitleSuggestions() {
+    const input = document.getElementById('f-title');
+    const box = document.getElementById('title-suggestions');
+    if (!input || !box) return;
+
+    const query = input.value.trim().toLowerCase();
+    const matches = (query === ''
+      ? JOB_TITLE_OPTIONS
+      : JOB_TITLE_OPTIONS.filter(t => t.toLowerCase().includes(query))
+    ).slice(0, MAX_RESULTS_SHOWN);
+
+    if (matches.length === 0) {
+      box.classList.remove('show');
+      box.innerHTML = '';
+      return;
+    }
+
+    box.innerHTML = matches.map(title => {
+      const escaped = title.replace(/'/g, "\\'");
+      return `<div class="chip-result-row" onmousedown="event.preventDefault(); selectTitleSuggestion('${escaped}')">${escapeHtml(title)}</div>`;
+    }).join('');
+    box.classList.add('show');
+  }
+
+  function selectTitleSuggestion(title) {
+    const input = document.getElementById('f-title');
+    input.value = title;
+    hideTitleSuggestions();
+    updatePreview();
+  }
+
+  function hideTitleSuggestions() {
+    const box = document.getElementById('title-suggestions');
+    if (box) box.classList.remove('show');
   }
 
   async function checkAuth() {
