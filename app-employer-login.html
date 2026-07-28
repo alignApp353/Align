@@ -92,158 +92,43 @@ input::placeholder{color:#98A2AD}
 <div class="switch"><button class="switch-btn" id="switch-btn" type="button">Switch to candidate sign in</button></div>
 </div></section></main>
 <script>
-const sb = supabase.createClient(
-  'https://auth.alygnn.com',
-  'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
-  {
-    auth:{
-      persistSession:true,
-      autoRefreshToken:true,
-      detectSessionInUrl:true
-    }
-  }
-);
-
-const TARGET_PAGE = 'app-employer-dashboard.html';
-
-function showMessage(text,type){
-  const message = document.getElementById('message');
-  message.textContent = text;
-  message.className = 'message ' + type;
+const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const ACCOUNT_TYPE='employer';
+const TARGET_PAGE='app-employer-dashboard.html';
+const ONBOARDING_PAGE='app-employer-onboarding.html';
+const STATUS_PAGE='app-employer-verification-status.html';
+function showMessage(text,type){const m=document.getElementById('message');m.textContent=text;m.className='message '+type}
+function setLoading(b,l,lt,nt){b.disabled=l;b.textContent=l?lt:nt}
+function friendlyError(error){const raw=String(error?.message||'').toLowerCase();if(raw.includes('invalid login credentials')||raw.includes('invalid credentials'))return'Incorrect email or password. Please try again.';if(raw.includes('email not confirmed')||raw.includes('confirm your email'))return'Please verify your email before signing in.';if(raw.includes('fetch')||raw.includes('network')||raw.includes('failed to fetch'))return'Unable to connect. Please check your internet connection.';if(raw.includes('too many requests')||raw.includes('rate limit'))return'Too many attempts. Please wait a few minutes and try again.';return error?.message||'Unable to sign in. Please try again.'}
+async function employerDestination(userId){
+  const {data,error}=await sb.from('employer_verifications')
+    .select('blueprint_complete,verification_status')
+    .eq('user_id',userId).maybeSingle();
+  if(error){console.error(error);return ONBOARDING_PAGE}
+  if(!data||!data.blueprint_complete)return ONBOARDING_PAGE;
+  return data.verification_status==='approved'?TARGET_PAGE:STATUS_PAGE;
 }
-
-function setLoading(button,loading,loadingText,normalText){
-  button.disabled = loading;
-  button.textContent = loading ? loadingText : normalText;
-}
-
-function friendlyError(error){
-  const raw = String(error?.message || '').toLowerCase();
-
-  if(raw.includes('invalid login credentials') || raw.includes('invalid credentials')){
-    return 'Incorrect email or password. Please try again.';
-  }
-
-  if(raw.includes('email not confirmed') || raw.includes('confirm your email')){
-    return 'Please verify your email before signing in.';
-  }
-
-  if(raw.includes('fetch') || raw.includes('network') || raw.includes('failed to fetch')){
-    return 'Unable to connect. Please check your internet connection.';
-  }
-
-  if(raw.includes('too many requests') || raw.includes('rate limit')){
-    return 'Too many attempts. Please wait a few minutes and try again.';
-  }
-
-  return error?.message || 'Unable to sign in. Please try again.';
-}
-
-function normalized(value){
-  return String(value || '').trim().toLowerCase();
-}
-
-function isEmployerAccount(user, profile){
-  const metadata = user?.user_metadata || {};
-
-  const declaredTypes = [
-    profile?.role,
-    profile?.account_type,
-    profile?.user_type,
-    profile?.profile_type,
-    metadata.role,
-    metadata.account_type,
-    metadata.user_type,
-    metadata.profile_type
-  ].map(normalized);
-
-  if(declaredTypes.includes('employer') || declaredTypes.includes('business')){
-    return true;
-  }
-
-  if(declaredTypes.includes('candidate') || declaredTypes.includes('employee')){
-    return false;
-  }
-
-  const employerSignals = [
-    profile?.company_name,
-    profile?.company_website,
-    profile?.company_phone,
-    profile?.business_email,
-    profile?.business_address,
-    profile?.company_headline,
-    metadata.company_name
-  ];
-
-  if(employerSignals.some(value => String(value || '').trim().length > 0)){
-    return true;
-  }
-
-  if(
-    profile?.employer_verified === true ||
-    ['approved','pending','not_submitted'].includes(normalized(profile?.verification_status))
-  ){
-    return true;
-  }
-
-  return false;
-}
-
-async function loadProfile(userId){
-  const { data, error } = await sb
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if(error){
-    console.error('Employer profile lookup failed:', error);
-    throw error;
-  }
-
-  return data || null;
-}
-
-async function verifyEmployerSession(session){
-  if(!session?.user) return false;
-  const profile = await loadProfile(session.user.id);
-  return isEmployerAccount(session.user, profile);
-}
-
-async function rejectCandidateAccount(){
-  await sb.auth.signOut();
-  localStorage.removeItem('alygnn_account_type');
-  showMessage(
-    'This account is registered as a candidate. Please use Candidate Sign In.',
-    'error'
-  );
-}
-
 async function redirectIfLoggedIn(){
-  const params = new URLSearchParams(location.search);
-  if(params.has('logout')) return;
+  const params=new URLSearchParams(location.search);
+  if(params.has('logout'))return;
 
-  try{
-    const { data, error } = await sb.auth.getSession();
-    if(error || !data.session) return;
+  const {data}=await sb.auth.getSession();
+  if(!data.session)return;
 
-    const allowed = await verifyEmployerSession(data.session);
+  const role=String(
+    data.session.user.user_metadata?.account_type||
+    data.session.user.app_metadata?.account_type||
+    ''
+  ).toLowerCase();
 
-    if(allowed){
-      localStorage.setItem('alygnn_account_type','employer');
-      location.replace(TARGET_PAGE);
-    }else{
-      await rejectCandidateAccount();
-    }
-  }catch(error){
-    console.error('Automatic employer verification failed:', error);
+  if(role==='employer'){
+    location.replace(await employerDestination(data.session.user.id));
   }
 }
-
 async function signIn(){
-  const email = document.getElementById('email').value.trim().toLowerCase();
-  const password = document.getElementById('password').value;
-  const button = document.getElementById('sign-in-btn');
+  const email=document.getElementById('email').value.trim().toLowerCase();
+  const password=document.getElementById('password').value;
+  const button=document.getElementById('sign-in-btn');
 
   if(!email){
     showMessage('Please enter your email address.','error');
@@ -257,86 +142,47 @@ async function signIn(){
 
   setLoading(button,true,'Signing in…','Sign in');
 
-  try{
-    const { data, error } = await sb.auth.signInWithPassword({ email, password });
-
-    if(error){
-      showMessage(friendlyError(error),'error');
-      return;
-    }
-
-    const allowed = await verifyEmployerSession(data.session);
-
-    if(!allowed){
-      await rejectCandidateAccount();
-      return;
-    }
-
-    localStorage.setItem('alygnn_account_type','employer');
-    showMessage('Welcome back. Redirecting…','success');
-
-    setTimeout(() => location.replace(TARGET_PAGE), 350);
-
-  }catch(error){
-    console.error('Employer sign-in verification failed:', error);
-    await sb.auth.signOut();
-    showMessage(
-      'We signed you in, but could not load your employer profile. Please try again.',
-      'error'
-    );
-  }finally{
-    setLoading(button,false,'Signing in…','Sign in');
-  }
-}
-
-async function googleLogin(){
-  const button = document.getElementById('google-btn');
-  setLoading(button,true,'Opening Google…','Continue with Google');
-  localStorage.setItem('alygnn_account_type','employer');
-
-  const { error } = await sb.auth.signInWithOAuth({
-    provider:'google',
-    options:{
-      redirectTo:'https://alygnn.com/app-employer-login.html'
-    }
-  });
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
 
   if(error){
     showMessage(friendlyError(error),'error');
-    setLoading(button,false,'Opening Google…','Continue with Google');
+    setLoading(button,false,'Signing in…','Sign in');
+    return;
   }
+
+  const role=String(
+    data.user.user_metadata?.account_type||
+    data.user.app_metadata?.account_type||
+    ''
+  ).toLowerCase();
+
+  if(role!=='employer'){
+    await sb.auth.signOut();
+
+    const message=role==='candidate'
+      ?'This account is registered as a candidate. Please use Candidate Sign In.'
+      :'This account is not registered as an employer. Please create an employer account first.';
+
+    showMessage(message,'error');
+    setLoading(button,false,'Signing in…','Sign in');
+    return;
+  }
+
+  localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
+  showMessage('Welcome back. Checking verification…','success');
+
+  const destination=await employerDestination(data.user.id);
+  setTimeout(()=>location.replace(destination),450);
 }
-
-document.getElementById('back-btn').addEventListener('click', () => {
-  location.href = 'index.html';
-});
-
-document.getElementById('show-btn').addEventListener('click', event => {
-  const input = document.getElementById('password');
-  const showing = input.type === 'text';
-  input.type = showing ? 'password' : 'text';
-  event.currentTarget.textContent = showing ? 'Show' : 'Hide';
-});
-
-document.getElementById('forgot-btn').addEventListener('click', () => {
-  location.href = 'app-forgot-password.html';
-});
-
-document.getElementById('sign-in-btn').addEventListener('click', signIn);
-document.getElementById('google-btn').addEventListener('click', googleLogin);
-
-document.getElementById('apple-btn').addEventListener('click', () => {
-  showMessage('Apple sign-in is not connected yet.','error');
-});
-
-document.getElementById('switch-btn').addEventListener('click', () => {
-  location.href = 'app-login.html';
-});
-
-document.getElementById('password').addEventListener('keydown', event => {
-  if(event.key === 'Enter') signIn();
-});
-
+async function googleLogin(){showMessage('Employer Google sign-in is disabled. Sign in with your verified company email and password.','error')}
+document.getElementById('back-btn').addEventListener('click',()=>location.href='index.html');
+document.getElementById('show-btn').addEventListener('click',e=>{const i=document.getElementById('password');const s=i.type==='text';i.type=s?'password':'text';e.currentTarget.textContent=s?'Show':'Hide'});
+document.getElementById('forgot-btn').addEventListener('click',()=>location.href='app-forgot-password.html');
+document.getElementById('sign-in-btn').addEventListener('click',signIn);
+document.getElementById('google-btn').addEventListener('click',googleLogin);
+document.getElementById('apple-btn').addEventListener('click',()=>showMessage('Apple sign-in is not connected yet.','error'));
+document.getElementById('switch-btn').addEventListener('click',()=>location.href=ACCOUNT_TYPE==='employer'?'app-login.html':'app-employer-login.html');
+document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')signIn()});
 redirectIfLoggedIn();
 </script>
 </body></html>
