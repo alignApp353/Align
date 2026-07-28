@@ -84,7 +84,17 @@ input::placeholder{color:#98A2AD}
 <script>
 const SUPABASE_URL='https://auth.alygnn.com';
 const SUPABASE_ANON_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-const CREATE_EMPLOYER_URL=SUPABASE_URL+'/functions/v1/create-employer-account';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
+  auth:{
+    persistSession:true,
+    autoRefreshToken:true,
+    detectSessionInUrl:true
+  }
+});
+
+// Company creation is handled later by the Vercel endpoint:
+// /api/company/create-company
+// after the employer verifies their email, signs in, and completes onboarding.
 
 const BLOCKED_DOMAINS=new Set([
   'gmail.com','googlemail.com','yahoo.com','ymail.com','rocketmail.com',
@@ -161,36 +171,43 @@ async function createEmployerAccount(){
   if(password!==confirmPassword) return showMessage('Your passwords do not match.','error');
   if(!accepted) return showMessage('Please agree to the Terms and Privacy Policy.','error');
 
-  setLoading(button,true,'Checking company domain…','Create employer account');
+  setLoading(button,true,'Creating account…','Create employer account');
 
   try{
-    const response=await fetch(CREATE_EMPLOYER_URL,{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'apikey':SUPABASE_ANON_KEY,
-        'Authorization':'Bearer '+SUPABASE_ANON_KEY
-      },
-      body:JSON.stringify({
-        full_name:fullName,
-        company_name:companyName,
-        email,
-        password,
-        accepted_terms:true
-      })
+    const {data,error}=await sb.auth.signUp({
+      email,
+      password,
+      options:{
+        emailRedirectTo:'https://alygnn.com/app-employer-login.html',
+        data:{
+          full_name:fullName,
+          company_name:companyName,
+          account_type:'employer',
+          employer_domain:emailCheck.domain,
+          accepted_terms:true
+        }
+      }
     });
 
-    const result=await response.json().catch(()=>({}));
-    if(!response.ok) throw new Error(result.error||result.message||'Unable to create account.');
+    if(error) throw error;
 
     localStorage.setItem('alygnn_account_type','employer');
     localStorage.setItem('alygnn_employer_domain',emailCheck.domain);
-    showMessage('Account created. Check your company email to verify your address, then complete your AI Hiring Blueprint.','success');
-    button.textContent='Check your company email';
-    setTimeout(()=>location.href='app-employer-login.html',2800);
+    localStorage.setItem('alygnn_pending_company_name',companyName);
+    localStorage.setItem('alygnn_pending_full_name',fullName);
+
+    if(data.session){
+      showMessage('Account created. Continue to complete your company setup.','success');
+      button.textContent='Continue to company setup';
+      setTimeout(()=>location.href='app-employer-onboarding.html',1200);
+    }else{
+      showMessage('Account created. Check your company email to verify your address, then sign in to complete company setup.','success');
+      button.textContent='Check your company email';
+      setTimeout(()=>location.href='app-employer-login.html',2800);
+    }
   }catch(error){
     showMessage(friendlyError(error.message),'error');
-    setLoading(button,false,'Checking company domain…','Create employer account');
+    setLoading(button,false,'Creating account…','Create employer account');
   }
 }
 
