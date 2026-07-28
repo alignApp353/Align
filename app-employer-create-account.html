@@ -63,63 +63,174 @@ input::placeholder{color:#98A2AD}
 <section class="hero">
 <div class="hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"></path><path d="M3 12h18"></path><path d="M10 12v2h4v-2"></path></svg></div>
 <h1>Create your employer account</h1>
-<p>Post jobs, review qualified candidates, and manage your hiring process from Alygnn.</p>
+<p>Employer accounts require a verified company email domain. Personal email providers are not accepted.</p>
 </section>
 <section class="form">
 <div class="field"><label for="full-name">Your full name</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 21c.7-4.1 3.2-6.2 7.5-6.2s6.8 2.1 7.5 6.2"></path></svg><input id="full-name" type="text" placeholder="Enter your full name" autocomplete="name"></div></div>
 <div class="field"><label for="company-name">Company name</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21V4h11v17"></path><path d="M15 9h5v12"></path><path d="M8 8h3M8 12h3M8 16h3"></path></svg><input id="company-name" type="text" placeholder="Enter your company name" autocomplete="organization"></div></div>
-<div class="field"><label for="email">Work email address</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg><input id="email" type="email" placeholder="Enter your work email" autocomplete="email" inputmode="email"></div></div>
+<div class="field"><label for="email">Verified company email</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg><input id="email" type="email" placeholder="you@yourcompany.com" autocomplete="email" inputmode="email"></div></div>
+<div id="email-domain-error" class="message" aria-live="polite">
+  Employer accounts require a company email domain. Personal email providers are not accepted.
+</div>
 <div class="field"><label for="password">Create password</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg><input id="password" type="password" placeholder="At least 8 characters" autocomplete="new-password"><button class="show-btn" id="show-password" type="button">Show</button></div><div class="password-help">Use at least 8 characters with a mix of letters and numbers.</div></div>
 <div class="field"><label for="confirm-password">Confirm password</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg><input id="confirm-password" type="password" placeholder="Re-enter your password" autocomplete="new-password"></div></div>
 <div class="check-row"><input id="terms" type="checkbox"><label for="terms">I agree to Alygnn’s <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.</label></div>
 <div id="message" class="message" aria-live="polite"></div>
 <button class="primary" id="create-btn" type="button">Create employer account</button>
-<div class="divider">or continue with</div>
-<button class="social" id="google-btn" type="button"><span class="google-mark">G</span><span>Continue with Google</span></button>
+
 <div class="signin">Already have an employer account? <a href="app-employer-login.html">Sign in</a></div>
 </section>
 </main>
 <script>
-const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-function showMessage(text,type){const m=document.getElementById('message');m.textContent=text;m.className='message '+type}
-function setLoading(btn,on,a,b){btn.disabled=on;btn.textContent=on?a:b}
-function friendlyError(error){const raw=String(error?.message||'').toLowerCase();if(raw.includes('already registered')||raw.includes('already been registered'))return 'An account already exists with this email. Try signing in instead.';if(raw.includes('rate limit')||raw.includes('too many requests'))return 'Too many attempts. Please wait a few minutes and try again.';if(raw.includes('fetch')||raw.includes('network'))return 'Unable to connect. Please check your internet connection.';return error?.message||'Unable to create your account.'}
+const SUPABASE_URL='https://auth.alygnn.com';
+const SUPABASE_ANON_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+const CREATE_EMPLOYER_URL=SUPABASE_URL+'/functions/v1/create-employer-account';
+
+const BLOCKED_DOMAINS=new Set([
+  'gmail.com','googlemail.com','yahoo.com','ymail.com','rocketmail.com',
+  'outlook.com','hotmail.com','live.com','msn.com',
+  'icloud.com','me.com','mac.com','aol.com',
+  'proton.me','protonmail.com','pm.me','zoho.com',
+  'gmx.com','gmx.us','mail.com','yandex.com','hey.com',
+  'fastmail.com','tutanota.com','tuta.com'
+]);
+
+function showMessage(text,type){
+  const message=document.getElementById('message');
+  message.textContent=text;
+  message.className='message '+type;
+}
+
+function showEmailDomainError(){
+  const error=document.getElementById('email-domain-error');
+  error.className='message error';
+}
+
+function hideEmailDomainError(){
+  const error=document.getElementById('email-domain-error');
+  error.className='message';
+}
+function setLoading(button,on,loadingText,normalText){
+  button.disabled=on;
+  button.textContent=on?loadingText:normalText;
+}
+function getDomain(email){
+  return String(email||'').trim().toLowerCase().split('@')[1]||'';
+}
+function validBusinessEmail(email){
+  const clean=String(email||'').trim().toLowerCase();
+  const domain=getDomain(clean);
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clean)) return {ok:false,type:'invalid',message:'Please enter a valid company email address.'};
+  if(BLOCKED_DOMAINS.has(domain)) return {ok:false,type:'personal',message:'Employer accounts require a company email domain. Personal email providers are not accepted.'};
+  if(domain.endsWith('.local')||domain.includes('example.')) return {ok:false,message:'Please enter a real company email domain.'};
+  return {ok:true,domain};
+}
+function friendlyError(message){
+  const raw=String(message||'').toLowerCase();
+  if(raw.includes('already')) return 'An account already exists with this email. Try signing in instead.';
+  if(raw.includes('domain')) return 'Employer accounts require a verified company email domain.';
+  if(raw.includes('rate')) return 'Too many attempts. Please wait and try again.';
+  return message||'Unable to create your employer account.';
+}
+
 async function createEmployerAccount(){
-const fullName=document.getElementById('full-name').value.trim();
-const companyName=document.getElementById('company-name').value.trim();
-const email=document.getElementById('email').value.trim().toLowerCase();
-const password=document.getElementById('password').value;
-const confirmPassword=document.getElementById('confirm-password').value;
-const accepted=document.getElementById('terms').checked;
-const button=document.getElementById('create-btn');
-if(!fullName)return showMessage('Please enter your full name.','error');
-if(!companyName)return showMessage('Please enter your company name.','error');
-if(!email||!email.includes('@'))return showMessage('Please enter a valid work email address.','error');
-if(password.length<8)return showMessage('Your password must be at least 8 characters.','error');
-if(password!==confirmPassword)return showMessage('Your passwords do not match.','error');
-if(!accepted)return showMessage('Please agree to the Terms and Privacy Policy.','error');
-setLoading(button,true,'Creating account…','Create employer account');
-const {data,error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:'https://alygnn.com/app-employer-dashboard.html',data:{full_name:fullName,name:fullName,company_name:companyName,account_type:'employer',role:'employer'}}});
-if(error){showMessage(friendlyError(error),'error');setLoading(button,false,'Creating account…','Create employer account');return}
-localStorage.setItem('alygnn_account_type','employer');
-if(data.session){
-try{await sb.from('profiles').upsert({id:data.user.id,full_name:fullName,company_name:companyName,role:'employer',account_type:'employer',updated_at:new Date().toISOString()})}catch(e){console.warn(e)}
-showMessage('Account created. Opening your employer dashboard…','success');
-setTimeout(()=>window.location.replace('app-employer-dashboard.html'),650);return}
-showMessage('Account created. Check your email to confirm your account, then sign in.','success');
-button.textContent='Check your email';
-setTimeout(()=>window.location.href='app-employer-login.html',2600)
+  const fullName=document.getElementById('full-name').value.trim();
+  const companyName=document.getElementById('company-name').value.trim();
+  const email=document.getElementById('email').value.trim().toLowerCase();
+  const password=document.getElementById('password').value;
+  const confirmPassword=document.getElementById('confirm-password').value;
+  const accepted=document.getElementById('terms').checked;
+  const button=document.getElementById('create-btn');
+
+  if(fullName.length<2) return showMessage('Please enter your full name.','error');
+  if(companyName.length<2) return showMessage('Please enter your company name.','error');
+
+  const emailCheck=validBusinessEmail(email);
+  if(!emailCheck.ok){
+    if(emailCheck.type==='personal'){
+      showEmailDomainError();
+      document.getElementById('email').focus();
+      return;
+    }
+    return showMessage(emailCheck.message,'error');
+  }
+  hideEmailDomainError();
+
+  if(password.length<8) return showMessage('Your password must be at least 8 characters.','error');
+  if(!/[A-Za-z]/.test(password)||!/\d/.test(password)) return showMessage('Your password must include at least one letter and one number.','error');
+  if(password!==confirmPassword) return showMessage('Your passwords do not match.','error');
+  if(!accepted) return showMessage('Please agree to the Terms and Privacy Policy.','error');
+
+  setLoading(button,true,'Checking company domain…','Create employer account');
+
+  try{
+    const response=await fetch(CREATE_EMPLOYER_URL,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SUPABASE_ANON_KEY,
+        'Authorization':'Bearer '+SUPABASE_ANON_KEY
+      },
+      body:JSON.stringify({
+        full_name:fullName,
+        company_name:companyName,
+        email,
+        password,
+        accepted_terms:true
+      })
+    });
+
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(result.error||result.message||'Unable to create account.');
+
+    localStorage.setItem('alygnn_account_type','employer');
+    localStorage.setItem('alygnn_employer_domain',emailCheck.domain);
+    showMessage('Account created. Check your company email to verify your address, then complete your AI Hiring Blueprint.','success');
+    button.textContent='Check your company email';
+    setTimeout(()=>location.href='app-employer-login.html',2800);
+  }catch(error){
+    showMessage(friendlyError(error.message),'error');
+    setLoading(button,false,'Checking company domain…','Create employer account');
+  }
 }
-async function googleSignup(){
-const button=document.getElementById('google-btn');setLoading(button,true,'Opening Google…','Continue with Google');localStorage.setItem('alygnn_account_type','employer');
-const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://alygnn.com/app-employer-dashboard.html',queryParams:{access_type:'offline',prompt:'consent'}}});
-if(error){showMessage(friendlyError(error),'error');setLoading(button,false,'Opening Google…','Continue with Google')}
-}
-document.getElementById('back-btn').addEventListener('click',()=>window.location.href='app-employer-login.html');
-document.getElementById('show-password').addEventListener('click',e=>{const p=document.getElementById('password'),c=document.getElementById('confirm-password'),showing=p.type==='text';p.type=showing?'password':'text';c.type=showing?'password':'text';e.currentTarget.textContent=showing?'Show':'Hide'});
+
+document.getElementById('back-btn').addEventListener('click',()=>location.href='app-employer-login.html');
+document.getElementById('show-password').addEventListener('click',event=>{
+  const password=document.getElementById('password');
+  const confirm=document.getElementById('confirm-password');
+  const showing=password.type==='text';
+  password.type=showing?'password':'text';
+  confirm.type=showing?'password':'text';
+  event.currentTarget.textContent=showing?'Show':'Hide';
+});
+const emailInput=document.getElementById('email');
+
+emailInput.addEventListener('input',()=>{
+  const email=emailInput.value.trim().toLowerCase();
+  const domain=getDomain(email);
+
+  if(BLOCKED_DOMAINS.has(domain)){
+    showEmailDomainError();
+  }else{
+    hideEmailDomainError();
+  }
+});
+
+emailInput.addEventListener('blur',()=>{
+  const email=emailInput.value.trim().toLowerCase();
+  const domain=getDomain(email);
+
+  if(email && BLOCKED_DOMAINS.has(domain)){
+    showEmailDomainError();
+  }else{
+    hideEmailDomainError();
+  }
+});
+
 document.getElementById('create-btn').addEventListener('click',createEmployerAccount);
-document.getElementById('google-btn').addEventListener('click',googleSignup);
-document.getElementById('confirm-password').addEventListener('keydown',e=>{if(e.key==='Enter')createEmployerAccount()});
+document.getElementById('confirm-password').addEventListener('keydown',event=>{
+  if(event.key==='Enter') createEmployerAccount();
+});
 </script>
 </body>
 </html>
