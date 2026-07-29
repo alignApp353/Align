@@ -29,9 +29,36 @@ function normalizeWebsite(value) {
   const raw = text(value, 500);
   if (!raw) throw new Error('Company website is required.');
 
-  const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+  let url;
+  try {
+    url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+  } catch {
+    throw new Error('Enter a complete business website, such as https://yourcompany.com.');
+  }
+
   if (!['http:', 'https:'].includes(url.protocol)) {
     throw new Error('Company website must use http or https.');
+  }
+
+  const host = url.hostname.toLowerCase().replace(/^www\./, '');
+  const labels = host.split('.');
+  const isIpv4 = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host);
+  const hasValidLabels =
+    labels.length >= 2 &&
+    labels.every((label) =>
+      /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label)
+    );
+  const hasValidTld = /^[a-z]{2,63}$/i.test(labels[labels.length - 1] || '');
+
+  if (
+    !hasValidLabels ||
+    !hasValidTld ||
+    host === 'localhost' ||
+    isIpv4 ||
+    url.username ||
+    url.password
+  ) {
+    throw new Error('Enter a complete business website, such as https://yourcompany.com.');
   }
 
   url.hash = '';
