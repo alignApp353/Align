@@ -3,534 +3,354 @@
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false
-    }
-  }
-);
-
-const PERSONAL_DOMAINS = new Set([
-  'gmail.com',
-  'googlemail.com',
-  'hotmail.com',
-  'outlook.com',
-  'live.com',
-  'icloud.com',
-  'me.com',
-  'mac.com',
-  'aol.com',
-  'yahoo.com',
-  'ymail.com',
-  'proton.me',
-  'protonmail.com',
-  'pm.me',
-  'gmx.com',
-  'mail.com',
-  'zoho.com'
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  'gmail.com', 'googlemail.com', 'yahoo.com', 'ymail.com', 'outlook.com',
+  'hotmail.com', 'live.com', 'msn.com', 'icloud.com', 'me.com', 'mac.com',
+  'aol.com', 'proton.me', 'protonmail.com', 'pm.me', 'zoho.com', 'gmx.com',
+  'gmx.us', 'mail.com', 'yandex.com', 'hey.com', 'fastmail.com',
+  'tutanota.com', 'tuta.com'
 ]);
 
-function cleanDomain(url = '') {
-  return String(url)
-    .toLowerCase()
-    .replace(/^https?:\/\//, '')
-    .replace(/^www\./, '')
-    .split('/')[0]
-    .split(':')[0]
-    .trim();
+const ALLOWED_TONES = new Set([
+  'Professional', 'Friendly', 'Direct', 'Energetic', 'Formal', 'Modern'
+]);
+
+const ALLOWED_RECOMMENDATION_STYLES = new Set(['strict', 'balanced', 'broad']);
+
+function send(res, status, body) {
+  res.status(status).json(body);
 }
 
-function randomAccountNumber() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function text(value, maxLength = 5000) {
+  return String(value ?? '').trim().slice(0, maxLength);
+}
 
-  let value = 'ALY-';
+function normalizeWebsite(value) {
+  const raw = text(value, 500);
+  if (!raw) throw new Error('Company website is required.');
 
-  for (let i = 0; i < 6; i++) {
-    value += chars[Math.floor(Math.random() * chars.length)];
+  const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error('Company website must use http or https.');
   }
 
+  url.hash = '';
+  return url.toString();
+}
+
+function hostnameFromWebsite(website) {
+  return new URL(website).hostname.toLowerCase().replace(/^www\./, '');
+}
+
+function emailDomain(email) {
+  return String(email || '').toLowerCase().split('@')[1] || '';
+}
+
+function domainsMatch(emailHost, websiteHost) {
+  return emailHost === websiteHost ||
+    emailHost.endsWith(`.${websiteHost}`) ||
+    websiteHost.endsWith(`.${emailHost}`);
+}
+
+function phoneDigits(value) {
+  return String(value ?? '').replace(/\D/g, '').slice(0, 20);
+}
+
+function einDigits(value) {
+  return String(value ?? '').replace(/\D/g, '').slice(0, 9);
+}
+
+function hashEin(ein, secret) {
+  return crypto.createHmac('sha256', secret).update(ein).digest('hex');
+}
+
+function integer(value, name) {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < 0 || number > 100) {
+    throw new Error(`${name} must be a whole number from 0 to 100.`);
+  }
+  return number;
+}
+
+function generateAccountNumber() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = crypto.randomBytes(6);
+  let code = '';
+  for (let i = 0; i < 6; i += 1) {
+    code += alphabet[bytes[i] % alphabet.length];
+  }
+  return `ALY-${code}`;
+}
+
+function requireField(payload, key, label, maxLength = 5000) {
+  const value = text(payload[key], maxLength);
+  if (!value) throw new Error(`${label} is required.`);
   return value;
 }
 
-async function uniqueAccountNumber() {
-  while (true) {
+function buildVerifiedPayload(rawPayload, user, einHashSecret) {
+  const payload = rawPayload && typeof rawPayload === 'object' ? rawPayload : {};
 
-    const account = randomAccountNumber();
+  const companyName = requireField(payload, 'company_name', 'Legal company name', 180);
+  const hasDba = payload.has_dba === true || payload.has_dba === 'true';
+  const dbaName = hasDba ? requireField(payload, 'dba_name', 'DBA / trade name', 180) : null;
+  const website = normalizeWebsite(payload.website);
+  const businessPhone = phoneDigits(payload.business_phone);
+  if (businessPhone.length < 10) throw new Error('Enter a valid business phone number.');
 
-    const { data } = await supabase
-      .from('companies')
-      .select('id')
-      .eq('account_number', account)
-      .maybeSingle();
+  const ein = einDigits(payload.ein);
+  if (!/^\d{9}$/.test(ein)) throw new Error('Enter a valid 9-digit EIN.');
 
-    if (!data) return account;
+  const industry = requireField(payload, 'industry', 'Industry', 120);
+  const companySize = requireField(payload, 'company_size', 'Company size', 50);
+  const headquarters = requireField(payload, 'headquarters', 'Headquarters', 180);
+  const companyDescription = requireField(payload, 'company_description', 'Company description');
+  const companyValues = requireField(payload, 'company_values', 'Core values');
+  const workEnvironment = requireField(payload, 'work_environment', 'Work environment');
+  const idealCandidate = requireField(payload, 'ideal_candidate', 'Ideal candidate');
+  const rolesHired = requireField(payload, 'roles_hired', 'Positions usually hired');
+  const requiredSkills = requireField(payload, 'required_skills', 'Required skills');
+  const poorFit = requireField(payload, 'poor_fit', 'Poor-fit description');
+  const writingTone = requireField(payload, 'writing_tone', 'Company voice', 50);
+  const writingEmphasis = requireField(payload, 'writing_emphasis', 'Writing emphasis');
+  const avoidWords = text(payload.avoid_words);
+  const recommendationStyle = requireField(payload, 'recommendation_style', 'Recommendation style', 30);
 
+  if (!ALLOWED_TONES.has(writingTone)) throw new Error('Select a valid company voice.');
+  if (!ALLOWED_RECOMMENDATION_STYLES.has(recommendationStyle)) {
+    throw new Error('Select a valid recommendation style.');
   }
-}
-function sendJson(res, statusCode, payload) {
-  res.status(statusCode).json(payload);
-}
-
-function getAccessToken(req) {
-  const authorization = req.headers.authorization || '';
-
-  if (!authorization.startsWith('Bearer ')) {
-    return null;
+  if (payload.authorized !== true) {
+    throw new Error('You must confirm that you are authorized to represent this company.');
   }
 
-  return authorization.slice(7).trim();
-}
-
-function cleanText(value, maxLength = 5000) {
-  return String(value ?? '')
-    .trim()
-    .slice(0, maxLength);
-}
-
-function validatePayload(body) {
-  const payload = {
-    company_name: cleanText(body.company_name, 160),
-    website: cleanText(body.website, 500),
-    business_phone: cleanText(body.business_phone, 40),
-    industry: cleanText(body.industry, 120),
-    company_size: cleanText(body.company_size, 40),
-    headquarters: cleanText(body.headquarters, 160),
-    ein_last4: cleanText(body.ein_last4, 4),
-
-    company_description: cleanText(body.company_description, 5000),
-    company_values: cleanText(body.company_values, 5000),
-    work_environment: cleanText(body.work_environment, 5000),
-
-    ideal_candidate: cleanText(body.ideal_candidate, 5000),
-    roles_hired: cleanText(body.roles_hired, 5000),
-    required_skills: cleanText(body.required_skills, 5000),
-    poor_fit: cleanText(body.poor_fit, 5000),
-
-    writing_tone: cleanText(body.writing_tone, 80),
-    writing_emphasis: cleanText(body.writing_emphasis, 5000),
-    avoid_words: cleanText(body.avoid_words, 5000),
-
-    recommendation_style: cleanText(body.recommendation_style, 40),
-
-    weight_skills: Number(body.weight_skills),
-    weight_culture: Number(body.weight_culture),
-    weight_experience: Number(body.weight_experience),
-    weight_availability: Number(body.weight_availability),
-    weight_location: Number(body.weight_location),
-    weight_education: Number(body.weight_education),
-
-    authorized: body.authorized === true
+  const weights = {
+    weight_skills: integer(payload.weight_skills, 'Skills weight'),
+    weight_culture: integer(payload.weight_culture, 'Culture weight'),
+    weight_experience: integer(payload.weight_experience, 'Experience weight'),
+    weight_availability: integer(payload.weight_availability, 'Availability weight'),
+    weight_location: integer(payload.weight_location, 'Location weight'),
+    weight_education: integer(payload.weight_education, 'Education weight')
   };
 
-  const requiredFields = [
-    ['company_name', 'Company name'],
-    ['website', 'Company website'],
-    ['business_phone', 'Business phone'],
-    ['industry', 'Industry'],
-    ['company_size', 'Company size'],
-    ['headquarters', 'Headquarters'],
-    ['company_description', 'Company description'],
-    ['company_values', 'Company values'],
-    ['work_environment', 'Work environment'],
-    ['ideal_candidate', 'Ideal candidate'],
-    ['roles_hired', 'Positions hired'],
-    ['required_skills', 'Required skills'],
-    ['poor_fit', 'Poor-fit criteria'],
-    ['writing_tone', 'Writing tone'],
-    ['writing_emphasis', 'Writing emphasis'],
-    ['recommendation_style', 'Recommendation style']
-  ];
+  const total = Object.values(weights).reduce((sum, value) => sum + value, 0);
+  if (total !== 100) throw new Error(`AI matching weights must total 100%. They currently total ${total}%.`);
 
-  for (const [key, label] of requiredFields) {
-    if (!payload[key]) {
-      throw new Error(`${label} is required.`);
-    }
+  const userEmail = String(user.email || '').trim().toLowerCase();
+  const userDomain = emailDomain(userEmail);
+  if (!userDomain) throw new Error('Your account does not have a valid email address.');
+  if (PERSONAL_EMAIL_DOMAINS.has(userDomain)) {
+    throw new Error('Use a company email address to create an employer workspace.');
   }
 
-  if (!payload.authorized) {
-    throw new Error(
-      'You must confirm that you are authorized to recruit for this company.'
-    );
+  const websiteDomain = hostnameFromWebsite(website);
+  const checks = {
+    business_email: true,
+    website: Boolean(websiteDomain),
+    business_phone: businessPhone.length >= 10,
+    blueprint_complete: true,
+    domain_match: domainsMatch(userDomain, websiteDomain),
+    authorization: true
+  };
+
+  const reviewReasons = [];
+  if (!checks.domain_match) reviewReasons.push('email_domain_does_not_match_website');
+
+  return {
+    company: {
+      company_name: companyName,
+      dba_name: dbaName,
+      ein_last4: ein.slice(-4),
+      ein_hash: hashEin(ein, einHashSecret),
+      verified_domain: checks.domain_match ? userDomain : null,
+      verification_status: reviewReasons.length ? 'pending_review' : 'approved',
+      owner_user_id: user.id,
+      website,
+      business_phone: businessPhone,
+      industry,
+      company_size: companySize,
+      headquarters
+    },
+    blueprint: {
+      company_description: companyDescription,
+      company_values: companyValues,
+      work_environment: workEnvironment,
+      ideal_candidate: idealCandidate,
+      roles_hired: rolesHired,
+      required_skills: requiredSkills,
+      poor_fit: poorFit,
+      writing_tone: writingTone,
+      writing_emphasis: writingEmphasis,
+      avoid_words: avoidWords || null,
+      recommendation_style: recommendationStyle,
+      ...weights
+    },
+    checks,
+    reviewReasons,
+    userEmail
+  };
+}
+
+async function createUniqueCompany(admin, companyData) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const accountNumber = generateAccountNumber();
+    const { data, error } = await admin
+      .from('companies')
+      .insert({ ...companyData, account_number: accountNumber })
+      .select('id, account_number, company_name, verification_status')
+      .single();
+
+    if (!error) return data;
+    if (error.code !== '23505') throw error;
   }
 
-  if (payload.ein_last4 && !/^\d{4}$/.test(payload.ein_last4)) {
-    throw new Error('EIN last four digits must contain exactly four numbers.');
-  }
-
-  let websiteUrl;
-
-  try {
-    websiteUrl = new URL(
-      payload.website.startsWith('http')
-        ? payload.website
-        : `https://${payload.website}`
-    );
-  } catch {
-    throw new Error('Please enter a valid company website.');
-  }
-
-  if (!['http:', 'https:'].includes(websiteUrl.protocol)) {
-    throw new Error('Company website must use HTTP or HTTPS.');
-  }
-
-  payload.website = websiteUrl.href;
-  payload.website_domain = cleanDomain(websiteUrl.hostname);
-
-  const weights = [
-    payload.weight_skills,
-    payload.weight_culture,
-    payload.weight_experience,
-    payload.weight_availability,
-    payload.weight_location,
-    payload.weight_education
-  ];
-
-  if (
-    weights.some(
-      weight =>
-        !Number.isInteger(weight) ||
-        weight < 0 ||
-        weight > 100
-    )
-  ) {
-    throw new Error('Every AI matching weight must be a whole number from 0 to 100.');
-  }
-
-  const totalWeight = weights.reduce((total, weight) => total + weight, 0);
-
-  if (totalWeight !== 100) {
-    throw new Error(
-      `AI matching weights must total 100%. They currently total ${totalWeight}%.`
-    );
-  }
-
-  return payload;
+  throw new Error('Unable to generate a unique company account number. Please try again.');
 }
 
 module.exports = async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
-
-    return sendJson(res, 405, {
-      success: false,
-      error: 'Method not allowed.'
-    });
+    return send(res, 405, { success: false, error: 'Method not allowed.' });
   }
 
-  if (
-    !process.env.SUPABASE_URL ||
-    !process.env.SUPABASE_SERVICE_ROLE_KEY
-  ) {
-    console.error('Missing Supabase server environment variables.');
-
-    return sendJson(res, 500, {
-      success: false,
-      error: 'Server configuration is incomplete.'
-    });
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const einHashSecret = process.env.EIN_HASH_SECRET;
+  if (!supabaseUrl || !serviceRoleKey || !einHashSecret) {
+    console.error('Missing SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, or EIN_HASH_SECRET');
+    return send(res, 500, { success: false, error: 'Server configuration is incomplete.' });
   }
 
-  const accessToken = getAccessToken(req);
+  const authorization = String(req.headers.authorization || '');
+  const accessToken = authorization.startsWith('Bearer ')
+    ? authorization.slice(7).trim()
+    : '';
 
   if (!accessToken) {
-    return sendJson(res, 401, {
-      success: false,
-      error: 'You must be signed in to create a company.'
-    });
+    return send(res, 401, { success: false, error: 'Your session has expired. Sign in again.' });
   }
 
-  let payload;
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+
+  let createdCompanyId = null;
 
   try {
-    payload = validatePayload(req.body || {});
-  } catch (error) {
-    return sendJson(res, 400, {
-      success: false,
-      error: error.message
-    });
-  }
-
-  const {
-    data: { user },
-    error: userError
-  } = await supabase.auth.getUser(accessToken);
-
-  if (userError || !user) {
-    return sendJson(res, 401, {
-      success: false,
-      error: 'Your login session is invalid or has expired.'
-    });
-  }
-
-  if (!user.email_confirmed_at) {
-    return sendJson(res, 403, {
-      success: false,
-      error: 'Please confirm your company email before continuing.'
-    });
-  }
-
-  const email = String(user.email || '').trim().toLowerCase();
-  const emailDomain = email.split('@')[1] || '';
-
-  if (!emailDomain) {
-    return sendJson(res, 400, {
-      success: false,
-      error: 'Your account does not have a valid email address.'
-    });
-  }
-
-  if (PERSONAL_DOMAINS.has(emailDomain)) {
-    return sendJson(res, 403, {
-      success: false,
-      error: 'Please use a company email address instead of a personal email.'
-    });
-  }
-    let createdCompanyId = null;
-
-  try {
-    const { data: existingOwnedCompany, error: existingCompanyError } =
-      await supabase
-        .from('companies')
-        .select('id, account_number, company_name, verification_status')
-        .eq('owner_user_id', user.id)
-        .maybeSingle();
-
-    if (existingCompanyError) {
-      throw new Error(
-        `Unable to check your existing company: ${existingCompanyError.message}`
-      );
+    const { data: authData, error: authError } = await admin.auth.getUser(accessToken);
+    const user = authData?.user;
+    if (authError || !user) {
+      return send(res, 401, { success: false, error: 'Your session is invalid. Sign in again.' });
     }
 
-    if (existingOwnedCompany) {
-      return sendJson(res, 409, {
+    if (!user.email_confirmed_at) {
+      return send(res, 403, { success: false, error: 'Confirm your company email before continuing.' });
+    }
+
+    const { data: existingMembership, error: membershipLookupError } = await admin
+      .from('company_members')
+      .select('company_id, role, membership_status')
+      .eq('user_id', user.id)
+      .in('membership_status', ['pending', 'active', 'suspended'])
+      .limit(1)
+      .maybeSingle();
+
+    if (membershipLookupError) throw membershipLookupError;
+    if (existingMembership) {
+      return send(res, 409, {
         success: false,
-        error: 'You already own a company workspace.',
+        error: 'Your account already belongs to a company workspace.',
+        code: 'COMPANY_MEMBERSHIP_EXISTS'
+      });
+    }
+
+    const { data: existingOwnedCompany, error: ownerLookupError } = await admin
+      .from('companies')
+      .select('id, account_number, verification_status')
+      .eq('owner_user_id', user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (ownerLookupError) throw ownerLookupError;
+    if (existingOwnedCompany) {
+      return send(res, 409, {
+        success: false,
+        error: 'You already created a company workspace.',
+        code: 'COMPANY_ALREADY_EXISTS',
         company: {
           id: existingOwnedCompany.id,
           accountNumber: existingOwnedCompany.account_number,
-          name: existingOwnedCompany.company_name,
           verificationStatus: existingOwnedCompany.verification_status
         }
       });
     }
 
-    const { data: existingMembership, error: membershipCheckError } =
-      await supabase
-        .from('company_members')
-        .select(`
-          id,
-          role,
-          membership_status,
-          company_id,
-          companies (
-            account_number,
-            company_name,
-            verification_status
-          )
-        `)
-        .eq('user_id', user.id)
-        .in('membership_status', ['pending', 'active', 'suspended'])
-        .limit(1)
-        .maybeSingle();
-
-    if (membershipCheckError) {
-      throw new Error(
-        `Unable to check your company membership: ${membershipCheckError.message}`
-      );
-    }
-
-    if (existingMembership) {
-      const joinedCompany = Array.isArray(existingMembership.companies)
-        ? existingMembership.companies[0]
-        : existingMembership.companies;
-
-      return sendJson(res, 409, {
-        success: false,
-        error: 'Your account is already connected to a company workspace.',
-        company: {
-          id: existingMembership.company_id,
-          accountNumber: joinedCompany?.account_number || null,
-          name: joinedCompany?.company_name || null,
-          verificationStatus:
-            joinedCompany?.verification_status || 'pending_review'
-        }
-      });
-    }
-
-    const emailDomainMatchesWebsite =
-      emailDomain === payload.website_domain;
-
-    const verificationStatus = emailDomainMatchesWebsite
-      ? 'approved'
-      : 'pending_review';
-
-    const verificationReasons = [];
-
-    if (!emailDomainMatchesWebsite) {
-      verificationReasons.push('email_website_domain_mismatch');
-    }
-
-    if (payload.business_phone.replace(/\D/g, '').length < 10) {
-      verificationReasons.push('business_phone_needs_review');
-    }
-
-    if (payload.company_description.length < 40) {
-      verificationReasons.push('company_description_too_short');
-    }
-
-    const finalVerificationStatus =
-      verificationReasons.length === 0
-        ? verificationStatus
-        : 'pending_review';
-
-    const accountNumber = await uniqueAccountNumber();
-
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .insert({
-        account_number: accountNumber,
-        company_name: payload.company_name,
-        verified_domain: emailDomainMatchesWebsite
-          ? emailDomain
-          : null,
-        verification_status: finalVerificationStatus,
-        owner_user_id: user.id,
-        website: payload.website,
-        business_phone: payload.business_phone,
-        industry: payload.industry,
-        company_size: payload.company_size,
-        headquarters: payload.headquarters
-      })
-      .select(`
-        id,
-        account_number,
-        company_name,
-        verification_status,
-        verified_domain
-      `)
-      .single();
-
-    if (companyError || !company) {
-      throw new Error(
-        companyError?.message || 'Unable to create the company workspace.'
-      );
-    }
-
+    const verified = buildVerifiedPayload(req.body, user, einHashSecret);
+    const company = await createUniqueCompany(admin, verified.company);
     createdCompanyId = company.id;
-        const { error: ownerMembershipError } = await supabase
-      .from('company_members')
-      .insert({
-        company_id: company.id,
-        user_id: user.id,
-        role: 'owner',
-        membership_status: 'active',
-        approved_by: user.id,
-        approved_at: new Date().toISOString()
-      });
 
-    if (ownerMembershipError) {
-      throw new Error(
-        `Unable to create the owner membership: ${ownerMembershipError.message}`
-      );
-    }
+    const { error: memberError } = await admin.from('company_members').insert({
+      company_id: company.id,
+      user_id: user.id,
+      role: 'owner',
+      membership_status: 'active',
+      approved_by: user.id,
+      approved_at: new Date().toISOString()
+    });
+    if (memberError) throw memberError;
 
-    const { error: blueprintError } = await supabase
-      .from('company_blueprints')
-      .insert({
-        company_id: company.id,
+    const { error: blueprintError } = await admin.from('company_blueprints').insert({
+      company_id: company.id,
+      ...verified.blueprint
+    });
+    if (blueprintError) throw blueprintError;
 
-        company_description: payload.company_description,
-        company_values: payload.company_values,
-        work_environment: payload.work_environment,
+    const { error: activityError } = await admin.from('company_activity_log').insert({
+      company_id: company.id,
+      actor_user_id: user.id,
+      action: 'company_created',
+      target_user_id: user.id,
+      details: {
+        account_number: company.account_number,
+        verification_status: company.verification_status,
+        verification_checks: verified.checks,
+        review_reasons: verified.reviewReasons,
+        business_email: verified.userEmail
+      }
+    });
+    if (activityError) throw activityError;
 
-        ideal_candidate: payload.ideal_candidate,
-        roles_hired: payload.roles_hired,
-        required_skills: payload.required_skills,
-        poor_fit: payload.poor_fit,
-
-        writing_tone: payload.writing_tone,
-        writing_emphasis: payload.writing_emphasis,
-        avoid_words: payload.avoid_words || null,
-
-        recommendation_style: payload.recommendation_style,
-
-        weight_skills: payload.weight_skills,
-        weight_culture: payload.weight_culture,
-        weight_experience: payload.weight_experience,
-        weight_availability: payload.weight_availability,
-        weight_location: payload.weight_location,
-        weight_education: payload.weight_education
-      });
-
-    if (blueprintError) {
-      throw new Error(
-        `Unable to save the AI Hiring Blueprint: ${blueprintError.message}`
-      );
-    }
-
-    const { error: activityError } = await supabase
-      .from('company_activity_log')
-      .insert({
-        company_id: company.id,
-        actor_user_id: user.id,
-        action: 'company_created',
-        target_user_id: user.id,
-        details: {
-          company_name: company.company_name,
-          account_number: company.account_number,
-          verification_status: company.verification_status,
-          verification_reasons: verificationReasons,
-          email_domain: emailDomain,
-          website_domain: payload.website_domain
-        }
-      });
-
-    if (activityError) {
-      throw new Error(
-        `Unable to create the company activity record: ${activityError.message}`
-      );
-    }
-
-    return sendJson(res, 201, {
+    return send(res, 201, {
       success: true,
       company: {
         id: company.id,
-        accountNumber: company.account_number,
         name: company.company_name,
-        verificationStatus: company.verification_status,
-        verifiedDomain: company.verified_domain
+        accountNumber: company.account_number,
+        verificationStatus: company.verification_status
       },
       verification: {
-        approved: company.verification_status === 'approved',
-        reasons: verificationReasons
+        checks: verified.checks,
+        reviewReasons: verified.reviewReasons
       }
     });
-      } catch (error) {
-    console.error('create-company error:', error);
+  } catch (error) {
+    console.error('create-company failed:', error);
 
     if (createdCompanyId) {
-      try {
-        await supabase
-          .from('companies')
-          .delete()
-          .eq('id', createdCompanyId);
-      } catch (cleanupError) {
-        console.error(
-          'Failed to clean up partially created company:',
-          cleanupError
-        );
-      }
+      const { error: cleanupError } = await admin
+        .from('companies')
+        .delete()
+        .eq('id', createdCompanyId);
+      if (cleanupError) console.error('create-company cleanup failed:', cleanupError);
     }
 
-    return sendJson(res, 500, {
+    const message = error instanceof Error ? error.message : 'Unable to create the company workspace.';
+    const clientError = /required|valid|must|company email|authorized|weights|already/i.test(message);
+    return send(res, clientError ? 400 : 500, {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'An unexpected error occurred while creating the company.'
+      error: clientError ? message : 'Unable to create the company workspace. Please try again.'
     });
   }
 };
