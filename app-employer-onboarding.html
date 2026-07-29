@@ -42,6 +42,12 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand-dark);box-shado
 .message{display:none;margin-top:16px;padding:13px 14px;border-radius:14px;font-size:12px;font-weight:800;line-height:1.5}.message.error{display:block;background:var(--danger-bg);color:var(--danger)}.message.success{display:block;background:var(--success-bg);color:var(--success)}
 .summary{display:grid;gap:11px;margin-top:20px}.summary-row{padding:14px;border:1px solid var(--border);border-radius:15px;background:#fff}.summary-row span{display:block;color:var(--muted);font-size:9px;font-weight:900;text-transform:uppercase}.summary-row strong{display:block;margin-top:5px;font-size:12px;line-height:1.5}
 .status-box{margin-top:20px;padding:18px;border-radius:18px;background:#EDF3F8;border:1px solid var(--border)}.status-box h3{font-size:16px}.status-box p{margin-top:7px;color:var(--muted);font-size:12px;line-height:1.55}
+.city-field{position:relative}
+.city-suggestions{display:none;position:absolute;z-index:55;top:calc(100% + 7px);left:0;right:0;max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:15px;background:#fff;box-shadow:0 16px 38px rgba(23,35,51,.16)}
+.city-suggestions.show{display:block}
+.city-option{width:100%;min-height:48px;padding:12px 14px;border:0;border-bottom:1px solid var(--border);border-radius:0;background:#fff;color:var(--text);text-align:left;font-size:13px;font-weight:700;cursor:pointer}
+.city-option:last-child{border-bottom:0}
+.city-option:hover,.city-option.active{background:#EDF3F8;color:var(--brand-dark)}
 .industry-field{position:relative}
 .industry-suggestions{display:none;position:absolute;z-index:50;top:calc(100% + 7px);left:0;right:0;max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:15px;background:#fff;box-shadow:0 16px 38px rgba(23,35,51,.16)}
 .industry-suggestions.show{display:block}
@@ -97,7 +103,11 @@ input:focus,textarea:focus,select:focus{border-color:var(--brand-dark);box-shado
       <div id="industry-suggestions" class="industry-suggestions" role="listbox"></div>
     </div>
     <div class="field"><label class="required" for="company-size">Company size</label><select id="company-size" name="company_size" required><option value="">Select size</option><option>1–10</option><option>11–50</option><option>51–200</option><option>201–500</option><option>501–1,000</option><option>1,001+</option></select></div>
-    <div class="field"><label class="required" for="headquarters">Headquarters</label><input id="headquarters" name="headquarters" required placeholder="Raleigh, NC"></div>
+    <div class="field city-field">
+  <label class="required" for="headquarters">Headquarters</label>
+  <input id="headquarters" name="headquarters" required autocomplete="off" placeholder="Start typing a city" aria-autocomplete="list" aria-controls="city-suggestions" aria-expanded="false">
+  <div id="city-suggestions" class="city-suggestions" role="listbox"></div>
+</div>
   </div>
 
 
@@ -241,6 +251,85 @@ document.addEventListener('click',event=>{
 industryInput.addEventListener('keydown',event=>{
   if(event.key==='Escape')closeIndustrySuggestions();
 });
+
+
+const US_CITIES=[
+  'Albuquerque, NM','Alexandria, VA','Anaheim, CA','Anchorage, AK','Arlington, TX',
+  'Arlington, VA','Atlanta, GA','Augusta, GA','Austin, TX','Baltimore, MD',
+  'Baton Rouge, LA','Birmingham, AL','Boise, ID','Boston, MA','Buffalo, NY',
+  'Burlington, VT','Cary, NC','Charleston, SC','Charlotte, NC','Chattanooga, TN',
+  'Chicago, IL','Cincinnati, OH','Cleveland, OH','Colorado Springs, CO',
+  'Columbia, SC','Columbus, OH','Dallas, TX','Denver, CO','Des Moines, IA',
+  'Detroit, MI','Durham, NC','El Paso, TX','Fayetteville, NC','Fort Lauderdale, FL',
+  'Fort Worth, TX','Fresno, CA','Greensboro, NC','Greenville, SC','Hartford, CT',
+  'Henderson, NV','Honolulu, HI','Houston, TX','Indianapolis, IN','Irvine, CA',
+  'Jackson, MS','Jacksonville, FL','Kansas City, MO','Knoxville, TN','Las Vegas, NV',
+  'Lexington, KY','Little Rock, AR','Long Beach, CA','Los Angeles, CA',
+  'Louisville, KY','Madison, WI','Memphis, TN','Mesa, AZ','Miami, FL',
+  'Milwaukee, WI','Minneapolis, MN','Nashville, TN','New Orleans, LA',
+  'New York, NY','Newark, NJ','Norfolk, VA','Oakland, CA','Oklahoma City, OK',
+  'Omaha, NE','Orlando, FL','Philadelphia, PA','Phoenix, AZ','Pittsburgh, PA',
+  'Plano, TX','Portland, ME','Portland, OR','Providence, RI','Raleigh, NC',
+  'Reno, NV','Richmond, VA','Rochester, NY','Sacramento, CA','Salt Lake City, UT',
+  'San Antonio, TX','San Diego, CA','San Francisco, CA','San Jose, CA',
+  'Savannah, GA','Seattle, WA','St. Louis, MO','St. Petersburg, FL',
+  'Syracuse, NY','Tallahassee, FL','Tampa, FL','Toledo, OH','Tucson, AZ',
+  'Tulsa, OK','Virginia Beach, VA','Washington, DC','Wilmington, NC',
+  'Winston-Salem, NC'
+];
+
+const headquartersInput=document.getElementById('headquarters');
+const citySuggestions=document.getElementById('city-suggestions');
+
+function closeCitySuggestions(){
+  citySuggestions.classList.remove('show');
+  citySuggestions.innerHTML='';
+  headquartersInput.setAttribute('aria-expanded','false');
+}
+
+function renderCitySuggestions(){
+  const query=headquartersInput.value.trim().toLowerCase();
+
+  // Stay hidden until at least two characters are entered.
+  if(query.length<2){
+    closeCitySuggestions();
+    return;
+  }
+
+  const matches=US_CITIES
+    .filter(city=>city.toLowerCase().includes(query))
+    .slice(0,8);
+
+  if(!matches.length){
+    closeCitySuggestions();
+    return;
+  }
+
+  citySuggestions.innerHTML=matches.map(city=>
+    `<button class="city-option" type="button" role="option" data-value="${escapeHtml(city)}">${escapeHtml(city)}</button>`
+  ).join('');
+
+  citySuggestions.classList.add('show');
+  headquartersInput.setAttribute('aria-expanded','true');
+}
+
+headquartersInput.addEventListener('input',renderCitySuggestions);
+
+citySuggestions.addEventListener('click',event=>{
+  const option=event.target.closest('.city-option');
+  if(!option)return;
+  headquartersInput.value=option.dataset.value;
+  closeCitySuggestions();
+  headquartersInput.focus();
+});
+
+document.addEventListener('click',event=>{
+  if(!event.target.closest('.city-field'))closeCitySuggestions();
+});
+
+headquartersInput.addEventListener('keydown',event=>{
+  if(event.key==='Escape')closeCitySuggestions();
+});
 const steps=[...document.querySelectorAll('.step')];
 let current=0;
 const form=document.getElementById('blueprint-form');
@@ -272,8 +361,33 @@ function validateCurrent(){
     }
   }
   if(current===1){
-    const website=document.getElementById('website').value.trim();
-    try{const url=new URL(website.startsWith('http')?website:'https://'+website);document.getElementById('website').value=url.href}catch{return showMessage('Please enter a valid company website.'),false}
+    const websiteField=document.getElementById('website');
+    const website=websiteField.value.trim();
+
+    try{
+      const url=new URL(/^https?:\/\//i.test(website)?website:'https://'+website);
+      const host=url.hostname.toLowerCase().replace(/^www\./,'');
+
+      // Require a real public-looking domain such as company.com.
+      // Reject single words, localhost, IP addresses, spaces, and malformed labels.
+      const labels=host.split('.');
+      const validHost=
+        labels.length>=2 &&
+        labels.every(label=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label)) &&
+        /^[a-z]{2,63}$/i.test(labels.at(-1)) &&
+        host!=='localhost' &&
+        !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host) &&
+        !url.username &&
+        !url.password;
+
+      if(!validHost) throw new Error('invalid-domain');
+
+      url.hash='';
+      websiteField.value=url.toString();
+    }catch{
+      websiteField.focus();
+      return showMessage('Enter a complete business website, such as https://yourcompany.com.'),false;
+    }
     const einDigits=document.getElementById('ein').value.replace(/\D/g,'');
     if(!/^\d{9}$/.test(einDigits)) return showMessage('Enter a valid 9-digit EIN.'),false;
     document.getElementById('ein').value=einDigits.slice(0,2)+'-'+einDigits.slice(2);
