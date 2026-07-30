@@ -29,7 +29,11 @@ const message=document.getElementById('message');
 
 let selectedFile=null;
 let session=null;
-let companyId=(localStorage.getItem('alygnn_company_id')||'').trim();
+const queryCompanyId=(new URLSearchParams(location.search).get('company_id')||'').trim();
+let companyId=(queryCompanyId||localStorage.getItem('alygnn_company_id')||'').trim();
+if(queryCompanyId){
+  localStorage.setItem('alygnn_company_id',queryCompanyId);
+}
 let companyReady=false;
 
 function showMessage(text,type='error'){
@@ -185,6 +189,10 @@ submitButton.onclick=async()=>{
 
     if(!companyId){
       await resolveCompany();
+    }
+
+    if(!companyId){
+      throw new Error('Your company ID is missing. Return to onboarding and press Finish Setup again.');
     }
 
     const safeName=selectedFile.name
