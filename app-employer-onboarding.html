@@ -118,6 +118,64 @@ const INDUSTRIES=['Accounting','Advertising and Marketing','Agriculture','Archit
 const US_CITIES=['Albuquerque, NM','Alexandria, VA','Anaheim, CA','Anchorage, AK','Arlington, TX','Arlington, VA','Atlanta, GA','Augusta, GA','Austin, TX','Baltimore, MD','Baton Rouge, LA','Birmingham, AL','Boise, ID','Boston, MA','Buffalo, NY','Burlington, VT','Cary, NC','Charleston, SC','Charlotte, NC','Chattanooga, TN','Chicago, IL','Cincinnati, OH','Cleveland, OH','Colorado Springs, CO','Columbia, SC','Columbus, OH','Dallas, TX','Denver, CO','Des Moines, IA','Detroit, MI','Durham, NC','El Paso, TX','Fayetteville, NC','Fort Lauderdale, FL','Fort Worth, TX','Fresno, CA','Greensboro, NC','Greenville, SC','Hartford, CT','Henderson, NV','Honolulu, HI','Houston, TX','Indianapolis, IN','Irvine, CA','Jackson, MS','Jacksonville, FL','Kansas City, MO','Knoxville, TN','Las Vegas, NV','Lexington, KY','Little Rock, AR','Long Beach, CA','Los Angeles, CA','Louisville, KY','Madison, WI','Memphis, TN','Mesa, AZ','Miami, FL','Milwaukee, WI','Minneapolis, MN','Nashville, TN','New Orleans, LA','New York, NY','Newark, NJ','Norfolk, VA','Oakland, CA','Oklahoma City, OK','Omaha, NE','Orlando, FL','Philadelphia, PA','Phoenix, AZ','Pittsburgh, PA','Plano, TX','Portland, ME','Portland, OR','Providence, RI','Raleigh, NC','Reno, NV','Richmond, VA','Rochester, NY','Sacramento, CA','Salt Lake City, UT','San Antonio, TX','San Diego, CA','San Francisco, CA','San Jose, CA','Savannah, GA','Seattle, WA','St. Louis, MO','St. Petersburg, FL','Syracuse, NY','Tallahassee, FL','Tampa, FL','Toledo, OH','Tucson, AZ','Tulsa, OK','Virginia Beach, VA','Washington, DC','Wilmington, NC','Winston-Salem, NC'];
 const steps=[...document.querySelectorAll('.step')];let current=0;const selectedVoices=new Set();
 const form=document.getElementById('onboarding-form'),message=document.getElementById('message'),nextButton=document.getElementById('next-button'),backButton=document.getElementById('back-button');
+const DRAFT_KEY='alygnn_employer_onboarding_draft';
+
+function saveDraft(){
+  const draft={
+    current,
+    company_name:document.getElementById('company-name').value,
+    website:document.getElementById('website').value,
+    business_phone:document.getElementById('business-phone').value,
+    industry:document.getElementById('industry').value,
+    company_size:document.getElementById('company-size').value,
+    headquarters:document.getElementById('headquarters').value,
+    has_dba:document.getElementById('has-dba').checked,
+    dba_name:document.getElementById('dba-name').value,
+    ein:document.getElementById('ein').value,
+    company_voice:[...selectedVoices],
+    company_priorities:getRanking('company-priorities'),
+    candidate_priorities:getRanking('candidate-priorities')
+  };
+  localStorage.setItem(DRAFT_KEY,JSON.stringify(draft));
+}
+
+function restoreDraft(){
+  let draft;
+  try{draft=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null')}catch{return false}
+  if(!draft)return false;
+
+  document.getElementById('company-name').value=draft.company_name||'';
+  document.getElementById('website').value=draft.website||'';
+  document.getElementById('business-phone').value=draft.business_phone||'';
+  document.getElementById('industry').value=draft.industry||'';
+  document.getElementById('company-size').value=draft.company_size||'';
+  document.getElementById('headquarters').value=draft.headquarters||'';
+  document.getElementById('has-dba').checked=!!draft.has_dba;
+  document.getElementById('dba-name').value=draft.dba_name||'';
+  document.getElementById('ein').value=draft.ein||'';
+
+  dbaField.classList.toggle('show',!!draft.has_dba);
+  dbaName.required=!!draft.has_dba;
+
+  selectedVoices.clear();
+  (draft.company_voice||[]).forEach(v=>selectedVoices.add(v));
+  renderVoiceState();
+
+  if(Array.isArray(draft.company_priorities)&&draft.company_priorities.length){
+    renderRankList('company-priorities',draft.company_priorities);
+  }
+  if(Array.isArray(draft.candidate_priorities)&&draft.candidate_priorities.length){
+    renderRankList('candidate-priorities',draft.candidate_priorities);
+  }
+
+  const requestedStep=new URLSearchParams(location.search).get('step');
+  const restoredStep=requestedStep!==null
+    ? Number(requestedStep)
+    : Number(draft.current||0);
+
+  showStep(Math.max(0,Math.min(steps.length-1,restoredStep)));
+  return true;
+}
 function escapeHtml(value){const div=document.createElement('div');div.textContent=String(value??'');return div.innerHTML}
 function showMessage(text,type='error'){message.textContent=text;message.className='message '+type}
 function clearMessage(){message.className='message';message.textContent=''}
@@ -134,21 +192,91 @@ function aiSummary(){const v=[...selectedVoices],c=getRanking('company-prioritie
 function joinWords(values){if(values.length<=1)return values[0]||'';if(values.length===2)return values.join(' and ');return values.slice(0,-1).join(', ')+', and '+values.at(-1)}
 function buildOverview(){const voices=[...selectedVoices],company=getRanking('company-priorities'),candidate=getRanking('candidate-priorities');document.getElementById('overview-voice').textContent=voices.join(' • ');document.getElementById('overview-company').innerHTML=company.slice(0,3).map(v=>`<li>${escapeHtml(v)}</li>`).join('');document.getElementById('overview-candidate').innerHTML=candidate.slice(0,3).map(v=>`<li>${escapeHtml(v)}</li>`).join('');document.getElementById('ai-summary').textContent=aiSummary()}
 function payload(){const ein=document.getElementById('ein').value.replace(/\D/g,'');return{company_name:document.getElementById('company-name').value.trim(),website:document.getElementById('website').value.trim(),business_phone:document.getElementById('business-phone').value.trim(),industry:document.getElementById('industry').value.trim(),company_size:document.getElementById('company-size').value,headquarters:document.getElementById('headquarters').value.trim(),has_dba:document.getElementById('has-dba').checked,dba_name:document.getElementById('has-dba').checked?document.getElementById('dba-name').value.trim():'',ein,ein_last4:ein.slice(-4),company_voice:[...selectedVoices],company_priorities:getRanking('company-priorities'),candidate_priorities:getRanking('candidate-priorities'),ai_summary:aiSummary(),authorized:document.getElementById('authorization').checked}}
-async function submit(){nextButton.disabled=true;nextButton.textContent='Creating company…';clearMessage();try{const{data:{session},error}=await sb.auth.getSession();if(error)throw error;if(!session){location.replace('app-employer-login.html');return}const response=await fetch('/api/company/create-company',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify(payload())});const result=await response.json().catch(()=>({}));if(!response.ok)throw new Error(result.error||'Unable to create your company workspace.');const status=result.company?.verificationStatus||'pending_review';localStorage.setItem('alygnn_employer_verification_status',status);localStorage.setItem('alygnn_company_id',result.company?.id||'');localStorage.setItem('alygnn_company_account_number',result.company?.accountNumber||'');localStorage.removeItem('alygnn_onboarding_v2');showMessage('Your company profile is saved.','success');setTimeout(()=>{
-  if(status==='approved'){
-    location.replace('app-employer-dashboard.html');
-  }else{
-    const companyId=result.company?.id||'';
-    const target=companyId
-      ? `app-employer-document-upload.html?company_id=${encodeURIComponent(companyId)}`
-      : 'app-employer-document-upload.html';
-    location.replace(target);
+async function submit(){
+  nextButton.disabled=true;
+  nextButton.textContent='Creating company…';
+  clearMessage();
+  saveDraft();
+
+  try{
+    const{data:{session},error}=await sb.auth.getSession();
+    if(error)throw error;
+    if(!session){
+      location.href='app-employer-login.html';
+      return;
+    }
+
+    const response=await fetch('/api/company/create-company',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+session.access_token
+      },
+      body:JSON.stringify(payload())
+    });
+
+    const result=await response.json().catch(()=>({}));
+
+    if(!response.ok){
+      throw new Error(result.error||'Unable to create your company workspace.');
+    }
+
+    const companyId=
+      result.company?.id||
+      result.company_id||
+      result.companyId||
+      result.id||
+      '';
+
+    if(!companyId){
+      console.error('create-company returned no company ID:',result);
+      throw new Error('Your company was not fully created because the server did not return a company ID. Please update the create-company API and try again.');
+    }
+
+    const status=
+      result.company?.verificationStatus||
+      result.company?.verification_status||
+      result.verification_status||
+      'pending_review';
+
+    const accountNumber=
+      result.company?.accountNumber||
+      result.company?.account_number||
+      result.account_number||
+      '';
+
+    localStorage.setItem('alygnn_employer_verification_status',status);
+    localStorage.setItem('alygnn_company_id',companyId);
+    sessionStorage.setItem('alygnn_company_id',companyId);
+    if(accountNumber){
+      localStorage.setItem('alygnn_company_account_number',accountNumber);
+    }
+
+    showMessage('Your company profile is saved.','success');
+
+    setTimeout(()=>{
+      if(status==='approved'){
+        location.href='app-employer-dashboard.html';
+      }else{
+        location.href=`app-employer-document-upload.html?company_id=${encodeURIComponent(companyId)}`;
+      }
+    },650);
+  }catch(error){
+    console.error(error);
+    showMessage(error.message||'Unable to finish setup.');
+    nextButton.disabled=false;
+    nextButton.textContent='Finish Setup';
   }
 },850)}catch(error){console.error(error);showMessage(error.message||'Unable to finish setup.');nextButton.disabled=false;nextButton.textContent='Finish Setup'}}
-nextButton.addEventListener('click',()=>{if(!validateCurrent())return;if(current<steps.length-1)showStep(current+1);else submit()});backButton.addEventListener('click',()=>{if(current>0)showStep(current-1)});document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>showStep(Number(b.dataset.go))));
+nextButton.addEventListener('click',()=>{if(!validateCurrent())return;saveDraft();if(current<steps.length-1)showStep(current+1);else submit()});backButton.addEventListener('click',()=>{saveDraft();if(current>0)showStep(current-1)});document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>showStep(Number(b.dataset.go))));
 const hasDba=document.getElementById('has-dba'),dbaField=document.getElementById('dba-field'),dbaName=document.getElementById('dba-name');hasDba.addEventListener('change',()=>{dbaField.classList.toggle('show',hasDba.checked);dbaName.required=hasDba.checked;if(!hasDba.checked)dbaName.value=''})
 document.getElementById('ein').addEventListener('input',e=>{const d=e.target.value.replace(/\D/g,'').slice(0,9);e.target.value=d.length>2?d.slice(0,2)+'-'+d.slice(2):d});
-(async()=>{renderVoices();renderRankList('company-priorities',DEFAULT_COMPANY);renderRankList('candidate-priorities',DEFAULT_CANDIDATE);setupSuggestions('industry','industry-suggestions',INDUSTRIES);setupSuggestions('headquarters','city-suggestions',US_CITIES);const{data:{session}}=await sb.auth.getSession();if(!session){location.replace('app-employer-login.html');return}document.getElementById('company-name').value=session.user.user_metadata?.company_name||'';const{data:membership,error}=await sb.from('company_members').select('company_id,companies(account_number,verification_status)').eq('user_id',session.user.id).eq('membership_status','active').limit(1).maybeSingle();if(!error&&membership?.company_id){const company=Array.isArray(membership.companies)?membership.companies[0]:membership.companies;localStorage.setItem('alygnn_company_id',membership.company_id);if(company?.account_number)localStorage.setItem('alygnn_company_account_number',company.account_number);const status=company?.verification_status||'pending_review';localStorage.setItem('alygnn_employer_verification_status',status);if(status==='approved')location.replace('app-employer-dashboard.html');else if(localStorage.getItem('alygnn_verification_document_submitted')==='true')location.replace('app-employer-verification-status.html');else location.replace('app-employer-document-upload.html')}})();showStep(0);
+form.addEventListener('input',saveDraft);
+form.addEventListener('change',saveDraft);
+window.addEventListener('beforeunload',saveDraft);
+
+(async()=>{renderVoices();renderRankList('company-priorities',DEFAULT_COMPANY);renderRankList('candidate-priorities',DEFAULT_CANDIDATE);setupSuggestions('industry','industry-suggestions',INDUSTRIES);setupSuggestions('headquarters','city-suggestions',US_CITIES);const{data:{session}}=await sb.auth.getSession();if(!session){location.replace('app-employer-login.html');return}document.getElementById('company-name').value=session.user.user_metadata?.company_name||'';const{data:membership,error}=await sb.from('company_members').select('company_id,companies(account_number,verification_status)').eq('user_id',session.user.id).eq('membership_status','active').limit(1).maybeSingle();if(!error&&membership?.company_id){const company=Array.isArray(membership.companies)?membership.companies[0]:membership.companies;localStorage.setItem('alygnn_company_id',membership.company_id);if(company?.account_number)localStorage.setItem('alygnn_company_account_number',company.account_number);const status=company?.verification_status||'pending_review';localStorage.setItem('alygnn_employer_verification_status',status);if(status==='approved')location.replace('app-employer-dashboard.html');else if(localStorage.getItem('alygnn_verification_document_submitted')==='true')location.replace('app-employer-verification-status.html');else location.replace('app-employer-document-upload.html')}})();
+if(!restoreDraft())showStep(0);
 </script>
 </body>
 </html>
