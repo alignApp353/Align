@@ -79,28 +79,20 @@ function selectFile(file){
 async function resolveCompany(){
   const storedId=(localStorage.getItem('alygnn_company_id')||'').trim();
 
+  // The onboarding API already created this company and returned its ID.
+  // Do not block the upload by trying to re-read the company row first,
+  // because row-level security may prevent that client-side lookup.
   if(storedId){
-    const {data:storedCompany,error:storedError}=await sb
-      .from('companies')
-      .select('id,account_number,verification_status,owner_user_id')
-      .eq('id',storedId)
-      .maybeSingle();
-
-    if(!storedError&&storedCompany){
-      companyId=storedCompany.id;
-      if(storedCompany.account_number){
-        localStorage.setItem('alygnn_company_account_number',storedCompany.account_number);
-      }
-      return storedCompany;
-    }
-
-    localStorage.removeItem('alygnn_company_id');
-    companyId='';
+    companyId=storedId;
+    return{
+      id:companyId,
+      verification_status:localStorage.getItem('alygnn_employer_verification_status')||'pending_review'
+    };
   }
 
   const {data:membership,error:membershipError}=await sb
     .from('company_members')
-    .select('company_id,companies(id,account_number,verification_status)')
+    .select('company_id,companies(account_number,verification_status)')
     .eq('user_id',session.user.id)
     .in('membership_status',['active','pending'])
     .limit(1)
