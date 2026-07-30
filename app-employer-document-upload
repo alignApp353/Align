@@ -30,9 +30,16 @@ const message=document.getElementById('message');
 let selectedFile=null;
 let session=null;
 const queryCompanyId=(new URLSearchParams(location.search).get('company_id')||'').trim();
-let companyId=(queryCompanyId||localStorage.getItem('alygnn_company_id')||'').trim();
-if(queryCompanyId){
-  localStorage.setItem('alygnn_company_id',queryCompanyId);
+let companyId=(
+  queryCompanyId||
+  sessionStorage.getItem('alygnn_company_id')||
+  localStorage.getItem('alygnn_company_id')||
+  ''
+).trim();
+
+if(companyId){
+  localStorage.setItem('alygnn_company_id',companyId);
+  sessionStorage.setItem('alygnn_company_id',companyId);
 }
 let companyReady=false;
 
@@ -174,7 +181,7 @@ input.addEventListener('change',()=>selectFile(input.files[0]));
 dropZone.addEventListener('drop',e=>selectFile(e.dataTransfer.files[0]));
 
 document.getElementById('back-button').onclick=()=>{
-  location.replace('app-employer-onboarding.html');
+  location.href='app-employer-onboarding.html?step=5';
 };
 
 submitButton.onclick=async()=>{
@@ -192,7 +199,7 @@ submitButton.onclick=async()=>{
     }
 
     if(!companyId){
-      throw new Error('Your company ID is missing. Return to onboarding and press Finish Setup again.');
+      throw new Error('Your company profile was not created. Tap Back, review the Overview page, and press Finish Setup again.');
     }
 
     const safeName=selectedFile.name
