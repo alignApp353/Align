@@ -64,6 +64,13 @@
   }
   .verify-step.done{ background:var(--mint-tint); color:#2d8a57; }
   .verify-step.todo{ background:rgba(231,184,109,0.15); color:#7a5a1a; }
+  .verify-cta{
+    margin-top:12px; display:inline-flex; align-items:center; gap:6px;
+    background:var(--brand); color:white; border:none; border-radius:100px;
+    padding:9px 18px; font-size:13px; font-weight:500; font-family:'DM Sans',sans-serif;
+    cursor:pointer; transition:opacity .2s; text-decoration:none;
+  }
+  .verify-cta:hover{ opacity:0.88; }
 
   /* Small, quiet badge shown next to the company name once approved —
      replaces the big banner so a verified employer isn't stuck staring
@@ -243,6 +250,7 @@
     <div class="verify-text">
       <div class="verify-title" id="verify-title"></div>
       <div class="verify-steps" id="verify-steps"></div>
+      <a class="verify-cta" href="employer-onboarding.html" id="verify-cta">Complete guided setup →</a>
     </div>
   </div>
 
@@ -429,6 +437,15 @@
     return parts.length === 2 ? parts[1] : '';
   }
 
+  // Two domains only "match" if both are actually present — two empty
+  // strings are not a match. Used by both the real auto-verification
+  // logic and the on-page checklist so they never disagree.
+  function domainsActuallyMatch(websiteValue, emailValue) {
+    const websiteDomain = getDomainFromWebsite(websiteValue);
+    const emailDomain = getDomainFromEmail(emailValue);
+    return !!websiteDomain && !!emailDomain && websiteDomain === emailDomain;
+  }
+
   async function saveEmployerProfile(payload){
     if (!currentUserId) return false;
 
@@ -471,9 +488,7 @@
       isValidBusinessEmail(profile.business_email) &&
       isValidAddress(profile.business_address);
 
-    const websiteDomain = getDomainFromWebsite(profile.company_website);
-    const emailDomain = getDomainFromEmail(profile.business_email);
-    const domainsMatch = !!websiteDomain && !!emailDomain && websiteDomain === emailDomain;
+    const domainsMatch = domainsActuallyMatch(profile.company_website, profile.business_email);
 
     let employer_verified = false;
     let verification_status = 'not_submitted';
@@ -616,7 +631,10 @@
       { label: 'Business address', done: isValidAddress(profile.business_address) },
       {
         label: 'Email matches website',
-        done: getDomainFromWebsite(profile.company_website) === getDomainFromEmail(profile.business_email)
+        // Was previously true whenever BOTH fields were empty, since ''
+        // === '' evaluates to true. domainsActuallyMatch() requires both
+        // domains to be real and non-empty before counting as a match.
+        done: domainsActuallyMatch(profile.company_website, profile.business_email)
       }
     ];
 
@@ -1030,6 +1048,16 @@
     if (profile?.business_address) businessAddressEl.value = profile.business_address;
 
     document.getElementById('nav-name').textContent = displayName;
+
+    // Brand-new employers (nothing filled in at all) haven't been through
+    // the guided setup yet — send them there instead of dropping them on
+    // a page full of empty fields. Anyone who already has a company name
+    // saved has started manually and stays here.
+    const hasAnyProfileData = !!(profile?.company_name || profile?.company_website || profile?.company_phone || profile?.business_email || profile?.business_address);
+    if (!hasAnyProfileData) {
+      window.location.href = 'employer-onboarding.html';
+      return;
+    }
 
     updateVerificationBanner();
     await loadEmployerJobs();
