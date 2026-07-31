@@ -206,7 +206,7 @@ async function submit(){
       return;
     }
 
-    const response=await fetch('/api/company/create-company',{
+    const response=await fetch('https://alygnn.com/api/company/create-company',{
       method:'POST',
       headers:{
         'Content-Type':'application/json',
@@ -231,6 +231,35 @@ async function submit(){
     if(!companyId){
       console.error('create-company returned no company ID:',result);
       throw new Error('Your company was not fully created because the server did not return a company ID. Please update the create-company API and try again.');
+    }
+
+    // Preserve the answers from Company Setup so the Company AI Profile can
+    // prefill them later instead of asking the employer the same questions again.
+    const setupProfile=payload();
+    const existingMetadata=session.user.user_metadata||{};
+    const {error:metadataError}=await sb.auth.updateUser({
+      data:{
+        ...existingMetadata,
+        company_name:setupProfile.company_name,
+        onboarding_company_profile:{
+          company_id:companyId,
+          company_name:setupProfile.company_name,
+          website:setupProfile.website,
+          business_phone:setupProfile.business_phone,
+          industry:setupProfile.industry,
+          company_size:setupProfile.company_size,
+          headquarters:setupProfile.headquarters,
+          company_voice:setupProfile.company_voice,
+          company_priorities:setupProfile.company_priorities,
+          candidate_priorities:setupProfile.candidate_priorities,
+          ai_summary:setupProfile.ai_summary,
+          saved_at:new Date().toISOString()
+        }
+      }
+    });
+    if(metadataError){
+      // Company creation succeeded, so do not block onboarding if metadata sync fails.
+      console.error('Could not cache onboarding answers for AI Profile:',metadataError);
     }
 
     const status=
