@@ -2,7 +2,32 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
+const ALLOWED_ORIGINS = new Set([
+  'https://alygnn.com',
+  'https://www.alygnn.com',
+  'https://localhost',
+  'http://localhost',
+  'capacitor://localhost'
+]);
 
+function applyCors(req, res) {
+  const origin = String(req.headers.origin || '').trim();
+
+  if (
+    ALLOWED_ORIGINS.has(origin) ||
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
+  ) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization'
+  );
+  res.setHeader('Access-Control-Max-Age', '86400');
+}
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -356,6 +381,12 @@ async function insertBlueprint(companyId, payload) {
 }
 
 module.exports = async function handler(req, res) {
+  applyCors(req, res);
+
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
 
@@ -364,7 +395,7 @@ module.exports = async function handler(req, res) {
       error: 'Method not allowed.'
     });
   }
-
+  
   if (
     !process.env.SUPABASE_URL ||
     !process.env.SUPABASE_SERVICE_ROLE_KEY
