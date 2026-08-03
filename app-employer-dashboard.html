@@ -1439,7 +1439,8 @@
       activeProfile:null,
       currentView:'dashboard',
       aiProfileComplete:false,
-      verificationStatus:'pending_review'
+      verificationStatus:'pending_review',
+      employerVerification:null
     };
 
     const THEME_STORAGE_KEY = 'alygnnEmployerTheme';
@@ -1875,16 +1876,70 @@
 
     function companyMetadata(){
       const meta = state.session?.user?.user_metadata || {};
+      const setup = meta.onboarding_company_profile || {};
+      const aiProfile = meta.employer_ai_profile || {};
+      const verification = state.employerVerification || {};
       const firstJob = state.jobs[0] || {};
-      const name = firstValue(meta.company_name,meta.business_name,firstJob.company_name,'Your Company');
+
+      const name = firstValue(
+        aiProfile.company_name,
+        setup.company_name,
+        verification.company_name,
+        meta.company_name,
+        meta.business_name,
+        firstJob.company_name,
+        'Your Company'
+      );
+
       return {
         name,
-        industry:firstValue(meta.industry,firstJob.industry,'Not added'),
-        size:firstValue(meta.company_size,meta.employee_count,'Not added'),
-        location:firstValue(meta.company_location,meta.location,firstJob.location,'Not added'),
-        website:firstValue(meta.company_website,meta.website,'Not added'),
-        about:firstValue(meta.company_description,meta.description,meta.about),
-        benefits:normalizeList(firstValue(meta.company_benefits,meta.benefits))
+        industry:firstValue(
+          aiProfile.industry,
+          setup.industry,
+          verification.industry,
+          meta.industry,
+          firstJob.industry,
+          'Not added'
+        ),
+        size:firstValue(
+          setup.company_size,
+          verification.company_size,
+          meta.company_size,
+          meta.employee_count,
+          'Not added'
+        ),
+        location:firstValue(
+          setup.headquarters,
+          verification.headquarters,
+          meta.company_location,
+          meta.location,
+          firstJob.location,
+          'Not added'
+        ),
+        website:firstValue(
+          aiProfile.website,
+          setup.website,
+          verification.website,
+          meta.company_website,
+          meta.website,
+          'Not added'
+        ),
+        about:firstValue(
+          aiProfile.company_description,
+          setup.company_description,
+          verification.company_description,
+          aiProfile.ai_summary,
+          setup.ai_summary,
+          verification.ai_summary,
+          meta.company_description,
+          meta.description,
+          meta.about
+        ),
+        benefits:normalizeList(firstValue(
+          aiProfile.company_benefits,
+          meta.company_benefits,
+          meta.benefits
+        ))
       };
     }
 
@@ -2178,10 +2233,13 @@
       try{
         const result=await sb
           .from('employer_verifications')
-          .select('profile_complete,verification_status')
+          .select('*')
           .eq('user_id',state.session.user.id)
           .maybeSingle();
-        if(!result.error) verification=result.data;
+        if(!result.error){
+          verification=result.data;
+          state.employerVerification=result.data||null;
+        }
         else console.warn('Employer setup state could not be loaded:',result.error);
       }catch(error){
         console.warn('Employer setup state could not be loaded:',error);
