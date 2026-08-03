@@ -134,14 +134,77 @@ function applyData(data){
   const meta=session?.user?.user_metadata||{};
   const saved=meta.employer_ai_profile||{};
   const setup=meta.onboarding_company_profile||{};
-  $('company-name').value=first(saved.company_name,setup.company_name,data.profile?.company_name,data.company?.company_name,meta.company_name);
-  $('industry').value=first(saved.industry,setup.industry,data.profile?.industry,data.company?.industry);
-  $('website').value=first(saved.website,setup.website,data.profile?.company_website,data.profile?.website,data.company?.website);
-  $('description').value=first(saved.company_description,saved.company_summary,setup.company_description,setup.ai_summary,data.profile?.company_about,data.profile?.about,data.company?.description,setup.ai_summary);
-  $('voice').value=asArray(first(saved.company_voice,saved.voice,setup.company_voice,data.profile?.company_voice)).join(', ');
-  $('strengths').value=asArray(first(saved.company_strengths,saved.company_priorities,setup.company_priorities,data.profile?.company_priorities)).join('\n');
-  $('priorities').value=asArray(first(saved.hiring_priorities,saved.candidate_priorities,setup.candidate_priorities,data.profile?.candidate_priorities)).join('\n');
-  $('ai-summary').value=first(saved.ai_summary,setup.ai_summary,data.profile?.ai_summary);
+  const verification=data.verification||{};
+
+  $('company-name').value=first(
+    saved.company_name,
+    setup.company_name,
+    verification.company_name,
+    data.profile?.company_name,
+    data.company?.company_name,
+    data.company?.legal_name,
+    meta.company_name
+  );
+
+  $('industry').value=first(
+    saved.industry,
+    setup.industry,
+    verification.industry,
+    data.profile?.industry,
+    data.company?.industry
+  );
+
+  $('website').value=first(
+    saved.website,
+    setup.website,
+    verification.website,
+    data.profile?.company_website,
+    data.profile?.website,
+    data.company?.website
+  );
+
+  $('description').value=first(
+    saved.company_description,
+    saved.company_summary,
+    setup.company_description,
+    verification.company_description,
+    setup.ai_summary,
+    data.profile?.company_about,
+    data.profile?.about,
+    data.company?.description
+  );
+
+  $('voice').value=asArray(first(
+    saved.company_voice,
+    saved.voice,
+    setup.company_voice,
+    verification.company_voice,
+    data.profile?.company_voice
+  )).join(', ');
+
+  $('strengths').value=asArray(first(
+    saved.company_strengths,
+    saved.company_priorities,
+    setup.company_priorities,
+    verification.company_priorities,
+    data.profile?.company_priorities
+  )).join('\n');
+
+  $('priorities').value=asArray(first(
+    saved.hiring_priorities,
+    saved.candidate_priorities,
+    setup.candidate_priorities,
+    verification.candidate_priorities,
+    data.profile?.candidate_priorities
+  )).join('\n');
+
+  $('ai-summary').value=first(
+    saved.ai_summary,
+    setup.ai_summary,
+    verification.ai_summary,
+    data.profile?.ai_summary
+  );
+
   $('success-qualities').value=first(saved.success_qualities,saved.ideal_candidate);
   $('unsuccessful-qualities').value=first(saved.unsuccessful_qualities,saved.deal_breakers);
   $('hiring-philosophy').value=first(saved.hiring_philosophy);
@@ -149,11 +212,38 @@ function applyData(data){
   render();
 }
 async function loadCompanyData(){
-  const result={profile:null,company:null};
-  const {data:profile,error:profileError}=await sb.from('profiles').select('*').eq('id',session.user.id).maybeSingle();
+  const result={profile:null,company:null,verification:null};
+
+  const {data:profile,error:profileError}=await sb
+    .from('profiles')
+    .select('*')
+    .eq('id',session.user.id)
+    .maybeSingle();
+
   if(!profileError)result.profile=profile;
-  const {data:membership,error:memberError}=await sb.from('company_members').select('company_id,companies(*)').eq('user_id',session.user.id).eq('membership_status','active').limit(1).maybeSingle();
-  if(!memberError&&membership){result.company=Array.isArray(membership.companies)?membership.companies[0]:membership.companies}
+
+  const {data:verification,error:verificationError}=await sb
+    .from('employer_verifications')
+    .select('*')
+    .eq('user_id',session.user.id)
+    .maybeSingle();
+
+  if(!verificationError)result.verification=verification;
+
+  const {data:membership,error:memberError}=await sb
+    .from('company_members')
+    .select('company_id,companies(*)')
+    .eq('user_id',session.user.id)
+    .eq('membership_status','active')
+    .limit(1)
+    .maybeSingle();
+
+  if(!memberError&&membership){
+    result.company=Array.isArray(membership.companies)
+      ? membership.companies[0]
+      : membership.companies;
+  }
+
   return result;
 }
 function collect(){return{
@@ -165,7 +255,72 @@ function collect(){return{
 document.querySelectorAll('[data-edit]').forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.edit;const panel=$('edit-'+key);panel.classList.toggle('open');button.textContent=panel.classList.contains('open')?'Close':'Edit'}));
 document.querySelectorAll('[data-done]').forEach(button=>button.addEventListener('click',()=>{render();const key=button.dataset.done;$('edit-'+key).classList.remove('open');document.querySelector(`[data-edit="${key}"]`).textContent='Edit'}));
 $('back').onclick=()=>location.href='app-post-job.html';$('continue').onclick=()=>location.href='app-post-job.html';
-$('save').onclick=async()=>{clearMessage();render();const profile=collect();if(!profile.company_name||!profile.industry){showMessage('Please confirm the company name and industry.');return}if(!profile.success_qualities||!profile.unsuccessful_qualities){showMessage('Please answer what makes someone successful and unsuccessful at your company.');return}const button=$('save');button.disabled=true;button.textContent='Saving…';try{const existing=session.user.user_metadata||{};const {error}=await sb.auth.updateUser({data:{...existing,employer_ai_profile:profile,employer_ai_profile_complete:true}});if(error)throw error;$('profile-view').hidden=true;$('success-screen').hidden=false;$('footer').hidden=true;window.scrollTo({top:0,behavior:'smooth'})}catch(error){console.error(error);showMessage('Could not save the Company AI Profile. Please try again.');button.disabled=false;button.textContent='Confirm & Finish AI Profile'}};
+$('save').onclick=async()=>{
+  clearMessage();
+  render();
+
+  const profile=collect();
+
+  if(!profile.company_name||!profile.industry){
+    showMessage('Please confirm the company name and industry.');
+    return;
+  }
+
+  if(!profile.success_qualities||!profile.unsuccessful_qualities){
+    showMessage('Please answer what makes someone successful and unsuccessful at your company.');
+    return;
+  }
+
+  const button=$('save');
+  button.disabled=true;
+  button.textContent='Saving…';
+
+  try{
+    const existing=session.user.user_metadata||{};
+
+    const {error:metadataError}=await sb.auth.updateUser({
+      data:{
+        ...existing,
+        employer_ai_profile:profile,
+        employer_ai_profile_complete:true
+      }
+    });
+
+    if(metadataError)throw metadataError;
+
+    const verificationPayload={
+      user_id:session.user.id,
+      company_name:profile.company_name,
+      industry:profile.industry,
+      website:profile.website,
+      company_description:profile.company_description,
+      company_voice:profile.company_voice,
+      company_priorities:profile.company_strengths,
+      candidate_priorities:profile.hiring_priorities,
+      ai_summary:profile.ai_summary,
+      ideal_candidate:profile.success_qualities,
+      profile_complete:true,
+      blueprint_complete:true,
+      updated_at:new Date().toISOString()
+    };
+
+    const {error:verificationError}=await sb
+      .from('employer_verifications')
+      .upsert(verificationPayload,{onConflict:'user_id'});
+
+    if(verificationError)throw verificationError;
+
+    $('profile-view').hidden=true;
+    $('success-screen').hidden=false;
+    $('footer').hidden=true;
+    window.scrollTo({top:0,behavior:'smooth'});
+  }catch(error){
+    console.error(error);
+    showMessage(error.message||'Could not save the Company AI Profile. Please try again.');
+    button.disabled=false;
+    button.textContent='Confirm & Finish AI Profile';
+  }
+};
 (async()=>{try{const {data,error}=await sb.auth.getSession();if(error||!data.session){location.replace('app-employer-login.html');return}session=data.session;const companyData=await loadCompanyData();applyData(companyData)}catch(error){console.error(error);showMessage('Could not load your saved company information. Please try again.')}finally{$('loading').hidden=true}})();
 </script>
 </body>
