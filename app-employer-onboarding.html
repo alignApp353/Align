@@ -218,7 +218,13 @@ async function submit(){
     const result=await response.json().catch(()=>({}));
 
     if(!response.ok){
-      throw new Error(result.error||'Unable to create your company workspace.');
+      const apiError=String(result.error||'Unable to create your company workspace.');
+      if(/already own a company workspace|already.*company workspace|company already exists/i.test(apiError)){
+        localStorage.removeItem(DRAFT_KEY);
+        location.replace('app-employer-dashboard.html');
+        return;
+      }
+      throw new Error(apiError);
     }
 
     const companyId=
@@ -304,7 +310,42 @@ form.addEventListener('input',saveDraft);
 form.addEventListener('change',saveDraft);
 window.addEventListener('beforeunload',saveDraft);
 
-(async()=>{renderVoices();renderRankList('company-priorities',DEFAULT_COMPANY);renderRankList('candidate-priorities',DEFAULT_CANDIDATE);setupSuggestions('industry','industry-suggestions',INDUSTRIES);setupSuggestions('headquarters','city-suggestions',US_CITIES);const{data:{session}}=await sb.auth.getSession();if(!session){location.replace('app-employer-login.html');return}document.getElementById('company-name').value=session.user.user_metadata?.company_name||'';const{data:membership,error}=await sb.from('company_members').select('company_id,companies(account_number,verification_status)').eq('user_id',session.user.id).eq('membership_status','active').limit(1).maybeSingle();if(!error&&membership?.company_id){const company=Array.isArray(membership.companies)?membership.companies[0]:membership.companies;localStorage.setItem('alygnn_company_id',membership.company_id);if(company?.account_number)localStorage.setItem('alygnn_company_account_number',company.account_number);const status=company?.verification_status||'pending_review';localStorage.setItem('alygnn_employer_verification_status',status);if(status==='approved')location.replace('app-employer-dashboard.html');else if(localStorage.getItem('alygnn_verification_document_submitted')==='true')location.replace('app-employer-verification-status.html');else location.replace('app-employer-document-upload.html')}})();
+(async()=>{
+  renderVoices();
+  renderRankList('company-priorities',DEFAULT_COMPANY);
+  renderRankList('candidate-priorities',DEFAULT_CANDIDATE);
+  setupSuggestions('industry','industry-suggestions',INDUSTRIES);
+  setupSuggestions('headquarters','city-suggestions',US_CITIES);
+
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){location.replace('app-employer-login.html');return}
+
+  // A stored company ID means setup has already created a workspace.
+  // Do not allow the employer to get trapped in onboarding again.
+  const storedCompanyId=(localStorage.getItem('alygnn_company_id')||'').trim();
+  if(storedCompanyId){
+    location.replace('app-employer-dashboard.html');
+    return;
+  }
+
+  document.getElementById('company-name').value=session.user.user_metadata?.company_name||'';
+
+  const{data:membership,error}=await sb
+    .from('company_members')
+    .select('company_id,companies(account_number,verification_status)')
+    .eq('user_id',session.user.id)
+    .in('membership_status',['active','pending'])
+    .limit(1)
+    .maybeSingle();
+
+  if(!error&&membership?.company_id){
+    const company=Array.isArray(membership.companies)?membership.companies[0]:membership.companies;
+    localStorage.setItem('alygnn_company_id',membership.company_id);
+    if(company?.account_number)localStorage.setItem('alygnn_company_account_number',company.account_number);
+    localStorage.setItem('alygnn_employer_verification_status',company?.verification_status||'pending_review');
+    location.replace('app-employer-dashboard.html');
+  }
+})();
 if(!restoreDraft())showStep(0);
 </script>
 </body>
