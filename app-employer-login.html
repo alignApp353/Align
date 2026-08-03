@@ -101,12 +101,9 @@ function showMessage(text,type){const m=document.getElementById('message');m.tex
 function setLoading(b,l,lt,nt){b.disabled=l;b.textContent=l?lt:nt}
 function friendlyError(error){const raw=String(error?.message||'').toLowerCase();if(raw.includes('invalid login credentials')||raw.includes('invalid credentials'))return'Incorrect email or password. Please try again.';if(raw.includes('email not confirmed')||raw.includes('confirm your email'))return'Please verify your email before signing in.';if(raw.includes('fetch')||raw.includes('network')||raw.includes('failed to fetch'))return'Unable to connect. Please check your internet connection.';if(raw.includes('too many requests')||raw.includes('rate limit'))return'Too many attempts. Please wait a few minutes and try again.';return error?.message||'Unable to sign in. Please try again.'}
 async function employerDestination(userId){
-  const {data,error}=await sb.from('employer_verifications')
-    .select('blueprint_complete,verification_status')
-    .eq('user_id',userId).maybeSingle();
-  if(error){console.error(error);return ONBOARDING_PAGE}
-  if(!data||!data.blueprint_complete)return ONBOARDING_PAGE;
-  return data.verification_status==='approved'?TARGET_PAGE:STATUS_PAGE;
+  // Employers can always enter their dashboard. Incomplete setup is handled
+  // by the dashboard cards and by the Post Job button, not by login redirects.
+  return TARGET_PAGE;
 }
 async function redirectIfLoggedIn(){
   const params=new URLSearchParams(location.search);
