@@ -449,14 +449,15 @@
   async function saveEmployerProfile(payload){
     if (!currentUserId) return false;
 
-    const { error: updateError } = await sb
+    const { data: updatedRows, error: updateError } = await sb
       .from('profiles')
       .update(payload)
-      .eq('id', currentUserId);
+      .eq('id', currentUserId)
+      .select('id');
 
-    if (!updateError) return true;
+    if (!updateError && updatedRows && updatedRows.length > 0) return true;
 
-    console.error('Profile update failed:', updateError);
+    if (updateError) console.error('Profile update failed:', updateError);
 
     const { error: insertError } = await sb
       .from('profiles')
