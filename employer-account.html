@@ -289,7 +289,7 @@
           <input type="text" class="field-input" id="business-address" placeholder="Business address"
             onblur="saveInputField('businessAddress', this)" />
         </div>
-        <p class="verification-note">Alygnn can auto-approve companies when the business email domain matches the website domain. Otherwise, the account stays pending for review.</p>
+        <p class="verification-note" id="verification-note">Alygnn can auto-approve companies when the business email domain matches the website domain. Otherwise, the account stays pending for review.</p>
       </div>
     </div>
   </div>
@@ -644,13 +644,18 @@
 
     if (approved) {
       // Hide the big banner now that there's nothing left to do — show the
-      // small quiet badge next to the company name instead.
+      // small quiet badge next to the company name instead. The note about
+      // how auto-approval works is also no longer relevant at this point.
       banner.style.display = 'none';
       if (badge) badge.classList.add('show');
       if (dashboardBtn) dashboardBtn.classList.remove('locked');
+      const note = document.getElementById('verification-note');
+      if (note) note.style.display = 'none';
       return;
     }
 
+    const note = document.getElementById('verification-note');
+    if (note) note.style.display = '';
     if (badge) badge.classList.remove('show');
     banner.style.display = 'flex';
     banner.className = 'verify-banner incomplete';
