@@ -302,7 +302,7 @@ function showStep(index){
   document.getElementById('progress-fill').style.width=pct+'%';
   document.getElementById('progress-percent').textContent=pct+'%';
   document.getElementById('progress-label').textContent=steps[index].dataset.title;
-  backButton.hidden=index===0;
+  backButton.hidden=false;
   nextButton.textContent=index===0?'Get Started':index===steps.length-1?'Finish Setup':'Continue';
   clearMessage();
   if(index===steps.length-1)buildOverview();
@@ -588,7 +588,11 @@ nextButton.addEventListener('click',()=>{
   if(current<steps.length-1)showStep(current+1);
   else submit();
 });
-backButton.addEventListener('click',()=>{saveDraft();if(current>0)showStep(current-1)});
+backButton.addEventListener('click',()=>{
+  if(current===0){window.location.href='employer-account.html';return}
+  saveDraft();
+  showStep(current-1);
+});
 document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>showStep(Number(b.dataset.go))));
 
 const hasDba=document.getElementById('has-dba'),dbaField=document.getElementById('dba-field'),dbaName=document.getElementById('dba-name');
