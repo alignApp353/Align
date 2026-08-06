@@ -386,12 +386,21 @@ function hasLongSequentialRun(digits,minRun=5){
   }
   return false;
 }
+function hasRepeatingPattern(digits){
+  for(let period=1;period<=3;period++){
+    const block=digits.slice(0,period);
+    let built='';
+    while(built.length<digits.length)built+=block;
+    if(built.slice(0,digits.length)===digits)return true;
+  }
+  return false;
+}
 function isPlausibleEin(digits){
   if(!/^\d{9}$/.test(digits))return false;
   if(!VALID_EIN_PREFIXES.has(digits.slice(0,2)))return false;
-  if(/^(\d)\1{8}$/.test(digits))return false;
   if(digits==='123456789')return false;
   if(hasLongSequentialRun(digits))return false;
+  if(hasRepeatingPattern(digits))return false;
   return true;
 }
 
