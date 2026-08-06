@@ -227,9 +227,10 @@ const US_CITIES=['Albuquerque, NM','Alexandria, VA','Anaheim, CA','Anchorage, AK
 
 const steps=[...document.querySelectorAll('.step')];let current=0;const selectedVoices=new Set();
 const form=document.getElementById('onboarding-form'),message=document.getElementById('message'),nextButton=document.getElementById('next-button'),backButton=document.getElementById('back-button');
-const DRAFT_KEY='alygnn_web_employer_onboarding_draft';
+let DRAFT_KEY=null;
 
 function saveDraft(){
+  if(!DRAFT_KEY)return;
   const draft={
     current,
     company_name:document.getElementById('company-name').value,
@@ -251,6 +252,7 @@ function saveDraft(){
 }
 function getRankingSafe(id){const el=document.getElementById(id);return el?[...el.children].map(x=>x.dataset.value):[]}
 function restoreDraft(){
+  if(!DRAFT_KEY)return false;
   let draft;
   try{draft=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null')}catch{draft=null}
   if(!draft)return false;
@@ -567,6 +569,11 @@ window.addEventListener('beforeunload',saveDraft);
 
   const {data:{session}}=await sb.auth.getSession();
   if(!session){location.replace('login.html?role=employer');return}
+
+  // Scope the draft to this specific user so it can never be restored
+  // into a different employer's session on the same browser.
+  DRAFT_KEY='alygnn_web_employer_onboarding_draft:'+session.user.id;
+  try{localStorage.removeItem('alygnn_web_employer_onboarding_draft')}catch{} // old unscoped key, if present
 
   const {data:profile}=await sb
     .from('profiles')
