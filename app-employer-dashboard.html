@@ -1008,7 +1008,7 @@
     .ai-profile-percent{color:var(--brand-dark);font-size:18px;font-weight:900;white-space:nowrap}
     .ai-profile-copy{margin-top:8px;color:var(--muted);font-size:11px;font-weight:600;line-height:1.55}
     .ai-profile-progress{height:8px;margin-top:14px;border-radius:999px;background:#E1E8EF;overflow:hidden}
-    .ai-profile-progress span{display:block;height:100%;width:92%;border-radius:inherit;background:linear-gradient(90deg,#396A9E,#8CB69B)}
+    .ai-profile-progress span{display:block;height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,#396A9E,#8CB69B);transition:width .25s ease}
     .ai-profile-action{
       width:100%;margin-top:14px;padding:13px 16px;border:0;border-radius:14px;
       background:var(--brand-dark);color:#fff;font-size:12px;font-weight:900
@@ -1110,11 +1110,11 @@
               <div class="ai-profile-kicker">Company AI Profile</div>
               <div class="ai-profile-title">Finish setting up how Alygnn hires for your company.</div>
             </div>
-            <div class="ai-profile-percent">92%</div>
+            <div class="ai-profile-percent" id="ai-profile-percent">0%</div>
           </div>
-          <p class="ai-profile-copy">Most of your information is already filled in. Review it and complete the remaining questions.</p>
-          <div class="ai-profile-progress" aria-label="Company AI Profile 92 percent complete"><span></span></div>
-          <button class="ai-profile-action" id="complete-ai-profile" type="button">Complete Company AI Profile</button>
+          <p class="ai-profile-copy" id="ai-profile-copy">Start your Company AI Profile to personalize hiring content and candidate matching.</p>
+          <div class="ai-profile-progress" id="ai-profile-progress" aria-label="Company AI Profile 0 percent complete"><span id="ai-profile-progress-fill"></span></div>
+          <button class="ai-profile-action" id="complete-ai-profile" type="button">Start Company AI Profile</button>
         </section>
 
         <section class="hero-card">
@@ -2485,15 +2485,36 @@
 
       if(!verificationResult.error){
         state.employerVerification=verificationResult.data||null;
+        const meta=state.currentUser?.user_metadata||{};
+        const currentCompanyId=String(
+          verificationResult.data?.company_id ||
+          state.companyRecord?.id ||
+          state.companyRecord?.company_id ||
+          ''
+        );
+        const completedCompanyId=String(meta.employer_ai_profile_complete_company_id||'');
+
         state.aiProfileComplete=Boolean(
           verificationResult.data?.profile_complete ||
-          verificationResult.data?.blueprint_complete ||
-          state.currentUser?.user_metadata?.employer_ai_profile_complete
+          (
+            meta.employer_ai_profile_complete &&
+            completedCompanyId &&
+            currentCompanyId &&
+            completedCompanyId===currentCompanyId
+          )
         );
         state.verificationStatus=verificationResult.data?.verification_status||'pending_review';
       }else{
         console.warn('Employer verification could not be loaded:',verificationResult.error);
-        state.aiProfileComplete=Boolean(state.currentUser?.user_metadata?.employer_ai_profile_complete);
+        const meta=state.currentUser?.user_metadata||{};
+        const currentCompanyId=String(state.companyRecord?.id||state.companyRecord?.company_id||'');
+        const completedCompanyId=String(meta.employer_ai_profile_complete_company_id||'');
+        state.aiProfileComplete=Boolean(
+          meta.employer_ai_profile_complete &&
+          completedCompanyId &&
+          currentCompanyId &&
+          completedCompanyId===currentCompanyId
+        );
       }
 
       const membershipResult=await sb
@@ -2520,10 +2541,125 @@
       renderAiProfileCard();
     }
 
+    function normalizedCompanyName(value){
+      return String(value||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ');
+    }
+
+    function scopedCompanyProfile(record,currentCompanyId,currentCompanyName,userId){
+      if(!record||typeof record!=='object')return {};
+
+      if(record.user_id&&String(record.user_id)!==String(userId))return {};
+
+      if(currentCompanyId&&record.company_id){
+        return String(record.company_id)===String(currentCompanyId)?record:{};
+      }
+
+      if(currentCompanyName&&record.company_name){
+        return normalizedCompanyName(record.company_name)===normalizedCompanyName(currentCompanyName)
+          ? record
+          : {};
+      }
+
+      // Never trust old unscoped profile objects for a different/new employer.
+      return {};
+    }
+
+    function calculateAiProfileProgress(){
+      const user=state.currentUser||state.session?.user||{};
+      const meta=user.user_metadata||{};
+      const verification=state.employerVerification||{};
+      const company=state.companyRecord||{};
+      const companyView=companyMetadata();
+
+      const currentCompanyId=String(
+        verification.company_id ||
+        company.id ||
+        company.company_id ||
+        ''
+      );
+
+      const currentCompanyName=companyView.name==='Your Company'?'':companyView.name;
+
+      const saved=scopedCompanyProfile(
+        meta.employer_ai_profile,
+        currentCompanyId,
+        currentCompanyName,
+        user.id
+      );
+
+      const setup=scopedCompanyProfile(
+        meta.onboarding_company_profile,
+        currentCompanyId,
+        currentCompanyName,
+        user.id
+      );
+
+      const scopedVerification=scopedCompanyProfile(
+        verification,
+        currentCompanyId,
+        currentCompanyName,
+        user.id
+      );
+
+      const values=[
+        firstValue(saved.industry,setup.industry,scopedVerification.industry,company.industry),
+        firstValue(saved.website,setup.website,scopedVerification.website,company.website),
+        firstValue(
+          saved.company_description,
+          setup.company_description,
+          scopedVerification.company_description,
+          company.company_description,
+          company.description
+        ),
+        firstValue(saved.company_voice,setup.company_voice,scopedVerification.company_voice),
+        firstValue(saved.company_strengths,saved.company_priorities,setup.company_priorities,scopedVerification.company_priorities),
+        firstValue(saved.hiring_priorities,saved.candidate_priorities,setup.candidate_priorities,scopedVerification.candidate_priorities),
+        firstValue(saved.success_qualities,saved.ideal_candidate),
+        firstValue(saved.unsuccessful_qualities,saved.deal_breakers)
+      ];
+
+      const completed=values.filter(value=>{
+        if(Array.isArray(value))return value.length>0;
+        return String(value||'').trim().length>0;
+      }).length;
+
+      return {
+        completed,
+        total:values.length,
+        percent:state.aiProfileComplete?100:Math.round((completed/values.length)*100)
+      };
+    }
+
     function renderAiProfileCard(){
       const card=$('ai-profile-card');
-      if(!card) return;
+      if(!card)return;
+
       card.hidden=Boolean(state.aiProfileComplete);
+      if(card.hidden)return;
+
+      const progress=calculateAiProfileProgress();
+      const percent=Math.max(0,Math.min(100,progress.percent));
+
+      $('ai-profile-percent').textContent=`${percent}%`;
+      $('ai-profile-progress-fill').style.width=`${percent}%`;
+      $('ai-profile-progress').setAttribute(
+        'aria-label',
+        `Company AI Profile ${percent} percent complete`
+      );
+
+      if(percent===0){
+        document.querySelector('.ai-profile-title').textContent=
+          'Set up how Alygnn hires for your company.';
+        $('ai-profile-copy').textContent=
+          'Add your company details and hiring preferences to personalize job posts and candidate matching.';
+        $('complete-ai-profile').textContent='Start Company AI Profile';
+      }else{
+        document.querySelector('.ai-profile-title').textContent=
+          'Finish setting up how Alygnn hires for your company.';
+        $('ai-profile-copy').textContent=
+          `${progress.completed} of ${progress.total} profile sections completed. Review the saved information and finish the remaining questions.`;
+        $('complete-ai-profile').textContent='Complete Company AI Profile';
+      }
     }
 
     async function queryJobs(userId){
