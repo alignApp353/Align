@@ -42,7 +42,7 @@
   .shell { width: 100%; max-width: 720px; margin: auto; padding: 48px 20px 60px; }
   .progress-copy { display: flex; justify-content: space-between; gap: 12px; color: var(--text-muted); font-size: 12px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
   .progress { height: 6px; margin-top: 10px; border-radius: 100px; background: var(--border); overflow: hidden; }
-  .progress > div { height: 100%; width: 16.67%; border-radius: inherit; background: var(--brand); transition: width .3s ease; }
+  .progress > div { height: 100%; width: 14.3%; border-radius: inherit; background: var(--brand); transition: width .3s ease; }
 
   .card { margin-top: 24px; padding: 40px; border: 1px solid var(--border); border-radius: 24px; background: var(--card-bg); box-shadow: 0 20px 60px rgba(47,58,69,0.08); }
   .step { display: none; } .step.active { display: block; animation: enter .22s ease; }
@@ -139,7 +139,7 @@
 </nav>
 
 <main class="shell">
-<div class="progress-copy"><span id="progress-label">Welcome</span><span id="progress-percent">17%</span></div>
+<div class="progress-copy"><span id="progress-label">Welcome</span><span id="progress-percent">14%</span></div>
 <div class="progress"><div id="progress-fill"></div></div>
 
 <section class="card">
@@ -193,6 +193,22 @@
   <div class="eyebrow">Hiring priorities</div><h1>What matters most when hiring?</h1>
   <p class="intro">Rank what your hiring team values most when evaluating candidates. Alygnn will turn this order into matching weights automatically.</p>
   <div class="rank-list" id="candidate-priorities"></div><p class="rank-note">Put the most important factor at the top.</p>
+</div>
+
+<div class="step" data-title="IRS Verification">
+  <div class="eyebrow">IRS verification</div><h1>Confirm your EIN with an IRS document.</h1>
+  <p class="intro">There's no free public IRS API that lets Alygnn confirm a Tax ID belongs to your company — so instead of just taking your word for it, we ask every employer to upload a document showing it. A real person checks this before final approval.</p>
+  <div class="value-list">
+    <div class="value">IRS EIN Confirmation Letter (CP 575)</div>
+    <div class="value">IRS 147C Letter (EIN verification letter)</div>
+    <div class="value">A completed Form W-9 showing your EIN</div>
+  </div>
+  <p class="helper">Don't have one on hand? <a href="https://www.irs.gov/pub/irs-pdf/fw9.pdf" target="_blank" rel="noopener">Download a blank Form W-9</a> directly from the IRS, fill in your company info and EIN, and upload the completed form as a PDF below.</p>
+  <div class="field">
+    <label class="required" for="ein-document">Upload document (PDF only)</label>
+    <input id="ein-document" name="ein_document" type="file" accept="application/pdf">
+    <p class="helper" id="ein-document-status"></p>
+  </div>
 </div>
 
 <div class="step" data-title="Overview">
@@ -402,7 +418,18 @@ function validateCurrent(){
     if(document.getElementById('has-dba').checked&&!document.getElementById('dba-name').value.trim()){showMessage('Enter the DBA or trade name.');return false}
   }
   if(current===2&&selectedVoices.size===0){showMessage('Choose at least one Company Voice.');return false}
-  if(current===5&&!document.getElementById('authorization').checked){showMessage('Confirm that you are authorized to recruit for this company.');return false}
+  if(current===5){
+    const fileInput=document.getElementById('ein-document');
+    const hasNewFile=fileInput.files&&fileInput.files.length>0;
+    const hasExistingFile=fileInput.dataset.uploadedPath;
+    if(!hasNewFile&&!hasExistingFile){showMessage('Upload a document showing your EIN (CP 575 letter, 147C letter, or a completed W-9) before continuing.');return false}
+    if(hasNewFile){
+      const file=fileInput.files[0];
+      if(file.type!=='application/pdf'){showMessage('Upload a PDF file — that\'s the only format the verification bucket currently accepts.');return false}
+      if(file.size>10*1024*1024){showMessage('That file is too large — please upload something under 10MB.');return false}
+    }
+  }
+  if(current===6&&!document.getElementById('authorization').checked){showMessage('Confirm that you are authorized to recruit for this company.');return false}
   return true;
 }
 
@@ -468,6 +495,23 @@ async function submit(){
 
     const data=payload();
 
+    // Upload the IRS verification document (required to reach this point)
+    // so a human reviewer has something concrete to check against the
+    // self-reported EIN, since there's no free way to verify it automatically.
+    let einDocumentPath=document.getElementById('ein-document').dataset.uploadedPath||null;
+    const fileInput=document.getElementById('ein-document');
+    if(fileInput.files&&fileInput.files.length>0){
+      const file=fileInput.files[0];
+      const path=`${session.user.id}/ein-verification-${Date.now()}.pdf`;
+      const {error:uploadError}=await sb.storage.from('employer-verification-documents').upload(path,file,{upsert:true});
+      if(uploadError){
+        console.error('EIN document upload failed:',uploadError);
+        throw new Error('Could not upload your verification document. Check that the "employer-verification-documents" storage bucket exists and its upload policy allows this.');
+      }
+      einDocumentPath=path;
+      fileInput.dataset.uploadedPath=path;
+    }
+
     const hiring_blueprint={
       industry:data.industry,
       company_size:data.company_size,
@@ -478,7 +522,9 @@ async function submit(){
       company_voice:data.company_voice,
       company_priorities:data.company_priorities,
       candidate_priorities:data.candidate_priorities,
-      ai_summary:data.ai_summary
+      ai_summary:data.ai_summary,
+      irs_document_path:einDocumentPath,
+      irs_document_review_status:'pending_review'
     };
 
     const profilePayload={
@@ -554,6 +600,12 @@ hasDba.addEventListener('change',()=>{
 document.getElementById('ein').addEventListener('input',e=>{
   const d=e.target.value.replace(/\D/g,'').slice(0,9);
   e.target.value=d.length>2?d.slice(0,2)+'-'+d.slice(2):d;
+});
+
+document.getElementById('ein-document').addEventListener('change',e=>{
+  const status=document.getElementById('ein-document-status');
+  const file=e.target.files[0];
+  status.textContent=file?`Selected: ${file.name} (${Math.round(file.size/1024)}KB)`:'';
 });
 
 form.addEventListener('input',saveDraft);
