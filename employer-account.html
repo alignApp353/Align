@@ -372,7 +372,7 @@
     const reader = new FileReader();
     reader.onload = function(e){
       const dataUrl = e.target.result;
-      localStorage.setItem('companyLogo', dataUrl);
+      localStorage.setItem('companyLogo:' + currentUserId, dataUrl);
       showPhoto(dataUrl);
     };
     reader.readAsDataURL(file);
@@ -1015,7 +1015,10 @@
 
     currentUserId = session.user.id;
 
-    const savedLogo = localStorage.getItem('companyLogo');
+    // Old unscoped key could have leaked another employer's logo into this
+    // browser's localStorage — remove it so it never gets shown again.
+    try { localStorage.removeItem('companyLogo'); } catch {}
+    const savedLogo = localStorage.getItem('companyLogo:' + currentUserId);
     if (savedLogo) showPhoto(savedLogo);
 
     const { data: profile, error } = await sb
