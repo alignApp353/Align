@@ -815,8 +815,16 @@
         skillsWrap.innerHTML = data.skills.slice(0, 8).map(s => '<span class="skill-tag">' + escapeHtml(s) + '</span>').join('');
       }
       sessionStorage.setItem('resumeData', JSON.stringify(data));
-      saveResumeIfLoggedIn(data);
     }
+
+    // FIX: this used to live inside the `if (data)` block above, which meant
+    // that whenever AI parsing failed (server error, timeout, bad response)
+    // the actual file upload + resume_file_path save were skipped entirely —
+    // even though the person saw a "Done!" confirmation screen and had no
+    // reason to think anything went wrong. The file itself matters even
+    // without parsed data, so this now runs either way; saveResumeIfLoggedIn
+    // already handles data being null.
+    saveResumeIfLoggedIn(data);
   }
 
   // If the person already has an account, persist their resume to
