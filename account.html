@@ -89,6 +89,23 @@ nav{
   border-bottom-color:var(--brand);
 }
 
+.nav-signout{
+  font-size:13px;
+  color:var(--text-muted);
+  background:none;
+  border:1px solid var(--border);
+  border-radius:100px;
+  padding:6px 14px;
+  cursor:pointer;
+  font-family:'DM Sans', sans-serif;
+  transition:all .2s;
+}
+
+.nav-signout:hover{
+  border-color:var(--brand);
+  color:var(--brand);
+}
+
 .nav-links a:hover{
   color:var(--text);
 }
@@ -569,6 +586,7 @@ select.form-input{
     <a href="account.html" class="active">Account</a>
     <a href="swipe.html">Swipe</a>
   </div>
+  <button class="nav-signout" onclick="signOutFromNav()">Sign out</button>
 </nav>
 
 <div class="loading" id="loading">Loading your account...</div>
@@ -660,6 +678,11 @@ const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
 
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function signOutFromNav() {
+  await sb.auth.signOut();
+  window.location.href = 'index.html';
+}
 
 let currentUserId = null;
 
