@@ -1295,7 +1295,7 @@
 
       const { data: profile } = await sb
         .from('profiles')
-        .select('role')
+        .select('role, resume_file_path, preferences')
         .eq('id', session.user.id)
         .maybeSingle();
 
@@ -1309,11 +1309,21 @@
           authLink.href = 'account.html';
         }
 
+        // The "Swipe jobs" CTA only ever shows once a resume is uploaded
+        // AND preferences are saved — swipe.html itself would redirect
+        // anyway, so this just makes sure the button never promises
+        // something that isn't actually ready yet.
         if (ctaBtn) {
-          ctaBtn.textContent = 'Swipe jobs';
-          ctaBtn.onclick = () => {
-            window.location.href = 'swipe.html';
-          };
+          if (!profile?.resume_file_path) {
+            ctaBtn.textContent = 'Upload your resume';
+            ctaBtn.onclick = () => { window.location.href = 'align-upload.html'; };
+          } else if (!profile?.preferences) {
+            ctaBtn.textContent = 'Set your preferences';
+            ctaBtn.onclick = () => { window.location.href = 'preferences.html'; };
+          } else {
+            ctaBtn.textContent = 'Swipe jobs';
+            ctaBtn.onclick = () => { window.location.href = 'swipe.html'; };
+          }
         }
       }
     } finally {
