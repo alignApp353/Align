@@ -584,7 +584,7 @@ select.form-input{
   <div class="nav-links">
     <a href="index.html">← Home</a>
     <a href="account.html" class="active">Account</a>
-    <a href="swipe.html">Swipe</a>
+    <a href="swipe.html" id="nav-swipe-link" style="display:none;">Swipe</a>
   </div>
   <button class="nav-signout" onclick="signOutFromNav()">Sign out</button>
 </nav>
@@ -1165,7 +1165,7 @@ async function initAccountPage(){
 
   const { data: profile, error } = await sb
     .from('profiles')
-    .select('has_password, role, full_name, resume_file_path, resume_data')
+    .select('has_password, role, full_name, resume_file_path, resume_data, preferences')
     .eq('id', currentUserId)
     .maybeSingle();
 
@@ -1231,6 +1231,15 @@ async function initAccountPage(){
   initialsEl.textContent = getInitials(fullName);
 
   renderResumeCardFast(profile?.resume_file_path);
+
+  // The Swipe nav link only shows once there's actually something to
+  // swipe with — otherwise it's a link to a page that will immediately
+  // redirect the person right back to upload/preferences anyway.
+  const swipeLink = document.getElementById('nav-swipe-link');
+  if (swipeLink && profile?.resume_file_path && profile?.preferences) {
+    swipeLink.style.display = '';
+  }
+
   await loadAppliedJobs();
   await loadSkippedJobs();
 
