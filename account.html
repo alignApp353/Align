@@ -136,6 +136,44 @@ nav{
   display:none;
 }
 
+.setup-banner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  background:rgba(231,184,109,0.12);
+  border:1px solid rgba(231,184,109,0.4);
+  border-radius:16px;
+  padding:20px 24px;
+  margin-bottom:24px;
+}
+
+.setup-title{
+  font-size:15px;
+  font-weight:500;
+  color:#7a5a1a;
+  margin-bottom:3px;
+}
+
+.setup-sub{
+  font-size:13px;
+  color:var(--text-muted);
+}
+
+.setup-cta{
+  flex-shrink:0;
+  background:var(--brand);
+  color:white;
+  text-decoration:none;
+  border-radius:100px;
+  padding:11px 22px;
+  font-size:14px;
+  font-weight:500;
+  white-space:nowrap;
+  transition:opacity .2s;
+}
+.setup-cta:hover{ opacity:0.88; }
+
 .profile-card{
   display:flex;
   align-items:center;
@@ -564,6 +602,16 @@ select.form-input{
     align-items:flex-start;
   }
 
+  .setup-banner{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .setup-cta{
+    width:100%;
+    text-align:center;
+  }
+
   .avatar{
     width:60px;
     height:60px;
@@ -592,6 +640,14 @@ select.form-input{
 <div class="loading" id="loading">Loading your account...</div>
 
 <div class="page" id="page">
+
+  <div class="setup-banner" id="setup-banner" style="display:none;">
+    <div class="setup-text">
+      <div class="setup-title" id="setup-title"></div>
+      <div class="setup-sub" id="setup-sub"></div>
+    </div>
+    <a class="setup-cta" id="setup-cta" href="#"></a>
+  </div>
 
   <div class="profile-card">
     <div class="avatar">
@@ -1234,10 +1290,29 @@ async function initAccountPage(){
 
   // The Swipe nav link only shows once there's actually something to
   // swipe with — otherwise it's a link to a page that will immediately
-  // redirect the person right back to upload/preferences anyway.
+  // redirect the person right back to upload/preferences anyway. The
+  // setup banner tells them exactly what's still missing and gives them
+  // a direct way to finish it, instead of the link just silently vanishing.
   const swipeLink = document.getElementById('nav-swipe-link');
-  if (swipeLink && profile?.resume_file_path && profile?.preferences) {
-    swipeLink.style.display = '';
+  const setupBanner = document.getElementById('setup-banner');
+  const setupTitle = document.getElementById('setup-title');
+  const setupSub = document.getElementById('setup-sub');
+  const setupCta = document.getElementById('setup-cta');
+
+  if (profile?.resume_file_path && profile?.preferences) {
+    if (swipeLink) swipeLink.style.display = '';
+  } else if (!profile?.resume_file_path) {
+    setupBanner.style.display = 'flex';
+    setupTitle.textContent = 'Upload your resume to start swiping';
+    setupSub.textContent = 'We need your resume before we can match you to jobs.';
+    setupCta.textContent = 'Upload resume';
+    setupCta.href = 'align-upload.html';
+  } else {
+    setupBanner.style.display = 'flex';
+    setupTitle.textContent = 'Set your preferences to start swiping';
+    setupSub.textContent = 'Tell us your salary, location, and work style so we can match you to the right jobs.';
+    setupCta.textContent = 'Set preferences';
+    setupCta.href = 'preferences.html';
   }
 
   await loadAppliedJobs();
