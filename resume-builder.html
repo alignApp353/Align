@@ -684,14 +684,27 @@
   .bottom-actions {
     background: rgba(246,248,247,0.96);
     border-top: 1px solid var(--border);
-    position: sticky;
+    position: fixed;
+    left: 0;
+    right: 0;
     bottom: 0;
     z-index: 20;
-    margin-top: 26px;
-    padding: 16px 0 0;
+    width: min(1440px, 100%);
+    margin: 0 auto;
+    padding: 16px 4%;
     display: flex;
     justify-content: flex-end;
     gap: 11px;
+    transform: translateY(100%);
+    transition: transform 0.25s ease;
+  }
+
+  .bottom-actions.show {
+    transform: translateY(0);
+  }
+
+  main {
+    padding-bottom: 90px;
   }
 
   .action-btn {
@@ -1045,7 +1058,7 @@
   const { createClient } = supabase;
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const STORAGE_KEY = 'alygnn_resume_builder_draft';
+  let STORAGE_KEY = null;
 
   const state = {
     skills: [],
@@ -1516,6 +1529,7 @@
   }
 
   function autoSave() {
+    if (!STORAGE_KEY) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(getFormData()));
       setSaveStatus('Draft saved on this device.', 'success');
@@ -1526,6 +1540,7 @@
   }
 
   function loadDraft() {
+    if (!STORAGE_KEY) return;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
 
@@ -1660,7 +1675,7 @@
     const data = getFormData();
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      if (STORAGE_KEY) localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       sessionStorage.setItem('resumeData', JSON.stringify(data));
 
       const result = await saveToSupabase(data);
@@ -1685,7 +1700,7 @@
     const confirmed = confirm('Clear everything in this resume?');
     if (!confirmed) return;
 
-    localStorage.removeItem(STORAGE_KEY);
+    if (STORAGE_KEY) localStorage.removeItem(STORAGE_KEY);
 
     fields.forEach(field => {
       document.getElementById(field).value = '';
@@ -1768,9 +1783,37 @@
   document.getElementById('saveDraftBtn').addEventListener('click', autoSave);
   document.getElementById('continueBtn').addEventListener('click', saveAndContinue);
 
-  loadDraft();
-  validateSummary();
-  updatePreview();
+  (function initBottomActionsVisibility() {
+    const bar = document.querySelector('.bottom-actions');
+    if (!bar) return;
+    const SHOW_AFTER = 120; // px scrolled before the bar slides in
+
+    function update() {
+      bar.classList.toggle('show', window.scrollY > SHOW_AFTER);
+    }
+
+    window.addEventListener('scroll', update, { passive: true });
+    update(); // set correct state immediately (e.g. on reload mid-scroll)
+  })();
+
+  (async () => {
+    // FIX: STORAGE_KEY used to be a single fixed string shared by every
+    // account on the same browser — so on shared/public computers (or just
+    // two people using the same laptop), one person's in-progress resume
+    // draft was being loaded straight into a completely different signed-in
+    // account. Now the key is scoped to the actual signed-in user's ID, and
+    // the old global key is deleted outright so it can never resurface.
+    try { localStorage.removeItem('alygnn_resume_builder_draft'); } catch {}
+
+    const { data: { session } } = await sb.auth.getSession();
+    STORAGE_KEY = session?.user?.id
+      ? 'alygnn_resume_builder_draft:' + session.user.id
+      : 'alygnn_resume_builder_draft_anon';
+
+    loadDraft();
+    validateSummary();
+    updatePreview();
+  })();
 </script>
 </body>
 </html>
