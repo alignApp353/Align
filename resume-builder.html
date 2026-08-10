@@ -502,23 +502,67 @@
     background: rgba(93, 127, 163, 0.13);
   }
 
-  .skills-input-wrap {
-    display: flex;
-    gap: 9px;
+  .skills-picker {
+    position: relative;
   }
 
-  .skills-input-wrap input {
-    flex: 1;
+  .skills-picker input {
+    padding-right: 42px;
   }
 
-  .skill-add-btn {
-    border: none;
-    border-radius: 10px;
-    background: var(--brand);
-    color: white;
-    padding: 0 18px;
+  .skill-suggestions {
+    display: none;
+    position: absolute;
+    z-index: 40;
+    left: 0;
+    right: 0;
+    top: calc(100% + 8px);
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 7px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: white;
+    box-shadow: 0 18px 40px rgba(23,35,51,.14);
+  }
+
+  .skill-suggestions.show {
+    display: block;
+  }
+
+  .skill-option {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    border-radius: 9px;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 13px;
     cursor: pointer;
+  }
+
+  .skill-option:hover,
+  .skill-option:focus {
+    outline: none;
+    background: var(--brand-light);
+    color: var(--brand);
+  }
+
+  .skill-option.selected {
+    color: var(--text-muted);
+    cursor: default;
+  }
+
+  .skills-count {
+    margin-top: 10px;
+    color: var(--text-muted);
+    font-size: 11px;
     font-weight: 500;
+  }
+
+  .skills-count.ready {
+    color: #33805a;
   }
 
   .skills-list {
@@ -792,15 +836,36 @@
     min-width: 200px;
   }
 
-  .action-btn:hover {
+  .action-btn:hover:not(:disabled) {
     transform: translateY(-1px);
   }
 
-  .save-status {
+  .action-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.48;
+    transform: none;
+  }
+
+  .bottom-status-wrap {
     margin-right: auto;
     align-self: center;
+    min-width: 0;
+  }
+
+  .save-status {
     color: var(--text-muted);
     font-size: 12px;
+  }
+
+  .completion-status {
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-top: 3px;
+  }
+
+  .completion-status.ready {
+    color: #33805a;
+    font-weight: 500;
   }
 
   .save-status.success {
@@ -870,7 +935,7 @@
       flex-wrap: wrap;
     }
 
-    .save-status {
+    .bottom-status-wrap {
       width: 100%;
     }
 
@@ -946,7 +1011,7 @@
     </div>
 
     <h1>Build a resume that gets you <em>noticed.</em></h1>
-    <p>Fill in the sections below. Your resume preview and strength score update automatically as you type.</p>
+    <p>Complete every required field below. Save & Continue unlocks only when your resume meets Alygnn's minimum strength requirements. Your preview and strength score update automatically as you type.</p>
   </div>
 
   <div class="builder-layout">
@@ -960,31 +1025,31 @@
         <div class="section-body">
           <div class="field-grid">
             <div class="field">
-              <label for="fullName">Full name</label>
-              <input id="fullName" type="text" placeholder="Jordan Smith" autocomplete="name">
+              <label for="fullName">Full name <span aria-hidden="true">*</span></label>
+              <input id="fullName" type="text" placeholder="Jordan Smith" autocomplete="name" required>
             </div>
 
             <div class="field">
-              <label for="jobTitle">Professional title</label>
+              <label for="jobTitle">Professional title <span aria-hidden="true">*</span></label>
               <div class="suggest-wrap">
-                <input id="jobTitle" type="text" placeholder="Customer Success Specialist" autocomplete="off">
+                <input id="jobTitle" type="text" placeholder="Customer Success Specialist" autocomplete="off" required>
               </div>
             </div>
 
             <div class="field">
-              <label for="email">Email address</label>
-              <input id="email" type="email" placeholder="jordan@email.com" autocomplete="email">
+              <label for="email">Email address <span aria-hidden="true">*</span></label>
+              <input id="email" type="email" placeholder="jordan@email.com" autocomplete="email" required>
             </div>
 
             <div class="field">
-              <label for="phone">Phone number</label>
-              <input id="phone" type="tel" placeholder="(919) 555-0123" autocomplete="tel">
+              <label for="phone">Phone number <span aria-hidden="true">*</span></label>
+              <input id="phone" type="tel" placeholder="(919) 555-0123" autocomplete="tel" required>
             </div>
 
             <div class="field">
-              <label for="location">Location</label>
+              <label for="location">Location <span aria-hidden="true">*</span></label>
               <div class="suggest-wrap">
-                <input id="location" type="text" placeholder="Raleigh, NC" autocomplete="off">
+                <input id="location" type="text" placeholder="Raleigh, NC" autocomplete="off" required>
                 <div id="location-suggestions" class="location-suggestions"></div>
               </div>
               <p class="field-hint" id="location-hint">Format: City, State (e.g. Raleigh, NC)</p>
@@ -1000,8 +1065,8 @@
 
         <div class="section-body">
           <div class="field">
-            <label for="summary">Tell employers what you bring to the table</label>
-            <textarea id="summary" minlength="80" maxlength="500" placeholder="Results-driven professional with experience in customer service, relationship building, and team collaboration..."></textarea>
+            <label for="summary">Tell employers what you bring to the table <span aria-hidden="true">*</span></label>
+            <textarea id="summary" minlength="80" maxlength="500" required placeholder="Results-driven professional with experience in customer service, relationship building, and team collaboration..."></textarea>
             <div class="field-meta">
               <div class="helper">Use 80–500 characters. Focus on experience, strengths, and goals.</div>
               <div class="char-counter" id="summaryCounter">0 / 500</div>
@@ -1040,16 +1105,30 @@
 
         <div class="section-body">
           <div class="field">
-            <label for="skillInput">Add your strongest skills</label>
-            <div class="skills-input-wrap">
-              <input id="skillInput" type="text" placeholder="Customer service">
-              <button type="button" class="skill-add-btn" id="addSkillBtn">Add</button>
+            <label for="skillInput">Choose your strongest skills <span aria-hidden="true">*</span></label>
+            <div class="skills-picker">
+              <input id="skillInput" type="text" placeholder="Search skills — e.g. Customer service" autocomplete="off" aria-autocomplete="list" aria-controls="skillSuggestions">
+              <div class="skill-suggestions" id="skillSuggestions" role="listbox"></div>
             </div>
-            <div class="helper">Use 2–30 characters. Letters, spaces, numbers, +, #, -, / and & are allowed.</div>
+            <div class="helper">Search and select 6–12 skills from Alygnn's skill library. Skills must be picked from the list.</div>
             <div class="field-error" id="skillError"></div>
+            <div class="skills-count" id="skillsCount">0 of 6 minimum skills selected</div>
           </div>
 
           <div class="skills-list" id="skillsList"></div>
+        </div>
+      </section>
+
+      <section class="section-card">
+        <div class="section-header">
+          <h2><span class="section-number">6</span>Awards</h2>
+          <span class="optional">Optional</span>
+        </div>
+
+        <div class="section-body">
+          <div class="helper" style="margin-bottom:14px;">Add awards or recognition that strengthen your resume, such as Dean's List, Employee of the Month, or Top Sales Performer.</div>
+          <div class="repeat-list" id="awardsList"></div>
+          <button type="button" class="add-btn" id="addAwardBtn">+ Add award</button>
         </div>
       </section>
     </div>
@@ -1112,6 +1191,11 @@
                 <span class="empty-preview">Your skills will appear here.</span>
               </div>
             </section>
+
+            <section class="resume-section" id="awardsPreviewSection" style="display:none;">
+              <div class="resume-section-title">Awards</div>
+              <div id="previewAwards"></div>
+            </section>
           </article>
         </div>
       </div>
@@ -1119,9 +1203,12 @@
   </div>
 
   <div class="bottom-actions">
-    <div class="save-status" id="saveStatus">Your draft saves automatically on this device.</div>
+    <div class="bottom-status-wrap">
+      <div class="save-status" id="saveStatus">Your draft saves automatically on this device.</div>
+      <div class="completion-status" id="completionStatus">Complete the required resume sections to continue.</div>
+    </div>
     <button type="button" class="action-btn" id="saveDraftBtn">Save draft</button>
-    <button type="button" class="action-btn primary" id="continueBtn">Save & continue →</button>
+    <button type="button" class="action-btn primary" id="continueBtn" disabled>Complete resume to continue</button>
   </div>
 </main>
 
@@ -1136,7 +1223,8 @@
   const state = {
     skills: [],
     experienceCount: 0,
-    educationCount: 0
+    educationCount: 0,
+    awardCount: 0
   };
 
   const fields = ['fullName', 'jobTitle', 'email', 'phone', 'location', 'summary'];
@@ -1150,6 +1238,52 @@
       .replaceAll("'", '&#039;');
   }
 
+
+  // Curated professional skill library. New skills must be selected from
+  // this list so candidate profiles stay clean, searchable, and consistent.
+  const SKILL_LIBRARY = [
+    'Account Management','Accounting','Accounts Payable','Accounts Receivable','Active Listening','Administrative Support',
+    'Adobe Creative Suite','Agile','AI Tools','Appointment Scheduling','Attention to Detail','Auditing','AWS','B2B Sales',
+    'B2C Sales','Banking','Bartending','Benefits Administration','Bookkeeping','Budget Management','Business Analysis',
+    'Business Development','Business Writing','Calendar Management','Cash Handling','Change Management','Client Relations',
+    'Closing Sales','Cloud Computing','Cold Calling','Communication','Conflict Resolution','Construction','Consultative Selling',
+    'Content Creation','Content Marketing','Contract Negotiation','Cooking','CRM','CSS','Customer Retention','Customer Service',
+    'Customer Success','Cybersecurity','Data Analysis','Data Entry','Data Visualization','Database Management','Digital Marketing',
+    'Dispatching','Documentation','E-commerce','Email Marketing','Employee Relations','Event Planning','Excel','Executive Support',
+    'Figma','Financial Analysis','Financial Reporting','Food Preparation','Forecasting','Forklift Operation','Front Desk Operations',
+    'Git','Google Analytics','Google Workspace','Graphic Design','HIPAA','HTML','HubSpot','HVAC','Inventory Management',
+    'IT Support','Java','JavaScript','Jira','Leadership','Lead Generation','Linux','Logistics','Machine Operation','Market Research',
+    'Marketing Strategy','Medical Terminology','Microsoft 365','Microsoft Office','Negotiation','Network Administration','Node.js',
+    'Operations Management','Order Fulfillment','OSHA','Payroll','Performance Management','Phone Support','Point of Sale (POS)',
+    'Power BI','Presentation Skills','Problem Solving','Process Improvement','Product Management','Project Coordination',
+    'Project Management','Python','Quality Assurance','QuickBooks','React','Recruiting','Relationship Building','Retail Sales',
+    'Risk Management','Sales','Salesforce','Scheduling','Scrum','SEO','Social Media Management','Software Development','SQL',
+    'Strategic Planning','Supply Chain Management','Tableau','Team Building','Team Leadership','Technical Support','Time Management',
+    'Training & Development','Troubleshooting','Upselling','UX Design','Vendor Management','Video Editing','Warehouse Operations',
+    'Web Development','WordPress','Written Communication','Zendesk'
+  ].sort((a, b) => a.localeCompare(b));
+  const SKILL_LIBRARY_SET = new Set(SKILL_LIBRARY.map(skill => skill.toLowerCase()));
+
+  // Short (2-6 letter) real skills/tools/acronyms. Below 5 letters, no
+  // pattern rule can reliably tell a real short word from fake ones like
+  // "bok" — they have the same consonant-vowel shape as real words. So
+  // instead of guessing, anything this short has to match a known term
+  // here; otherwise it's rejected and the person is asked to spell it out.
+  const SHORT_KNOWN_TERMS = new Set([
+    'sql','html','http','https','css','php','aws','gcp','ios','js','ts',
+    'crm','erp','hr','pdf','usb','api','seo','sdk','vpn','llc','llp',
+    'ceo','cfo','coo','cto','cio','faq','roi','kpi','b2b','b2c','saas',
+    'paas','iaas','ui','ux','qa','it','pr','pmp','cpa','rn','lpn','cdl',
+    'mba','bba','bsn','msn','phd','r','go','c','c++','c#','sas','spss',
+    'xml','json','yaml','git','svn','cad','bim','pos','dmv',
+    'hvac','vfx','3d','2d','ai','ml','nlp','vr','ar','iot','gis',
+    'ehr','emr','hipaa','osha','flsa','ppe','cnc','forklift','excel',
+    'word','adobe','slack','figma','mysql','azure','scrum','agile','cisco',
+    'linux','unix','bash','ruby','java','perl','rust','swift','kotlin',
+    'react','redux','vue','node','npm','sap','oracle','tableau',
+    'power bi','powerbi','jira','trello','asana','zoom','teams','canva',
+    'quickbooks','shopify','wordpress','salesforce','hubspot','mailchimp'
+  ]);
 
   const BLOCKED_WORDS = [
     'fuck', 'fucking', 'shit', 'bitch', 'asshole', 'dick', 'pussy',
@@ -1224,6 +1358,56 @@
     return false;
   }
 
+  // Stricter check used ONLY for the Skills field, not for paragraph text
+  // (summary, descriptions) — a summary naturally contains lots of real
+  // short words ("the", "led", "for"), so this level of strictness would
+  // wrongly reject normal sentences. Skills are short standalone
+  // terms/phrases, so it's safe to be much stricter here.
+  function looksLikeFakeSkill(value) {
+    const normalized = normalizeText(value).toLowerCase();
+    if (SHORT_KNOWN_TERMS.has(normalized)) return false;
+
+    const words = normalized.split(/\s+/).filter(Boolean);
+
+    // Below 5 letters, no pattern rule can tell a real short word from a
+    // fake one like "bok" — same consonant-vowel shape as real words.
+    // So a single short word has to match the known-terms list exactly.
+    // This ONLY applies when the whole skill is one word — multi-word
+    // phrases like "Time management" or "Data entry" contain plenty of
+    // real short words ("time", "data") that aren't tech acronyms, and
+    // two real words landing together by chance is a lot less likely
+    // than one fake short word, so phrases don't need this strictness.
+    if (words.length === 1) {
+      const letters = words[0].replace(/[^a-z]/g, '');
+      if (letters.length > 0 && letters.length <= 4 && !SHORT_KNOWN_TERMS.has(letters)) {
+        return true;
+      }
+    }
+
+    // For 5-6 letter words, use a tighter consonant-run threshold (4, not
+    // 6) since skills are single terms rather than full sentences —
+    // "Strengths"-style false positives are far less likely to matter
+    // here, and this is what actually catches "ascsds".
+    const hasShortWordLongRun = words.some(word => {
+      const letters = word.replace(/[^a-z]/gi, '').toLowerCase();
+      if (letters.length === 0 || letters.length > 6) return false;
+      if (SHORT_KNOWN_TERMS.has(letters)) return false;
+      let run = 0;
+      for (const ch of letters) {
+        if ('aeiouy'.includes(ch)) {
+          run = 0;
+        } else {
+          run += 1;
+          if (run >= 4) return true;
+        }
+      }
+      return false;
+    });
+    if (hasShortWordLongRun) return true;
+
+    return false;
+  }
+
   function validateSkillValue(rawValue) {
     const value = normalizeText(rawValue);
 
@@ -1236,6 +1420,9 @@
     if (/^\d+$/.test(value)) return 'A skill cannot be numbers only.';
     if (containsBlockedWord(value)) return 'Please enter a professional skill.';
     if (looksLikeSpam(value)) return 'That does not look like a valid professional skill.';
+    if (looksLikeFakeSkill(value)) {
+      return 'That\'s too short to recognize — spell out the full skill name, or use a known abbreviation (SQL, AWS, HR, etc.).';
+    }
 
     return '';
   }
@@ -1477,6 +1664,58 @@
     updatePreview();
   });
 
+  // Company names can contain unique brand words, so we do not run a generic
+  // dictionary over the whole name. Instead, we watch for near-miss spellings
+  // of common business words (for example "Consultink" -> "Consulting").
+  // This catches obvious resume typos without blocking legitimate brand names.
+  const COMMON_COMPANY_WORDS = [
+    'consulting','construction','services','solutions','technology','technologies',
+    'management','marketing','communications','enterprises','industries','logistics',
+    'financial','insurance','properties','partners','holdings','healthcare','automotive',
+    'restaurant','staffing','systems','company','corporation','incorporated','associates',
+    'development','resources','engineering','manufacturing','distribution'
+  ];
+
+  function levenshteinDistance(a, b) {
+    const left = String(a || '').toLowerCase();
+    const right = String(b || '').toLowerCase();
+    const row = Array.from({ length: right.length + 1 }, (_, i) => i);
+
+    for (let i = 1; i <= left.length; i++) {
+      let previousDiagonal = row[0];
+      row[0] = i;
+      for (let j = 1; j <= right.length; j++) {
+        const old = row[j];
+        const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+        row[j] = Math.min(
+          row[j] + 1,
+          row[j - 1] + 1,
+          previousDiagonal + cost
+        );
+        previousDiagonal = old;
+      }
+    }
+    return row[right.length];
+  }
+
+  function findCompanyTypoSuggestion(value) {
+    const words = String(value || '').match(/[A-Za-z]{6,}/g) || [];
+    for (const rawWord of words) {
+      const word = rawWord.toLowerCase();
+      if (COMMON_COMPANY_WORDS.includes(word)) continue;
+
+      for (const correct of COMMON_COMPANY_WORDS) {
+        // Restrict matching to similar-length words and a one-character edit.
+        // That keeps proper company/brand names from being over-corrected.
+        if (Math.abs(word.length - correct.length) > 1) continue;
+        if (levenshteinDistance(word, correct) === 1) {
+          return correct.charAt(0).toUpperCase() + correct.slice(1);
+        }
+      }
+    }
+    return '';
+  }
+
   function createExperienceItem(data = {}) {
     state.experienceCount += 1;
     const id = state.experienceCount;
@@ -1491,26 +1730,26 @@
 
       <div class="field-grid">
         <div class="field">
-          <label>Job title</label>
+          <label>Job title *</label>
           <div class="suggest-wrap">
-            <input class="exp-title" type="text" placeholder="Account Manager" value="${escapeHtml(data.title)}" autocomplete="off">
+            <input class="exp-title" type="text" required placeholder="Account Manager" value="${escapeHtml(data.title)}" autocomplete="off">
           </div>
           <div class="field-error exp-title-error"></div>
         </div>
 
         <div class="field">
-          <label>Company</label>
-          <input class="exp-company" type="text" placeholder="Company name" value="${escapeHtml(data.company)}">
+          <label>Company *</label>
+          <input class="exp-company" type="text" required placeholder="Company name" value="${escapeHtml(data.company)}" spellcheck="true" autocapitalize="words" autocomplete="organization">
           <div class="field-error exp-company-error"></div>
         </div>
 
         <div class="field">
-          <label>Start date</label>
+          <label>Start date *</label>
           ${monthYearPickerHTML('exp-start', data.start, CURRENT_YEAR - 60, CURRENT_YEAR + 1)}
         </div>
 
         <div class="field">
-          <label>End date</label>
+          <label>End date *</label>
           <div class="month-year-picker-wrap" ${data.current ? 'style="display:none;"' : ''}>
             ${monthYearPickerHTML('exp-end', data.end, CURRENT_YEAR - 60, CURRENT_YEAR + 1)}
           </div>
@@ -1521,15 +1760,15 @@
         </div>
 
         <div class="field full">
-          <label>Location <span class="optional">optional</span></label>
+          <label>Location *</label>
           <div class="suggest-wrap">
-            <input class="exp-location" type="text" placeholder="Raleigh, NC" value="${escapeHtml(data.location)}" autocomplete="off">
+            <input class="exp-location" type="text" required placeholder="Raleigh, NC" value="${escapeHtml(data.location)}" autocomplete="off">
           </div>
         </div>
 
         <div class="field full">
-          <label>Responsibilities and achievements</label>
-          <textarea class="exp-description" minlength="40" maxlength="800" placeholder="Describe what you accomplished, using numbers when possible.">${escapeHtml(data.description)}</textarea>
+          <label>Responsibilities and achievements *</label>
+          <textarea class="exp-description" minlength="40" maxlength="800" required placeholder="Describe what you accomplished, using numbers when possible.">${escapeHtml(data.description)}</textarea>
           <div class="field-meta">
             <div class="helper">Use 40–800 characters.</div>
             <div class="char-counter exp-counter">0 / 800</div>
@@ -1559,7 +1798,9 @@
     function validateExperienceOrgFields() {
       const hasStartedJob = titleInput.value.trim() || companyInput.value.trim();
       const titleMessage = validateProfessionalText(titleInput.value, { min: hasStartedJob ? 2 : 0, max: 80 });
-      const companyMessage = validateProfessionalText(companyInput.value, { min: hasStartedJob ? 2 : 0, max: 80 });
+      const companyTypoSuggestion = findCompanyTypoSuggestion(companyInput.value);
+      const companyMessage = validateProfessionalText(companyInput.value, { min: hasStartedJob ? 2 : 0, max: 80 })
+        || (companyTypoSuggestion ? `Possible spelling mistake. Did you mean “${companyTypoSuggestion}”?` : '');
       showFieldError(titleInput, titleError, titleMessage);
       showFieldError(companyInput, companyError, companyMessage);
       return !titleMessage && !companyMessage;
@@ -1627,45 +1868,35 @@
 
       <div class="field-grid">
         <div class="field">
-          <label>School</label>
+          <label>School *</label>
           <div class="suggest-wrap">
-            <input class="edu-school" type="text" placeholder="Wake Technical Community College" value="${escapeHtml(data.school)}" autocomplete="off">
+            <input class="edu-school" type="text" required placeholder="Wake Technical Community College" value="${escapeHtml(data.school)}" autocomplete="off">
           </div>
           <div class="field-error edu-school-error"></div>
         </div>
 
         <div class="field">
-          <label>Degree or program</label>
+          <label>Degree or program *</label>
           <div class="suggest-wrap">
-            <input class="edu-degree" type="text" placeholder="Associate Degree in Business" value="${escapeHtml(data.degree)}" autocomplete="off">
+            <input class="edu-degree" type="text" required placeholder="Associate Degree in Business" value="${escapeHtml(data.degree)}" autocomplete="off">
           </div>
         </div>
 
         <div class="field">
-          <label>Graduation date <span class="optional">optional</span></label>
+          <label>Graduation date *</label>
           ${monthYearPickerHTML('edu-date', data.date, CURRENT_YEAR - 60, CURRENT_YEAR + 6)}
         </div>
 
         <div class="field">
-          <label>Location <span class="optional">optional</span></label>
+          <label>Location *</label>
           <div class="suggest-wrap">
-            <input class="edu-location" type="text" placeholder="Raleigh, NC" value="${escapeHtml(data.location)}" autocomplete="off">
+            <input class="edu-location" type="text" required placeholder="Raleigh, NC" value="${escapeHtml(data.location)}" autocomplete="off">
           </div>
-        </div>
-
-        <div class="field full">
-          <label>Details <span class="optional">optional</span></label>
-          <textarea class="edu-description" maxlength="300" placeholder="Honors, relevant coursework, certifications, or activities.">${escapeHtml(data.description)}</textarea>
-          <div class="field-meta">
-            <div class="helper">Maximum 300 characters.</div>
-            <div class="char-counter edu-counter">0 / 300</div>
-          </div>
-          <div class="field-error edu-error"></div>
         </div>
       </div>
     `;
 
-    item.querySelectorAll('input, textarea').forEach(element => {
+    item.querySelectorAll('input').forEach(element => {
       element.addEventListener('input', handleChange);
     });
 
@@ -1674,18 +1905,8 @@
       updatePreview();
     });
 
-    const description = item.querySelector('.edu-description');
-    const descriptionCounter = item.querySelector('.edu-counter');
-    const descriptionError = item.querySelector('.edu-error');
     const schoolInput = item.querySelector('.edu-school');
     const schoolError = item.querySelector('.edu-school-error');
-
-    function validateEducationDescription() {
-      updateCounter(description, descriptionCounter, 300);
-      const message = validateProfessionalText(description.value, { max: 300 });
-      showFieldError(description, descriptionError, message);
-      return !message;
-    }
 
     function validateSchoolField() {
       const hasStarted = schoolInput.value.trim() || item.querySelector('.edu-degree').value.trim();
@@ -1694,10 +1915,8 @@
       return !message;
     }
 
-    description.addEventListener('input', validateEducationDescription);
     schoolInput.addEventListener('input', validateSchoolField);
     item.querySelector('.edu-degree').addEventListener('input', validateSchoolField);
-    validateEducationDescription();
     validateSchoolField();
     item._validateSchoolField = validateSchoolField;
 
@@ -1723,6 +1942,52 @@
     updatePreview();
   }
 
+  function createAwardItem(data = {}) {
+    state.awardCount += 1;
+    const id = state.awardCount;
+
+    const item = document.createElement('div');
+    item.className = 'repeat-item award-item';
+    item.dataset.id = id;
+
+    item.innerHTML = `
+      <div class="repeat-title">Award ${id}</div>
+      <button type="button" class="remove-btn">Remove</button>
+
+      <div class="field-grid">
+        <div class="field">
+          <label>Award or recognition *</label>
+          <input class="award-title" type="text" required maxlength="100" placeholder="Top Sales Performer" value="${escapeHtml(data.title)}" spellcheck="true">
+        </div>
+
+        <div class="field">
+          <label>Issued by *</label>
+          <input class="award-issuer" type="text" required maxlength="100" placeholder="Company, school, or organization" value="${escapeHtml(data.issuer)}" spellcheck="true" autocomplete="organization">
+        </div>
+
+        <div class="field">
+          <label>Date <span class="optional">optional</span></label>
+          ${monthYearPickerHTML('award-date', data.date, CURRENT_YEAR - 60, CURRENT_YEAR + 1)}
+        </div>
+      </div>
+    `;
+
+    item.querySelectorAll('input').forEach(element => {
+      element.addEventListener('input', handleChange);
+    });
+
+    wireMonthYearPicker(item, 'award-date');
+
+    item.querySelector('.remove-btn').addEventListener('click', () => {
+      item.remove();
+      updatePreview();
+      autoSave();
+    });
+
+    document.getElementById('awardsList').appendChild(item);
+    updatePreview();
+  }
+
   function getExperiences() {
     return [...document.querySelectorAll('.experience-item')].map(item => ({
       title: item.querySelector('.exp-title').value.trim(),
@@ -1740,8 +2005,15 @@
       school: item.querySelector('.edu-school').value.trim(),
       degree: item.querySelector('.edu-degree').value.trim(),
       date: item.querySelector('.edu-date').value.trim(),
-      location: item.querySelector('.edu-location').value.trim(),
-      description: item.querySelector('.edu-description').value.trim()
+      location: item.querySelector('.edu-location').value.trim()
+    }));
+  }
+
+  function getAwards() {
+    return [...document.querySelectorAll('.award-item')].map(item => ({
+      title: item.querySelector('.award-title').value.trim(),
+      issuer: item.querySelector('.award-issuer').value.trim(),
+      date: item.querySelector('.award-date').value.trim()
     }));
   }
 
@@ -1756,6 +2028,7 @@
       skills: [...state.skills],
       experience: getExperiences(),
       education: getEducation(),
+      awards: getAwards(),
       source: 'resume-builder',
       updated_at: new Date().toISOString()
     };
@@ -1794,7 +2067,7 @@
       : '<div class="empty-preview">Your work experience will appear here.</div>';
 
     const validEducation = data.education.filter(item =>
-      item.school || item.degree || item.date || item.location || item.description
+      item.school || item.degree || item.date || item.location
     );
 
     document.getElementById('previewEducation').innerHTML = validEducation.length
@@ -1807,7 +2080,6 @@
               </div>
               <div class="entry-date">${escapeHtml(item.date)}</div>
             </div>
-            ${item.description ? `<div class="entry-description">${escapeHtml(item.description)}</div>` : ''}
           </div>
         `).join('')
       : '<div class="empty-preview">Your education will appear here.</div>';
@@ -1816,7 +2088,23 @@
       ? data.skills.map(skill => `<span class="resume-skill">${escapeHtml(skill)}</span>`).join('')
       : '<span class="empty-preview">Your skills will appear here.</span>';
 
+    const validAwards = data.awards.filter(item => item.title || item.issuer || item.date);
+    const awardsPreviewSection = document.getElementById('awardsPreviewSection');
+    awardsPreviewSection.style.display = validAwards.length ? '' : 'none';
+    document.getElementById('previewAwards').innerHTML = validAwards.map(item => `
+      <div class="resume-entry">
+        <div class="entry-top">
+          <div>
+            <div class="entry-name">${escapeHtml(item.title || 'Award')}</div>
+            <div class="entry-sub">${escapeHtml(item.issuer || '')}</div>
+          </div>
+          <div class="entry-date">${escapeHtml(item.date || '')}</div>
+        </div>
+      </div>
+    `).join('');
+
     updateResumeScore(data);
+    updateContinueState();
   }
 
   function updateResumeScore(data) {
@@ -1856,6 +2144,7 @@
 
   function renderSkills() {
     const list = document.getElementById('skillsList');
+    const count = document.getElementById('skillsCount');
 
     list.innerHTML = state.skills.map((skill, index) => `
       <span class="skill-chip">
@@ -1868,37 +2157,81 @@
       button.addEventListener('click', () => {
         state.skills.splice(Number(button.dataset.index), 1);
         renderSkills();
+        renderSkillSuggestions(document.getElementById('skillInput').value);
         updatePreview();
         autoSave();
       });
     });
 
+    if (count) {
+      const remaining = Math.max(0, 6 - state.skills.length);
+      count.textContent = remaining
+        ? `${state.skills.length} selected · choose ${remaining} more to continue`
+        : `${state.skills.length} selected · skills requirement complete`;
+      count.classList.toggle('ready', remaining === 0);
+    }
+
     updatePreview();
   }
 
-  function addSkill() {
+  function getSkillMatches(query = '') {
+    const normalized = normalizeText(query).toLowerCase();
+    const selected = new Set(state.skills.map(skill => skill.toLowerCase()));
+    return SKILL_LIBRARY
+      .filter(skill => !selected.has(skill.toLowerCase()))
+      .filter(skill => !normalized || skill.toLowerCase().includes(normalized))
+      .slice(0, normalized ? 12 : 10);
+  }
+
+  function renderSkillSuggestions(query = '') {
+    const box = document.getElementById('skillSuggestions');
+    const input = document.getElementById('skillInput');
+    if (!box || !input) return;
+
+    const matches = getSkillMatches(query);
+    if (!matches.length) {
+      box.innerHTML = '<div class="skill-option selected">No matching skills found. Try another search.</div>';
+      box.classList.add('show');
+      return;
+    }
+
+    box.innerHTML = matches.map(skill =>
+      `<button type="button" class="skill-option" role="option" data-skill="${escapeHtml(skill)}">${escapeHtml(skill)}</button>`
+    ).join('');
+    box.classList.add('show');
+  }
+
+  function closeSkillSuggestions() {
+    const box = document.getElementById('skillSuggestions');
+    if (box) box.classList.remove('show');
+  }
+
+  function addSkill(skillName) {
     const input = document.getElementById('skillInput');
     const errorElement = document.getElementById('skillError');
-    const value = normalizeText(input.value);
-    const validationError = validateSkillValue(value);
+    const value = normalizeText(skillName);
 
-    showFieldError(input, errorElement, validationError);
-    if (validationError) return;
+    if (!value || !SKILL_LIBRARY_SET.has(value.toLowerCase())) {
+      showFieldError(input, errorElement, 'Choose a skill from the Alygnn skill list.');
+      return;
+    }
 
-    const alreadyExists = state.skills.some(skill => skill.toLowerCase() === value.toLowerCase());
+    const canonicalSkill = SKILL_LIBRARY.find(skill => skill.toLowerCase() === value.toLowerCase());
+    const alreadyExists = state.skills.some(skill => skill.toLowerCase() === canonicalSkill.toLowerCase());
     if (alreadyExists) {
       showFieldError(input, errorElement, 'That skill has already been added.');
       return;
     }
 
     if (state.skills.length >= 12) {
-      showFieldError(input, errorElement, 'You can add up to 12 skills.');
+      showFieldError(input, errorElement, 'You can select up to 12 skills.');
       return;
     }
 
-    state.skills.push(value);
+    state.skills.push(canonicalSkill);
     input.value = '';
     showFieldError(input, errorElement, '');
+    closeSkillSuggestions();
     renderSkills();
     autoSave();
   }
@@ -1949,7 +2282,9 @@
         document.getElementById(field).value = data[map[field] || field] || '';
       });
 
-      state.skills = Array.isArray(data.skills) ? data.skills : [];
+      state.skills = Array.isArray(data.skills)
+        ? data.skills.filter(skill => SKILL_LIBRARY_SET.has(String(skill).toLowerCase())).slice(0, 12)
+        : [];
       renderSkills();
 
       if (Array.isArray(data.experience) && data.experience.length) {
@@ -1964,6 +2299,10 @@
         createEducationItem();
       }
 
+      if (Array.isArray(data.awards) && data.awards.length) {
+        data.awards.forEach(createAwardItem);
+      }
+
       updatePreview();
       setSaveStatus('Your saved draft was restored.', 'success');
     } catch (error) {
@@ -1973,94 +2312,120 @@
     }
   }
 
-  function validateResume() {
-    const name = document.getElementById('fullName').value.trim();
-    const email = document.getElementById('email').value.trim();
+  function isValidPhone(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    return digits.length >= 10 && digits.length <= 15;
+  }
 
-    if (!name) {
-      alert('Please enter your full name.');
-      document.getElementById('fullName').focus();
-      return false;
-    }
+  function getCompletionIssues() {
+    const issues = [];
+    const add = (message, element) => issues.push({ message, element });
 
-    if (!email || !document.getElementById('email').checkValidity()) {
-      alert('Please enter a valid email address.');
-      document.getElementById('email').focus();
-      return false;
-    }
+    const fullName = document.getElementById('fullName');
+    const jobTitle = document.getElementById('jobTitle');
+    const email = document.getElementById('email');
+    const phone = document.getElementById('phone');
+    const location = document.getElementById('location');
 
-    if (!validateSummary()) {
-      alert('Please fix your professional summary before continuing.');
-      summaryInput.focus();
-      return false;
-    }
+    if (fullName.value.trim().length < 2) add('Enter your full name.', fullName);
+    if (jobTitle.value.trim().length < 2) add('Enter your professional title.', jobTitle);
+    if (!email.value.trim() || !email.checkValidity()) add('Enter a valid email address.', email);
+    if (!isValidPhone(phone.value)) add('Enter a valid phone number.', phone);
+    if (!isValidLocation(location.value)) add('Enter your location as City, State.', location);
 
-    const locationInput = document.getElementById('location');
-    if (locationInput.value.trim() && !isValidLocation(locationInput.value)) {
-      alert('Please enter your location as "City, State" (e.g. Raleigh, NC).');
-      locationInput.focus();
-      return false;
-    }
+    const summaryMessage = validateProfessionalText(summaryInput.value, { min: 80, max: 500, required: true });
+    if (summaryMessage) add('Write a professional summary of at least 80 characters.', summaryInput);
 
-    const invalidExperience = [...document.querySelectorAll('.experience-item')].find(item => {
-      const description = item.querySelector('.exp-description');
-      const hasStartedJob = item.querySelector('.exp-title').value.trim() || item.querySelector('.exp-company').value.trim();
-      const message = validateProfessionalText(description.value, {
-        min: hasStartedJob && description.value.trim() ? 40 : 0,
-        max: 800
+    const experienceItems = [...document.querySelectorAll('.experience-item')];
+    if (!experienceItems.length) {
+      add('Add at least one work experience.', document.getElementById('addExperienceBtn'));
+    } else {
+      experienceItems.forEach((item, index) => {
+        const title = item.querySelector('.exp-title');
+        const company = item.querySelector('.exp-company');
+        const start = item.querySelector('.exp-start');
+        const end = item.querySelector('.exp-end');
+        const current = item.querySelector('.exp-current');
+        const expLocation = item.querySelector('.exp-location');
+        const description = item.querySelector('.exp-description');
+
+        if (title.value.trim().length < 2) add(`Complete the job title for Experience ${index + 1}.`, title);
+        if (company.value.trim().length < 2) {
+          add(`Complete the company for Experience ${index + 1}.`, company);
+        } else {
+          const typoSuggestion = findCompanyTypoSuggestion(company.value);
+          if (typoSuggestion) add(`Check the company spelling for Experience ${index + 1}. Did you mean “${typoSuggestion}”?`, company);
+        }
+        if (!start.value.trim() || !/^[A-Z][a-z]{2} \d{4}$/.test(start.value.trim())) add(`Choose a start month and year for Experience ${index + 1}.`, item.querySelector('.exp-start-month'));
+        if (!current.checked && (!end.value.trim() || !/^[A-Z][a-z]{2} \d{4}$/.test(end.value.trim()))) add(`Choose an end month and year for Experience ${index + 1}, or mark it current.`, item.querySelector('.exp-end-month'));
+        if (!isValidLocation(expLocation.value)) add(`Enter a City, State location for Experience ${index + 1}.`, expLocation);
+        const descMessage = validateProfessionalText(description.value, { min: 40, max: 800, required: true });
+        if (descMessage) add(`Write at least 40 characters of achievements for Experience ${index + 1}.`, description);
       });
-      showFieldError(description, item.querySelector('.exp-error'), message);
-      return Boolean(message);
+    }
+
+    const educationItems = [...document.querySelectorAll('.education-item')];
+    if (!educationItems.length) {
+      add('Add at least one education entry.', document.getElementById('addEducationBtn'));
+    } else {
+      educationItems.forEach((item, index) => {
+        const school = item.querySelector('.edu-school');
+        const degree = item.querySelector('.edu-degree');
+        const date = item.querySelector('.edu-date');
+        const eduLocation = item.querySelector('.edu-location');
+
+        if (school.value.trim().length < 2) add(`Complete the school for Education ${index + 1}.`, school);
+        if (degree.value.trim().length < 2) add(`Complete the degree or program for Education ${index + 1}.`, degree);
+        if (!date.value.trim() || !/^[A-Z][a-z]{2} \d{4}$/.test(date.value.trim())) add(`Choose a graduation month and year for Education ${index + 1}.`, item.querySelector('.edu-date-month'));
+        if (!isValidLocation(eduLocation.value)) add(`Enter a City, State location for Education ${index + 1}.`, eduLocation);
+      });
+    }
+
+    const awardItems = [...document.querySelectorAll('.award-item')];
+    awardItems.forEach((item, index) => {
+      const title = item.querySelector('.award-title');
+      const issuer = item.querySelector('.award-issuer');
+      if (title.value.trim().length < 2) add(`Complete the award name for Award ${index + 1}, or remove the entry.`, title);
+      if (issuer.value.trim().length < 2) add(`Complete who issued Award ${index + 1}, or remove the entry.`, issuer);
     });
 
-    if (invalidExperience) {
-      alert('Please fix the highlighted work-experience description.');
-      invalidExperience.querySelector('.exp-description').focus();
-      return false;
+    if (state.skills.length < 6) add('Select at least 6 skills from the skill library.', document.getElementById('skillInput'));
+    if (state.skills.length > 12) add('Keep your skills list to 12 or fewer.', document.getElementById('skillInput'));
+    const invalidSkill = state.skills.find(skill => !SKILL_LIBRARY_SET.has(skill.toLowerCase()));
+    if (invalidSkill) add(`Replace “${invalidSkill}” with a skill from the Alygnn list.`, document.getElementById('skillInput'));
+
+    return issues;
+  }
+
+  function updateContinueState() {
+    const button = document.getElementById('continueBtn');
+    const completionStatus = document.getElementById('completionStatus');
+    if (!button || !completionStatus) return;
+
+    const issues = getCompletionIssues();
+    const complete = issues.length === 0;
+    button.disabled = !complete;
+    button.textContent = complete ? 'Save & continue →' : 'Complete resume to continue';
+    completionStatus.textContent = complete
+      ? 'Resume complete — you can continue.'
+      : `${issues.length} required item${issues.length === 1 ? '' : 's'} left. Next: ${issues[0].message}`;
+    completionStatus.classList.toggle('ready', complete);
+  }
+
+  function validateResume() {
+    validateSummary();
+    validateLocationField();
+
+    const issues = getCompletionIssues();
+    if (!issues.length) return true;
+
+    const firstIssue = issues[0];
+    alert(firstIssue.message);
+    if (firstIssue.element) {
+      firstIssue.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (typeof firstIssue.element.focus === 'function') firstIssue.element.focus();
     }
-
-    const invalidOrgFields = [...document.querySelectorAll('.experience-item')].find(item => {
-      return item._validateOrgFields ? !item._validateOrgFields() : false;
-    });
-
-    if (invalidOrgFields) {
-      alert('Please enter a real job title and company name (no placeholder text or typos).');
-      const badField = invalidOrgFields.querySelector('.exp-title.invalid') || invalidOrgFields.querySelector('.exp-company.invalid');
-      if (badField) badField.focus();
-      return false;
-    }
-
-    const invalidEducation = [...document.querySelectorAll('.education-item')].find(item => {
-      const description = item.querySelector('.edu-description');
-      const message = validateProfessionalText(description.value, { max: 300 });
-      showFieldError(description, item.querySelector('.edu-error'), message);
-      return Boolean(message);
-    });
-
-    if (invalidEducation) {
-      alert('Please fix the highlighted education details.');
-      invalidEducation.querySelector('.edu-description').focus();
-      return false;
-    }
-
-    const invalidSchool = [...document.querySelectorAll('.education-item')].find(item => {
-      return item._validateSchoolField ? !item._validateSchoolField() : false;
-    });
-
-    if (invalidSchool) {
-      alert('Please enter a real school name (no placeholder text or typos).');
-      invalidSchool.querySelector('.edu-school').focus();
-      return false;
-    }
-
-    const invalidSavedSkill = state.skills.find(skill => validateSkillValue(skill));
-    if (invalidSavedSkill) {
-      alert(`Please remove or correct this skill: ${invalidSavedSkill}`);
-      document.getElementById('skillInput').focus();
-      return false;
-    }
-
-    return true;
+    return false;
   }
 
   async function saveToSupabase(data) {
@@ -2126,9 +2491,11 @@
     state.skills = [];
     state.experienceCount = 0;
     state.educationCount = 0;
+    state.awardCount = 0;
 
     document.getElementById('experienceList').innerHTML = '';
     document.getElementById('educationList').innerHTML = '';
+    document.getElementById('awardsList').innerHTML = '';
 
     createExperienceItem();
     createEducationItem();
@@ -2149,8 +2516,9 @@
   function validateSummary() {
     updateCounter(summaryInput, summaryCounter, 500);
     const message = validateProfessionalText(summaryInput.value, {
-      min: summaryInput.value.trim() ? 80 : 0,
-      max: 500
+      min: 80,
+      max: 500,
+      required: true
     });
     showFieldError(summaryInput, summaryError, message);
     return !message;
@@ -2168,23 +2536,40 @@
     autoSave();
   });
 
-  document.getElementById('addSkillBtn').addEventListener('click', addSkill);
-
-  document.getElementById('skillInput').addEventListener('input', event => {
-    const input = event.currentTarget;
-    const errorElement = document.getElementById('skillError');
-    if (!input.value.trim()) {
-      showFieldError(input, errorElement, '');
-      return;
-    }
-    showFieldError(input, errorElement, validateSkillValue(input.value));
+  document.getElementById('addAwardBtn').addEventListener('click', () => {
+    createAwardItem();
+    autoSave();
   });
 
-  document.getElementById('skillInput').addEventListener('keydown', event => {
+  const skillInput = document.getElementById('skillInput');
+  const skillSuggestions = document.getElementById('skillSuggestions');
+
+  skillInput.addEventListener('focus', () => renderSkillSuggestions(skillInput.value));
+  skillInput.addEventListener('input', () => {
+    showFieldError(skillInput, document.getElementById('skillError'), '');
+    renderSkillSuggestions(skillInput.value);
+  });
+
+  skillInput.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      closeSkillSuggestions();
+      return;
+    }
     if (event.key === 'Enter') {
       event.preventDefault();
-      addSkill();
+      const first = skillSuggestions.querySelector('.skill-option[data-skill]');
+      if (first) addSkill(first.dataset.skill);
     }
+  });
+
+  skillSuggestions.addEventListener('click', event => {
+    const option = event.target.closest('.skill-option[data-skill]');
+    if (!option) return;
+    addSkill(option.dataset.skill);
+  });
+
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.skills-picker')) closeSkillSuggestions();
   });
 
   document.getElementById('downloadBtn').addEventListener('click', () => {
@@ -2230,6 +2615,7 @@
     loadDraft();
     validateSummary();
     updatePreview();
+    updateContinueState();
   })();
 </script>
 </body>
