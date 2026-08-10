@@ -2739,22 +2739,74 @@
     return false;
   }
 
+  function buildGeneratedResumeHtml() {
+    const resumePaper = document.getElementById('resumePaper');
+    if (!resumePaper) throw new Error('Resume preview is not available.');
+
+    // Save the exact Alygnn-built resume as a standalone HTML file. This gives
+    // the rest of Alygnn a real resume_file_path to recognize, just like an
+    // uploaded PDF/DOCX, while resume_data remains the editable source of truth.
+    const embeddedStyles = Array.from(document.querySelectorAll('style'))
+      .map(style => style.textContent || '')
+      .join('\n');
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alygnn Resume</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    ${embeddedStyles}
+    html, body { background: #fff !important; }
+    body { margin: 0; padding: 24px; }
+    .resume-paper { margin: 0 auto; box-shadow: none !important; min-height: auto; max-width: 850px; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+  ${resumePaper.outerHTML}
+</body>
+</html>`;
+  }
+
   async function saveToSupabase(data) {
     const { data: { session }, error: sessionError } = await sb.auth.getSession();
 
     if (sessionError) throw sessionError;
     if (!session) return { loggedIn: false };
 
-    const { error } = await sb
+    // The Account / resume status flow recognizes a saved resume by
+    // resume_file_path. Builder resumes therefore need a real storage object,
+    // not only profiles.resume_data.
+    const filePath = `${session.user.id}/generated-resume.html`;
+    const generatedHtml = buildGeneratedResumeHtml();
+    const generatedFile = new Blob([generatedHtml], { type: 'text/html;charset=utf-8' });
+
+    const { error: uploadError } = await sb.storage
+      .from('resumes')
+      .upload(filePath, generatedFile, {
+        upsert: true,
+        contentType: 'text/html;charset=utf-8'
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { error: profileError } = await sb
       .from('profiles')
       .upsert({
         id: session.user.id,
-        resume_data: data
+        resume_data: data,
+        resume_file_path: filePath,
+        resume_source: 'builder',
+        updated_at: new Date().toISOString()
       });
 
-    if (error) throw error;
+    if (profileError) throw profileError;
 
-    return { loggedIn: true };
+    return { loggedIn: true, filePath };
   }
 
   async function saveAndContinue() {
