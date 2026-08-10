@@ -1714,6 +1714,109 @@
     return '';
   }
 
+
+  // Awards get a stricter spelling/completeness gate than the rest of the
+  // resume. Proper names cannot be perfectly dictionary-checked offline, so
+  // we combine: (1) known-school matching, (2) common organization-word typo
+  // checks, and (3) canonical common-award matching. This specifically blocks
+  // unfinished entries such as "East Carolina Univer" before navigation.
+  const COMMON_ORGANIZATION_WORDS = [
+    'university','college','school','academy','institute','institution','association',
+    'foundation','organization','organisation','program','department','hospital',
+    'healthcare','council','society','federation','corporation','company','consulting',
+    'services','solutions','technology','technologies','management','communications'
+  ];
+
+  const COMMON_AWARD_NAMES = [
+    "Dean's List","President's List","Employee of the Month","Employee of the Year",
+    'Top Sales Performer','Salesperson of the Month','Salesperson of the Year',
+    'Top Performer','Outstanding Achievement Award','Leadership Award','Service Award',
+    'Academic Excellence Award','Customer Service Award','Rookie of the Year',
+    'Most Valuable Player (MVP)','Honor Roll','Perfect Attendance Award',
+    'Outstanding Volunteer Award','Merit Award','Excellence Award'
+  ];
+
+  function normalizeNameForMatch(value) {
+    return normalizeText(value)
+      .toLowerCase()
+      .replace(/[’']/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  }
+
+  function titleCaseWord(word) {
+    return word ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+  }
+
+  function findCommonOrganizationWordSuggestion(value) {
+    const words = String(value || '').match(/[A-Za-z]{4,}/g) || [];
+    for (const rawWord of words) {
+      const word = rawWord.toLowerCase();
+      if (COMMON_ORGANIZATION_WORDS.includes(word)) continue;
+
+      for (const correct of COMMON_ORGANIZATION_WORDS) {
+        // Catch unfinished endings such as "univer" -> "University" and
+        // "associatio" -> "Association" once enough letters were typed.
+        if (word.length >= 4 && correct.startsWith(word) && word.length < correct.length) {
+          return titleCaseWord(correct);
+        }
+
+        // Catch close misspellings such as "universty" -> "University".
+        const allowedDistance = correct.length >= 10 ? 2 : 1;
+        if (Math.abs(word.length - correct.length) <= allowedDistance &&
+            levenshteinDistance(word, correct) <= allowedDistance) {
+          return titleCaseWord(correct);
+        }
+      }
+    }
+    return '';
+  }
+
+  function findKnownUniversitySuggestion(value) {
+    const typed = normalizeNameForMatch(value);
+    if (typed.length < 6) return '';
+
+    for (const university of US_UNIVERSITIES) {
+      const canonical = normalizeNameForMatch(university);
+      if (typed === canonical) return '';
+
+      // A long prefix is almost always someone who stopped typing too soon.
+      if (canonical.startsWith(typed) && typed.length >= 8) return university;
+
+      // Also catch small spelling errors across the complete school name.
+      const distance = levenshteinDistance(typed, canonical);
+      const allowedDistance = canonical.length >= 24 ? 3 : canonical.length >= 14 ? 2 : 1;
+      if (Math.abs(typed.length - canonical.length) <= allowedDistance && distance <= allowedDistance) {
+        return university;
+      }
+    }
+    return '';
+  }
+
+  function findCommonAwardSuggestion(value) {
+    const typed = normalizeNameForMatch(value);
+    if (typed.length < 5) return '';
+
+    for (const award of COMMON_AWARD_NAMES) {
+      const canonical = normalizeNameForMatch(award);
+
+      // Normalize common punctuation/casing too: "deans list" should become
+      // the resume-ready "Dean's List" rather than being stored as-is.
+      if (typed === canonical) {
+        return normalizeText(value) !== award ? award : '';
+      }
+
+      if (canonical.startsWith(typed) && typed.length >= 7) return award;
+
+      const allowedDistance = canonical.length >= 20 ? 3 : canonical.length >= 12 ? 2 : 1;
+      if (Math.abs(typed.length - canonical.length) <= allowedDistance &&
+          levenshteinDistance(typed, canonical) <= allowedDistance) {
+        return award;
+      }
+    }
+    return '';
+  }
+
   // Awards are optional, but any award someone chooses to add must look
   // like a real resume entry. These checks are intentionally scoped ONLY
   // to Awards so they do not change validation behavior anywhere else.
@@ -1765,6 +1868,9 @@
     if (looksLikeSpam(text)) return 'That does not look like a real award or recognition.';
     if (AWARD_PLACEHOLDER_VALUES.has(lower)) return 'Enter the specific award you actually received.';
 
+    const awardSuggestion = findCommonAwardSuggestion(text);
+    if (awardSuggestion) return `Check the award name. Did you mean “${awardSuggestion}”?`;
+
     const words = awardWords(text);
     const hasKnownShortTerm = words.some(word => AWARD_SHORT_TERMS.has(word));
     const hasAwardSignal = words.some(word => AWARD_SIGNAL_WORDS.has(word));
@@ -1800,6 +1906,17 @@
     if (looksLikeSpam(text)) return 'That does not look like a real organization name.';
     if (AWARD_ORG_PLACEHOLDER_VALUES.has(lower)) {
       return 'Enter the actual company, school, or organization.';
+    }
+
+    // Prefer a full known school name when the user has clearly started one.
+    const universitySuggestion = findKnownUniversitySuggestion(text);
+    if (universitySuggestion) {
+      return `Finish or correct the organization name. Did you mean “${universitySuggestion}”?`;
+    }
+
+    const organizationWordSuggestion = findCommonOrganizationWordSuggestion(text);
+    if (organizationWordSuggestion) {
+      return `Finish or correct the organization name. Check “${organizationWordSuggestion}”.`;
     }
 
     const typoSuggestion = findCompanyTypoSuggestion(text);
@@ -2098,7 +2215,7 @@
         <div class="field">
           <label>Organization *</label>
           <input class="award-issuer" type="text" required maxlength="100" placeholder="Company, school, or organization" value="${escapeHtml(data.issuer)}" spellcheck="true" autocomplete="organization">
-          <div class="helper">The company, school, association, or program that recognized you.</div>
+          <div class="helper">Enter the full official name. If it is a school, choose the full name from the suggestion when available.</div>
           <div class="field-error award-issuer-error"></div>
         </div>
 
@@ -2123,6 +2240,14 @@
 
     awardTitleInput.addEventListener('blur', () => validateAwardItem(item, true));
     awardOrganizationInput.addEventListener('blur', () => validateAwardItem(item, true));
+
+    // Reuse the existing floating autocomplete for known universities. Selecting
+    // one guarantees the complete official school name is stored. Companies and
+    // other organizations can still be typed normally and are checked below.
+    attachLocationAutocomplete(awardOrganizationInput, US_UNIVERSITIES, () => {
+      validateAwardItem(item, true);
+      handleChange();
+    });
 
     wireMonthYearPicker(item, 'award-date', () => {
       if (item.querySelector('.award-date-error.show')) validateAwardItem(item, true);
@@ -2633,7 +2758,20 @@
   }
 
   async function saveAndContinue() {
+    // Never trust the disabled-button state alone. Re-run every validation at
+    // click time so a partially typed award cannot be saved or navigate away.
     if (!validateResume()) return;
+
+    const invalidAward = [...document.querySelectorAll('.award-item')]
+      .find(item => !validateAwardItem(item, true));
+    if (invalidAward) {
+      const firstInvalid = invalidAward.querySelector('.invalid');
+      if (firstInvalid) {
+        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (typeof firstInvalid.focus === 'function') firstInvalid.focus();
+      }
+      return;
+    }
 
     const button = document.getElementById('continueBtn');
     button.disabled = true;
