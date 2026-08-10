@@ -732,6 +732,12 @@ select.form-input{
         <a href="align-upload.html" id="resume-replace-link" style="display:none;">Replace resume</a>
       </div>
 
+      <a href="set-password.html" class="link-card" id="add-password-card" style="display:none;">
+        <span class="icon">🔑</span>
+        <div class="label">Add a password</div>
+        <div class="sub">Optional — lets you sign in with email too, not just Google/Apple</div>
+      </a>
+
       <a href="account-settings.html" class="link-card">
         <span class="icon">🔒</span>
         <div class="label">Account settings</div>
@@ -1239,35 +1245,26 @@ async function initAccountPage(){
     console.error('Failed to load profile:', error);
   }
 
-  // FIX: previously this only checked profiles.has_password, which could be
-  // missing entirely if the signup-time upsert silently failed (e.g. RLS
-  // blocked the write because no session existed yet during email
-  // confirmation). That meant confirmed email/password users got bounced to
-  // set-password.html forever, even though they'd already set a password.
-  //
   // Supabase already knows how someone authenticated via user.identities —
   // if they have an 'email' identity, they set a password at signup, full
-  // stop. Only fall through to the has_password / set-password.html check
-  // for users who ONLY have OAuth identities (Google/Apple), since those
-  // are the ones who genuinely might not have a password yet.
+  // stop. Only OAuth-only users (Google/Apple) genuinely might not have a
+  // password yet.
+  //
+  // CHANGE: this used to force a redirect to set-password.html before
+  // letting a Google/Apple user do anything else on their account. That's
+  // unnecessary friction right after the exact signup flow someone chose
+  // specifically to avoid typing a password — so now it's an optional
+  // "Add password" card in Settings instead of a mandatory gate.
   const identities = session.user.identities || [];
   const hasEmailIdentity = identities.some(i => i.provider === 'email');
+  const needsPassword = !hasEmailIdentity && !profile?.has_password;
 
-  if(!hasEmailIdentity && !profile?.has_password){
-    const cameFromSetPassword =
-      document.referrer && document.referrer.includes('set-password');
-
-    if(!cameFromSetPassword){
-      window.location.href = 'set-password.html';
-      return;
-    }
-  }
-
-  // Backfill: if we get here and profiles.has_password isn't set yet
-  // (e.g. this is an email/password user whose signup-time upsert failed,
-  // or an OAuth user who just came from set-password.html), write it now
-  // so future loads don't need to re-derive this from identities.
-  if(!profile?.has_password){
+  // Backfill: only for genuine email/password signups whose signup-time
+  // upsert silently failed (e.g. RLS blocked the write because no session
+  // existed yet during email confirmation). OAuth users who haven't set a
+  // password yet must NOT be backfilled here — that would incorrectly mark
+  // them as having one when they don't.
+  if(hasEmailIdentity && !profile?.has_password){
     const { error: backfillError } = await sb
       .from('profiles')
       .upsert({ id: currentUserId, has_password: true }, { onConflict: 'id' });
@@ -1295,6 +1292,11 @@ async function initAccountPage(){
 
   nameEl.textContent = fullName;
   initialsEl.textContent = getInitials(fullName);
+
+  if(needsPassword){
+    const addPasswordCard = document.getElementById('add-password-card');
+    if(addPasswordCard) addPasswordCard.style.display = '';
+  }
 
   renderResumeCardFast(profile?.resume_file_path);
 
