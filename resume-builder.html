@@ -966,7 +966,9 @@
 
             <div class="field">
               <label for="jobTitle">Professional title</label>
-              <input id="jobTitle" type="text" placeholder="Customer Success Specialist">
+              <div class="suggest-wrap">
+                <input id="jobTitle" type="text" placeholder="Customer Success Specialist" autocomplete="off">
+              </div>
             </div>
 
             <div class="field">
@@ -1382,6 +1384,17 @@
   // blocks someone from typing a school that isn't in this list.
   const US_UNIVERSITIES = ['Appalachian State University','Arizona State University','Auburn University','Baylor University','Boston College','Boston University','Bowdoin College','Brown University','California Institute of Technology','Cape Fear Community College','Carnegie Mellon University','Case Western Reserve University','Central Piedmont Community College','Clemson University','Colgate University','Colorado State University','Columbia University','Cornell University','Dartmouth College','Duke University','Durham Technical Community College','East Carolina University','Emory University','Fayetteville State University','Fayetteville Technical Community College','Florida State University','Georgetown University','George Mason University','Georgia Institute of Technology','Georgia State University','Guilford Technical Community College','Harvard University','Indiana University Bloomington','Iowa State University','Johns Hopkins University','Louisiana State University','Massachusetts Institute of Technology','Miami Dade College','Michigan State University','New York University','North Carolina A&T State University','North Carolina Central University','North Carolina State University','Northeastern University','Northwestern University','Ohio State University','Oregon State University','Penn State University','Pitt Community College','Princeton University','Purdue University','Rice University','Rutgers University','Stanford University','Syracuse University','Temple University','Texas A&M University','The University of Alabama','Tufts University','Tulane University','UC Berkeley','UC Davis','UC Irvine','UC Los Angeles (UCLA)','UC San Diego','UC Santa Barbara','University of Arizona','University of Central Florida','University of Chicago','University of Cincinnati','University of Colorado Boulder','University of Connecticut','University of Delaware','University of Florida','University of Georgia','University of Houston','University of Illinois Urbana-Champaign','University of Iowa','University of Kansas','University of Kentucky','University of Maryland','University of Massachusetts Amherst','University of Miami','University of Michigan','University of Minnesota','University of Missouri','University of Nebraska-Lincoln','University of North Carolina at Chapel Hill','University of North Carolina at Charlotte','University of North Carolina at Greensboro','University of North Carolina Wilmington','University of Notre Dame','University of Oklahoma','University of Oregon','University of Pennsylvania','University of Pittsburgh','University of South Carolina','University of South Florida','University of Southern California','University of Tennessee','University of Texas at Austin','University of Utah','University of Virginia','University of Washington','University of Wisconsin-Madison','Vanderbilt University','Virginia Tech','Wake Forest University','Wake Technical Community College','Wayne Community College','Western Carolina University','Yale University'];
 
+  // A representative list of common job titles — assistive, not
+  // restrictive, same as the city and university lists above. Covers
+  // both office/professional roles and hourly/trade roles since resumes
+  // built here span a wide range of industries.
+  const JOB_TITLES = ['Account Executive','Account Manager','Accountant','Administrative Assistant','Automotive Technician','Bank Teller','Barista','Bartender','Bookkeeper','Business Analyst','Cashier','Chef','Chief Executive Officer','Chief Financial Officer','Chief Operating Officer','Civil Engineer','Client Services Manager','Construction Manager','Construction Worker','Content Writer','Cook','Customer Service Representative','Customer Success Manager','Data Analyst','Data Entry Clerk','Delivery Driver','Dental Assistant','Dental Hygienist','Digital Marketing Manager','Director of Operations','Dispatcher','Electrician','Executive Assistant','Field Technician','Financial Advisor','Financial Analyst','Forklift Operator','General Manager','Graphic Designer','Home Health Aide','Housekeeper','Human Resources Coordinator','Human Resources Manager','HVAC Technician','Insurance Agent','IT Support Specialist','Landscaper','Legal Assistant','Line Cook','Loan Officer','Logistics Coordinator','Machine Operator','Maintenance Technician','Marketing Coordinator','Marketing Manager','Mechanic','Medical Assistant','Nurse Practitioner','Office Assistant','Office Manager','Operations Manager','Paralegal','Payroll Specialist','Personal Trainer','Pharmacy Technician','Physical Therapist','Plumber','Police Officer','Product Manager','Production Supervisor','Project Coordinator','Project Manager','Property Manager','Purchasing Agent','Quality Assurance Specialist','Real Estate Agent','Receptionist','Recruiter','Registered Nurse','Regional Manager','Restaurant Manager','Retail Sales Associate','Sales Associate','Sales Manager','Sales Representative','Security Guard','Server','Social Media Manager','Software Engineer','Store Manager','Substitute Teacher','Supply Chain Manager','Teacher','Truck Driver','Vice President','Warehouse Associate','Warehouse Supervisor','Web Developer'];
+
+  // Common degree/program combinations. Free text always works too —
+  // this just makes the common cases (Associate/Bachelor's/Master's in
+  // a common field) one click instead of typing the whole thing.
+  const DEGREES_PROGRAMS = ['High School Diploma','GED','Associate of Arts','Associate of Science','Associate of Applied Science','Associate Degree in Business','Associate Degree in Business Administration','Associate Degree in Nursing','Associate Degree in Criminal Justice','Associate Degree in Information Technology','Associate Degree in Early Childhood Education','Bachelor of Arts','Bachelor of Science','Bachelor of Arts in Communication','Bachelor of Arts in Psychology','Bachelor of Arts in English','Bachelor of Science in Business Administration','Bachelor of Science in Computer Science','Bachelor of Science in Nursing','Bachelor of Science in Accounting','Bachelor of Science in Marketing','Bachelor of Science in Criminal Justice','Bachelor of Science in Finance','Bachelor of Business Administration','Bachelor of Fine Arts','Bachelor of Engineering','Master of Business Administration (MBA)','Master of Science','Master of Arts','Master of Education','Master of Public Health','Master of Public Administration','Master of Social Work','Master of Science in Nursing','Master of Science in Computer Science','Doctor of Philosophy (PhD)','Doctor of Medicine (MD)','Doctor of Nursing Practice (DNP)','Juris Doctor (JD)','Professional Certificate','Trade Certification'];
+
   // Single shared dropdown reused across the main Location field and every
   // Experience/Education location field — one floating box moved to <body>,
   // repositioned to whichever input is currently focused. Using one shared
@@ -1459,6 +1472,11 @@
     updatePreview();
   });
 
+  attachLocationAutocomplete(document.getElementById('jobTitle'), JOB_TITLES, () => {
+    autoSave();
+    updatePreview();
+  });
+
   function createExperienceItem(data = {}) {
     state.experienceCount += 1;
     const id = state.experienceCount;
@@ -1474,7 +1492,9 @@
       <div class="field-grid">
         <div class="field">
           <label>Job title</label>
-          <input class="exp-title" type="text" placeholder="Account Manager" value="${escapeHtml(data.title)}">
+          <div class="suggest-wrap">
+            <input class="exp-title" type="text" placeholder="Account Manager" value="${escapeHtml(data.title)}" autocomplete="off">
+          </div>
           <div class="field-error exp-title-error"></div>
         </div>
 
@@ -1563,6 +1583,11 @@
     validateExperienceOrgFields();
     item._validateOrgFields = validateExperienceOrgFields;
 
+    attachLocationAutocomplete(titleInput, JOB_TITLES, () => {
+      validateExperienceOrgFields();
+      handleChange();
+    });
+
     const startPicker = wireMonthYearPicker(item, 'exp-start');
     const endPicker = wireMonthYearPicker(item, 'exp-end');
 
@@ -1611,7 +1636,9 @@
 
         <div class="field">
           <label>Degree or program</label>
-          <input class="edu-degree" type="text" placeholder="Associate Degree in Business" value="${escapeHtml(data.degree)}">
+          <div class="suggest-wrap">
+            <input class="edu-degree" type="text" placeholder="Associate Degree in Business" value="${escapeHtml(data.degree)}" autocomplete="off">
+          </div>
         </div>
 
         <div class="field">
@@ -1675,6 +1702,11 @@
     item._validateSchoolField = validateSchoolField;
 
     attachLocationAutocomplete(schoolInput, US_UNIVERSITIES, () => {
+      validateSchoolField();
+      handleChange();
+    });
+
+    attachLocationAutocomplete(item.querySelector('.edu-degree'), DEGREES_PROGRAMS, () => {
       validateSchoolField();
       handleChange();
     });
