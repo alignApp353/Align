@@ -239,6 +239,53 @@ nav{
   text-decoration:underline;
 }
 
+.name-change-form{
+  margin-top:12px;
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+}
+
+.name-change-form input{
+  flex:1;
+  min-width:160px;
+  padding:9px 12px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  font-size:14px;
+  font-family:'DM Sans', sans-serif;
+  outline:none;
+}
+
+.name-change-form input:focus{
+  border-color:var(--brand);
+}
+
+.name-change-submit{
+  background:var(--brand);
+  color:white;
+  border:none;
+  border-radius:100px;
+  padding:9px 18px;
+  font-size:13px;
+  font-weight:500;
+  font-family:'DM Sans', sans-serif;
+  cursor:pointer;
+  transition:opacity .2s;
+  white-space:nowrap;
+}
+
+.name-change-submit:hover{ opacity:0.88; }
+.name-change-submit:disabled{ opacity:0.6; cursor:not-allowed; }
+
+.name-change-status{
+  width:100%;
+  font-size:12px;
+  color:var(--text-muted);
+  margin-top:2px;
+}
+
 [contenteditable="true"]{
   outline:none;
   border-radius:6px;
@@ -671,7 +718,15 @@ select.form-input{
 
     <div class="profile-info">
       <h1 id="profile-name" data-placeholder="Your name"></h1>
-      <p class="name-lock-note">Need to change your name? <a href="contact.html">Contact support</a>.</p>
+      <p class="name-lock-note">
+        <a href="#" id="name-change-toggle" onclick="toggleNameChangeForm(); return false;">Change your name</a>
+      </p>
+
+      <div class="name-change-form" id="name-change-form" style="display:none;">
+        <input type="text" id="name-change-input" placeholder="New name" maxlength="60" />
+        <button type="button" class="name-change-submit" id="name-change-submit" onclick="submitNameChange()">Send confirmation email</button>
+        <p class="name-change-status" id="name-change-status"></p>
+      </div>
     </div>
   </div>
 
@@ -773,6 +828,67 @@ const resumeLabel = document.getElementById('resume-card-label');
 const resumeSub = document.getElementById('resume-card-sub');
 const resumeReplaceLink = document.getElementById('resume-replace-link');
 let currentResumeFilePath = null;
+
+function toggleNameChangeForm() {
+  const form = document.getElementById('name-change-form');
+  const isOpen = form.style.display !== 'none';
+  form.style.display = isOpen ? 'none' : 'flex';
+  if (!isOpen) document.getElementById('name-change-input').focus();
+}
+
+async function submitNameChange() {
+  const input = document.getElementById('name-change-input');
+  const status = document.getElementById('name-change-status');
+  const btn = document.getElementById('name-change-submit');
+  const newName = input.value.trim();
+
+  if (newName.length < 2) {
+    status.textContent = 'Enter a name with at least 2 characters.';
+    status.style.color = '#a05858';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  status.textContent = '';
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      status.textContent = 'Please sign in again and retry.';
+      status.style.color = '#a05858';
+      return;
+    }
+
+    const res = await fetch(SUPABASE_URL + '/functions/v1/request-name-change', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token,
+      },
+      body: JSON.stringify({ newName }),
+    });
+
+    const result = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      status.textContent = result.error || 'Could not send confirmation email. Please try again.';
+      status.style.color = '#a05858';
+      return;
+    }
+
+    status.textContent = 'Check your email — click the link there to confirm the change.';
+    status.style.color = '#2d8a57';
+    input.value = '';
+  } catch (err) {
+    console.error('submitNameChange error:', err);
+    status.textContent = 'Something went wrong. Please try again.';
+    status.style.color = '#a05858';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send confirmation email';
+  }
+}
 
 function showPage(){
   loadingEl.classList.add('hide');
