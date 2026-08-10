@@ -9,6 +9,21 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  const preference =
+    localStorage.getItem('alygnnEmployerTheme') ||
+    localStorage.getItem('alygnnTheme') ||
+    'auto';
+  const dark = preference === 'dark' ||
+    (preference === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  document.querySelector('meta[name="theme-color"]')?.setAttribute(
+    'content',
+    dark ? '#07121D' : '#F6F8F7'
+  );
+})();
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
 :root{--brand:#5D7FA3;--dark:#345F91;--sage:#8CB69B;--bg:#F6F8F7;--card:#fff;--text:#172333;--muted:#59697A;--border:#DDE3E8;--danger:#B64040;--danger-bg:#FCEDED;--success:#18794E;--success-bg:#E8F6EE}
@@ -19,12 +34,35 @@
 .progress-card{margin-top:18px;padding:16px;border:1px solid #CAD9E7;border-radius:20px;background:#EDF3F9}.progress-top{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;font-weight:900;color:var(--dark)}.progress-track{height:8px;margin-top:10px;border-radius:999px;background:#DCE6EF;overflow:hidden}.progress-fill{height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,var(--dark),var(--sage));transition:width .25s ease}.progress-copy{margin-top:10px;color:#425B73;font-size:11px;line-height:1.5;font-weight:700}
 .card{margin-top:16px;padding:18px 16px;background:var(--card);border:1px solid var(--border);border-radius:21px}.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.card h2{font-size:16px}.sub{margin-top:4px;color:var(--muted);font-size:11px;line-height:1.45}.imported{display:inline-flex;align-items:center;gap:6px;margin-top:9px;padding:6px 9px;border-radius:999px;background:var(--success-bg);color:var(--success);font-size:9px;font-weight:900}.imported:before{content:'';width:7px;height:7px;border-radius:50%;background:var(--success)}
 .edit-btn{border:0;background:transparent;color:var(--dark);font-size:11px;font-weight:900}.review-list{display:grid;gap:13px;margin-top:16px}.review-item{padding-bottom:13px;border-bottom:1px solid var(--border)}.review-item:last-child{padding-bottom:0;border-bottom:0}.review-label{font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.6px}.review-value{margin-top:5px;font-size:13px;font-weight:800;line-height:1.55;white-space:pre-wrap;word-break:break-word}.empty{color:var(--muted);font-weight:600}
-.edit-panel{display:none;margin-top:16px;padding-top:15px;border-top:1px solid var(--border)}.edit-panel.open{display:block}.field{margin-top:15px}.field:first-child{margin-top:0}label{display:block;margin-bottom:8px;font-size:12px;font-weight:900}.input,.textarea{width:100%;border:1px solid var(--border);border-radius:15px;background:#fff;color:var(--text);outline:none;font-size:14px}.input{min-height:52px;padding:0 13px}.textarea{min-height:116px;padding:13px;resize:vertical;line-height:1.55}.input:focus,.textarea:focus{border-color:var(--dark);box-shadow:0 0 0 4px rgba(52,95,145,.10)}.field-help{margin-top:7px;color:var(--muted);font-size:11px;line-height:1.45}.edit-actions{display:flex;justify-content:flex-end;margin-top:10px}.done-btn{min-height:40px;padding:0 14px;border:0;border-radius:12px;background:var(--dark);color:#fff;font-size:11px;font-weight:900}
-.question-card{margin-top:16px;padding:19px 16px;background:#fff;border:1px solid var(--border);border-radius:21px}.question-card h2{font-size:18px}.question{margin-top:19px}.question:first-of-type{margin-top:17px}.question .textarea{min-height:108px}.optional{color:var(--muted);font-size:10px;font-weight:700}
+.edit-panel{display:none}.card.editing .review-list{display:none}.card.editing .imported{display:none}.card.editing .edit-panel{display:block;margin-top:14px;padding-top:0;border-top:0}.card.editing .card-head{margin-bottom:4px}.field{margin-top:15px}.field:first-child{margin-top:0}label{display:block;margin-bottom:8px;font-size:12px;font-weight:900}.input,.textarea{width:100%;border:1px solid var(--border);border-radius:15px;background:#fff;color:var(--text);outline:none;font-size:14px}.input{min-height:52px;padding:0 13px}.textarea{min-height:116px;padding:13px;resize:vertical;line-height:1.55}.input:focus,.textarea:focus{border-color:var(--dark);box-shadow:0 0 0 4px rgba(52,95,145,.10)}.field-help{margin-top:7px;color:var(--muted);font-size:11px;line-height:1.45}.suggest-wrap{position:relative}.suggestions{display:none;position:absolute;z-index:80;top:calc(100% + 7px);left:0;right:0;max-height:235px;overflow:auto;border:1px solid var(--border);border-radius:15px;background:var(--card);box-shadow:0 18px 42px rgba(10,24,38,.18)}.suggestions.show{display:block}.suggestion{width:100%;min-height:46px;padding:11px 14px;border:0;border-bottom:1px solid var(--border);border-radius:0;background:var(--card);color:var(--text);text-align:left;font-size:12px;font-weight:800}.suggestion:last-child{border-bottom:0}.suggestion:hover,.suggestion:focus{background:#EDF3F8;color:var(--dark);outline:none}html[data-theme="dark"] .suggestion:hover,html[data-theme="dark"] .suggestion:focus{background:#15283A;color:#8EB5DF}.edit-actions{display:flex;justify-content:flex-end;margin-top:10px}.done-btn{min-height:40px;padding:0 14px;border:0;border-radius:12px;background:var(--dark);color:#fff;font-size:11px;font-weight:900}
+.question-card{margin-top:16px;padding:19px 16px;background:#fff;border:1px solid var(--border);border-radius:21px}.question-card h2{font-size:18px}.question{margin-top:19px}.question:first-of-type{margin-top:17px}.question .textarea{min-height:108px}.optional{color:var(--muted);font-size:10px;font-weight:700}.option-grid{display:flex;flex-wrap:wrap;gap:9px;margin-top:9px}.option-chip{min-height:42px;padding:10px 14px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--text);font-size:12px;font-weight:800;transition:.16s ease}.option-chip:hover{border-color:#AFC0D2}.option-chip.selected{border-color:var(--dark);background:#EDF3F8;color:var(--dark);box-shadow:0 0 0 2px rgba(52,95,145,.07)}.option-chip:disabled:not(.selected){opacity:.42;cursor:not-allowed}.selection-line{display:flex;align-items:center;justify-content:space-between;gap:10px}.selection-count{color:var(--muted);font-size:10px;font-weight:800}.other-input{margin-top:11px}.choice-note{margin-top:8px;color:var(--muted);font-size:10px;line-height:1.45}
 .message{display:none;margin-top:16px;padding:12px 14px;border-radius:14px;font-size:12px;font-weight:800;line-height:1.45}.message.error{display:block;color:var(--danger);background:var(--danger-bg)}.message.success{display:block;color:var(--success);background:var(--success-bg)}
 .footer{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);backdrop-filter:blur(18px);border-top:1px solid var(--border)}.save{display:block;width:min(100%,580px);min-height:54px;margin:auto;border:0;border-radius:16px;background:var(--dark);color:#fff;font-size:13px;font-weight:900}.save:disabled{opacity:.6}
 .loading{position:fixed;inset:0;z-index:100;background:rgba(246,248,247,.97);display:grid;place-items:center}.spinner{width:42px;height:42px;margin:auto;border:4px solid #E0E6EA;border-top-color:var(--dark);border-radius:50%;animation:spin .75s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.loading-copy{margin-top:12px;color:var(--muted);font-size:12px;font-weight:800}
 .success-screen{min-height:calc(100vh - 100px);display:grid;place-items:center;text-align:center}.success-box{width:100%;padding:30px 22px;background:#fff;border:1px solid var(--border);border-radius:26px}.success-mark{width:68px;height:68px;margin:auto;border-radius:22px;display:grid;place-items:center;background:var(--success-bg);color:var(--success);font-size:32px;font-weight:900}.success-box h1{margin-top:18px}.success-box p{margin-top:10px;color:var(--muted);font-size:13px;line-height:1.55}.benefit-list{margin-top:18px;display:grid;gap:10px;text-align:left}.benefit{padding:12px 13px;border:1px solid var(--border);border-radius:14px;font-size:12px;font-weight:800}.continue-btn{width:100%;min-height:52px;margin-top:20px;border:0;border-radius:15px;background:var(--dark);color:#fff;font-weight:900}
+
+html[data-theme="dark"]{
+  --bg:#07121D;--card:#101C29;--text:#F5F7FA;--muted:#AAB6C4;--border:#2B3A4B;
+  --danger:#FF9B9B;--danger-bg:#321C22;--success:#7AD5A5;--success-bg:#102C22;
+}
+html[data-theme="dark"] body{background:var(--bg);color:var(--text)}
+html[data-theme="dark"] .header{background:rgba(7,18,29,.96)}
+html[data-theme="dark"] .back,
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .question-card,
+html[data-theme="dark"] .input,
+html[data-theme="dark"] .textarea,
+html[data-theme="dark"] .option-chip,
+html[data-theme="dark"] .success-box,
+html[data-theme="dark"] .benefit{background:var(--card);color:var(--text)}
+html[data-theme="dark"] .progress-card{background:#102131;border-color:#29465E}
+html[data-theme="dark"] .progress-copy{color:#AAB6C4}
+html[data-theme="dark"] .progress-track{background:#263545}
+html[data-theme="dark"] .option-chip.selected{background:#15283A;color:#8EB5DF;border-color:#5D7FA3}
+html[data-theme="dark"] .footer{background:rgba(7,18,29,.97)}
+html[data-theme="dark"] .loading{background:rgba(7,18,29,.97)}
+html[data-theme="dark"] .spinner{border-color:#2B3A4B;border-top-color:#8EB5DF}
+
 </style>
 </head>
 <body>
@@ -51,8 +89,8 @@
         <div class="review-item"><div class="review-label">Company description</div><div class="review-value" id="view-description"></div></div>
       </div>
       <div class="edit-panel" id="edit-company">
-        <div class="field"><label for="company-name">Company name</label><input class="input" id="company-name" maxlength="160"></div>
-        <div class="field"><label for="industry">Industry</label><input class="input" id="industry" maxlength="120"></div>
+        <div class="field"><label for="company-name">Company name</label><input class="input" id="company-name" maxlength="160" readonly aria-readonly="true"><div class="field-help">Company names are locked after the workspace is created.</div></div>
+        <div class="field suggest-wrap"><label for="industry">Industry</label><input class="input" id="industry" maxlength="120" autocomplete="off" placeholder="Start typing, e.g. Consulting"><div id="industry-suggestions" class="suggestions" role="listbox"></div><div class="field-help">Choose a suggestion or keep typing if your industry is not listed.</div></div>
         <div class="field"><label for="website">Website</label><input class="input" id="website" maxlength="240" inputmode="url"></div>
         <div class="field"><label for="description">Company description</label><textarea class="textarea" id="description" maxlength="2000"></textarea></div>
         <div class="edit-actions"><button class="done-btn" type="button" data-done="company">Done</button></div>
@@ -66,8 +104,16 @@
         <div class="review-item"><div class="review-label">Company strengths</div><div class="review-value" id="view-strengths"></div></div>
       </div>
       <div class="edit-panel" id="edit-personality">
-        <div class="field"><label for="voice">Company voice</label><input class="input" id="voice" placeholder="Professional, direct, energetic"></div>
-        <div class="field"><label for="strengths">Company strengths</label><textarea class="textarea" id="strengths" placeholder="Enter one per line or separate with commas"></textarea></div>
+        <div class="field">
+          <div class="selection-line"><label>Company voice</label><span class="selection-count" id="voice-count">0 of 3 selected</span></div>
+          <div class="option-grid" id="voice-options"></div>
+          <input type="hidden" id="voice">
+        </div>
+        <div class="field">
+          <div class="selection-line"><label>Company strengths</label><span class="selection-count" id="strength-count">0 selected</span></div>
+          <div class="option-grid" id="strength-options"></div>
+          <input type="hidden" id="strengths">
+        </div>
         <div class="edit-actions"><button class="done-btn" type="button" data-done="personality">Done</button></div>
       </div>
     </section>
@@ -80,9 +126,10 @@
       </div>
       <div class="edit-panel" id="edit-hiring">
         <div class="field">
-          <label for="priorities">Hiring priorities</label>
-          <input class="input" id="priorities" maxlength="500" placeholder="Communication, culture fit, technical skills">
-          <div class="field-help">Separate priorities with commas. Alygnn will create the summary automatically.</div>
+          <div class="selection-line"><label>Hiring priorities</label><span class="selection-count" id="priority-count">0 selected</span></div>
+          <div class="option-grid" id="priority-options"></div>
+          <div class="choice-note">Tap the qualities that matter most. Alygnn will create the summary automatically.</div>
+          <input type="hidden" id="priorities">
         </div>
         <input type="hidden" id="ai-summary">
         <div class="edit-actions"><button class="done-btn" type="button" data-done="hiring">Done</button></div>
@@ -92,8 +139,18 @@
     <section class="question-card">
       <h2>Help Alygnn Learn More</h2>
       <p class="sub">Only answer the information Alygnn has not already collected.</p>
-      <div class="question"><label for="success-qualities">What qualities make someone successful at your company?</label><textarea class="textarea" id="success-qualities" maxlength="1800" placeholder="For example: coachable, reliable, competitive, organized, and comfortable receiving feedback."></textarea></div>
-      <div class="question"><label for="unsuccessful-qualities">What qualities usually make someone unsuccessful?</label><textarea class="textarea" id="unsuccessful-qualities" maxlength="1800" placeholder="For example: poor communication, low accountability, or difficulty working in a fast-paced environment."></textarea></div>
+      <div class="question">
+        <div class="selection-line"><label>What qualities make someone successful at your company?</label><span class="selection-count" id="success-count">0 selected</span></div>
+        <div class="option-grid" id="success-options"></div>
+        <input class="input other-input" id="success-other" maxlength="500" placeholder="Other qualities (optional)">
+        <input type="hidden" id="success-qualities">
+      </div>
+      <div class="question">
+        <div class="selection-line"><label>What qualities usually make someone unsuccessful?</label><span class="selection-count" id="unsuccessful-count">0 selected</span></div>
+        <div class="option-grid" id="unsuccessful-options"></div>
+        <input class="input other-input" id="unsuccessful-other" maxlength="500" placeholder="Other qualities (optional)">
+        <input type="hidden" id="unsuccessful-qualities">
+      </div>
       <div class="question"><label for="hiring-philosophy">Is there anything unique about your hiring philosophy? <span class="optional">Optional</span></label><textarea class="textarea" id="hiring-philosophy" maxlength="1800" placeholder="Tell Alygnn how your team evaluates potential, experience, culture fit, or growth mindset."></textarea></div>
       <div class="question"><label for="additional-context">Anything else Alygnn should know? <span class="optional">Optional</span></label><textarea class="textarea" id="additional-context" maxlength="1800" placeholder="Add any company-wide context that should guide job writing, matching, and interview recommendations."></textarea></div>
     </section>
@@ -121,7 +178,121 @@ const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh
 const $=id=>document.getElementById(id);let session=null;
 const asArray=value=>Array.isArray(value)?value:(typeof value==='string'?value.split(/\n|,/).map(v=>v.trim()).filter(Boolean):[]);
 const first=(...values)=>values.find(v=>v!==undefined&&v!==null&&String(v).trim()!=='')||'';
+const INDUSTRIES=[
+  'Accounting','Advertising and Marketing','Agriculture','Architecture and Design','Automotive',
+  'Banking','Biotechnology','Construction','Consulting','Consumer Services','Education',
+  'Energy and Utilities','Engineering','Entertainment and Media','Financial Services',
+  'Food and Beverage','Government','Healthcare','Hospitality','Human Resources and Staffing',
+  'Insurance','Legal Services','Logistics and Transportation','Manufacturing','Nonprofit',
+  'Pharmaceuticals','Professional Services','Real Estate','Retail','Software and Technology',
+  'Telecommunications','Travel and Tourism','Wholesale','Wireless Services','Internet Service Provider',
+  'Fiber Optics','Network Infrastructure','Telecommunications Equipment'
+];
+
+function setupIndustrySuggestions(){
+  const input=$('industry');
+  const box=$('industry-suggestions');
+  if(!input||!box)return;
+
+  const renderSuggestions=()=>{
+    const query=input.value.trim().toLowerCase();
+    const matches=INDUSTRIES
+      .filter(value=>!query||value.toLowerCase().includes(query))
+      .slice(0,10);
+
+    if(!matches.length){
+      box.classList.remove('show');
+      box.innerHTML='';
+      return;
+    }
+
+    box.innerHTML=matches.map(value=>
+      `<button type="button" class="suggestion" data-industry="${value.replace(/"/g,'&quot;')}">${value}</button>`
+    ).join('');
+    box.classList.add('show');
+  };
+
+  input.addEventListener('focus',renderSuggestions);
+  input.addEventListener('input',renderSuggestions);
+
+  box.addEventListener('click',event=>{
+    const button=event.target.closest('[data-industry]');
+    if(!button)return;
+    input.value=button.dataset.industry;
+    box.classList.remove('show');
+    input.dispatchEvent(new Event('input',{bubbles:true}));
+    render();
+  });
+
+  document.addEventListener('click',event=>{
+    if(!event.target.closest('.suggest-wrap'))box.classList.remove('show');
+  });
+}
+
 const showValue=(id,value)=>{$(id).textContent=value||'Not added';$(id).classList.toggle('empty',!value)};
+const CHOICES={
+  voice:['Professional','Friendly','Modern','Direct','Formal','Energetic'],
+  strengths:['Career Growth','Company Culture','Learning & Development','Competitive Pay','Performance & Recognition','Meaningful Work','Innovation','Work-Life Balance'],
+  priorities:['Communication','Culture Fit','Technical Skills','Soft Skills','Experience','Reliability','Leadership','Availability'],
+  success:['Coachable','Reliable','Ambitious','Organized','Competitive','Professional','Friendly','Independent','Team-oriented','Detail-oriented','Strong communicator','Problem solver'],
+  unsuccessful:['Poor communication','Low accountability','Resistant to feedback','Unreliable','Negative attitude','Unprofessional','Disorganized','Poor teamwork','Lacks initiative','Inflexible','Not coachable','Misses deadlines']
+};
+const LIMITS={voice:3,strengths:5,priorities:5,success:6,unsuccessful:6};
+const selectedChoices={
+  voice:new Set(),strengths:new Set(),priorities:new Set(),success:new Set(),unsuccessful:new Set()
+};
+const choiceConfig={
+  voice:{container:'voice-options',field:'voice',count:'voice-count',label:'selected'},
+  strengths:{container:'strength-options',field:'strengths',count:'strength-count',label:'selected'},
+  priorities:{container:'priority-options',field:'priorities',count:'priority-count',label:'selected'},
+  success:{container:'success-options',field:'success-qualities',count:'success-count',label:'selected',other:'success-other'},
+  unsuccessful:{container:'unsuccessful-options',field:'unsuccessful-qualities',count:'unsuccessful-count',label:'selected',other:'unsuccessful-other'}
+};
+function sameChoice(a,b){return String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase()}
+function canonicalChoice(key,value){return CHOICES[key].find(option=>sameChoice(option,value))||''}
+function combinedChoiceValues(key){
+  const values=[...selectedChoices[key]];
+  const otherId=choiceConfig[key].other;
+  const other=otherId?$(otherId).value.trim():'';
+  if(other)values.push(other);
+  return values;
+}
+function syncChoiceField(key){
+  const config=choiceConfig[key];
+  $(config.field).value=combinedChoiceValues(key).join(', ');
+  const count=selectedChoices[key].size;
+  const max=LIMITS[key];
+  $(config.count).textContent=key==='voice'?`${count} of ${max} selected`:`${count} selected`;
+}
+function renderChoiceGroup(key){
+  const config=choiceConfig[key];
+  const container=$(config.container);
+  const max=LIMITS[key];
+  const reached=selectedChoices[key].size>=max;
+  container.innerHTML=CHOICES[key].map(option=>{
+    const selected=selectedChoices[key].has(option);
+    return `<button type="button" class="option-chip${selected?' selected':''}" data-choice-key="${key}" data-choice-value="${option}" ${reached&&!selected?'disabled':''}>${option}</button>`;
+  }).join('');
+  syncChoiceField(key);
+}
+function renderAllChoiceGroups(){Object.keys(choiceConfig).forEach(renderChoiceGroup)}
+function setChoiceValues(key,values){
+  selectedChoices[key].clear();
+  const unmatched=[];
+  asArray(values).forEach(value=>{
+    const canonical=canonicalChoice(key,value);
+    if(canonical&&selectedChoices[key].size<LIMITS[key])selectedChoices[key].add(canonical);
+    else if(value&&!canonical)unmatched.push(value);
+  });
+  const otherId=choiceConfig[key].other;
+  if(otherId)$(otherId).value=unmatched.join(', ');
+  renderChoiceGroup(key);
+}
+function refreshFromChoices(){
+  Object.keys(choiceConfig).forEach(syncChoiceField);
+  render();
+}
+
 function showMessage(text,type='error'){$('message').textContent=text;$('message').className='message '+type}
 function clearMessage(){$('message').textContent='';$('message').className='message'}
 function fieldHasValue(value){
@@ -221,29 +392,43 @@ function normalizedName(value){
 function recordForCurrentCompany(record,companyId,companyName){
   if(!record||typeof record!=='object')return {};
 
-  if(record.user_id&&record.user_id!==session.user.id)return {};
+  if(record.user_id&&String(record.user_id)!==String(session.user.id))return {};
 
-  if(companyId&&record.company_id){
-    return String(record.company_id)===String(companyId)?record:{};
+  if(companyId&&record.company_id&&String(record.company_id)!==String(companyId)){
+    return {};
   }
 
-  if(companyName&&record.company_name){
-    return normalizedName(record.company_name)===normalizedName(companyName)?record:{};
+  if(
+    companyName &&
+    record.company_name &&
+    normalizedName(record.company_name)!==normalizedName(companyName)
+  ){
+    return {};
   }
 
-  // Old unscoped records are intentionally ignored so one employer/company
-  // can never inherit another company's information.
-  return {};
+  // Auth metadata belongs to the currently signed-in user, so older records
+  // without user_id/company_id are still safe to load for that same user.
+  return record;
 }
 
 function applyData(data){
   const meta=session?.user?.user_metadata||{};
-  const companyId=first(data.companyId,data.verification?.company_id);
+  const params=new URLSearchParams(location.search);
+  const companyId=first(
+    params.get('company_id'),
+    data.companyId,
+    data.verification?.company_id,
+    sessionStorage.getItem('alygnn_company_id')
+  );
   const companyName=first(
     data.company?.company_name,
     data.company?.legal_name,
     data.company?.name,
-    data.verification?.company_name
+    data.verification?.company_name,
+    data.profile?.company_name,
+    meta.onboarding_company_profile?.company_name,
+    meta.employer_ai_profile?.company_name,
+    meta.company_name
   );
 
   const saved=recordForCurrentCompany(meta.employer_ai_profile,companyId,companyName);
@@ -297,29 +482,29 @@ function applyData(data){
     data.company?.description
   );
 
-  $('voice').value=asArray(first(
+  setChoiceValues('voice',first(
     saved.company_voice,
     saved.voice,
     setup.company_voice,
     verification.company_voice,
     draft.company_voice
-  )).join(', ');
+  ));
 
-  $('strengths').value=asArray(first(
+  setChoiceValues('strengths',first(
     saved.company_strengths,
     saved.company_priorities,
     setup.company_priorities,
     verification.company_priorities,
     draft.company_priorities
-  )).join('\n');
+  ));
 
-  $('priorities').value=asArray(first(
+  setChoiceValues('priorities',first(
     saved.hiring_priorities,
     saved.candidate_priorities,
     setup.candidate_priorities,
     verification.candidate_priorities,
     draft.candidate_priorities
-  )).join(', ');
+  ));
 
   $('ai-summary').value=first(
     saved.ai_summary,
@@ -327,8 +512,8 @@ function applyData(data){
     draft.ai_summary
   );
 
-  $('success-qualities').value=first(saved.success_qualities,saved.ideal_candidate);
-  $('unsuccessful-qualities').value=first(saved.unsuccessful_qualities,saved.deal_breakers);
+  setChoiceValues('success',first(saved.success_qualities,saved.ideal_candidate));
+  setChoiceValues('unsuccessful',first(saved.unsuccessful_qualities,saved.deal_breakers));
   $('hiring-philosophy').value=first(saved.hiring_philosophy);
   $('additional-context').value=first(saved.additional_context,saved.extra_context);
 
@@ -387,16 +572,66 @@ function collect(){return{
   company_id:window.currentEmployerCompanyId||'',
   profile_complete:true,completed_at:new Date().toISOString(),updated_at:new Date().toISOString()
 }}
-[
-  'industry','website','description','voice','strengths','priorities',
-  'success-qualities','unsuccessful-qualities'
-].forEach(id=>{
+['industry','website','description'].forEach(id=>{
   $(id).addEventListener('input',updateProfileProgress);
 });
+['success-other','unsuccessful-other'].forEach(id=>{
+  $(id).addEventListener('input',()=>{
+    refreshFromChoices();
+  });
+});
+document.addEventListener('click',event=>{
+  const button=event.target.closest('[data-choice-key]');
+  if(!button)return;
+  const key=button.dataset.choiceKey;
+  const value=button.dataset.choiceValue;
+  const selected=selectedChoices[key];
+  if(selected.has(value))selected.delete(value);
+  else if(selected.size<LIMITS[key])selected.add(value);
+  renderChoiceGroup(key);
+  render();
+});
 
-document.querySelectorAll('[data-edit]').forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.edit;const panel=$('edit-'+key);panel.classList.toggle('open');button.textContent=panel.classList.contains('open')?'Close':'Edit'}));
-document.querySelectorAll('[data-done]').forEach(button=>button.addEventListener('click',()=>{render();const key=button.dataset.done;$('edit-'+key).classList.remove('open');document.querySelector(`[data-edit="${key}"]`).textContent='Edit'}));
-$('back').onclick=()=>location.href='app-post-job.html';$('continue').onclick=()=>location.href='app-post-job.html';
+function closeAllEditors(){
+  document.querySelectorAll('.card.editing').forEach(card=>card.classList.remove('editing'));
+  document.querySelectorAll('[data-edit]').forEach(button=>button.textContent='Edit');
+}
+
+document.querySelectorAll('[data-edit]').forEach(button=>button.addEventListener('click',()=>{
+  const key=button.dataset.edit;
+  const card=button.closest('.card');
+  const wasOpen=card.classList.contains('editing');
+
+  closeAllEditors();
+
+  if(!wasOpen){
+    card.classList.add('editing');
+    button.textContent='Close';
+    setTimeout(()=>{
+      card.scrollIntoView({behavior:'smooth',block:'start'});
+    },40);
+  }
+}));
+
+document.querySelectorAll('[data-done]').forEach(button=>button.addEventListener('click',()=>{
+  render();
+  const card=button.closest('.card');
+  if(card)card.classList.remove('editing');
+  const key=button.dataset.done;
+  const editButton=document.querySelector(`[data-edit="${key}"]`);
+  if(editButton)editButton.textContent='Edit';
+}));
+function aiProfileReturnTo(){
+  const params=new URLSearchParams(location.search);
+  const requested=params.get('return_to')||sessionStorage.getItem('alygnnAiProfileReturnTo');
+  const allowed=new Set(['app-post-job.html','app-employer-dashboard.html']);
+  return allowed.has(requested)?requested:'app-employer-dashboard.html';
+}
+$('back').onclick=()=>location.href=aiProfileReturnTo();
+$('continue').onclick=()=>{
+  sessionStorage.removeItem('alygnnAiProfileReturnTo');
+  location.href=aiProfileReturnTo();
+};
 $('save').onclick=async()=>{
   clearMessage();
   render();
@@ -420,7 +655,7 @@ $('save').onclick=async()=>{
   try{
     const existing=session.user.user_metadata||{};
 
-    const {error:metadataError}=await sb.auth.updateUser({
+    const {data:metadataData,error:metadataError}=await sb.auth.updateUser({
       data:{
         ...existing,
         employer_ai_profile:profile,
@@ -430,19 +665,28 @@ $('save').onclick=async()=>{
     });
 
     if(metadataError)throw metadataError;
+    if(metadataData?.user){
+      session={...session,user:metadataData.user};
+    }
 
     // Only update routing columns that exist in employer_verifications.
     // The full AI profile is safely stored in the user's Auth metadata above.
-    const {error:verificationError}=await sb
+    const {data:verificationData,error:verificationError}=await sb
       .from('employer_verifications')
       .update({
+        company_id:profile.company_id||null,
         profile_complete:true,
         blueprint_complete:true,
         updated_at:new Date().toISOString()
       })
-      .eq('user_id',session.user.id);
+      .eq('user_id',session.user.id)
+      .select('user_id')
+      .maybeSingle();
 
     if(verificationError)throw verificationError;
+    if(!verificationData){
+      console.warn('No employer_verifications row was found. The completed AI Profile is still saved to the signed-in user metadata.');
+    }
 
     $('profile-view').hidden=true;
     $('success-screen').hidden=false;
@@ -455,7 +699,33 @@ $('save').onclick=async()=>{
     button.textContent='Confirm & Finish AI Profile';
   }
 };
-(async()=>{try{const {data,error}=await sb.auth.getSession();if(error||!data.session){location.replace('app-employer-login.html');return}session=data.session;const companyData=await loadCompanyData();applyData(companyData)}catch(error){console.error(error);showMessage('Could not load your saved company information. Please try again.')}finally{$('loading').hidden=true}})();
+(async()=>{
+  try{
+    renderAllChoiceGroups();
+    setupIndustrySuggestions();
+
+    const {data,error}=await sb.auth.getSession();
+    if(error||!data.session){
+      location.replace('app-employer-login.html');
+      return;
+    }
+
+    session=data.session;
+
+    const {data:userData,error:userError}=await sb.auth.getUser();
+    if(!userError&&userData?.user){
+      session={...session,user:userData.user};
+    }
+
+    const companyData=await loadCompanyData();
+    applyData(companyData);
+  }catch(error){
+    console.error(error);
+    showMessage('Could not load your saved company information. Please try again.');
+  }finally{
+    $('loading').hidden=true;
+  }
+})();
 </script>
 </body>
 </html>
