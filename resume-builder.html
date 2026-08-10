@@ -223,6 +223,65 @@
     grid-column: 1 / -1;
   }
 
+  .field-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: -2px;
+  }
+
+  .field-hint.error {
+    color: #a05858;
+    font-weight: 500;
+  }
+
+  input.invalid {
+    border-color: #D79A9A !important;
+  }
+
+  .suggest-wrap {
+    position: relative;
+  }
+
+  .location-suggestions {
+    display: none;
+    position: absolute;
+    z-index: 60;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card-bg, #fff);
+    box-shadow: 0 16px 38px rgba(23,35,51,.14);
+  }
+
+  .location-suggestions.show {
+    display: block;
+  }
+
+  .location-suggestion {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 14px;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--card-bg, #fff);
+    color: var(--text);
+    text-align: left;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .location-suggestion:last-child {
+    border-bottom: 0;
+  }
+
+  .location-suggestion:hover {
+    background: rgba(93,127,163,0.08);
+  }
+
   label {
     color: var(--text);
     font-size: 13px;
@@ -914,7 +973,11 @@
 
             <div class="field">
               <label for="location">Location</label>
-              <input id="location" type="text" placeholder="Raleigh, NC">
+              <div class="suggest-wrap">
+                <input id="location" type="text" placeholder="Raleigh, NC" autocomplete="off">
+                <div id="location-suggestions" class="location-suggestions"></div>
+              </div>
+              <p class="field-hint" id="location-hint">Format: City, State (e.g. Raleigh, NC)</p>
             </div>
           </div>
         </div>
@@ -1164,6 +1227,93 @@
     errorElement.textContent = message;
     errorElement.classList.toggle('show', Boolean(message));
   }
+
+  // Requires "City, ST" — a real city name (letters, spaces, periods,
+  // hyphens, apostrophes only) followed by a 2-letter US state code.
+  // This is what stops garbage like "Durham,sankckD" from being saved
+  // as if it were a real location.
+  function isValidLocation(value) {
+    const cleaned = value.trim();
+    const match = cleaned.match(/^([A-Za-z][A-Za-z .'-]{1,48}),\s*([A-Za-z]{2})$/);
+    if (!match) return false;
+    const state = match[2].toUpperCase();
+    return US_STATE_CODES.has(state);
+  }
+
+  const US_STATE_CODES = new Set([
+    'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
+    'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+    'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT',
+    'VA','WA','WV','WI','WY','DC','PR'
+  ]);
+
+  function validateLocationField() {
+    const locationInput = document.getElementById('location');
+    const hint = document.getElementById('location-hint');
+    const value = locationInput.value.trim();
+
+    if (!value) {
+      locationInput.classList.remove('invalid');
+      hint.textContent = 'Format: City, State (e.g. Raleigh, NC)';
+      hint.classList.remove('error');
+      return;
+    }
+
+    if (!isValidLocation(value)) {
+      locationInput.classList.add('invalid');
+      hint.textContent = 'Enter a real location as "City, State" (e.g. Raleigh, NC).';
+      hint.classList.add('error');
+    } else {
+      locationInput.classList.remove('invalid');
+      hint.textContent = 'Format: City, State (e.g. Raleigh, NC)';
+      hint.classList.remove('error');
+    }
+  }
+
+  document.getElementById('location').addEventListener('blur', validateLocationField);
+
+  const US_CITIES = ['Albuquerque, NM','Alexandria, VA','Anaheim, CA','Anchorage, AK','Arlington, TX','Arlington, VA','Atlanta, GA','Augusta, GA','Austin, TX','Baltimore, MD','Baton Rouge, LA','Birmingham, AL','Boise, ID','Boston, MA','Buffalo, NY','Burlington, VT','Cary, NC','Charleston, SC','Charlotte, NC','Chattanooga, TN','Chicago, IL','Cincinnati, OH','Cleveland, OH','Colorado Springs, CO','Columbia, SC','Columbus, OH','Dallas, TX','Denver, CO','Des Moines, IA','Detroit, MI','Durham, NC','El Paso, TX','Fayetteville, NC','Fort Lauderdale, FL','Fort Worth, TX','Fresno, CA','Greensboro, NC','Greenville, SC','Hartford, CT','Henderson, NV','Honolulu, HI','Houston, TX','Indianapolis, IN','Irvine, CA','Jackson, MS','Jacksonville, FL','Kansas City, MO','Knoxville, TN','Las Vegas, NV','Lexington, KY','Little Rock, AR','Long Beach, CA','Los Angeles, CA','Louisville, KY','Madison, WI','Memphis, TN','Mesa, AZ','Miami, FL','Milwaukee, WI','Minneapolis, MN','Nashville, TN','New Orleans, LA','New York, NY','Newark, NJ','Norfolk, VA','Oakland, CA','Oklahoma City, OK','Omaha, NE','Orlando, FL','Philadelphia, PA','Phoenix, AZ','Pittsburgh, PA','Plano, TX','Portland, ME','Portland, OR','Providence, RI','Raleigh, NC','Reno, NV','Richmond, VA','Rochester, NY','Sacramento, CA','Salt Lake City, UT','San Antonio, TX','San Diego, CA','San Francisco, CA','San Jose, CA','Savannah, GA','Seattle, WA','St. Louis, MO','St. Petersburg, FL','Syracuse, NY','Tallahassee, FL','Tampa, FL','Toledo, OH','Tucson, AZ','Tulsa, OK','Virginia Beach, VA','Washington, DC','Wilmington, NC','Winston-Salem, NC'];
+
+  (function setupLocationSuggestions() {
+    const input = document.getElementById('location');
+    const box = document.getElementById('location-suggestions');
+
+    function close() {
+      box.classList.remove('show');
+      box.innerHTML = '';
+    }
+
+    function render() {
+      const query = input.value.trim().toLowerCase();
+      if (query.length < 2) return close();
+      const matches = US_CITIES.filter(c => c.toLowerCase().includes(query)).slice(0, 8);
+      if (!matches.length) return close();
+      box.innerHTML = matches.map(c =>
+        `<button type="button" class="location-suggestion">${c}</button>`
+      ).join('');
+      box.classList.add('show');
+    }
+
+    input.addEventListener('input', render);
+
+    box.addEventListener('click', (e) => {
+      const btn = e.target.closest('.location-suggestion');
+      if (!btn) return;
+      input.value = btn.textContent;
+      close();
+      validateLocationField();
+      autoSave();
+      updatePreview();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.suggest-wrap')) close();
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+    });
+  })();
 
   function createExperienceItem(data = {}) {
     state.experienceCount += 1;
@@ -1603,6 +1753,13 @@
     if (!validateSummary()) {
       alert('Please fix your professional summary before continuing.');
       summaryInput.focus();
+      return false;
+    }
+
+    const locationInput = document.getElementById('location');
+    if (locationInput.value.trim() && !isValidLocation(locationInput.value)) {
+      alert('Please enter your location as "City, State" (e.g. Raleigh, NC).');
+      locationInput.focus();
       return false;
     }
 
