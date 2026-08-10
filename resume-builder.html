@@ -1189,16 +1189,35 @@
     if (text.length >= 4 && lettersAndNumbers / text.length < 0.5) return true;
 
     // No real word is 5+ letters with zero vowels — catches things like
-    // "sklcmds" or "consuktjjf" that pass every other check because
-    // they're not repeated characters or keyboard rows. Threshold is 5
-    // (not 4) and 'y' counts as a vowel so real terms like "HTML", "HTTP",
-    // or "MySQL" don't get falsely flagged.
+    // "sklcmds" that pass every other check because they're not repeated
+    // characters or keyboard rows. Threshold is 5 (not 4) and 'y' counts
+    // as a vowel so real terms like "HTML", "HTTP", or "MySQL" don't get
+    // falsely flagged.
     const words = text.split(/\s+/).filter(Boolean);
     const hasVowellessWord = words.some(word => {
       const letters = word.replace(/[^a-z]/gi, '');
       return letters.length >= 5 && !/[aeiouy]/i.test(letters);
     });
     if (hasVowellessWord) return true;
+
+    // English essentially never has 6+ consonants in a row. Threshold is
+    // 6, not 5 — testing found that 5 falsely flagged real words like
+    // "Strengths" (has a 5-consonant run: "ngths"). 6 still catches
+    // clear gibberish like "consuklbnfdk" without blocking real words.
+    const hasLongConsonantRun = words.some(word => {
+      const letters = word.replace(/[^a-z]/gi, '').toLowerCase();
+      let run = 0;
+      for (const ch of letters) {
+        if ('aeiouy'.includes(ch)) {
+          run = 0;
+        } else {
+          run += 1;
+          if (run >= 6) return true;
+        }
+      }
+      return false;
+    });
+    if (hasLongConsonantRun) return true;
 
     return false;
   }
@@ -1356,6 +1375,13 @@
 
   const US_CITIES = ['Albuquerque, NM','Alexandria, VA','Anaheim, CA','Anchorage, AK','Arlington, TX','Arlington, VA','Atlanta, GA','Augusta, GA','Austin, TX','Baltimore, MD','Baton Rouge, LA','Birmingham, AL','Boise, ID','Boston, MA','Buffalo, NY','Burlington, VT','Cary, NC','Charleston, SC','Charlotte, NC','Chattanooga, TN','Chicago, IL','Cincinnati, OH','Cleveland, OH','Colorado Springs, CO','Columbia, SC','Columbus, OH','Dallas, TX','Denver, CO','Des Moines, IA','Detroit, MI','Durham, NC','El Paso, TX','Fayetteville, NC','Fort Lauderdale, FL','Fort Worth, TX','Fresno, CA','Greensboro, NC','Greenville, SC','Hartford, CT','Henderson, NV','Honolulu, HI','Houston, TX','Indianapolis, IN','Irvine, CA','Jackson, MS','Jacksonville, FL','Kansas City, MO','Knoxville, TN','Las Vegas, NV','Lexington, KY','Little Rock, AR','Long Beach, CA','Los Angeles, CA','Louisville, KY','Madison, WI','Memphis, TN','Mesa, AZ','Miami, FL','Milwaukee, WI','Minneapolis, MN','Nashville, TN','New Orleans, LA','New York, NY','Newark, NJ','Norfolk, VA','Oakland, CA','Oklahoma City, OK','Omaha, NE','Orlando, FL','Philadelphia, PA','Phoenix, AZ','Pittsburgh, PA','Plano, TX','Portland, ME','Portland, OR','Providence, RI','Raleigh, NC','Reno, NV','Richmond, VA','Rochester, NY','Sacramento, CA','Salt Lake City, UT','San Antonio, TX','San Diego, CA','San Francisco, CA','San Jose, CA','Savannah, GA','Seattle, WA','St. Louis, MO','St. Petersburg, FL','Syracuse, NY','Tallahassee, FL','Tampa, FL','Toledo, OH','Tucson, AZ','Tulsa, OK','Virginia Beach, VA','Washington, DC','Wilmington, NC','Winston-Salem, NC'];
 
+  // A representative (not exhaustive) list of US colleges/universities —
+  // major national universities, state flagships, and common NC-area
+  // community colleges since that's where a lot of this app's traffic is.
+  // This is assistive, not restrictive: attachLocationAutocomplete never
+  // blocks someone from typing a school that isn't in this list.
+  const US_UNIVERSITIES = ['Appalachian State University','Arizona State University','Auburn University','Baylor University','Boston College','Boston University','Bowdoin College','Brown University','California Institute of Technology','Cape Fear Community College','Carnegie Mellon University','Case Western Reserve University','Central Piedmont Community College','Clemson University','Colgate University','Colorado State University','Columbia University','Cornell University','Dartmouth College','Duke University','Durham Technical Community College','East Carolina University','Emory University','Fayetteville State University','Fayetteville Technical Community College','Florida State University','Georgetown University','George Mason University','Georgia Institute of Technology','Georgia State University','Guilford Technical Community College','Harvard University','Indiana University Bloomington','Iowa State University','Johns Hopkins University','Louisiana State University','Massachusetts Institute of Technology','Miami Dade College','Michigan State University','New York University','North Carolina A&T State University','North Carolina Central University','North Carolina State University','Northeastern University','Northwestern University','Ohio State University','Oregon State University','Penn State University','Pitt Community College','Princeton University','Purdue University','Rice University','Rutgers University','Stanford University','Syracuse University','Temple University','Texas A&M University','The University of Alabama','Tufts University','Tulane University','UC Berkeley','UC Davis','UC Irvine','UC Los Angeles (UCLA)','UC San Diego','UC Santa Barbara','University of Arizona','University of Central Florida','University of Chicago','University of Cincinnati','University of Colorado Boulder','University of Connecticut','University of Delaware','University of Florida','University of Georgia','University of Houston','University of Illinois Urbana-Champaign','University of Iowa','University of Kansas','University of Kentucky','University of Maryland','University of Massachusetts Amherst','University of Miami','University of Michigan','University of Minnesota','University of Missouri','University of Nebraska-Lincoln','University of North Carolina at Chapel Hill','University of North Carolina at Charlotte','University of North Carolina at Greensboro','University of North Carolina Wilmington','University of Notre Dame','University of Oklahoma','University of Oregon','University of Pennsylvania','University of Pittsburgh','University of South Carolina','University of South Florida','University of Southern California','University of Tennessee','University of Texas at Austin','University of Utah','University of Virginia','University of Washington','University of Wisconsin-Madison','Vanderbilt University','Virginia Tech','Wake Forest University','Wake Technical Community College','Wayne Community College','Western Carolina University','Yale University'];
+
   // Single shared dropdown reused across the main Location field and every
   // Experience/Education location field — one floating box moved to <body>,
   // repositioned to whichever input is currently focused. Using one shared
@@ -1382,21 +1408,25 @@
   function renderLocationSuggestions(input) {
     const query = input.value.trim().toLowerCase();
     if (query.length < 2) return closeLocationSuggestions();
-    const matches = US_CITIES.filter(c => c.toLowerCase().includes(query)).slice(0, 8);
+    const list = input._suggestionList || US_CITIES;
+    const matches = list.filter(c => c.toLowerCase().includes(query)).slice(0, 8);
     if (!matches.length) return closeLocationSuggestions();
     activeLocationInput = input;
     positionLocationSuggestions();
     locationSuggestBox.innerHTML = matches.map(c =>
-      `<button type="button" class="location-suggestion">${c}</button>`
+      `<button type="button" class="location-suggestion">${escapeHtml(c)}</button>`
     ).join('');
     locationSuggestBox.classList.add('show');
   }
 
-  // Call this on the main Location field and on every dynamically-created
-  // Experience/Education location field so they all get the same dropdown.
-  function attachLocationAutocomplete(input, onPick) {
+  // Generic autocomplete attacher — used for city fields (US_CITIES) and
+  // school fields (US_UNIVERSITIES). This never restricts what someone can
+  // actually type or save; picking a suggestion is just a shortcut. Anyone
+  // whose real city or school isn't in the list can still type their own.
+  function attachLocationAutocomplete(input, list, onPick) {
     if (!input || input.dataset.autocompleteBound) return;
     input.dataset.autocompleteBound = 'true';
+    input._suggestionList = list;
     input.addEventListener('input', () => renderLocationSuggestions(input));
     input.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLocationSuggestions(); });
     input.addEventListener('focus', () => {
@@ -1423,7 +1453,7 @@
     if (!e.target.closest('.suggest-wrap') && !e.target.closest('.location-suggestions')) closeLocationSuggestions();
   });
 
-  attachLocationAutocomplete(document.getElementById('location'), () => {
+  attachLocationAutocomplete(document.getElementById('location'), US_CITIES, () => {
     validateLocationField();
     autoSave();
     updatePreview();
@@ -1493,7 +1523,7 @@
       element.addEventListener('input', handleChange);
     });
 
-    attachLocationAutocomplete(item.querySelector('.exp-location'), () => {
+    attachLocationAutocomplete(item.querySelector('.exp-location'), US_CITIES, () => {
       autoSave();
       updatePreview();
     });
@@ -1573,7 +1603,9 @@
       <div class="field-grid">
         <div class="field">
           <label>School</label>
-          <input class="edu-school" type="text" placeholder="Wake Technical Community College" value="${escapeHtml(data.school)}">
+          <div class="suggest-wrap">
+            <input class="edu-school" type="text" placeholder="Wake Technical Community College" value="${escapeHtml(data.school)}" autocomplete="off">
+          </div>
           <div class="field-error edu-school-error"></div>
         </div>
 
@@ -1610,7 +1642,7 @@
       element.addEventListener('input', handleChange);
     });
 
-    attachLocationAutocomplete(item.querySelector('.edu-location'), () => {
+    attachLocationAutocomplete(item.querySelector('.edu-location'), US_CITIES, () => {
       autoSave();
       updatePreview();
     });
@@ -1641,6 +1673,11 @@
     validateEducationDescription();
     validateSchoolField();
     item._validateSchoolField = validateSchoolField;
+
+    attachLocationAutocomplete(schoolInput, US_UNIVERSITIES, () => {
+      validateSchoolField();
+      handleChange();
+    });
 
     wireMonthYearPicker(item, 'edu-date');
 
