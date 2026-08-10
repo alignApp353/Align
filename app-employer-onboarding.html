@@ -58,9 +58,9 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
 <div class="step" data-title="Business Verification">
   <div class="eyebrow">Business verification</div><h1>Tell us about your company.</h1>
   <p class="intro">This information helps Alygnn protect candidates and maintain trusted employer accounts.</p>
-  <div class="grid"><div class="field"><label class="required" for="company-name">Legal company name</label><input id="company-name" name="company_name" required autocomplete="organization"></div><div class="field"><label class="required" for="website">Company website</label><input id="website" name="website" required placeholder="https://yourcompany.com" inputmode="url"></div></div>
+  <div class="grid"><div class="field"><label class="required" for="company-name">Legal company name</label><input id="company-name" name="company_name" required autocomplete="organization"><p class="helper"><strong>This will also be your employer display name shown to candidates.</strong> If you use a DBA or trade name, select the option below. The display name is locked after the workspace is created.</p></div><div class="field"><label class="required" for="website">Company website</label><input id="website" name="website" required placeholder="https://yourcompany.com" inputmode="url"></div></div>
   <div class="inline-check"><input id="has-dba" name="has_dba" type="checkbox"><label for="has-dba">This company operates under a DBA or trade name</label></div>
-  <div class="field conditional" id="dba-field"><label class="required" for="dba-name">DBA / trade name</label><input id="dba-name" name="dba_name" placeholder="Public-facing business name"></div>
+  <div class="field conditional" id="dba-field"><label class="required" for="dba-name">DBA / trade name</label><input id="dba-name" name="dba_name" placeholder="Public-facing business name"><p class="helper">If entered, this is the name Alygnn should show publicly to candidates instead of the legal company name.</p></div>
   <div class="grid">
     <div class="field"><label class="required" for="business-phone">Business phone number</label><input id="business-phone" name="business_phone" required type="tel" inputmode="tel" placeholder="(919) 555-0123"></div>
     <div class="field suggest-wrap"><label class="required" for="industry">Industry</label><input id="industry" name="industry" required autocomplete="off" placeholder="Start typing an industry"><div id="industry-suggestions" class="suggestions"></div></div>
@@ -118,10 +118,18 @@ const INDUSTRIES=['Accounting','Advertising and Marketing','Agriculture','Archit
 const US_CITIES=['Albuquerque, NM','Alexandria, VA','Anaheim, CA','Anchorage, AK','Arlington, TX','Arlington, VA','Atlanta, GA','Augusta, GA','Austin, TX','Baltimore, MD','Baton Rouge, LA','Birmingham, AL','Boise, ID','Boston, MA','Buffalo, NY','Burlington, VT','Cary, NC','Charleston, SC','Charlotte, NC','Chattanooga, TN','Chicago, IL','Cincinnati, OH','Cleveland, OH','Colorado Springs, CO','Columbia, SC','Columbus, OH','Dallas, TX','Denver, CO','Des Moines, IA','Detroit, MI','Durham, NC','El Paso, TX','Fayetteville, NC','Fort Lauderdale, FL','Fort Worth, TX','Fresno, CA','Greensboro, NC','Greenville, SC','Hartford, CT','Henderson, NV','Honolulu, HI','Houston, TX','Indianapolis, IN','Irvine, CA','Jackson, MS','Jacksonville, FL','Kansas City, MO','Knoxville, TN','Las Vegas, NV','Lexington, KY','Little Rock, AR','Long Beach, CA','Los Angeles, CA','Louisville, KY','Madison, WI','Memphis, TN','Mesa, AZ','Miami, FL','Milwaukee, WI','Minneapolis, MN','Nashville, TN','New Orleans, LA','New York, NY','Newark, NJ','Norfolk, VA','Oakland, CA','Oklahoma City, OK','Omaha, NE','Orlando, FL','Philadelphia, PA','Phoenix, AZ','Pittsburgh, PA','Plano, TX','Portland, ME','Portland, OR','Providence, RI','Raleigh, NC','Reno, NV','Richmond, VA','Rochester, NY','Sacramento, CA','Salt Lake City, UT','San Antonio, TX','San Diego, CA','San Francisco, CA','San Jose, CA','Savannah, GA','Seattle, WA','St. Louis, MO','St. Petersburg, FL','Syracuse, NY','Tallahassee, FL','Tampa, FL','Toledo, OH','Tucson, AZ','Tulsa, OK','Virginia Beach, VA','Washington, DC','Wilmington, NC','Winston-Salem, NC'];
 const steps=[...document.querySelectorAll('.step')];let current=0;const selectedVoices=new Set();
 const form=document.getElementById('onboarding-form'),message=document.getElementById('message'),nextButton=document.getElementById('next-button'),backButton=document.getElementById('back-button');
-const DRAFT_KEY='alygnn_employer_onboarding_draft';
+let currentUserId='';
+function draftKey(){
+  return currentUserId?`alygnn_employer_onboarding_draft:${currentUserId}`:'';
+}
 
 function saveDraft(){
+  const key=draftKey();
+  if(!key)return;
+
   const draft={
+    user_id:currentUserId,
+    company_id:localStorage.getItem('alygnn_company_id')||'',
     current,
     company_name:document.getElementById('company-name').value,
     website:document.getElementById('website').value,
@@ -136,13 +144,16 @@ function saveDraft(){
     company_priorities:getRanking('company-priorities'),
     candidate_priorities:getRanking('candidate-priorities')
   };
-  localStorage.setItem(DRAFT_KEY,JSON.stringify(draft));
+  localStorage.setItem(key,JSON.stringify(draft));
 }
 
 function restoreDraft(){
+  const key=draftKey();
+  if(!key)return false;
+
   let draft;
-  try{draft=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null')}catch{return false}
-  if(!draft)return false;
+  try{draft=JSON.parse(localStorage.getItem(key)||'null')}catch{return false}
+  if(!draft||draft.user_id!==currentUserId)return false;
 
   document.getElementById('company-name').value=draft.company_name||'';
   document.getElementById('website').value=draft.website||'';
@@ -218,13 +229,7 @@ async function submit(){
     const result=await response.json().catch(()=>({}));
 
     if(!response.ok){
-      const apiError=String(result.error||'Unable to create your company workspace.');
-      if(/already own a company workspace|already.*company workspace|company already exists/i.test(apiError)){
-        localStorage.removeItem(DRAFT_KEY);
-        location.replace('app-employer-dashboard.html');
-        return;
-      }
-      throw new Error(apiError);
+      throw new Error(result.error||'Unable to create your company workspace.');
     }
 
     const companyId=
@@ -239,6 +244,18 @@ async function submit(){
       throw new Error('Your company was not fully created because the server did not return a company ID. Please update the create-company API and try again.');
     }
 
+    try{
+      const key=draftKey();
+      const existingDraft=JSON.parse(localStorage.getItem(key)||'{}')||{};
+      localStorage.setItem(key,JSON.stringify({
+        ...existingDraft,
+        user_id:session.user.id,
+        company_id:companyId
+      }));
+    }catch(error){
+      console.warn('Could not attach company ID to onboarding draft:',error);
+    }
+
     // Preserve the answers from Company Setup so the Company AI Profile can
     // prefill them later instead of asking the employer the same questions again.
     const setupProfile=payload();
@@ -248,6 +265,7 @@ async function submit(){
         ...existingMetadata,
         company_name:setupProfile.company_name,
         onboarding_company_profile:{
+          user_id:session.user.id,
           company_id:companyId,
           company_name:setupProfile.company_name,
           website:setupProfile.website,
@@ -318,35 +336,51 @@ window.addEventListener('beforeunload',saveDraft);
   setupSuggestions('headquarters','city-suggestions',US_CITIES);
 
   const{data:{session}}=await sb.auth.getSession();
-  if(!session){location.replace('app-employer-login.html');return}
 
-  // A stored company ID means setup has already created a workspace.
-  // Do not allow the employer to get trapped in onboarding again.
-  const storedCompanyId=(localStorage.getItem('alygnn_company_id')||'').trim();
-  if(storedCompanyId){
-    location.replace('app-employer-dashboard.html');
+  if(!session){
+    location.replace('app-employer-login.html');
     return;
   }
 
-  document.getElementById('company-name').value=session.user.user_metadata?.company_name||'';
+  currentUserId=session.user.id;
+
+  // Delete the legacy global key so information from a different account
+  // cannot be restored into this employer's setup.
+  localStorage.removeItem('alygnn_employer_onboarding_draft');
+
+  if(!restoreDraft()){
+    document.getElementById('company-name').value=session.user.user_metadata?.company_name||'';
+    showStep(0);
+  }
 
   const{data:membership,error}=await sb
     .from('company_members')
     .select('company_id,companies(account_number,verification_status)')
     .eq('user_id',session.user.id)
-    .in('membership_status',['active','pending'])
+    .eq('membership_status','active')
     .limit(1)
     .maybeSingle();
 
   if(!error&&membership?.company_id){
     const company=Array.isArray(membership.companies)?membership.companies[0]:membership.companies;
     localStorage.setItem('alygnn_company_id',membership.company_id);
-    if(company?.account_number)localStorage.setItem('alygnn_company_account_number',company.account_number);
-    localStorage.setItem('alygnn_employer_verification_status',company?.verification_status||'pending_review');
-    location.replace('app-employer-dashboard.html');
+
+    if(company?.account_number){
+      localStorage.setItem('alygnn_company_account_number',company.account_number);
+    }
+
+    const status=company?.verification_status||'pending_review';
+    localStorage.setItem('alygnn_employer_verification_status',status);
+
+    if(status==='approved'){
+      location.replace('app-employer-dashboard.html');
+    }else if(localStorage.getItem('alygnn_verification_document_submitted')==='true'){
+      location.replace('app-employer-verification-status.html');
+    }else{
+      location.replace('app-employer-document-upload.html');
+    }
   }
 })();
-if(!restoreDraft())showStep(0);
 </script>
 </body>
 </html>
