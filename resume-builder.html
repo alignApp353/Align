@@ -1124,7 +1124,7 @@
         </div>
 
         <div class="section-body">
-          <div class="helper" style="margin-bottom:14px;">Add awards or recognition that strengthen your resume, such as Dean's List, Employee of the Month, or Top Sales Performer.</div>
+          <div class="helper" style="margin-bottom:14px;">Add real awards or recognition that strengthen your resume, such as Dean's List, Employee of the Month, or Top Sales Performer.</div>
           <div class="repeat-list" id="awardsList"></div>
           <button type="button" class="add-btn" id="addAwardBtn">+ Add award</button>
         </div>
@@ -1240,25 +1240,25 @@
   // Curated professional skill library. New skills must be selected from
   // this list so candidate profiles stay clean, searchable, and consistent.
   const SKILL_LIBRARY = [
-    'Account Management','Accounting','Accounts Payable','Accounts Receivable','Active Listening','Administrative Support',
-    'Adobe Creative Suite','Agile','AI Tools','Appointment Scheduling','Attention to Detail','Auditing','AWS','B2B Sales',
+    'Account Management','Accounting','Accounts Payable','Accounts Receivable','Active Listening','Adaptability','Administrative Support',
+    'Adobe Creative Suite','Agile','AI Tools','Analytical Thinking','Appointment Scheduling','Attention to Detail','Auditing','AWS','B2B Sales',
     'B2C Sales','Banking','Bartending','Benefits Administration','Bookkeeping','Budget Management','Business Analysis',
     'Business Development','Business Writing','Calendar Management','Cash Handling','Change Management','Client Relations',
-    'Closing Sales','Cloud Computing','Cold Calling','Communication','Conflict Resolution','Construction','Consultative Selling',
+    'Closing Sales','Cloud Computing','Coaching','Cold Calling','Collaboration','Communication','Conflict Resolution','Construction','Consultative Selling','Creativity','Critical Thinking',
     'Content Creation','Content Marketing','Contract Negotiation','Cooking','CRM','CSS','Customer Retention','Customer Service',
-    'Customer Success','Cybersecurity','Data Analysis','Data Entry','Data Visualization','Database Management','Digital Marketing',
-    'Dispatching','Documentation','E-commerce','Email Marketing','Employee Relations','Event Planning','Excel','Executive Support',
+    'Customer Success','Cybersecurity','Data Analysis','Data Entry','Data Visualization','Database Management','Decision Making','Digital Marketing',
+    'Dispatching','Documentation','E-commerce','Email Marketing','Emotional Intelligence','Employee Relations','Event Planning','Excel','Executive Support',
     'Figma','Financial Analysis','Financial Reporting','Food Preparation','Forecasting','Forklift Operation','Front Desk Operations',
     'Git','Google Analytics','Google Workspace','Graphic Design','HIPAA','HTML','HubSpot','HVAC','Inventory Management',
-    'IT Support','Java','JavaScript','Jira','Leadership','Lead Generation','Linux','Logistics','Machine Operation','Market Research',
-    'Marketing Strategy','Medical Terminology','Microsoft 365','Microsoft Office','Negotiation','Network Administration','Node.js',
-    'Operations Management','Order Fulfillment','OSHA','Payroll','Performance Management','Phone Support','Point of Sale (POS)',
-    'Power BI','Presentation Skills','Problem Solving','Process Improvement','Product Management','Project Coordination',
-    'Project Management','Python','Quality Assurance','QuickBooks','React','Recruiting','Relationship Building','Retail Sales',
+    'Interpersonal Skills','IT Support','Java','JavaScript','Jira','Leadership','Lead Generation','Linux','Logistics','Machine Operation','Market Research',
+    'Marketing Strategy','Medical Terminology','Mentoring','Microsoft 365','Microsoft Office','Multitasking','Negotiation','Network Administration','Node.js',
+    'Operations Management','Organization','Order Fulfillment','OSHA','Payroll','Performance Management','Phone Support','Point of Sale (POS)',
+    'Power BI','Presentation Skills','Prioritization','Problem Solving','Process Improvement','Product Management','Project Coordination','Public Speaking',
+    'Project Management','Python','Quality Assurance','QuickBooks','React','Recruiting','Relationship Building','Research','Retail Sales',
     'Risk Management','Sales','Salesforce','Scheduling','Scrum','SEO','Social Media Management','Software Development','SQL',
-    'Strategic Planning','Supply Chain Management','Tableau','Team Building','Team Leadership','Technical Support','Time Management',
+    'Strategic Planning','Strategic Thinking','Supply Chain Management','Tableau','Team Building','Team Leadership','Teamwork','Technical Support','Time Management',
     'Training & Development','Troubleshooting','Upselling','UX Design','Vendor Management','Video Editing','Warehouse Operations',
-    'Web Development','WordPress','Written Communication','Zendesk'
+    'Web Development','Work Ethic','WordPress','Written Communication','Zendesk'
   ].sort((a, b) => a.localeCompare(b));
   const SKILL_LIBRARY_SET = new Set(SKILL_LIBRARY.map(skill => skill.toLowerCase()));
 
@@ -1714,6 +1714,141 @@
     return '';
   }
 
+  // Awards are optional, but any award someone chooses to add must look
+  // like a real resume entry. These checks are intentionally scoped ONLY
+  // to Awards so they do not change validation behavior anywhere else.
+  const AWARD_SIGNAL_WORDS = new Set([
+    'award','awards','honor','honors','honour','honours','recognition','excellence',
+    'achievement','achiever','performer','sales','employee','dean','list','president',
+    'club','service','leadership','merit','scholar','scholarship','fellow','fellowship',
+    'finalist','winner','champion','championship','place','top','best','outstanding',
+    'distinguished','academic','professional','volunteer','rookie','month','year',
+    'quarter','circle','eagle','scout','gold','silver','bronze','star','mvp',
+    'valedictorian','salutatorian','magna','summa','cum','laude'
+  ]);
+
+  const AWARD_SHORT_TERMS = new Set([
+    'mvp','ap','ib','gpa','top','rep','q1','q2','q3','q4','1st','2nd','3rd'
+  ]);
+
+  const AWARD_ORG_SHORT_TERMS = new Set([
+    'ibm','ey','pwc','kpmg','unc','ecu','ncsu','nasa','ymca','aaa','3m','ncaa',
+    'usa','us','va','fbi','dea','ups','dhl','aws','gm','ge','hp'
+  ]);
+
+  const AWARD_PLACEHOLDER_VALUES = new Set([
+    'award','recognition','test','testing','sample','example','none','n/a','na',
+    'asdf','qwerty','winner','my award','award name'
+  ]);
+
+  const AWARD_ORG_PLACEHOLDER_VALUES = new Set([
+    'company','school','organization','organisation','employer','business','test',
+    'testing','sample','example','none','n/a','na','asdf','qwerty','abc company',
+    'xyz company','my company','my school'
+  ]);
+
+  function awardWords(value) {
+    return normalizeText(value).toLowerCase().match(/[a-z0-9]+/g) || [];
+  }
+
+  function validateAwardTitle(value) {
+    const text = normalizeText(value);
+    const lower = text.toLowerCase();
+
+    if (!text) return 'Enter the full name of the award or recognition.';
+    if (text.length > 100) return 'Keep the award name under 100 characters.';
+    if (!/[a-z]/i.test(text)) return 'The award name must contain letters.';
+    if (!/^[a-z0-9][a-z0-9 &+.'’(),/#-]*$/i.test(text)) {
+      return 'Use a real award name without unusual symbols.';
+    }
+    if (containsBlockedWord(text)) return 'Please enter a professional award or recognition.';
+    if (looksLikeSpam(text)) return 'That does not look like a real award or recognition.';
+    if (AWARD_PLACEHOLDER_VALUES.has(lower)) return 'Enter the specific award you actually received.';
+
+    const words = awardWords(text);
+    const hasKnownShortTerm = words.some(word => AWARD_SHORT_TERMS.has(word));
+    const hasAwardSignal = words.some(word => AWARD_SIGNAL_WORDS.has(word));
+    const longestLetters = words.reduce((max, word) => {
+      const length = word.replace(/[^a-z]/g, '').length;
+      return Math.max(max, length);
+    }, 0);
+
+    // Reject short/random fragments such as "jam cx" while preserving real
+    // short award names such as "MVP" and phrases such as "Top Rep".
+    if (!hasKnownShortTerm && !hasAwardSignal && longestLetters < 5) {
+      return 'Use the full award name, e.g. “Dean’s List” or “Top Sales Performer.”';
+    }
+
+    if (words.length === 1 && !hasKnownShortTerm && longestLetters < 5) {
+      return 'Use the full, specific award name.';
+    }
+
+    return '';
+  }
+
+  function validateAwardOrganization(value) {
+    const text = normalizeText(value);
+    const lower = text.toLowerCase();
+
+    if (!text) return 'Enter the organization that gave you this award.';
+    if (text.length > 100) return 'Keep the organization name under 100 characters.';
+    if (!/[a-z]/i.test(text)) return 'The organization name must contain letters.';
+    if (!/^[a-z0-9][a-z0-9 &+.'’(),/#-]*$/i.test(text)) {
+      return 'Use the real company, school, or organization name.';
+    }
+    if (containsBlockedWord(text)) return 'Please enter a professional organization name.';
+    if (looksLikeSpam(text)) return 'That does not look like a real organization name.';
+    if (AWARD_ORG_PLACEHOLDER_VALUES.has(lower)) {
+      return 'Enter the actual company, school, or organization.';
+    }
+
+    const typoSuggestion = findCompanyTypoSuggestion(text);
+    if (typoSuggestion) return `Check the spelling. Did you mean “${typoSuggestion}”?`;
+
+    const words = awardWords(text);
+    const hasKnownShortTerm = words.some(word => AWARD_ORG_SHORT_TERMS.has(word));
+    const longestLetters = words.reduce((max, word) => {
+      const length = word.replace(/[^a-z]/g, '').length;
+      return Math.max(max, length);
+    }, 0);
+
+    // Allows real short brands/acronyms such as IBM, EY, 3M, UNC, etc., but
+    // rejects random short fragments such as "jam cx".
+    if (!hasKnownShortTerm && longestLetters < 4) {
+      return 'Enter the full name of the company, school, or organization.';
+    }
+
+    return '';
+  }
+
+  function validateAwardItem(item, showErrors = true) {
+    if (!item) return true;
+
+    const title = item.querySelector('.award-title');
+    const organization = item.querySelector('.award-issuer');
+    const titleError = item.querySelector('.award-title-error');
+    const organizationError = item.querySelector('.award-issuer-error');
+    const dateError = item.querySelector('.award-date-error');
+    const monthSelect = item.querySelector('.award-date-month');
+    const yearSelect = item.querySelector('.award-date-year');
+
+    const titleMessage = validateAwardTitle(title.value);
+    const organizationMessage = validateAwardOrganization(organization.value);
+    const partialDate = Boolean(monthSelect.value) !== Boolean(yearSelect.value);
+    const dateMessage = partialDate ? 'Choose both a month and year, or leave the date blank.' : '';
+
+    if (showErrors) {
+      showFieldError(title, titleError, titleMessage);
+      showFieldError(organization, organizationError, organizationMessage);
+      dateError.textContent = dateMessage;
+      dateError.classList.toggle('show', Boolean(dateMessage));
+      monthSelect.classList.toggle('invalid', Boolean(dateMessage));
+      yearSelect.classList.toggle('invalid', Boolean(dateMessage));
+    }
+
+    return !titleMessage && !organizationMessage && !dateMessage;
+  }
+
   function createExperienceItem(data = {}) {
     state.experienceCount += 1;
     const id = state.experienceCount;
@@ -1955,26 +2090,43 @@
       <div class="field-grid">
         <div class="field">
           <label>Award or recognition *</label>
-          <input class="award-title" type="text" required maxlength="100" placeholder="Top Sales Performer" value="${escapeHtml(data.title)}" spellcheck="true">
+          <input class="award-title" type="text" required maxlength="100" placeholder="Top Sales Performer" value="${escapeHtml(data.title)}" spellcheck="true" autocomplete="off">
+          <div class="helper">Use the full, specific name of an award you actually received.</div>
+          <div class="field-error award-title-error"></div>
         </div>
 
         <div class="field">
-          <label>Issued by *</label>
+          <label>Organization *</label>
           <input class="award-issuer" type="text" required maxlength="100" placeholder="Company, school, or organization" value="${escapeHtml(data.issuer)}" spellcheck="true" autocomplete="organization">
+          <div class="helper">The company, school, association, or program that recognized you.</div>
+          <div class="field-error award-issuer-error"></div>
         </div>
 
         <div class="field">
           <label>Date <span class="optional">optional</span></label>
           ${monthYearPickerHTML('award-date', data.date, CURRENT_YEAR - 60, CURRENT_YEAR + 1)}
+          <div class="field-error award-date-error"></div>
         </div>
       </div>
     `;
 
+    const awardTitleInput = item.querySelector('.award-title');
+    const awardOrganizationInput = item.querySelector('.award-issuer');
+
     item.querySelectorAll('input').forEach(element => {
-      element.addEventListener('input', handleChange);
+      element.addEventListener('input', () => {
+        handleChange();
+        // Once an error is visible, update it live as the person fixes it.
+        if (item.querySelector('.field-error.show')) validateAwardItem(item, true);
+      });
     });
 
-    wireMonthYearPicker(item, 'award-date');
+    awardTitleInput.addEventListener('blur', () => validateAwardItem(item, true));
+    awardOrganizationInput.addEventListener('blur', () => validateAwardItem(item, true));
+
+    wireMonthYearPicker(item, 'award-date', () => {
+      if (item.querySelector('.award-date-error.show')) validateAwardItem(item, true);
+    });
 
     item.querySelector('.remove-btn').addEventListener('click', () => {
       item.remove();
@@ -2408,9 +2560,16 @@
     const awardItems = [...document.querySelectorAll('.award-item')];
     awardItems.forEach((item, index) => {
       const title = item.querySelector('.award-title');
-      const issuer = item.querySelector('.award-issuer');
-      if (title.value.trim().length < 2) add(`Complete the award name for Award ${index + 1}, or remove the entry.`, title);
-      if (issuer.value.trim().length < 2) add(`Complete who issued Award ${index + 1}, or remove the entry.`, issuer);
+      const organization = item.querySelector('.award-issuer');
+      const date = item.querySelector('.award-date');
+      const titleMessage = validateAwardTitle(title.value);
+      const organizationMessage = validateAwardOrganization(organization.value);
+
+      if (titleMessage) add(`Award ${index + 1}: ${titleMessage}`, title);
+      if (organizationMessage) add(`Award ${index + 1}: ${organizationMessage}`, organization);
+      if (date.value.trim() && !/^[A-Z][a-z]{2} \d{4}$/.test(date.value.trim())) {
+        add(`Award ${index + 1}: choose both a month and year, or leave the date blank.`, item.querySelector('.award-date-month'));
+      }
     });
 
     if (state.skills.length < 6) add('Select at least 6 skills from the skill library.', document.getElementById('skillInput'));
@@ -2439,6 +2598,9 @@
   function validateResume() {
     validateSummary();
     validateLocationField();
+
+    // Awards are optional, but an added award must pass the stricter award-only checks.
+    document.querySelectorAll('.award-item').forEach(item => validateAwardItem(item, true));
 
     const issues = getCompletionIssues();
     if (!issues.length) return true;
@@ -2561,6 +2723,15 @@
   });
 
   document.getElementById('addAwardBtn').addEventListener('click', () => {
+    // Keep Awards clean: finish or remove the current award before adding another.
+    const existingAwards = [...document.querySelectorAll('.award-item')];
+    const invalidAward = existingAwards.find(item => !validateAwardItem(item, true));
+    if (invalidAward) {
+      const firstInvalid = invalidAward.querySelector('.invalid');
+      if (firstInvalid && typeof firstInvalid.focus === 'function') firstInvalid.focus();
+      return;
+    }
+
     createAwardItem();
     autoSave();
   });
