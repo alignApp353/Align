@@ -244,11 +244,8 @@
 
   .location-suggestions {
     display: none;
-    position: absolute;
-    z-index: 60;
-    top: calc(100% + 10px);
-    left: 0;
-    right: 0;
+    position: fixed;
+    z-index: 500;
     max-height: 220px;
     overflow-y: auto;
     padding: 6px;
@@ -1275,46 +1272,78 @@
 
   const US_CITIES = ['Albuquerque, NM','Alexandria, VA','Anaheim, CA','Anchorage, AK','Arlington, TX','Arlington, VA','Atlanta, GA','Augusta, GA','Austin, TX','Baltimore, MD','Baton Rouge, LA','Birmingham, AL','Boise, ID','Boston, MA','Buffalo, NY','Burlington, VT','Cary, NC','Charleston, SC','Charlotte, NC','Chattanooga, TN','Chicago, IL','Cincinnati, OH','Cleveland, OH','Colorado Springs, CO','Columbia, SC','Columbus, OH','Dallas, TX','Denver, CO','Des Moines, IA','Detroit, MI','Durham, NC','El Paso, TX','Fayetteville, NC','Fort Lauderdale, FL','Fort Worth, TX','Fresno, CA','Greensboro, NC','Greenville, SC','Hartford, CT','Henderson, NV','Honolulu, HI','Houston, TX','Indianapolis, IN','Irvine, CA','Jackson, MS','Jacksonville, FL','Kansas City, MO','Knoxville, TN','Las Vegas, NV','Lexington, KY','Little Rock, AR','Long Beach, CA','Los Angeles, CA','Louisville, KY','Madison, WI','Memphis, TN','Mesa, AZ','Miami, FL','Milwaukee, WI','Minneapolis, MN','Nashville, TN','New Orleans, LA','New York, NY','Newark, NJ','Norfolk, VA','Oakland, CA','Oklahoma City, OK','Omaha, NE','Orlando, FL','Philadelphia, PA','Phoenix, AZ','Pittsburgh, PA','Plano, TX','Portland, ME','Portland, OR','Providence, RI','Raleigh, NC','Reno, NV','Richmond, VA','Rochester, NY','Sacramento, CA','Salt Lake City, UT','San Antonio, TX','San Diego, CA','San Francisco, CA','San Jose, CA','Savannah, GA','Seattle, WA','St. Louis, MO','St. Petersburg, FL','Syracuse, NY','Tallahassee, FL','Tampa, FL','Toledo, OH','Tucson, AZ','Tulsa, OK','Virginia Beach, VA','Washington, DC','Wilmington, NC','Winston-Salem, NC'];
 
-  (function setupLocationSuggestions() {
-    const input = document.getElementById('location');
-    const box = document.getElementById('location-suggestions');
+  // Single shared dropdown reused across the main Location field and every
+  // Experience/Education location field — one floating box moved to <body>,
+  // repositioned to whichever input is currently focused. Using one shared
+  // box instead of one per field keeps this simple even as people add and
+  // remove experience/education entries dynamically.
+  const locationSuggestBox = document.getElementById('location-suggestions');
+  document.body.appendChild(locationSuggestBox);
+  let activeLocationInput = null;
 
-    function close() {
-      box.classList.remove('show');
-      box.innerHTML = '';
-    }
+  function closeLocationSuggestions() {
+    locationSuggestBox.classList.remove('show');
+    locationSuggestBox.innerHTML = '';
+    activeLocationInput = null;
+  }
 
-    function render() {
-      const query = input.value.trim().toLowerCase();
-      if (query.length < 2) return close();
-      const matches = US_CITIES.filter(c => c.toLowerCase().includes(query)).slice(0, 8);
-      if (!matches.length) return close();
-      box.innerHTML = matches.map(c =>
-        `<button type="button" class="location-suggestion">${c}</button>`
-      ).join('');
-      box.classList.add('show');
-    }
+  function positionLocationSuggestions() {
+    if (!activeLocationInput) return;
+    const rect = activeLocationInput.getBoundingClientRect();
+    locationSuggestBox.style.top = (rect.bottom + 8) + 'px';
+    locationSuggestBox.style.left = rect.left + 'px';
+    locationSuggestBox.style.width = rect.width + 'px';
+  }
 
-    input.addEventListener('input', render);
+  function renderLocationSuggestions(input) {
+    const query = input.value.trim().toLowerCase();
+    if (query.length < 2) return closeLocationSuggestions();
+    const matches = US_CITIES.filter(c => c.toLowerCase().includes(query)).slice(0, 8);
+    if (!matches.length) return closeLocationSuggestions();
+    activeLocationInput = input;
+    positionLocationSuggestions();
+    locationSuggestBox.innerHTML = matches.map(c =>
+      `<button type="button" class="location-suggestion">${c}</button>`
+    ).join('');
+    locationSuggestBox.classList.add('show');
+  }
 
-    box.addEventListener('click', (e) => {
-      const btn = e.target.closest('.location-suggestion');
-      if (!btn) return;
-      input.value = btn.textContent;
-      close();
-      validateLocationField();
-      autoSave();
-      updatePreview();
+  // Call this on the main Location field and on every dynamically-created
+  // Experience/Education location field so they all get the same dropdown.
+  function attachLocationAutocomplete(input, onPick) {
+    if (!input || input.dataset.autocompleteBound) return;
+    input.dataset.autocompleteBound = 'true';
+    input.addEventListener('input', () => renderLocationSuggestions(input));
+    input.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLocationSuggestions(); });
+    input.addEventListener('focus', () => {
+      if (input.value.trim().length >= 2) renderLocationSuggestions(input);
     });
+    // Store the pick callback on the element itself so the single shared
+    // click handler below knows what to do for whichever field is active.
+    input._onLocationPick = onPick;
+  }
 
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.suggest-wrap')) close();
-    });
+  window.addEventListener('scroll', () => { if (locationSuggestBox.classList.contains('show')) positionLocationSuggestions(); }, true);
+  window.addEventListener('resize', () => { if (locationSuggestBox.classList.contains('show')) positionLocationSuggestions(); });
 
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') close();
-    });
-  })();
+  locationSuggestBox.addEventListener('click', (e) => {
+    const btn = e.target.closest('.location-suggestion');
+    if (!btn || !activeLocationInput) return;
+    const input = activeLocationInput;
+    input.value = btn.textContent;
+    closeLocationSuggestions();
+    if (input._onLocationPick) input._onLocationPick();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.suggest-wrap') && !e.target.closest('.location-suggestions')) closeLocationSuggestions();
+  });
+
+  attachLocationAutocomplete(document.getElementById('location'), () => {
+    validateLocationField();
+    autoSave();
+    updatePreview();
+  });
 
   function createExperienceItem(data = {}) {
     state.experienceCount += 1;
@@ -1355,7 +1384,9 @@
 
         <div class="field full">
           <label>Location <span class="optional">optional</span></label>
-          <input class="exp-location" type="text" placeholder="Raleigh, NC" value="${escapeHtml(data.location)}">
+          <div class="suggest-wrap">
+            <input class="exp-location" type="text" placeholder="Raleigh, NC" value="${escapeHtml(data.location)}" autocomplete="off">
+          </div>
         </div>
 
         <div class="field full">
@@ -1372,6 +1403,11 @@
 
     item.querySelectorAll('input, textarea').forEach(element => {
       element.addEventListener('input', handleChange);
+    });
+
+    attachLocationAutocomplete(item.querySelector('.exp-location'), () => {
+      autoSave();
+      updatePreview();
     });
 
     const description = item.querySelector('.exp-description');
@@ -1442,7 +1478,9 @@
 
         <div class="field">
           <label>Location <span class="optional">optional</span></label>
-          <input class="edu-location" type="text" placeholder="Raleigh, NC" value="${escapeHtml(data.location)}">
+          <div class="suggest-wrap">
+            <input class="edu-location" type="text" placeholder="Raleigh, NC" value="${escapeHtml(data.location)}" autocomplete="off">
+          </div>
         </div>
 
         <div class="field full">
@@ -1459,6 +1497,11 @@
 
     item.querySelectorAll('input, textarea').forEach(element => {
       element.addEventListener('input', handleChange);
+    });
+
+    attachLocationAutocomplete(item.querySelector('.edu-location'), () => {
+      autoSave();
+      updatePreview();
     });
 
     const description = item.querySelector('.edu-description');
