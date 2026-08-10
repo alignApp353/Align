@@ -512,18 +512,16 @@
 
   .skill-suggestions {
     display: none;
-    position: absolute;
-    z-index: 40;
-    left: 0;
-    right: 0;
-    top: calc(100% + 8px);
+    position: fixed;
+    z-index: 1000;
     max-height: 280px;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 7px;
     border: 1px solid var(--border);
     border-radius: 14px;
     background: white;
-    box-shadow: 0 18px 40px rgba(23,35,51,.14);
+    box-shadow: 0 18px 40px rgba(23,35,51,.18);
   }
 
   .skill-suggestions.show {
@@ -2183,6 +2181,30 @@
       .slice(0, normalized ? 12 : 10);
   }
 
+  function positionSkillSuggestions() {
+    const box = document.getElementById('skillSuggestions');
+    const input = document.getElementById('skillInput');
+    if (!box || !input || !box.classList.contains('show')) return;
+
+    const rect = input.getBoundingClientRect();
+    const gap = 8;
+    const edge = 12;
+    const roomBelow = window.innerHeight - rect.bottom - edge;
+    const roomAbove = rect.top - edge;
+    const openAbove = roomBelow < 220 && roomAbove > roomBelow;
+    const available = Math.max(140, (openAbove ? roomAbove : roomBelow) - gap);
+    const maxHeight = Math.min(280, available);
+    const left = Math.max(edge, Math.min(rect.left, window.innerWidth - edge - Math.min(rect.width, 420)));
+    const width = Math.max(220, Math.min(rect.width, window.innerWidth - left - edge));
+
+    box.style.left = `${left}px`;
+    box.style.width = `${width}px`;
+    box.style.maxHeight = `${maxHeight}px`;
+    box.style.top = openAbove
+      ? `${Math.max(edge, rect.top - gap - maxHeight)}px`
+      : `${rect.bottom + gap}px`;
+  }
+
   function renderSkillSuggestions(query = '') {
     const box = document.getElementById('skillSuggestions');
     const input = document.getElementById('skillInput');
@@ -2192,6 +2214,7 @@
     if (!matches.length) {
       box.innerHTML = '<div class="skill-option selected">No matching skills found. Try another search.</div>';
       box.classList.add('show');
+      positionSkillSuggestions();
       return;
     }
 
@@ -2199,6 +2222,7 @@
       `<button type="button" class="skill-option" role="option" data-skill="${escapeHtml(skill)}">${escapeHtml(skill)}</button>`
     ).join('');
     box.classList.add('show');
+    positionSkillSuggestions();
   }
 
   function closeSkillSuggestions() {
@@ -2544,6 +2568,17 @@
   const skillInput = document.getElementById('skillInput');
   const skillSuggestions = document.getElementById('skillSuggestions');
 
+  // Move the dropdown to <body> so section-card overflow can never clip it.
+  // It is positioned next to the Skills input with fixed viewport coordinates.
+  document.body.appendChild(skillSuggestions);
+
+  window.addEventListener('scroll', () => {
+    if (skillSuggestions.classList.contains('show')) positionSkillSuggestions();
+  }, true);
+  window.addEventListener('resize', () => {
+    if (skillSuggestions.classList.contains('show')) positionSkillSuggestions();
+  });
+
   skillInput.addEventListener('focus', () => renderSkillSuggestions(skillInput.value));
   skillInput.addEventListener('input', () => {
     showFieldError(skillInput, document.getElementById('skillError'), '');
@@ -2569,7 +2604,9 @@
   });
 
   document.addEventListener('click', event => {
-    if (!event.target.closest('.skills-picker')) closeSkillSuggestions();
+    if (!event.target.closest('.skills-picker') && !event.target.closest('.skill-suggestions')) {
+      closeSkillSuggestions();
+    }
   });
 
   document.getElementById('downloadBtn').addEventListener('click', () => {
