@@ -229,6 +229,16 @@
     margin-top: -2px;
   }
 
+  .month-year-picker {
+    display: flex;
+    gap: 8px;
+  }
+
+  .month-year-picker select {
+    flex: 1;
+    min-width: 0;
+  }
+
   .field-hint.error {
     color: #a05858;
     font-weight: 500;
@@ -1178,6 +1188,18 @@
     const lettersAndNumbers = (text.match(/[a-z0-9]/gi) || []).length;
     if (text.length >= 4 && lettersAndNumbers / text.length < 0.5) return true;
 
+    // No real word is 5+ letters with zero vowels — catches things like
+    // "sklcmds" or "consuktjjf" that pass every other check because
+    // they're not repeated characters or keyboard rows. Threshold is 5
+    // (not 4) and 'y' counts as a vowel so real terms like "HTML", "HTTP",
+    // or "MySQL" don't get falsely flagged.
+    const words = text.split(/\s+/).filter(Boolean);
+    const hasVowellessWord = words.some(word => {
+      const letters = word.replace(/[^a-z]/gi, '');
+      return letters.length >= 5 && !/[aeiouy]/i.test(letters);
+    });
+    if (hasVowellessWord) return true;
+
     return false;
   }
 
@@ -1270,6 +1292,68 @@
 
   document.getElementById('location').addEventListener('blur', validateLocationField);
 
+  // Month/Year dropdown pickers for Start date, End date, and Graduation
+  // date — replaces free-text date fields (which could hold anything, or
+  // be misspelled) with dropdowns so the value is always well-formed.
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const CURRENT_YEAR = new Date().getFullYear();
+
+  function monthOptionsHTML(selected) {
+    return '<option value="">Month</option>' +
+      MONTHS.map(m => `<option value="${m}"${m === selected ? ' selected' : ''}>${m}</option>`).join('');
+  }
+
+  function yearOptionsHTML(selected, fromYear, toYear) {
+    let opts = '<option value="">Year</option>';
+    for (let y = toYear; y >= fromYear; y--) {
+      opts += `<option value="${y}"${String(y) === String(selected) ? ' selected' : ''}>${y}</option>`;
+    }
+    return opts;
+  }
+
+  // Parses an existing "Jan 2024"-style string (e.g. from a restored
+  // draft saved before this became a dropdown) back into {month, year}
+  // so the pickers can be pre-filled correctly.
+  function parseMonthYear(value) {
+    const match = String(value || '').trim().match(/^([A-Za-z]{3,9})\s+(\d{4})$/);
+    if (!match) return { month: '', year: '' };
+    const monthAbbr = MONTHS.find(m => m.toLowerCase() === match[1].slice(0, 3).toLowerCase());
+    return { month: monthAbbr || '', year: match[2] };
+  }
+
+  function monthYearPickerHTML(fieldClass, currentValue, fromYear, toYear) {
+    const parsed = parseMonthYear(currentValue);
+    return `
+      <div class="month-year-picker">
+        <select class="${fieldClass}-month">${monthOptionsHTML(parsed.month)}</select>
+        <select class="${fieldClass}-year">${yearOptionsHTML(parsed.year, fromYear, toYear)}</select>
+      </div>
+      <input type="hidden" class="${fieldClass}" value="${escapeHtml(currentValue)}">
+    `;
+  }
+
+  // Wires the month/year selects to keep the hidden .{fieldClass} input in
+  // sync (so every other part of the app that reads .value off that class
+  // name keeps working unchanged), and fires the same handleChange the
+  // rest of the form uses for autosave + live preview.
+  function wireMonthYearPicker(item, fieldClass, onChange) {
+    const monthSelect = item.querySelector(`.${fieldClass}-month`);
+    const yearSelect = item.querySelector(`.${fieldClass}-year`);
+    const hidden = item.querySelector(`input.${fieldClass}`);
+
+    function sync() {
+      const month = monthSelect.value;
+      const year = yearSelect.value;
+      hidden.value = (month && year) ? `${month} ${year}` : (month || year || '');
+      handleChange();
+      if (onChange) onChange();
+    }
+
+    monthSelect.addEventListener('change', sync);
+    yearSelect.addEventListener('change', sync);
+    return { monthSelect, yearSelect, hidden, sync };
+  }
+
   const US_CITIES = ['Albuquerque, NM','Alexandria, VA','Anaheim, CA','Anchorage, AK','Arlington, TX','Arlington, VA','Atlanta, GA','Augusta, GA','Austin, TX','Baltimore, MD','Baton Rouge, LA','Birmingham, AL','Boise, ID','Boston, MA','Buffalo, NY','Burlington, VT','Cary, NC','Charleston, SC','Charlotte, NC','Chattanooga, TN','Chicago, IL','Cincinnati, OH','Cleveland, OH','Colorado Springs, CO','Columbia, SC','Columbus, OH','Dallas, TX','Denver, CO','Des Moines, IA','Detroit, MI','Durham, NC','El Paso, TX','Fayetteville, NC','Fort Lauderdale, FL','Fort Worth, TX','Fresno, CA','Greensboro, NC','Greenville, SC','Hartford, CT','Henderson, NV','Honolulu, HI','Houston, TX','Indianapolis, IN','Irvine, CA','Jackson, MS','Jacksonville, FL','Kansas City, MO','Knoxville, TN','Las Vegas, NV','Lexington, KY','Little Rock, AR','Long Beach, CA','Los Angeles, CA','Louisville, KY','Madison, WI','Memphis, TN','Mesa, AZ','Miami, FL','Milwaukee, WI','Minneapolis, MN','Nashville, TN','New Orleans, LA','New York, NY','Newark, NJ','Norfolk, VA','Oakland, CA','Oklahoma City, OK','Omaha, NE','Orlando, FL','Philadelphia, PA','Phoenix, AZ','Pittsburgh, PA','Plano, TX','Portland, ME','Portland, OR','Providence, RI','Raleigh, NC','Reno, NV','Richmond, VA','Rochester, NY','Sacramento, CA','Salt Lake City, UT','San Antonio, TX','San Diego, CA','San Francisco, CA','San Jose, CA','Savannah, GA','Seattle, WA','St. Louis, MO','St. Petersburg, FL','Syracuse, NY','Tallahassee, FL','Tampa, FL','Toledo, OH','Tucson, AZ','Tulsa, OK','Virginia Beach, VA','Washington, DC','Wilmington, NC','Winston-Salem, NC'];
 
   // Single shared dropdown reused across the main Location field and every
@@ -1361,21 +1445,25 @@
         <div class="field">
           <label>Job title</label>
           <input class="exp-title" type="text" placeholder="Account Manager" value="${escapeHtml(data.title)}">
+          <div class="field-error exp-title-error"></div>
         </div>
 
         <div class="field">
           <label>Company</label>
           <input class="exp-company" type="text" placeholder="Company name" value="${escapeHtml(data.company)}">
+          <div class="field-error exp-company-error"></div>
         </div>
 
         <div class="field">
           <label>Start date</label>
-          <input class="exp-start" type="text" placeholder="Jan 2024" value="${escapeHtml(data.start)}">
+          ${monthYearPickerHTML('exp-start', data.start, CURRENT_YEAR - 60, CURRENT_YEAR + 1)}
         </div>
 
         <div class="field">
           <label>End date</label>
-          <input class="exp-end" type="text" placeholder="Present" value="${escapeHtml(data.end)}" ${data.current ? 'disabled' : ''}>
+          <div class="month-year-picker-wrap" ${data.current ? 'style="display:none;"' : ''}>
+            ${monthYearPickerHTML('exp-end', data.end, CURRENT_YEAR - 60, CURRENT_YEAR + 1)}
+          </div>
           <div class="checkbox-row">
             <input class="exp-current" type="checkbox" ${data.current ? 'checked' : ''}>
             <label>I currently work here</label>
@@ -1413,10 +1501,23 @@
     const description = item.querySelector('.exp-description');
     const descriptionCounter = item.querySelector('.exp-counter');
     const descriptionError = item.querySelector('.exp-error');
+    const titleInput = item.querySelector('.exp-title');
+    const titleError = item.querySelector('.exp-title-error');
+    const companyInput = item.querySelector('.exp-company');
+    const companyError = item.querySelector('.exp-company-error');
+
+    function validateExperienceOrgFields() {
+      const hasStartedJob = titleInput.value.trim() || companyInput.value.trim();
+      const titleMessage = validateProfessionalText(titleInput.value, { min: hasStartedJob ? 2 : 0, max: 80 });
+      const companyMessage = validateProfessionalText(companyInput.value, { min: hasStartedJob ? 2 : 0, max: 80 });
+      showFieldError(titleInput, titleError, titleMessage);
+      showFieldError(companyInput, companyError, companyMessage);
+      return !titleMessage && !companyMessage;
+    }
 
     function validateExperienceDescription() {
       updateCounter(description, descriptionCounter, 800);
-      const hasStartedJob = item.querySelector('.exp-title').value.trim() || item.querySelector('.exp-company').value.trim();
+      const hasStartedJob = titleInput.value.trim() || companyInput.value.trim();
       const message = validateProfessionalText(description.value, {
         min: hasStartedJob && description.value.trim() ? 40 : 0,
         max: 800
@@ -1426,15 +1527,24 @@
     }
 
     description.addEventListener('input', validateExperienceDescription);
-    item.querySelector('.exp-title').addEventListener('input', validateExperienceDescription);
-    item.querySelector('.exp-company').addEventListener('input', validateExperienceDescription);
+    titleInput.addEventListener('input', () => { validateExperienceDescription(); validateExperienceOrgFields(); });
+    companyInput.addEventListener('input', () => { validateExperienceDescription(); validateExperienceOrgFields(); });
     validateExperienceDescription();
+    validateExperienceOrgFields();
+    item._validateOrgFields = validateExperienceOrgFields;
+
+    const startPicker = wireMonthYearPicker(item, 'exp-start');
+    const endPicker = wireMonthYearPicker(item, 'exp-end');
 
     const currentBox = item.querySelector('.exp-current');
-    const endInput = item.querySelector('.exp-end');
+    const endPickerWrap = item.querySelector('.month-year-picker-wrap');
     currentBox.addEventListener('change', () => {
-      endInput.disabled = currentBox.checked;
-      if (currentBox.checked) endInput.value = '';
+      endPickerWrap.style.display = currentBox.checked ? 'none' : '';
+      if (currentBox.checked) {
+        endPicker.monthSelect.value = '';
+        endPicker.yearSelect.value = '';
+        endPicker.hidden.value = '';
+      }
       handleChange();
     });
 
@@ -1464,6 +1574,7 @@
         <div class="field">
           <label>School</label>
           <input class="edu-school" type="text" placeholder="Wake Technical Community College" value="${escapeHtml(data.school)}">
+          <div class="field-error edu-school-error"></div>
         </div>
 
         <div class="field">
@@ -1473,7 +1584,7 @@
 
         <div class="field">
           <label>Graduation date <span class="optional">optional</span></label>
-          <input class="edu-date" type="text" placeholder="May 2025" value="${escapeHtml(data.date)}">
+          ${monthYearPickerHTML('edu-date', data.date, CURRENT_YEAR - 60, CURRENT_YEAR + 6)}
         </div>
 
         <div class="field">
@@ -1507,6 +1618,8 @@
     const description = item.querySelector('.edu-description');
     const descriptionCounter = item.querySelector('.edu-counter');
     const descriptionError = item.querySelector('.edu-error');
+    const schoolInput = item.querySelector('.edu-school');
+    const schoolError = item.querySelector('.edu-school-error');
 
     function validateEducationDescription() {
       updateCounter(description, descriptionCounter, 300);
@@ -1515,8 +1628,21 @@
       return !message;
     }
 
+    function validateSchoolField() {
+      const hasStarted = schoolInput.value.trim() || item.querySelector('.edu-degree').value.trim();
+      const message = validateProfessionalText(schoolInput.value, { min: hasStarted ? 2 : 0, max: 100 });
+      showFieldError(schoolInput, schoolError, message);
+      return !message;
+    }
+
     description.addEventListener('input', validateEducationDescription);
+    schoolInput.addEventListener('input', validateSchoolField);
+    item.querySelector('.edu-degree').addEventListener('input', validateSchoolField);
     validateEducationDescription();
+    validateSchoolField();
+    item._validateSchoolField = validateSchoolField;
+
+    wireMonthYearPicker(item, 'edu-date');
 
     item.querySelector('.remove-btn').addEventListener('click', () => {
       item.remove();
@@ -1824,6 +1950,17 @@
       return false;
     }
 
+    const invalidOrgFields = [...document.querySelectorAll('.experience-item')].find(item => {
+      return item._validateOrgFields ? !item._validateOrgFields() : false;
+    });
+
+    if (invalidOrgFields) {
+      alert('Please enter a real job title and company name (no placeholder text or typos).');
+      const badField = invalidOrgFields.querySelector('.exp-title.invalid') || invalidOrgFields.querySelector('.exp-company.invalid');
+      if (badField) badField.focus();
+      return false;
+    }
+
     const invalidEducation = [...document.querySelectorAll('.education-item')].find(item => {
       const description = item.querySelector('.edu-description');
       const message = validateProfessionalText(description.value, { max: 300 });
@@ -1834,6 +1971,16 @@
     if (invalidEducation) {
       alert('Please fix the highlighted education details.');
       invalidEducation.querySelector('.edu-description').focus();
+      return false;
+    }
+
+    const invalidSchool = [...document.querySelectorAll('.education-item')].find(item => {
+      return item._validateSchoolField ? !item._validateSchoolField() : false;
+    });
+
+    if (invalidSchool) {
+      alert('Please enter a real school name (no placeholder text or typos).');
+      invalidSchool.querySelector('.edu-school').focus();
       return false;
     }
 
