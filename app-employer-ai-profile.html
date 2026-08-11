@@ -196,9 +196,18 @@ function setupIndustrySuggestions(){
 
   const renderSuggestions=()=>{
     const query=input.value.trim().toLowerCase();
+
+    // Do not show suggestions just because the employer tapped the field.
+    // Start suggesting only after at least 3 characters are typed.
+    if(query.length<3){
+      box.classList.remove('show');
+      box.innerHTML='';
+      return;
+    }
+
     const matches=INDUSTRIES
-      .filter(value=>!query||value.toLowerCase().includes(query))
-      .slice(0,10);
+      .filter(value=>value.toLowerCase().includes(query))
+      .slice(0,8);
 
     if(!matches.length){
       box.classList.remove('show');
@@ -212,7 +221,9 @@ function setupIndustrySuggestions(){
     box.classList.add('show');
   };
 
-  input.addEventListener('focus',renderSuggestions);
+  input.addEventListener('focus',()=>{
+    if(input.value.trim().length>=3)renderSuggestions();
+  });
   input.addEventListener('input',renderSuggestions);
 
   box.addEventListener('click',event=>{
