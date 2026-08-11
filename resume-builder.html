@@ -177,6 +177,14 @@
     display: none !important;
   }
 
+  #editResumeBtn {
+    display: none;
+  }
+
+  body.view-mode #editResumeBtn {
+    display: inline-block;
+  }
+
   body.view-mode .builder-layout {
     display: block;
   }
@@ -1101,6 +1109,15 @@
 </head>
 
 <body>
+<script>
+  // Applied synchronously, before the rest of the page paints, so a
+  // ?view=1 visit never flashes the full editable form before collapsing
+  // into the read-only view. The async data load later only fills content
+  // and adjusts labels — it never toggles this class.
+  if (new URLSearchParams(window.location.search).get('view') === '1') {
+    document.body.classList.add('view-mode');
+  }
+</script>
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
 
@@ -1111,6 +1128,14 @@
 
   <a href="align-upload.html" class="nav-back" id="navBack">← Back</a>
 </nav>
+<script>
+  if (document.body.classList.contains('view-mode')) {
+    document.getElementById('navStep').innerHTML = 'Your resume';
+    const navBack = document.getElementById('navBack');
+    navBack.href = 'account.html';
+    navBack.textContent = '← Back to account';
+  }
+</script>
 
 <main>
   <div class="page-heading">
@@ -1261,7 +1286,7 @@
 
           <div class="toolbar-actions">
             <button type="button" class="small-btn" id="clearBtn">Clear</button>
-            <a href="resume-builder.html" class="small-btn" id="editResumeBtn" style="display:none; text-decoration:none;">Edit</a>
+            <a href="resume-builder.html" class="small-btn" id="editResumeBtn" style="text-decoration:none;">Edit</a>
             <button type="button" class="small-btn primary" id="downloadBtn">Download PDF</button>
           </div>
         </div>
@@ -3187,23 +3212,6 @@
     validateSummary();
     updatePreview();
     updateContinueState();
-
-    // View mode: reached from the Account page's "View resume" card as a
-    // read-only look at the resume already on file. Hides the editable
-    // form and repurposes the toolbar's Clear button area for an Edit link.
-    const isViewMode = new URLSearchParams(window.location.search).get('view') === '1';
-    if (isViewMode) {
-      document.body.classList.add('view-mode');
-
-      const navStep = document.getElementById('navStep');
-      if (navStep) navStep.innerHTML = 'Your resume';
-
-      const navBack = document.getElementById('navBack');
-      if (navBack) { navBack.href = 'account.html'; navBack.textContent = '← Back to account'; }
-
-      const editBtn = document.getElementById('editResumeBtn');
-      if (editBtn) editBtn.style.display = '';
-    }
   })();
 </script>
 </body>
