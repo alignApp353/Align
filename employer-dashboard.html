@@ -106,6 +106,10 @@
   .status-tab-btn.active { background: var(--brand); color: white; border-color: var(--brand); }
 
   .candidates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+  .candidates-groups { display: flex; flex-direction: column; gap: 32px; }
+  .candidate-job-group-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+  .candidate-job-group-count { font-weight: 400; color: var(--text-muted); }
   .candidate-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 24px; transition: all 0.2s; }
   .candidate-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
   .candidate-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
@@ -365,7 +369,7 @@
            #candidates-grid by its text content. Works with real candidate cards
            rendered by loadCandidates()/renderCandidates() below. -->
       <input type="text" class="form-input" id="candidates-search-input" placeholder="Search candidates by name, role, or skill…" autocomplete="off" oninput="filterCandidates()" style="margin-bottom: 16px;">
-      <div id="candidates-grid" class="candidates-grid">
+      <div id="candidates-grid" class="candidates-groups">
         <div class="empty-state" style="grid-column:1/-1" id="candidates-empty-state">
           <div class="empty-icon">👥</div>
           <div class="empty-title">No candidates yet</div>
@@ -1596,7 +1600,34 @@
       return;
     }
 
-    grid.innerHTML = visible.map(c => renderCandidateCard(c)).join('');
+    // Grouped by job so candidates for different postings don't blur
+    // together. Groups follow the same order as My Jobs, and only jobs
+    // with at least one candidate in the current status filter show up.
+    const byJobId = new Map();
+    visible.forEach(c => {
+      const key = c.job ? c.job.id : 'unknown';
+      if (!byJobId.has(key)) byJobId.set(key, []);
+      byJobId.get(key).push(c);
+    });
+
+    const orderedJobIds = [
+      ...jobs.map(j => j.id).filter(id => byJobId.has(id)),
+      ...(byJobId.has('unknown') ? ['unknown'] : [])
+    ];
+
+    grid.innerHTML = orderedJobIds.map(jobId => {
+      const group = byJobId.get(jobId);
+      const jobTitle = group[0].job ? group[0].job.title : 'Other applicants';
+      return `
+        <div class="candidate-job-group">
+          <div class="candidate-job-group-title">${escapeHtml(jobTitle)} <span class="candidate-job-group-count">(${group.length})</span></div>
+          <div class="candidates-grid">
+            ${group.map(c => renderCandidateCard(c)).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+
     filterCandidates();
   }
 
@@ -2171,17 +2202,31 @@
 
   // Filters any .candidate-card elements inside #candidates-grid by their
   // text content. Works with real candidate cards rendered by
-  // renderCandidates() above.
+  // renderCandidates() above. Also hides a job group's heading entirely
+  // when none of its candidates match the search.
   function filterCandidates() {
     const query = (document.getElementById('candidates-search-input')?.value || '').trim().toLowerCase();
+    const groups = document.querySelectorAll('#candidates-grid .candidate-job-group');
     const cards = document.querySelectorAll('#candidates-grid .candidate-card');
     let visibleCount = 0;
 
-    cards.forEach(card => {
-      const matches = !query || card.textContent.toLowerCase().includes(query);
-      card.style.display = matches ? '' : 'none';
-      if (matches) visibleCount++;
-    });
+    if (groups.length) {
+      groups.forEach(group => {
+        let groupVisibleCount = 0;
+        group.querySelectorAll('.candidate-card').forEach(card => {
+          const matches = !query || card.textContent.toLowerCase().includes(query);
+          card.style.display = matches ? '' : 'none';
+          if (matches) { groupVisibleCount++; visibleCount++; }
+        });
+        group.style.display = groupVisibleCount === 0 ? 'none' : '';
+      });
+    } else {
+      cards.forEach(card => {
+        const matches = !query || card.textContent.toLowerCase().includes(query);
+        card.style.display = matches ? '' : 'none';
+        if (matches) visibleCount++;
+      });
+    }
 
     const emptyState = document.getElementById('candidates-empty-state');
     if (emptyState && cards.length > 0) {
