@@ -96,20 +96,8 @@
   .btn-view { font-size: 12px; color: var(--brand); background: var(--brand-light); border: none; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
   .btn-view:hover { opacity: 0.8; }
 
-  .candidate-status-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-  .status-tab-btn {
-    font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif;
-    color: var(--text-muted); background: white; border: 1px solid var(--border);
-    border-radius: 100px; padding: 8px 16px; cursor: pointer; transition: all 0.2s;
-  }
-  .status-tab-btn:hover { border-color: var(--brand); color: var(--text); }
-  .status-tab-btn.active { background: var(--brand); color: white; border-color: var(--brand); }
-
   .candidates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 
-  .candidates-groups { display: flex; flex-direction: column; gap: 32px; }
-  .candidate-job-group-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
-  .candidate-job-group-count { font-weight: 400; color: var(--text-muted); }
   .candidate-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 24px; transition: all 0.2s; }
   .candidate-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
   .candidate-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
@@ -321,9 +309,6 @@
     <button class="nav-item active" onclick="showPanel('jobs', this)">
       <span class="nav-icon">💼</span> My Jobs
     </button>
-    <button class="nav-item" onclick="showPanel('candidates', this)">
-      <span class="nav-icon">👥</span> Candidates
-    </button>
     <button class="nav-item" onclick="showPanel('interviews', this)">
       <span class="nav-icon">📅</span> Interviews
     </button>
@@ -358,18 +343,19 @@
       </div>
     </div>
 
-    <!-- CANDIDATES -->
+    <!-- CANDIDATES (single job — reached only via the "Candidates" button
+         on a job row in My Jobs; never shows more than one job's list) -->
     <div class="panel" id="panel-candidates">
+      <a href="#" onclick="showPanel('jobs'); return false;" class="nav-back-link" style="display:block; font-size:13px; color:var(--text-muted); margin-bottom:14px;">← Back to My Jobs</a>
       <div class="page-header">
-        <div class="page-title">Candidates</div>
-        <div class="page-sub">Job seekers who swiped right on your listings</div>
+        <div class="page-title" id="candidates-page-title">Candidates</div>
+        <div class="page-sub" id="candidates-page-sub">Job seekers who swiped right on this listing</div>
       </div>
-      <div class="candidate-status-tabs" id="candidate-status-tabs"></div>
       <!-- Search is wired to filter any element with class "candidate-card" inside
            #candidates-grid by its text content. Works with real candidate cards
            rendered by loadCandidates()/renderCandidates() below. -->
       <input type="text" class="form-input" id="candidates-search-input" placeholder="Search candidates by name, role, or skill…" autocomplete="off" oninput="filterCandidates()" style="margin-bottom: 16px;">
-      <div id="candidates-grid" class="candidates-groups">
+      <div id="candidates-grid" class="candidates-grid">
         <div class="empty-state" style="grid-column:1/-1" id="candidates-empty-state">
           <div class="empty-icon">👥</div>
           <div class="empty-title">No candidates yet</div>
@@ -1532,15 +1518,10 @@
     loadInterviews();
   }
 
-  // Job tabs let an employer jump straight to one posting's applicants.
-  // No combined "all jobs" view — the filter always points at one job,
-  // defaulting to the first one that actually has candidates.
+  // Which job's candidates are currently shown — always exactly one job.
+  // This panel has no sidebar entry of its own; it's only reached via the
+  // "Candidates" button on a job row in My Jobs.
   let candidateJobFilter = null;
-
-  function setCandidateJobFilter(jobId) {
-    candidateJobFilter = jobId;
-    renderCandidates();
-  }
 
   // Called from the "Candidates" button on a job row in My Jobs — jumps
   // straight to that job's applicants instead of making the employer
@@ -1550,53 +1531,21 @@
     showPanel('candidates');
   }
 
-  function renderJobTabs() {
-    const tabsEl = document.getElementById('candidate-status-tabs');
-    if (!tabsEl) return;
-
-    if (candidates.length === 0) {
-      tabsEl.innerHTML = '';
-      return;
-    }
-
-    const counts = new Map();
-    candidates.forEach(c => {
-      const key = c.job ? c.job.id : 'unknown';
-      counts.set(key, (counts.get(key) || 0) + 1);
-    });
-
-    const jobTabs = jobs
-      .filter(j => counts.has(j.id))
-      .map(j => ({ key: j.id, label: j.title, count: counts.get(j.id) }));
-
-    if (counts.has('unknown')) {
-      jobTabs.push({ key: 'unknown', label: 'Other', count: counts.get('unknown') });
-    }
-
-    // Default (or recover, if the previously selected job no longer has
-    // any candidates) to the first available tab.
-    if (!jobTabs.some(t => t.key === candidateJobFilter)) {
-      candidateJobFilter = jobTabs[0]?.key ?? null;
-    }
-
-    tabsEl.innerHTML = jobTabs.map(tab => `
-      <button type="button" class="status-tab-btn ${candidateJobFilter === tab.key ? 'active' : ''}" onclick="setCandidateJobFilter('${tab.key}')">
-        ${escapeHtml(tab.label)} (${tab.count})
-      </button>
-    `).join('');
-  }
-
   function renderCandidates() {
     const grid = document.getElementById('candidates-grid');
 
-    renderJobTabs();
+    const job = jobs.find(j => j.id === candidateJobFilter) || null;
+    const titleEl = document.getElementById('candidates-page-title');
+    const subEl = document.getElementById('candidates-page-sub');
+    if (titleEl) titleEl.textContent = job ? job.title : 'Candidates';
+    if (subEl) subEl.textContent = job ? 'Job seekers who swiped right on this listing' : 'Job seekers who swiped right on your listings';
 
-    if (candidates.length === 0) {
+    if (!candidateJobFilter) {
       grid.innerHTML = `
         <div class="empty-state" style="grid-column:1/-1" id="candidates-empty-state">
           <div class="empty-icon">👥</div>
-          <div class="empty-title">No candidates yet</div>
-          Once job seekers apply to your listings, they'll appear here.
+          <div class="empty-title">No job selected</div>
+          Open a job in My Jobs and click "Candidates" to see its applicants here.
         </div>`;
       return;
     }
@@ -1607,39 +1556,12 @@
       grid.innerHTML = `
         <div class="empty-state" style="grid-column:1/-1" id="candidates-empty-state">
           <div class="empty-icon">👥</div>
-          <div class="empty-title">No candidates for this job</div>
+          <div class="empty-title">No candidates for this job yet</div>
         </div>`;
       return;
     }
 
-    // Grouped by job so candidates for different postings don't blur
-    // together. Groups follow the same order as My Jobs. When a single
-    // job tab is selected there's naturally just one group.
-    const byJobId = new Map();
-    visible.forEach(c => {
-      const key = c.job ? c.job.id : 'unknown';
-      if (!byJobId.has(key)) byJobId.set(key, []);
-      byJobId.get(key).push(c);
-    });
-
-    const orderedJobIds = [
-      ...jobs.map(j => j.id).filter(id => byJobId.has(id)),
-      ...(byJobId.has('unknown') ? ['unknown'] : [])
-    ];
-
-    grid.innerHTML = orderedJobIds.map(jobId => {
-      const group = byJobId.get(jobId);
-      const jobTitle = group[0].job ? group[0].job.title : 'Other applicants';
-      return `
-        <div class="candidate-job-group">
-          <div class="candidate-job-group-title">${escapeHtml(jobTitle)} <span class="candidate-job-group-count">(${group.length})</span></div>
-          <div class="candidates-grid">
-            ${group.map(c => renderCandidateCard(c)).join('')}
-          </div>
-        </div>
-      `;
-    }).join('');
-
+    grid.innerHTML = visible.map(c => renderCandidateCard(c)).join('');
     filterCandidates();
   }
 
@@ -2212,33 +2134,19 @@
     jobsList.innerHTML = filteredJobs.map(job => renderJobRow(job)).join('');
   }
 
-  // Filters any .candidate-card elements inside #candidates-grid by their
+  // Filters .candidate-card elements inside #candidates-grid by their
   // text content. Works with real candidate cards rendered by
-  // renderCandidates() above. Also hides a job group's heading entirely
-  // when none of its candidates match the search.
+  // renderCandidates() above.
   function filterCandidates() {
     const query = (document.getElementById('candidates-search-input')?.value || '').trim().toLowerCase();
-    const groups = document.querySelectorAll('#candidates-grid .candidate-job-group');
     const cards = document.querySelectorAll('#candidates-grid .candidate-card');
     let visibleCount = 0;
 
-    if (groups.length) {
-      groups.forEach(group => {
-        let groupVisibleCount = 0;
-        group.querySelectorAll('.candidate-card').forEach(card => {
-          const matches = !query || card.textContent.toLowerCase().includes(query);
-          card.style.display = matches ? '' : 'none';
-          if (matches) { groupVisibleCount++; visibleCount++; }
-        });
-        group.style.display = groupVisibleCount === 0 ? 'none' : '';
-      });
-    } else {
-      cards.forEach(card => {
-        const matches = !query || card.textContent.toLowerCase().includes(query);
-        card.style.display = matches ? '' : 'none';
-        if (matches) visibleCount++;
-      });
-    }
+    cards.forEach(card => {
+      const matches = !query || card.textContent.toLowerCase().includes(query);
+      card.style.display = matches ? '' : 'none';
+      if (matches) visibleCount++;
+    });
 
     const emptyState = document.getElementById('candidates-empty-state');
     if (emptyState && cards.length > 0) {
