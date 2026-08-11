@@ -168,7 +168,7 @@
     font-size: 14px;
     line-height: 1.5;
   }
-  .job-actions { display:flex; gap:8px; align-items:center; }
+  .job-actions { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
   .btn-danger { font-size: 12px; color: #a05858; background: rgba(215,154,154,0.15); border: none; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
   .btn-danger:hover { opacity: .8; }
 
@@ -1542,6 +1542,14 @@
     renderCandidates();
   }
 
+  // Called from the "Candidates" button on a job row in My Jobs — jumps
+  // straight to that job's applicants instead of making the employer
+  // switch panels and then find the right tab themselves.
+  function viewCandidatesForJob(jobId) {
+    candidateJobFilter = jobId;
+    showPanel('candidates');
+  }
+
   function renderJobTabs() {
     const tabsEl = document.getElementById('candidate-status-tabs');
     if (!tabsEl) return;
@@ -2251,6 +2259,7 @@
           <div><div class="js-val">${jobAppliedCounts[job.id] || 0}</div><div class="js-label">Applied</div></div>
         </div>
         <div class="job-actions">
+          <button class="btn-view" onclick="viewCandidatesForJob('${job.id}')">Candidates</button>
           <button class="btn-view" onclick="window.location.href='job-details.html?job=${job.id}&from=employer'">View</button>
           <button class="btn-view" onclick="editJob('${job.id}')">Edit</button>
           <button class="btn-danger" onclick="deleteJob('${job.id}')">Delete</button>
