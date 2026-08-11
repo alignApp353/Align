@@ -314,10 +314,7 @@
 <div class="layout">
   <aside class="sidebar">
     <div class="sidebar-label">Employer</div>
-    <button class="nav-item active" onclick="showPanel('overview', this)">
-      <span class="nav-icon">📊</span> Overview
-    </button>
-    <button class="nav-item" onclick="showPanel('jobs', this)">
+    <button class="nav-item active" onclick="showPanel('jobs', this)">
       <span class="nav-icon">💼</span> My Jobs
     </button>
     <button class="nav-item" onclick="showPanel('candidates', this)">
@@ -337,26 +334,8 @@
 
   <main class="main">
 
-    <!-- OVERVIEW -->
-    <div class="panel active" id="panel-overview">
-      <div class="page-header">
-        <div class="page-title">Dashboard</div>
-        <div class="page-sub">Here's how your listings are performing</div>
-      </div>
-      <div class="section-header">
-        <div class="section-title">Recent activity</div>
-      </div>
-      <div id="overview-jobs">
-        <div class="empty-state">
-          <div class="empty-icon">📋</div>
-          <div class="empty-title">No jobs posted yet</div>
-          Post your first job to start seeing activity here.
-        </div>
-      </div>
-    </div>
-
     <!-- MY JOBS -->
-    <div class="panel" id="panel-jobs">
+    <div class="panel active" id="panel-jobs">
       <div class="page-header">
         <div class="page-title">My Jobs</div>
         <div class="page-sub">Manage your job listings</div>
@@ -1163,11 +1142,11 @@
     loadPanelData(getPanelFromHash());
   }
 
-  const VALID_PANELS = ['overview', 'jobs', 'candidates', 'interviews', 'post'];
+  const VALID_PANELS = ['jobs', 'candidates', 'interviews', 'post'];
 
   function getPanelFromHash() {
     const hash = (window.location.hash || '').replace('#', '');
-    return VALID_PANELS.includes(hash) ? hash : 'overview';
+    return VALID_PANELS.includes(hash) ? hash : 'jobs';
   }
 
   // Only toggles which panel/nav-item is visually active — no data
@@ -2161,11 +2140,9 @@
 
   function renderJobs() {
     const jobsList = document.getElementById('jobs-list');
-    const overviewJobs = document.getElementById('overview-jobs');
 
     if (jobs.length === 0) {
       jobsList.innerHTML = `<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">No active listings</div>Post your first job to start receiving candidates.</div>`;
-      overviewJobs.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No jobs posted yet</div>Post your first job to start seeing activity here.</div>`;
       return;
     }
 
@@ -2186,14 +2163,10 @@
 
     if (filteredJobs.length === 0) {
       jobsList.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No jobs match "${escapeHtml(searchInput.value)}"</div>Try a different search term.</div>`;
-      overviewJobs.innerHTML = jobs.map(job => renderJobRow(job)).join('');
       return;
     }
 
-    const jobRows = filteredJobs.map(job => renderJobRow(job)).join('');
-
-    jobsList.innerHTML = jobRows;
-    overviewJobs.innerHTML = jobs.map(job => renderJobRow(job)).join('');
+    jobsList.innerHTML = filteredJobs.map(job => renderJobRow(job)).join('');
   }
 
   // Filters any .candidate-card elements inside #candidates-grid by their
