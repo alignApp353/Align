@@ -478,6 +478,8 @@ async function initJobDetailsPage(){
     return;
   }
 
+  const isEmployerView = getParam('from') === 'employer';
+
   const jobId = getParam('job');
   const appId = getParam('app');
 
@@ -498,8 +500,13 @@ async function initJobDetailsPage(){
     return;
   }
 
-  const appInfo = await loadApplicationInfo(jobId, appId, session.user.id);
-  const interviewInfo = await loadInterviewInfo(jobId, session.user.id);
+  // Application/interview status only makes sense for a candidate looking
+  // at their own application — an employer previewing their own posting
+  // has no application against it (or, if their account happens to also
+  // have applied to a job as a candidate elsewhere, that status has
+  // nothing to do with this preview and would be actively misleading).
+  const appInfo = isEmployerView ? null : await loadApplicationInfo(jobId, appId, session.user.id);
+  const interviewInfo = isEmployerView ? null : await loadInterviewInfo(jobId, session.user.id);
 
   renderJob(job, appInfo, interviewInfo);
   showPage();
