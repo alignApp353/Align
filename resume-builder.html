@@ -168,6 +168,28 @@
     gap: 18px;
   }
 
+  /* View mode: read-only resume view reached from the Account page. Hides
+     the editable form and centers the preview with an Edit button. */
+  body.view-mode .form-column,
+  body.view-mode .page-heading,
+  body.view-mode .bottom-actions,
+  body.view-mode #clearBtn {
+    display: none !important;
+  }
+
+  body.view-mode .builder-layout {
+    display: block;
+  }
+
+  body.view-mode .preview-column {
+    max-width: 700px;
+    margin: 40px auto 0;
+  }
+
+  body.view-mode .score-card {
+    display: none;
+  }
+
   .section-card {
     background: var(--card-bg);
     border: 1px solid var(--border);
@@ -1082,12 +1104,12 @@
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
 
-  <div class="nav-step">
+  <div class="nav-step" id="navStep">
     <span class="step-pill">Step 1 of 3</span>
     Build resume
   </div>
 
-  <a href="align-upload.html" class="nav-back">← Back</a>
+  <a href="align-upload.html" class="nav-back" id="navBack">← Back</a>
 </nav>
 
 <main>
@@ -1239,6 +1261,7 @@
 
           <div class="toolbar-actions">
             <button type="button" class="small-btn" id="clearBtn">Clear</button>
+            <a href="resume-builder.html" class="small-btn" id="editResumeBtn" style="display:none; text-decoration:none;">Edit</a>
             <button type="button" class="small-btn primary" id="downloadBtn">Download PDF</button>
           </div>
         </div>
@@ -2651,8 +2674,50 @@
     }
   }
 
+  // Populates every field, skill, and repeatable section from a data object
+  // shaped like getFormData()'s output. Used for both the local draft (a
+  // JSON string in localStorage) and resume_data fetched from Supabase, so
+  // the two loading paths can never drift apart or handle sections
+  // differently.
+  function populateForm(data) {
+    fields.forEach(field => {
+      const map = {
+        fullName: 'name',
+        jobTitle: 'title'
+      };
+      document.getElementById(field).value = data[map[field] || field] || '';
+    });
+
+    state.skills = Array.isArray(data.skills)
+      ? data.skills.filter(skill => SKILL_LIBRARY_SET.has(String(skill).toLowerCase())).slice(0, 12)
+      : [];
+    renderSkills();
+
+    if (Array.isArray(data.experience) && data.experience.length) {
+      data.experience.forEach(createExperienceItem);
+    } else {
+      createExperienceItem();
+    }
+
+    if (Array.isArray(data.education) && data.education.length) {
+      data.education.forEach(createEducationItem);
+    } else {
+      createEducationItem();
+    }
+
+    if (Array.isArray(data.awards) && data.awards.length) {
+      data.awards.forEach(createAwardItem);
+    }
+
+    updatePreview();
+  }
+
   function loadDraft() {
-    if (!STORAGE_KEY) return;
+    if (!STORAGE_KEY) {
+      createExperienceItem();
+      createEducationItem();
+      return;
+    }
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
 
@@ -2662,38 +2727,7 @@
         return;
       }
 
-      const data = JSON.parse(raw);
-
-      fields.forEach(field => {
-        const map = {
-          fullName: 'name',
-          jobTitle: 'title'
-        };
-        document.getElementById(field).value = data[map[field] || field] || '';
-      });
-
-      state.skills = Array.isArray(data.skills)
-        ? data.skills.filter(skill => SKILL_LIBRARY_SET.has(String(skill).toLowerCase())).slice(0, 12)
-        : [];
-      renderSkills();
-
-      if (Array.isArray(data.experience) && data.experience.length) {
-        data.experience.forEach(createExperienceItem);
-      } else {
-        createExperienceItem();
-      }
-
-      if (Array.isArray(data.education) && data.education.length) {
-        data.education.forEach(createEducationItem);
-      } else {
-        createEducationItem();
-      }
-
-      if (Array.isArray(data.awards) && data.awards.length) {
-        data.awards.forEach(createAwardItem);
-      }
-
-      updatePreview();
+      populateForm(JSON.parse(raw));
       setSaveStatus('Your saved draft was restored.', 'success');
     } catch (error) {
       console.error('Could not load resume draft:', error);
@@ -3125,10 +3159,51 @@
       ? 'alygnn_resume_builder_draft:' + session.user.id
       : 'alygnn_resume_builder_draft_anon';
 
-    loadDraft();
+    // resume_data in Supabase is the source of truth for resumes created
+    // in Alygnn (see saveToSupabase above). Load it first so the resume
+    // shows correctly even on a browser/device where no local draft
+    // exists. Fall back to the local draft only when there's no signed-in
+    // session or no saved resume_data yet.
+    let loadedFromServer = false;
+    if (session) {
+      try {
+        const { data: profile, error } = await sb
+          .from('profiles')
+          .select('resume_data')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (!error && profile?.resume_data) {
+          populateForm(profile.resume_data);
+          loadedFromServer = true;
+        }
+      } catch (error) {
+        console.warn('Could not load saved resume from your account:', error);
+      }
+    }
+
+    if (!loadedFromServer) loadDraft();
+
     validateSummary();
     updatePreview();
     updateContinueState();
+
+    // View mode: reached from the Account page's "View resume" card as a
+    // read-only look at the resume already on file. Hides the editable
+    // form and repurposes the toolbar's Clear button area for an Edit link.
+    const isViewMode = new URLSearchParams(window.location.search).get('view') === '1';
+    if (isViewMode) {
+      document.body.classList.add('view-mode');
+
+      const navStep = document.getElementById('navStep');
+      if (navStep) navStep.innerHTML = 'Your resume';
+
+      const navBack = document.getElementById('navBack');
+      if (navBack) { navBack.href = 'account.html'; navBack.textContent = '← Back to account'; }
+
+      const editBtn = document.getElementById('editResumeBtn');
+      if (editBtn) editBtn.style.display = '';
+    }
   })();
 </script>
 </body>
