@@ -382,7 +382,7 @@ function renderJob(job, appInfo, interviewInfo){
   const badgesEl = document.getElementById('job-badges');
   const badges = [];
   if(job.job_type) badges.push({ text: job.job_type, cls: 'plain' });
-  const salaryText = fmtSalary(job.salary_min, job.salary_max);
+  const salaryText = job.salary || fmtSalary(job.salary_min, job.salary_max);
   if(salaryText) badges.push({ text: salaryText, cls: 'plain' });
 
   if(appInfo){
@@ -468,8 +468,8 @@ async function initJobDetailsPage(){
   // not always the candidate account page.
   if(getParam('from') === 'employer'){
     const navBack = document.getElementById('nav-back');
-    navBack.href = 'employer-dashboard.html#overview';
-    navBack.textContent = '← Back to dashboard';
+    navBack.href = 'employer-dashboard.html#jobs';
+    navBack.textContent = '← Back to job listing';
   }
 
   const { data: { session } } = await sb.auth.getSession();
