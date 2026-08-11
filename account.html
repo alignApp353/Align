@@ -1280,13 +1280,28 @@ async function saveProfileField(column, value){
   }
 }
 
-function renderResumeCardFast(resumeFilePath){
+function renderResumeCardFast(resumeFilePath, resumeData){
   currentResumeFilePath = resumeFilePath || null;
 
-  if(!resumeFilePath){
+  if(!resumeFilePath && !resumeData){
     resumeLabel.textContent = 'Upload resume';
     resumeSub.textContent = 'Add your resume so employers can see your background';
     resumeCard.href = 'align-upload.html';
+    resumeCard.removeAttribute('target');
+    resumeCard.onclick = null;
+    resumeReplaceLink.style.display = 'none';
+    return;
+  }
+
+  if(!resumeFilePath && resumeData){
+    // Resume was built with the Alygnn resume builder (resume_data saved to
+    // the profile) but no file exists in Storage yet — most often because
+    // the generated-file upload silently failed. There's nothing in
+    // Storage to open with a signed URL, so send them back to the builder,
+    // which is where resume_data actually lives and can be edited.
+    resumeLabel.textContent = 'View resume';
+    resumeSub.textContent = 'Open the resume you built on Alygnn';
+    resumeCard.href = 'resume-builder.html';
     resumeCard.removeAttribute('target');
     resumeCard.onclick = null;
     resumeReplaceLink.style.display = 'none';
@@ -1414,7 +1429,7 @@ async function initAccountPage(){
     if(addPasswordCard) addPasswordCard.style.display = '';
   }
 
-  renderResumeCardFast(profile?.resume_file_path);
+  renderResumeCardFast(profile?.resume_file_path, profile?.resume_data);
 
   // The Swipe nav link only shows once there's actually something to
   // swipe with — otherwise it's a link to a page that will immediately
