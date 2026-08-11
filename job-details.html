@@ -189,7 +189,7 @@ nav{
 
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
-  <a href="account.html" class="nav-back">← Back to account</a>
+  <a href="account.html" class="nav-back" id="nav-back">← Back to account</a>
 </nav>
 
 <div class="loading" id="loading">Loading job details...</div>
@@ -461,6 +461,17 @@ function renderJob(job, appInfo, interviewInfo){
 }
 
 async function initJobDetailsPage(){
+  // job-details.html is shared: candidates reach it from account.html to
+  // see a job they applied to, and employers now reach it from
+  // employer-dashboard.html to preview one of their own postings. The
+  // back link needs to return to wherever the visitor actually came from,
+  // not always the candidate account page.
+  if(getParam('from') === 'employer'){
+    const navBack = document.getElementById('nav-back');
+    navBack.href = 'employer-dashboard.html#overview';
+    navBack.textContent = '← Back to dashboard';
+  }
+
   const { data: { session } } = await sb.auth.getSession();
   if(!session){
     window.location.href = 'login.html';
