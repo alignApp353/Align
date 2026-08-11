@@ -1530,18 +1530,17 @@
     loadInterviews();
   }
 
-  // 'applied' is the default view — accepting or passing a candidate
-  // moves them out of it automatically, since their status is no longer
-  // 'applied', which is the whole point: the New queue only ever shows
-  // candidates still waiting on a decision.
-  let candidateStatusFilter = 'applied';
+  // Job tabs let an employer jump straight to one posting's applicants
+  // instead of scrolling through every group. 'all' shows every job's
+  // candidates, grouped, same as before.
+  let candidateJobFilter = 'all';
 
-  function setCandidateStatusFilter(status) {
-    candidateStatusFilter = status;
+  function setCandidateJobFilter(jobId) {
+    candidateJobFilter = jobId;
     renderCandidates();
   }
 
-  function renderStatusTabs() {
+  function renderJobTabs() {
     const tabsEl = document.getElementById('candidate-status-tabs');
     if (!tabsEl) return;
 
@@ -1550,21 +1549,24 @@
       return;
     }
 
-    const counts = { applied: 0, accepted: 0, rejected: 0 };
+    const counts = new Map();
     candidates.forEach(c => {
-      const s = c.status || 'applied';
-      if (counts[s] !== undefined) counts[s]++;
+      const key = c.job ? c.job.id : 'unknown';
+      counts.set(key, (counts.get(key) || 0) + 1);
     });
 
-    const tabs = [
-      { key: 'applied', label: 'New', count: counts.applied },
-      { key: 'accepted', label: 'Accepted', count: counts.accepted },
-      { key: 'rejected', label: 'Passed', count: counts.rejected },
-      { key: 'all', label: 'All', count: candidates.length }
-    ];
+    const jobTabs = jobs
+      .filter(j => counts.has(j.id))
+      .map(j => ({ key: j.id, label: j.title, count: counts.get(j.id) }));
+
+    if (counts.has('unknown')) {
+      jobTabs.push({ key: 'unknown', label: 'Other', count: counts.get('unknown') });
+    }
+
+    const tabs = [{ key: 'all', label: 'All jobs', count: candidates.length }, ...jobTabs];
 
     tabsEl.innerHTML = tabs.map(tab => `
-      <button type="button" class="status-tab-btn ${candidateStatusFilter === tab.key ? 'active' : ''}" onclick="setCandidateStatusFilter('${tab.key}')">
+      <button type="button" class="status-tab-btn ${candidateJobFilter === tab.key ? 'active' : ''}" onclick="setCandidateJobFilter('${tab.key}')">
         ${escapeHtml(tab.label)} (${tab.count})
       </button>
     `).join('');
@@ -1573,7 +1575,7 @@
   function renderCandidates() {
     const grid = document.getElementById('candidates-grid');
 
-    renderStatusTabs();
+    renderJobTabs();
 
     if (candidates.length === 0) {
       grid.innerHTML = `
@@ -1585,24 +1587,22 @@
       return;
     }
 
-    const visible = candidateStatusFilter === 'all'
+    const visible = candidateJobFilter === 'all'
       ? candidates
-      : candidates.filter(c => (c.status || 'applied') === candidateStatusFilter);
+      : candidates.filter(c => (c.job ? c.job.id : 'unknown') === candidateJobFilter);
 
     if (visible.length === 0) {
-      const emptyLabel = candidateStatusFilter === 'accepted' ? 'accepted'
-        : candidateStatusFilter === 'rejected' ? 'passed' : 'new';
       grid.innerHTML = `
         <div class="empty-state" style="grid-column:1/-1" id="candidates-empty-state">
           <div class="empty-icon">👥</div>
-          <div class="empty-title">No ${emptyLabel} candidates</div>
+          <div class="empty-title">No candidates for this job</div>
         </div>`;
       return;
     }
 
     // Grouped by job so candidates for different postings don't blur
-    // together. Groups follow the same order as My Jobs, and only jobs
-    // with at least one candidate in the current status filter show up.
+    // together. Groups follow the same order as My Jobs. When a single
+    // job tab is selected there's naturally just one group.
     const byJobId = new Map();
     visible.forEach(c => {
       const key = c.job ? c.job.id : 'unknown';
