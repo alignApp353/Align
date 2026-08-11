@@ -160,8 +160,8 @@ html[data-theme="dark"] .spinner{border-color:#2B3A4B;border-top-color:#8EB5DF}
   <section class="success-screen" id="success-screen" hidden>
     <div class="success-box">
       <div class="success-mark">✓</div>
-      <h1>Your AI Company Profile is Ready!</h1>
-      <p>Alygnn now understands your company and will use this profile throughout your hiring process.</p>
+      <h1 id="success-title">Your AI Company Profile is Ready!</h1>
+      <p id="success-copy">Alygnn now understands your company and will use this profile throughout your hiring process.</p>
       <div class="benefit-list">
         <div class="benefit">Match better candidates</div>
         <div class="benefit">Generate better job descriptions</div>
@@ -638,10 +638,139 @@ function aiProfileReturnTo(){
   const allowed=new Set(['app-post-job.html','app-employer-dashboard.html']);
   return allowed.has(requested)?requested:'app-employer-dashboard.html';
 }
+
+async function getVerificationNextStep(companyId){
+  const targetCompanyId=
+    companyId ||
+    window.currentEmployerCompanyId ||
+    localStorage.getItem('alygnn_company_id') ||
+    '';
+
+  let verificationStatus='not_submitted';
+
+  try{
+    const {data:verification,error:verificationError}=await sb
+      .from('employer_verifications')
+      .select('company_id,verification_status,rejection_reason')
+      .eq('user_id',session.user.id)
+      .maybeSingle();
+
+    if(verificationError){
+      console.warn('Could not load employer verification status:',verificationError);
+    }
+
+    verificationStatus=String(
+      verification?.verification_status || 'not_submitted'
+    ).toLowerCase();
+
+    const resolvedCompanyId=
+      targetCompanyId ||
+      verification?.company_id ||
+      '';
+
+    if(resolvedCompanyId){
+      localStorage.setItem('alygnn_company_id',resolvedCompanyId);
+
+      if(verificationStatus==='approved'){
+        return {
+          route:aiProfileReturnTo(),
+          state:'approved',
+          companyId:resolvedCompanyId
+        };
+      }
+
+      const {data:document,error:documentError}=await sb
+        .from('employer_verification_documents')
+        .select('id,review_status,created_at')
+        .eq('company_id',resolvedCompanyId)
+        .order('created_at',{ascending:false})
+        .limit(1)
+        .maybeSingle();
+
+      if(documentError){
+        console.warn('Could not check employer verification document:',documentError);
+      }
+
+      if(document){
+        localStorage.setItem('alygnn_verification_document_submitted','true');
+
+        if(
+          verificationStatus==='rejected' ||
+          String(document.review_status||'').toLowerCase()==='rejected'
+        ){
+          return {
+            route:`app-employer-document-upload.html?company_id=${encodeURIComponent(resolvedCompanyId)}`,
+            state:'rejected',
+            companyId:resolvedCompanyId
+          };
+        }
+
+        return {
+          route:'app-employer-verification-status.html',
+          state:'pending',
+          companyId:resolvedCompanyId
+        };
+      }
+
+      localStorage.removeItem('alygnn_verification_document_submitted');
+
+      return {
+        route:`app-employer-document-upload.html?company_id=${encodeURIComponent(resolvedCompanyId)}`,
+        state:'not_submitted',
+        companyId:resolvedCompanyId
+      };
+    }
+  }catch(error){
+    console.warn('Could not determine the next verification step:',error);
+  }
+
+  return {
+    route:'app-employer-document-upload.html',
+    state:'not_submitted',
+    companyId:targetCompanyId
+  };
+}
+
+function prepareVerificationSuccess(nextStep){
+  window.nextEmployerRoute=nextStep.route;
+
+  if(nextStep.state==='approved'){
+    $('success-title').textContent='Your AI Company Profile is Ready!';
+    $('success-copy').textContent=
+      'Your company is already verified. You can continue building your job post.';
+    $('continue').textContent='Continue to Post a Job →';
+    return;
+  }
+
+  if(nextStep.state==='pending'){
+    $('success-title').textContent='AI Profile Complete';
+    $('success-copy').textContent=
+      'Your verification document has already been submitted. You can check its review status next.';
+    $('continue').textContent='View Verification Status →';
+    return;
+  }
+
+  if(nextStep.state==='rejected'){
+    $('success-title').textContent='AI Profile Complete';
+    $('success-copy').textContent=
+      'Your company verification needs a new document before you can publish jobs.';
+    $('continue').textContent='Resubmit Company Verification →';
+    return;
+  }
+
+  $('success-title').textContent='AI Profile Complete';
+  $('success-copy').textContent=
+    'One last step: verify your company by uploading an official business document. Jobs can be drafted before approval, but they cannot be published until verification is approved.';
+  $('continue').textContent='Continue to Company Verification →';
+}
+
 $('back').onclick=()=>location.href=aiProfileReturnTo();
 $('continue').onclick=()=>{
-  sessionStorage.removeItem('alygnnAiProfileReturnTo');
-  location.href=aiProfileReturnTo();
+  const route=window.nextEmployerRoute||aiProfileReturnTo();
+  if(route===aiProfileReturnTo()){
+    sessionStorage.removeItem('alygnnAiProfileReturnTo');
+  }
+  location.href=route;
 };
 $('save').onclick=async()=>{
   clearMessage();
@@ -698,6 +827,9 @@ $('save').onclick=async()=>{
     if(!verificationData){
       console.warn('No employer_verifications row was found. The completed AI Profile is still saved to the signed-in user metadata.');
     }
+
+    const nextStep=await getVerificationNextStep(profile.company_id);
+    prepareVerificationSuccess(nextStep);
 
     $('profile-view').hidden=true;
     $('success-screen').hidden=false;
