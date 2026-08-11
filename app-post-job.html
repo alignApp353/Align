@@ -10,6 +10,21 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  const preference =
+    localStorage.getItem('alygnnEmployerTheme') ||
+    localStorage.getItem('alygnnTheme') ||
+    'auto';
+  const dark = preference === 'dark' ||
+    (preference === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  document.querySelector('meta[name="theme-color"]')?.setAttribute(
+    'content',
+    dark ? '#07121D' : '#F6F8F7'
+  );
+})();
+</script>
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
@@ -109,6 +124,10 @@ label{display:block;margin-bottom:8px;font-size:13px;font-weight:900}
 .chip{border:1px solid var(--border);background:#fff;color:var(--text);border-radius:999px;padding:8px 12px;font-size:11px;font-weight:800}
 .chip.selected{background:#EDF3F9;border-color:var(--brand-dark);color:var(--brand-dark)}
 .quick-note{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.45}
+.selection-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
+.selection-head label{margin:0}
+.selection-count{color:var(--muted);font-size:10px;font-weight:800;white-space:nowrap}
+.selection-help{margin-bottom:12px;color:var(--muted);font-size:11px;line-height:1.45}
 .company-ai-link{width:100%;margin-top:10px;min-height:44px;border:1px solid rgba(52,95,145,.25);border-radius:14px;background:#EDF3F9;color:var(--brand-dark);font-size:12px;font-weight:900}
 .market-pay-card{margin-top:16px;padding:14px;border:1px solid #C9D9E8;border-radius:16px;background:#F2F7FB}
 .market-pay-title{font-size:12px;font-weight:900;color:var(--brand-dark)}
@@ -122,6 +141,37 @@ label{display:block;margin-bottom:8px;font-size:13px;font-weight:900}
 .catalog-result{display:flex;flex-direction:column;gap:3px}
 .suggest-main{font-size:13px;font-weight:900;color:var(--text)}
 .suggest-sub{font-size:10px;font-weight:600;color:var(--muted)}
+
+
+html[data-theme="dark"]{
+  --bg:#07121D;--card:#101C29;--text:#F5F7FA;--muted:#AAB6C4;--border:#2B3A4B;
+  --danger:#FF9B9B;--danger-bg:#321C22;--success:#7AD5A5;--success-bg:#102C22;
+}
+html[data-theme="dark"] body{background:var(--bg);color:var(--text)}
+html[data-theme="dark"] .header{background:rgba(7,18,29,.96)}
+html[data-theme="dark"] .footer{background:rgba(7,18,29,.97)}
+html[data-theme="dark"] .back,
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .input,
+html[data-theme="dark"] .select,
+html[data-theme="dark"] .textarea,
+html[data-theme="dark"] .choice,
+html[data-theme="dark"] .secondary,
+html[data-theme="dark"] .suggest-list,
+html[data-theme="dark"] .suggest-item,
+html[data-theme="dark"] .chip{
+  background:var(--card);color:var(--text)
+}
+html[data-theme="dark"] .company-box{background:#0C1722}
+html[data-theme="dark"] .choice.active,
+html[data-theme="dark"] .chip.selected,
+html[data-theme="dark"] .company-ai-link,
+html[data-theme="dark"] .market-pay-button{background:#15283A;color:#8EB5DF}
+html[data-theme="dark"] .market-pay-card{background:#102131;border-color:#29465E}
+html[data-theme="dark"] .lock{background:#2B2414;border-color:#6D5729;color:#F3D58F}
+html[data-theme="dark"] .loading{background:rgba(7,18,29,.97)}
+html[data-theme="dark"] .progress{background:#263545}
+html[data-theme="dark"] .spinner{border-color:#2B3A4B;border-top-color:#8EB5DF}
 
 </style>
 </head>
@@ -154,9 +204,7 @@ label{display:block;margin-bottom:8px;font-size:13px;font-weight:900}
     <p id="subheading">Start with the basic details candidates will see first.</p>
   </div>
 
-  <div class="lock" id="verification-lock" hidden>
-    Complete and verify your company profile before publishing a job.
-  </div>
+  <div class="lock" id="verification-lock" hidden></div>
 
   <section class="card">
     <div class="step active" data-step="1">
@@ -166,7 +214,7 @@ label{display:block;margin-bottom:8px;font-size:13px;font-weight:900}
           <div class="company-name" id="company-name">Loading company…</div>
           <div class="company-note">Pulled from your employer profile</div>
         </div>
-        <button type="button" class="company-ai-link" id="company-ai-link">✨ Complete Company AI Profile</button>
+        <button type="button" class="company-ai-link" id="company-ai-link" hidden>Complete Company AI Profile</button>
       </div>
 
       <div class="field">
@@ -252,30 +300,24 @@ label{display:block;margin-bottom:8px;font-size:13px;font-weight:900}
         <div class="help"><span id="description-count">0</span>/5000 characters · minimum 180</div>
       </div>
 
-      <div class="suggestion-section">
-        <div class="suggestion-title">Description prompts</div>
-        <div class="chips" id="description-prompts"></div>
-        <div class="quick-note">Tap a prompt to add a professional sentence.</div>
-      </div>
-
       <div class="field">
-        <label for="requirements">Requirements and skills</label>
-        <textarea class="textarea" id="requirements" maxlength="2500" placeholder="List each requirement on a new line."></textarea>
-      </div>
-
-      <div class="suggestion-section">
-        <div class="suggestion-title">Suggested skills</div>
+        <div class="selection-head">
+          <label>Requirements and skills</label>
+          <span class="selection-count" id="skills-count">0 selected</span>
+        </div>
+        <div class="selection-help">Tap every skill that applies. Selected buttons will appear in the candidate preview.</div>
         <div class="chips" id="skill-chips"></div>
+        <input type="hidden" id="requirements">
       </div>
 
       <div class="field">
-        <label for="benefits">Benefits</label>
-        <textarea class="textarea" id="benefits" maxlength="2500" placeholder="List each benefit on a new line."></textarea>
-      </div>
-
-      <div class="suggestion-section">
-        <div class="suggestion-title">Common benefits</div>
+        <div class="selection-head">
+          <label>Benefits</label>
+          <span class="selection-count" id="benefits-count">0 selected</span>
+        </div>
+        <div class="selection-help">Tap the benefits this job actually offers.</div>
         <div class="chips" id="benefit-chips"></div>
+        <input type="hidden" id="benefits">
       </div>
     </div>
 
@@ -324,6 +366,11 @@ let profile = null;
 let jobType = 'Full-time';
 let workStyle = 'On-site';
 let employerVerified = false;
+let aiProfileComplete = false;
+let verificationStatus = 'not_submitted';
+let verificationDocumentSubmitted = false;
+let currentCompanyId = '';
+let currentCompany = null;
 
 
 let titleSearchTimer=null;
@@ -331,6 +378,8 @@ let locationSearchTimer=null;
 let selectedOnetCode='';
 let selectedLocation=null;
 let currentOccupationProfile=null;
+const selectedSkills=new Set();
+const selectedBenefits=new Set();
 
 async function searchJobTitleCatalog(query){
   const clean=String(query||'').trim();
@@ -380,14 +429,6 @@ marketing:['Content creation','Social media management','Campaign reporting','Co
 
 const BENEFITS=['Health insurance','Dental insurance','Vision insurance','Paid time off','401(k)','Flexible schedule','Employee discount','Professional development','Paid training','Referral bonus','Performance bonus','Mileage reimbursement','Work from home','Career advancement opportunities'];
 
-const DESCRIPTION_PROMPTS=[
-'Describe the typical day-to-day responsibilities.',
-'Explain who this role reports to and works with.',
-'Describe the training and onboarding process.',
-'Explain the schedule and expected working hours.',
-'Describe how success will be measured in this role.',
-'Explain opportunities for growth and advancement.'
-];
 
 function roleCategory(title){
  const v=String(title||'').toLowerCase();
@@ -471,19 +512,61 @@ function debounceCatalogSearch(timerName,callback,delay=250){
 }
 
 
+function syncSelectedValues(){
+  el('requirements').value=[...selectedSkills].join('\n');
+  el('benefits').value=[...selectedBenefits].join('\n');
+  el('skills-count').textContent=`${selectedSkills.size} selected`;
+  el('benefits-count').textContent=`${selectedBenefits.size} selected`;
+}
+
+function renderSelectableChips(containerId,values,selectedSet){
+  const container=el(containerId);
+  if(!container)return;
+
+  const uniqueValues=[...new Set([...(values||[]),...selectedSet].map(value=>String(value||'').trim()).filter(Boolean))];
+
+  container.innerHTML=uniqueValues.map((value,index)=>`
+    <button class="chip${selectedSet.has(value)?' selected':''}" type="button" data-chip-index="${index}">
+      ${escapeHtml(value)}
+    </button>
+  `).join('');
+
+  container.querySelectorAll('.chip').forEach(button=>{
+    button.addEventListener('click',()=>{
+      const value=uniqueValues[Number(button.dataset.chipIndex)];
+
+      if(selectedSet.has(value)){
+        selectedSet.delete(value);
+        button.classList.remove('selected');
+      }else{
+        selectedSet.add(value);
+        button.classList.add('selected');
+      }
+
+      syncSelectedValues();
+    });
+  });
+
+  syncSelectedValues();
+}
+
+function renderBenefitSuggestions(){
+  renderSelectableChips('benefit-chips',BENEFITS,selectedBenefits);
+}
+
 function refreshRoleSuggestions(){
   const occupationSkills=occupationSkillNames();
 
   if(occupationSkills.length){
-    renderChips('skill-chips',occupationSkills,value=>addLine('requirements',value));
+    renderSelectableChips('skill-chips',occupationSkills,selectedSkills);
     return;
   }
 
   const category=roleCategory(el('title').value);
-  renderChips(
+  renderSelectableChips(
     'skill-chips',
     [...BASE_SKILLS,...(ROLE_SKILLS[category]||[])],
-    value=>addLine('requirements',value)
+    selectedSkills
   );
 }
 
@@ -546,68 +629,10 @@ function applyOccupationProfileToForm(){
     el('description').dispatchEvent(new Event('input'));
   }
 
-  if(!el('requirements').value.trim()&&skillLines.length){
-    el('requirements').value=skillLines.join('\n');
+  if(!selectedSkills.size&&skillLines.length){
+    skillLines.forEach(skill=>selectedSkills.add(skill));
+    refreshRoleSuggestions();
   }
-}
-
-
-function renderChips(containerId,values,onSelect,toggleSelection=true){
-  const container=el(containerId);
-  if(!container)return;
-
-  const uniqueValues=[...new Set((values||[]).filter(Boolean))];
-
-  container.innerHTML=uniqueValues.map((value,index)=>`
-    <button class="chip" type="button" data-chip-index="${index}">
-      ${escapeHtml(value)}
-    </button>
-  `).join('');
-
-  container.querySelectorAll('.chip').forEach(button=>{
-    button.addEventListener('click',()=>{
-      const value=uniqueValues[Number(button.dataset.chipIndex)];
-
-      if(toggleSelection){
-        button.classList.toggle('selected');
-      }else{
-        button.classList.add('selected');
-        setTimeout(()=>button.classList.remove('selected'),220);
-      }
-
-      onSelect(value,button);
-    });
-  });
-}
-
-function addLine(fieldId,value){
-  const field=el(fieldId);
-  if(!field||!value)return;
-
-  const existing=field.value
-    .split('\n')
-    .map(line=>line.trim())
-    .filter(Boolean);
-
-  if(existing.some(line=>line.toLowerCase()===String(value).toLowerCase()))return;
-
-  existing.push(value);
-  field.value=existing.join('\n');
-  field.dispatchEvent(new Event('input',{bubbles:true}));
-}
-
-function addDescriptionSentence(prompt){
-  const field=el('description');
-  if(!field||!prompt)return;
-
-  const current=field.value.trim();
-  const sentence=String(prompt).trim();
-
-  if(current.toLowerCase().includes(sentence.toLowerCase()))return;
-
-  field.value=current ? `${current}\n\n${sentence}` : sentence;
-  field.dispatchEvent(new Event('input',{bubbles:true}));
-  field.focus();
 }
 
 function setupSuggestions(){
@@ -690,8 +715,7 @@ function setupSuggestions(){
     setTimeout(()=>closeSuggestionBox(locationBox),160);
   });
 
-  renderChips('description-prompts',DESCRIPTION_PROMPTS,addDescriptionSentence,false);
-  renderChips('benefit-chips',BENEFITS,value=>addLine('benefits',value));
+  renderBenefitSuggestions();
   refreshRoleSuggestions();
 }
 
@@ -885,7 +909,13 @@ function buildSalary(){
 function getJob(){
   return {
     title: el('title').value.trim(),
-    company: profile?.company_name || session?.user?.user_metadata?.company_name || '',
+    company:
+      currentCompany?.company_name ||
+      currentCompany?.legal_name ||
+      currentCompany?.name ||
+      profile?.company_name ||
+      session?.user?.user_metadata?.company_name ||
+      '',
     location: el('location').value.trim(),
     job_type: jobType,
     work_style: workStyle,
@@ -929,11 +959,11 @@ function validateStep(step){
     if(job.description.length < 180){
       return 'The job description must be at least 180 characters.';
     }
-    if(job.requirements.length < 10){
-      return 'Add at least one clear job requirement.';
+    if(!selectedSkills.size){
+      return 'Select at least one required skill.';
     }
-    if(job.benefits.length < 5){
-      return 'Add at least one benefit, or write “None listed.”';
+    if(!selectedBenefits.size){
+      return 'Select at least one benefit.';
     }
   }
 
@@ -971,28 +1001,47 @@ function showStep(step){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
+function saveCurrentJobDraft(){
+  if(!session?.user)return;
+
+  const job=getJob();
+  const metadata=session.user.user_metadata||{};
+  const aiProfile=metadata.employer_ai_profile||{};
+
+  const draft={
+    ...job,
+    employer_id:session.user.id,
+    company_id:currentCompanyId||null,
+    company_logo:profile?.company_logo||profile?.logo_url||localStorage.getItem('companyLogo')||'',
+    company_headline:profile?.company_headline||'',
+    company_website:
+      aiProfile.website ||
+      currentCompany?.website ||
+      profile?.company_website ||
+      '',
+    pay_period:el('pay-period').value,
+    pay_min:Number(el('pay-min').value)||null,
+    pay_max:Number(el('pay-max').value)||null,
+    employer_verified:employerVerified,
+    verification_status:verificationStatus,
+    created_at:new Date().toISOString()
+  };
+
+  sessionStorage.setItem('alygnnJobDraft',JSON.stringify(draft));
+}
+
 function saveDraftAndOpenPreview(){
-  if(!employerVerified){
-    showMessage('Your business profile must be approved before you can preview and publish a job.');
-    el('verification-lock').hidden = false;
+  if(!aiProfileComplete){
+    showMessage('Complete your Company AI Profile before previewing this job.');
+    el('verification-lock').textContent=
+      'Complete your Company AI Profile before publishing a job.';
+    el('verification-lock').hidden=false;
+    el('company-ai-link').hidden=false;
     return;
   }
 
-  const job = getJob();
-  const draft = {
-    ...job,
-    employer_id: session.user.id,
-    company_logo: profile?.company_logo || profile?.logo_url || localStorage.getItem('companyLogo') || '',
-    company_headline: profile?.company_headline || '',
-    company_website: profile?.company_website || '',
-    pay_period: el('pay-period').value,
-    pay_min: Number(el('pay-min').value) || null,
-    pay_max: Number(el('pay-max').value) || null,
-    created_at: new Date().toISOString()
-  };
-
-  sessionStorage.setItem('alygnnJobDraft', JSON.stringify(draft));
-  location.href = 'app-job-preview.html';
+  saveCurrentJobDraft();
+  location.href='app-job-preview.html';
 }
 
 function restoreDraft(){
@@ -1004,8 +1053,21 @@ function restoreDraft(){
     if(draft.title) el('title').value = draft.title;
     if(draft.location) el('location').value = draft.location;
     if(draft.description) el('description').value = draft.description;
-    if(draft.requirements) el('requirements').value = draft.requirements;
-    if(draft.benefits) el('benefits').value = draft.benefits;
+
+    selectedSkills.clear();
+    String(draft.requirements||'')
+      .split('\n')
+      .map(value=>value.trim())
+      .filter(Boolean)
+      .forEach(value=>selectedSkills.add(value));
+
+    selectedBenefits.clear();
+    String(draft.benefits||'')
+      .split('\n')
+      .map(value=>value.trim())
+      .filter(Boolean)
+      .forEach(value=>selectedBenefits.add(value));
+
     if(draft.pay_period) el('pay-period').value = draft.pay_period;
     if(draft.pay_min != null) el('pay-min').value = draft.pay_min;
     if(draft.pay_max != null) el('pay-max').value = draft.pay_max;
@@ -1034,6 +1096,9 @@ function restoreDraft(){
     } : null;
 
     el('description-count').textContent = el('description').value.length;
+    refreshRoleSuggestions();
+    renderBenefitSuggestions();
+    syncSelectedValues();
   }catch(error){
     console.warn('Could not restore saved job draft:', error);
   }
@@ -1068,7 +1133,30 @@ el('back-btn').addEventListener('click', () => {
   else showStep(currentStep - 1);
 });
 
-el('company-ai-link').addEventListener('click',()=>{location.href='app-employer-ai-profile.html';});
+el('company-ai-link').addEventListener('click',()=>{
+  saveCurrentJobDraft();
+
+  if(aiProfileComplete){
+    if(currentCompanyId){
+      localStorage.setItem('alygnn_company_id',currentCompanyId);
+    }
+
+    const params=new URLSearchParams();
+    if(currentCompanyId)params.set('company_id',currentCompanyId);
+
+    location.href=
+      'app-employer-document-upload.html' +
+      (params.toString()?`?${params.toString()}`:'');
+    return;
+  }
+
+  sessionStorage.setItem('alygnnAiProfileReturnTo','app-post-job.html');
+  const params=new URLSearchParams({
+    return_to:'app-post-job.html'
+  });
+  if(currentCompanyId)params.set('company_id',currentCompanyId);
+  location.href=`app-employer-ai-profile.html?${params.toString()}`;
+});
 
 
 el('use-role-data-btn').addEventListener('click',()=>{
@@ -1079,7 +1167,7 @@ el('use-role-data-btn').addEventListener('click',()=>{
 
   applyOccupationProfileToForm();
   showMessage(
-    'Role-specific responsibilities and skills were added. Review and edit them before publishing.',
+    'Role-specific responsibilities were added and matching skill buttons were selected. Review them before publishing.',
     'success'
   );
 });
@@ -1097,32 +1185,164 @@ el('description').addEventListener('input', () => {
 
 (async function init(){
   try{
-    const {data,error} = await sb.auth.getSession();
+    const {data:sessionData,error:sessionError}=await sb.auth.getSession();
 
-    if(error || !data.session){
+    if(sessionError||!sessionData.session){
       location.replace('app-employer-login.html');
       return;
     }
 
-    session = data.session;
+    session=sessionData.session;
 
-    const {data:profileData,error:profileError} = await sb
-      .from('profiles')
-      .select('*')
-      .eq('id',session.user.id)
-      .maybeSingle();
+    // Refresh the Auth user so recently saved Company AI Profile metadata is
+    // available immediately instead of using a stale cached session object.
+    const {data:userData,error:userError}=await sb.auth.getUser();
+    if(!userError&&userData?.user){
+      session={...session,user:userData.user};
+    }
 
-    if(profileError) console.error('Profile load failed:',profileError);
+    const userId=session.user.id;
 
-    profile = profileData || {};
-    const company = profile.company_name || session.user.user_metadata?.company_name || 'Your company';
-    el('company-name').textContent = company;
+    const [
+      profileResult,
+      verificationResult,
+      membershipResult
+    ]=await Promise.all([
+      sb.from('profiles').select('*').eq('id',userId).maybeSingle(),
+      sb.from('employer_verifications').select('*').eq('user_id',userId).maybeSingle(),
+      sb.from('company_members')
+        .select('company_id,companies(*)')
+        .eq('user_id',userId)
+        .eq('membership_status','active')
+        .limit(1)
+        .maybeSingle()
+    ]);
 
-    employerVerified =
-      profile.employer_verified === true ||
-      String(profile.verification_status || '').toLowerCase() === 'approved';
+    if(profileResult.error)console.warn('Profile load failed:',profileResult.error);
+    if(verificationResult.error)console.warn('Verification load failed:',verificationResult.error);
+    if(membershipResult.error)console.warn('Company membership load failed:',membershipResult.error);
 
-    el('verification-lock').hidden = employerVerified;
+    profile=profileResult.data||{};
+    const verification=verificationResult.data||{};
+    const membership=membershipResult.data||null;
+
+    currentCompanyId=
+      membership?.company_id ||
+      verification.company_id ||
+      sessionStorage.getItem('alygnn_company_id') ||
+      '';
+
+    currentCompany=membership
+      ? (Array.isArray(membership.companies)?membership.companies[0]:membership.companies)
+      : null;
+
+    let verificationDocument=null;
+
+    if(currentCompanyId){
+      const {data:document,error:documentError}=await sb
+        .from('employer_verification_documents')
+        .select('id,review_status,created_at')
+        .eq('company_id',currentCompanyId)
+        .order('created_at',{ascending:false})
+        .limit(1)
+        .maybeSingle();
+
+      if(documentError){
+        console.warn('Verification document load failed:',documentError);
+      }else{
+        verificationDocument=document||null;
+      }
+    }
+
+    verificationDocumentSubmitted=Boolean(verificationDocument);
+
+    const metadata=session.user.user_metadata||{};
+    const savedAiProfile=metadata.employer_ai_profile||{};
+    const completedCompanyId=String(metadata.employer_ai_profile_complete_company_id||'');
+    const currentId=String(currentCompanyId||'');
+
+    aiProfileComplete=Boolean(
+      verification.profile_complete ||
+      (
+        metadata.employer_ai_profile_complete===true &&
+        (
+          !completedCompanyId ||
+          !currentId ||
+          completedCompanyId===currentId
+        )
+      ) ||
+      savedAiProfile.profile_complete===true
+    );
+
+    const storedVerificationStatus=String(
+      verification.verification_status ||
+      currentCompany?.verification_status ||
+      profile.verification_status ||
+      'not_submitted'
+    ).toLowerCase();
+
+    employerVerified=
+      profile.employer_verified===true ||
+      storedVerificationStatus==='approved';
+
+    if(employerVerified){
+      verificationStatus='approved';
+    }else if(!verificationDocumentSubmitted){
+      // A newly created company may default to pending_review in the database.
+      // It is not truly pending until a verification document has been uploaded.
+      verificationStatus='not_submitted';
+    }else if(
+      storedVerificationStatus==='rejected' ||
+      String(verificationDocument?.review_status||'').toLowerCase()==='rejected'
+    ){
+      verificationStatus='rejected';
+    }else{
+      verificationStatus='pending_review';
+    }
+
+    const companyName=
+      currentCompany?.company_name ||
+      currentCompany?.legal_name ||
+      currentCompany?.name ||
+      verification.company_name ||
+      savedAiProfile.company_name ||
+      metadata.onboarding_company_profile?.company_name ||
+      profile.company_name ||
+      metadata.company_name ||
+      'Your company';
+
+    el('company-name').textContent=companyName;
+
+    const aiButton=el('company-ai-link');
+    const lock=el('verification-lock');
+
+    if(!aiProfileComplete){
+      aiButton.textContent='Complete Company AI Profile';
+      aiButton.hidden=false;
+      lock.textContent='Complete your Company AI Profile before publishing a job.';
+      lock.hidden=false;
+    }else if(employerVerified){
+      aiButton.hidden=true;
+      lock.hidden=true;
+    }else if(verificationStatus==='not_submitted'){
+      aiButton.textContent='Verify Company';
+      aiButton.hidden=false;
+      lock.textContent=
+        'Your AI Profile is complete. Verify your company by uploading an official business document before this job can be published.';
+      lock.hidden=false;
+    }else if(verificationStatus==='rejected'){
+      aiButton.textContent='Resubmit Company Verification';
+      aiButton.hidden=false;
+      lock.textContent=
+        'Your company verification needs attention. Upload a corrected business document before this job can be published.';
+      lock.hidden=false;
+    }else{
+      aiButton.hidden=true;
+      lock.textContent=
+        'Your company verification is pending. You can finish this job draft while Alygnn reviews it.';
+      lock.hidden=false;
+    }
+
     setupSuggestions();
     restoreDraft();
     showStep(1);
