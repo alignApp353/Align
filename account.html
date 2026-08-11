@@ -1427,9 +1427,11 @@ async function initAccountPage(){
   const setupSub = document.getElementById('setup-sub');
   const setupCta = document.getElementById('setup-cta');
 
-  if (profile?.resume_file_path && profile?.preferences) {
+  const hasResume = !!(profile?.resume_file_path || profile?.resume_data);
+
+  if (hasResume && profile?.preferences) {
     if (swipeLink) swipeLink.style.display = '';
-  } else if (!profile?.resume_file_path) {
+  } else if (!hasResume) {
     setupBanner.style.display = 'flex';
     setupTitle.textContent = 'Upload your resume to start swiping';
     setupSub.textContent = 'We need your resume before we can match you to jobs.';
