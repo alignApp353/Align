@@ -1530,10 +1530,10 @@
     loadInterviews();
   }
 
-  // Job tabs let an employer jump straight to one posting's applicants
-  // instead of scrolling through every group. 'all' shows every job's
-  // candidates, grouped, same as before.
-  let candidateJobFilter = 'all';
+  // Job tabs let an employer jump straight to one posting's applicants.
+  // No combined "all jobs" view — the filter always points at one job,
+  // defaulting to the first one that actually has candidates.
+  let candidateJobFilter = null;
 
   function setCandidateJobFilter(jobId) {
     candidateJobFilter = jobId;
@@ -1563,9 +1563,13 @@
       jobTabs.push({ key: 'unknown', label: 'Other', count: counts.get('unknown') });
     }
 
-    const tabs = [{ key: 'all', label: 'All jobs', count: candidates.length }, ...jobTabs];
+    // Default (or recover, if the previously selected job no longer has
+    // any candidates) to the first available tab.
+    if (!jobTabs.some(t => t.key === candidateJobFilter)) {
+      candidateJobFilter = jobTabs[0]?.key ?? null;
+    }
 
-    tabsEl.innerHTML = tabs.map(tab => `
+    tabsEl.innerHTML = jobTabs.map(tab => `
       <button type="button" class="status-tab-btn ${candidateJobFilter === tab.key ? 'active' : ''}" onclick="setCandidateJobFilter('${tab.key}')">
         ${escapeHtml(tab.label)} (${tab.count})
       </button>
@@ -1587,9 +1591,7 @@
       return;
     }
 
-    const visible = candidateJobFilter === 'all'
-      ? candidates
-      : candidates.filter(c => (c.job ? c.job.id : 'unknown') === candidateJobFilter);
+    const visible = candidates.filter(c => (c.job ? c.job.id : 'unknown') === candidateJobFilter);
 
     if (visible.length === 0) {
       grid.innerHTML = `
