@@ -343,12 +343,6 @@
         <div class="page-title">Dashboard</div>
         <div class="page-sub">Here's how your listings are performing</div>
       </div>
-      <div class="stats-row">
-        <div class="stat-card"><div class="stat-val" id="stat-active">0</div><div class="stat-label">Active jobs</div></div>
-        <div class="stat-card"><div class="stat-val" id="stat-views">0</div><div class="stat-label">Total views</div></div>
-        <div class="stat-card"><div class="stat-val" id="stat-swipes">0</div><div class="stat-label">Right swipes</div></div>
-        <div class="stat-card"><div class="stat-val" id="stat-candidates">0</div><div class="stat-label">New candidates</div></div>
-      </div>
       <div class="section-header">
         <div class="section-title">Recent activity</div>
       </div>
@@ -2169,11 +2163,6 @@
     const jobsList = document.getElementById('jobs-list');
     const overviewJobs = document.getElementById('overview-jobs');
 
-    document.getElementById('stat-active').textContent = jobs.filter(job => job.status !== 'deleted').length;
-    document.getElementById('stat-views').textContent = jobs.reduce((sum, job) => sum + (job.views || 0), 0);
-    document.getElementById('stat-swipes').textContent = Object.values(jobAppliedCounts).reduce((sum, n) => sum + n, 0);
-    document.getElementById('stat-candidates').textContent = Object.values(jobAppliedCounts).reduce((sum, n) => sum + n, 0);
-
     if (jobs.length === 0) {
       jobsList.innerHTML = `<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">No active listings</div>Post your first job to start receiving candidates.</div>`;
       overviewJobs.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No jobs posted yet</div>Post your first job to start seeing activity here.</div>`;
@@ -2240,6 +2229,7 @@
           <div><div class="js-val">${jobAppliedCounts[job.id] || 0}</div><div class="js-label">Applied</div></div>
         </div>
         <div class="job-actions">
+          <button class="btn-view" onclick="window.open('job-details.html?job=${job.id}', '_blank')">View</button>
           <button class="btn-view" onclick="editJob('${job.id}')">Edit</button>
           <button class="btn-danger" onclick="deleteJob('${job.id}')">Delete</button>
         </div>
