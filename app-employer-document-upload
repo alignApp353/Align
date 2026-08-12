@@ -143,7 +143,105 @@ employerThemeMedia.addEventListener?.('change',()=>{
     );
   }
 });
-const SUPABASE_URL='https://auth.alygnn.com';const SUPABASE_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';const BUCKET='employer-verification-documents';const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});const input=document.getElementById('document');const dropZone=document.getElementById('drop-zone');const chooseButton=document.getElementById('choose-button');const submitButton=document.getElementById('submit-button');const message=document.getElementById('message');let selectedFile=null;let session=null;let companyId=localStorage.getItem('alygnn_company_id')||'';function showMessage(text,type='error'){message.textContent=text;message.className='message '+type}function clearMessage(){message.textContent='';message.className='message'}function validateFile(file){if(!file)return false;const isPdf=file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf');if(!isPdf){showMessage('Choose a PDF file. Other file types are not accepted.');return false}if(file.size>10*1024*1024){showMessage('Your PDF must be 10 MB or smaller.');return false}return true}function selectFile(file){clearMessage();if(!validateFile(file))return;selectedFile=file;dropZone.classList.add('has-file');document.getElementById('file-icon').textContent='✓';document.getElementById('file-title').textContent=file.name;document.getElementById('file-copy').textContent=(file.size/1024/1024).toFixed(2)+' MB • Ready to submit';chooseButton.textContent='Choose Different PDF';submitButton.disabled=false}chooseButton.addEventListener('click',e=>{e.stopPropagation();input.click()});dropZone.addEventListener('click',()=>input.click());dropZone.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();input.click()}});input.addEventListener('change',()=>selectFile(input.files[0]));['dragenter','dragover'].forEach(name=>dropZone.addEventListener(name,e=>{e.preventDefault();dropZone.classList.add('dragging')}));['dragleave','drop'].forEach(name=>dropZone.addEventListener(name,e=>{e.preventDefault();dropZone.classList.remove('dragging')}));dropZone.addEventListener('drop',e=>selectFile(e.dataTransfer.files[0]));function verificationReturnTo(){
+const SUPABASE_URL='https://auth.alygnn.com';const SUPABASE_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';const BUCKET='employer-verification-documents';const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});const input=document.getElementById('document');const dropZone=document.getElementById('drop-zone');const chooseButton=document.getElementById('choose-button');const submitButton=document.getElementById('submit-button');const message=document.getElementById('message');let selectedFile=null;
+let session=null;
+
+const queryCompanyId=(new URLSearchParams(location.search).get('company_id')||'').trim();
+
+let companyId=(
+  queryCompanyId ||
+  sessionStorage.getItem('alygnn_company_id') ||
+  localStorage.getItem('alygnn_company_id') ||
+  ''
+).trim();
+
+if(companyId){
+  localStorage.setItem('alygnn_company_id',companyId);
+  sessionStorage.setItem('alygnn_company_id',companyId);
+}
+function showMessage(text,type='error'){message.textContent=text;message.className='message '+type}function clearMessage(){message.textContent='';message.className='message'}function validateFile(file){if(!file)return false;const isPdf=file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf');if(!isPdf){showMessage('Choose a PDF file. Other file types are not accepted.');return false}if(file.size>10*1024*1024){showMessage('Your PDF must be 10 MB or smaller.');return false}return true}function selectFile(file){clearMessage();if(!validateFile(file))return;selectedFile=file;dropZone.classList.add('has-file');document.getElementById('file-icon').textContent='✓';document.getElementById('file-title').textContent=file.name;document.getElementById('file-copy').textContent=(file.size/1024/1024).toFixed(2)+' MB • Ready to submit';chooseButton.textContent='Choose Different PDF';submitButton.disabled=false}chooseButton.addEventListener('click',e=>{e.stopPropagation();input.click()});dropZone.addEventListener('click',()=>input.click());dropZone.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();input.click()}});input.addEventListener('change',()=>selectFile(input.files[0]));['dragenter','dragover'].forEach(name=>dropZone.addEventListener(name,e=>{e.preventDefault();dropZone.classList.add('dragging')}));['dragleave','drop'].forEach(name=>dropZone.addEventListener(name,e=>{e.preventDefault();dropZone.classList.remove('dragging')}));dropZone.addEventListener('drop',e=>selectFile(e.dataTransfer.files[0]));
+async function resolveEmployerCompany(){
+  if(companyId){
+    return {id:companyId};
+  }
+
+  // First try the user's company membership. Include pending memberships because
+  // a brand-new employer may not be marked active until verification is complete.
+  try{
+    const {data:membership,error:membershipError}=await sb
+      .from('company_members')
+      .select('company_id,companies(id,account_number,verification_status)')
+      .eq('user_id',session.user.id)
+      .in('membership_status',['active','pending'])
+      .limit(1)
+      .maybeSingle();
+
+    if(!membershipError && membership?.company_id){
+      companyId=String(membership.company_id).trim();
+      localStorage.setItem('alygnn_company_id',companyId);
+      sessionStorage.setItem('alygnn_company_id',companyId);
+
+      const joinedCompany=Array.isArray(membership.companies)
+        ? membership.companies[0]
+        : membership.companies;
+
+      if(joinedCompany?.account_number){
+        localStorage.setItem('alygnn_company_account_number',joinedCompany.account_number);
+      }
+
+      return joinedCompany || {id:companyId};
+    }
+  }catch(error){
+    console.warn('Could not resolve company from company_members:',error);
+  }
+
+  // Fallback for owner accounts in case the membership row is not readable yet.
+  try{
+    const {data:ownedCompany,error:ownerError}=await sb
+      .from('companies')
+      .select('id,account_number,verification_status')
+      .eq('owner_user_id',session.user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if(!ownerError && ownedCompany?.id){
+      companyId=String(ownedCompany.id).trim();
+      localStorage.setItem('alygnn_company_id',companyId);
+      sessionStorage.setItem('alygnn_company_id',companyId);
+
+      if(ownedCompany.account_number){
+        localStorage.setItem('alygnn_company_account_number',ownedCompany.account_number);
+      }
+
+      return ownedCompany;
+    }
+  }catch(error){
+    console.warn('Could not resolve owned company:',error);
+  }
+
+  // Last fallback: the company ID saved in onboarding metadata.
+  try{
+    const metadata=session.user.user_metadata||{};
+    const metadataCompanyId=String(
+      metadata?.onboarding_company_profile?.company_id ||
+      metadata?.company_id ||
+      ''
+    ).trim();
+
+    if(metadataCompanyId){
+      companyId=metadataCompanyId;
+      localStorage.setItem('alygnn_company_id',companyId);
+      sessionStorage.setItem('alygnn_company_id',companyId);
+      return {id:companyId};
+    }
+  }catch(error){
+    console.warn('Could not resolve company from metadata:',error);
+  }
+
+  return null;
+}
+
+function verificationReturnTo(){
   const params=new URLSearchParams(location.search);
   const requested=params.get('return_to')||sessionStorage.getItem('alygnnAiProfileReturnTo')||'';
   const allowed=new Set([
@@ -162,5 +260,28 @@ const SUPABASE_URL='https://auth.alygnn.com';const SUPABASE_KEY='sb_publishable_
 
   return 'app-employer-dashboard.html';
 }
-document.getElementById('back-button').onclick=()=>location.replace(verificationReturnTo());submitButton.onclick=async()=>{if(!selectedFile||!validateFile(selectedFile))return;submitButton.disabled=true;submitButton.textContent='Uploading…';clearMessage();try{if(!session)throw new Error('Your session expired. Sign in again.');if(!companyId)throw new Error('Your company could not be identified. Return to onboarding and try again.');const safeName=selectedFile.name.replace(/[^a-zA-Z0-9._-]/g,'-').slice(-100);const storagePath=`${companyId}/${session.user.id}/${Date.now()}-${safeName}`;const {error:uploadError}=await sb.storage.from(BUCKET).upload(storagePath,selectedFile,{cacheControl:'3600',upsert:false,contentType:'application/pdf'});if(uploadError)throw uploadError;const {error:recordError}=await sb.from('employer_verification_documents').insert({company_id:companyId,uploaded_by:session.user.id,document_type:'ein_verification',storage_path:storagePath,original_file_name:selectedFile.name,mime_type:'application/pdf',file_size_bytes:selectedFile.size,review_status:'pending_review'});if(recordError){await sb.storage.from(BUCKET).remove([storagePath]);throw recordError}localStorage.setItem('alygnn_verification_document_submitted','true');localStorage.setItem('alygnn_employer_verification_status','pending_review');showMessage('Your document was submitted successfully.','success');setTimeout(()=>location.replace('app-employer-verification-status.html'),700)}catch(error){console.error(error);showMessage(error.message||'Unable to upload your document.');submitButton.disabled=false;submitButton.textContent='Submit Document'}};(async()=>{const result=await sb.auth.getSession();session=result.data.session;if(!session){location.replace('app-employer-login.html');return}if(!companyId){const {data:membership}=await sb.from('company_members').select('company_id,companies(verification_status)').eq('user_id',session.user.id).eq('membership_status','active').limit(1).maybeSingle();if(membership?.company_id){companyId=membership.company_id;localStorage.setItem('alygnn_company_id',companyId);const company=Array.isArray(membership.companies)?membership.companies[0]:membership.companies;if(company?.verification_status==='approved')location.replace('app-employer-dashboard.html')}}})();
+document.getElementById('back-button').onclick=()=>location.replace(verificationReturnTo());submitButton.onclick=async()=>{if(!selectedFile||!validateFile(selectedFile))return;submitButton.disabled=true;submitButton.textContent='Uploading…';clearMessage();try{if(!session)throw new Error('Your session expired. Sign in again.');
+
+if(!companyId){
+  await resolveEmployerCompany();
+}
+
+if(!companyId){
+  throw new Error('Alygnn could not connect this verification document to your company. Go back to your job draft and open Verify Company again.');
+}
+const safeName=selectedFile.name.replace(/[^a-zA-Z0-9._-]/g,'-').slice(-100);const storagePath=`${companyId}/${session.user.id}/${Date.now()}-${safeName}`;const {error:uploadError}=await sb.storage.from(BUCKET).upload(storagePath,selectedFile,{cacheControl:'3600',upsert:false,contentType:'application/pdf'});if(uploadError)throw uploadError;const {error:recordError}=await sb.from('employer_verification_documents').insert({company_id:companyId,uploaded_by:session.user.id,document_type:'ein_verification',storage_path:storagePath,original_file_name:selectedFile.name,mime_type:'application/pdf',file_size_bytes:selectedFile.size,review_status:'pending_review'});if(recordError){await sb.storage.from(BUCKET).remove([storagePath]);throw recordError}localStorage.setItem('alygnn_verification_document_submitted','true');localStorage.setItem('alygnn_employer_verification_status','pending_review');showMessage('Your document was submitted successfully.','success');setTimeout(()=>location.replace('app-employer-verification-status.html'),700)}catch(error){console.error(error);showMessage(error.message||'Unable to upload your document.');submitButton.disabled=false;submitButton.textContent='Submit Document'}};(async()=>{
+  const result=await sb.auth.getSession();
+  session=result.data.session;
+
+  if(!session){
+    location.replace('app-employer-login.html');
+    return;
+  }
+
+  const company=await resolveEmployerCompany();
+
+  if(company?.verification_status==='approved'){
+    location.replace('app-employer-dashboard.html');
+  }
+})();
 </script></body></html>
