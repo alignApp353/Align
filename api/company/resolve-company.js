@@ -2,27 +2,74 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
+const ALLOWED_ORIGINS = new Set([
+  'https://localhost',
+  'http://localhost',
+  'capacitor://localhost',
+  'https://alygnn.com',
+  'https://www.alygnn.com'
+]);
+
+function applyCors(req, res) {
+  const origin = req.headers.origin || '';
+
+  if (
+    ALLOWED_ORIGINS.has(origin) ||
+    origin.endsWith('.vercel.app')
+  ) {
+    res.setHeader(
+      'Access-Control-Allow-Origin',
+      origin
+    );
+  }
+
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET, OPTIONS'
+  );
+
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Authorization, Content-Type'
+  );
+
+  res.setHeader(
+    'Access-Control-Allow-Credentials',
+    'true'
+  );
+
+  res.setHeader(
+    'Vary',
+    'Origin'
+  );
+}
+
 function sendJson(res, status, payload) {
-  res.status(status).json(payload);
+  return res.status(status).json(payload);
 }
 
 function getAccessToken(req) {
-  const value = req.headers.authorization || '';
+  const value =
+    req.headers.authorization || '';
 
-  return value.startsWith('Bearer ')
-    ? value.slice(7).trim()
-    : null;
+  if (!value.startsWith('Bearer ')) {
+    return null;
+  }
+
+  return value.slice(7).trim();
 }
 
-module.exports = async function handler(req, res) {
+module.exports = async function handler(
+  req,
+  res
+) {
+  applyCors(req, res);
+
   if (req.method === 'OPTIONS') {
-    res.setHeader('Allow', 'GET, OPTIONS');
     return res.status(204).end();
   }
 
   if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET, OPTIONS');
-
     return sendJson(res, 405, {
       success: false,
       error: 'Method not allowed.'
@@ -35,7 +82,8 @@ module.exports = async function handler(req, res) {
   ) {
     return sendJson(res, 500, {
       success: false,
-      error: 'Server configuration is incomplete.'
+      error:
+        'Server configuration is incomplete.'
     });
   }
 
@@ -65,68 +113,59 @@ module.exports = async function handler(req, res) {
   } = await supabase.auth.getUser(token);
 
   if (userError || !user) {
+    console.error(
+      'resolve-company auth error:',
+      userError
+    );
+
     return sendJson(res, 401, {
       success: false,
-      error: 'Your login session is invalid or has expired.'
+      error:
+        'Your login session is invalid or expired.'
     });
   }
 
   try {
-    // First look for a company owned directly by this employer.
+    /*
+     * 1. Look for a company directly owned
+     *    by the signed-in employer.
+     */
     const {
       data: ownedCompany,
       error: ownerError
     } = await supabase
       .from('companies')
       .select(
-        'id,account_number,company_name,legal_name,verification_status,owner_user_id'
+        `
+        id,
+        account_number,
+        company_name,
+        verification_status,
+        owner_user_id
+        `
       )
       .eq('owner_user_id', user.id)
       .limit(1)
       .maybeSingle();
 
     if (ownerError) {
-      // Some versions of the companies table may not have legal_name.
-      const fallback = await supabase
-        .from('companies')
-        .select(
-          'id,account_number,company_name,verification_status,owner_user_id'
-        )
-        .eq('owner_user_id', user.id)
-        .limit(1)
-        .maybeSingle();
-
-      if (fallback.error) {
-        throw fallback.error;
-      }
-
-      if (fallback.data) {
-        return sendJson(res, 200, {
-          success: true,
-          company: {
-            id: fallback.data.id,
-            accountNumber:
-              fallback.data.account_number || null,
-            name:
-              fallback.data.company_name || null,
-            verificationStatus:
-              fallback.data.verification_status ||
-              'pending_review'
-          }
-        });
-      }
+      console.error(
+        'Owner company lookup failed:',
+        ownerError
+      );
     }
 
-    if (ownedCompany) {
+    if (ownedCompany?.id) {
       return sendJson(res, 200, {
         success: true,
+        source: 'owner',
         company: {
           id: ownedCompany.id,
           accountNumber:
-            ownedCompany.account_number || null,
+            ownedCompany.account_number ||
+            null,
           name:
             ownedCompany.company_name ||
-            ownedCompany.legal_name ||
             null,
           verificationStatus:
             ownedCompany.verification_status ||
@@ -135,25 +174,38 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Fallback for invited or member employer accounts.
+    /*
+     * 2. Look for a company membership.
+     */
     const {
       data: membership,
       error: membershipError
     } = await supabase
       .from('company_members')
       .select(
-        'company_id,role,membership_status'
+        `
+        company_id,
+        role,
+        membership_status
+        `
       )
       .eq('user_id', user.id)
       .in(
         'membership_status',
-        ['active', 'pending', 'suspended']
+        [
+          'active',
+          'pending',
+          'suspended'
+        ]
       )
       .limit(1)
       .maybeSingle();
 
     if (membershipError) {
-      throw membershipError;
+      console.error(
+        'Membership lookup failed:',
+        membershipError
+      );
     }
 
     if (membership?.company_id) {
@@ -163,24 +215,38 @@ module.exports = async function handler(req, res) {
       } = await supabase
         .from('companies')
         .select(
-          'id,account_number,company_name,verification_status'
+          `
+          id,
+          account_number,
+          company_name,
+          verification_status
+          `
         )
-        .eq('id', membership.company_id)
+        .eq(
+          'id',
+          membership.company_id
+        )
         .maybeSingle();
 
       if (companyError) {
-        throw companyError;
+        console.error(
+          'Member company lookup failed:',
+          companyError
+        );
       }
 
-      if (memberCompany) {
+      if (memberCompany?.id) {
         return sendJson(res, 200, {
           success: true,
+          source: 'membership',
           company: {
             id: memberCompany.id,
             accountNumber:
-              memberCompany.account_number || null,
+              memberCompany.account_number ||
+              null,
             name:
-              memberCompany.company_name || null,
+              memberCompany.company_name ||
+              null,
             verificationStatus:
               memberCompany.verification_status ||
               'pending_review'
@@ -189,36 +255,53 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // Last fallback for older employer verification records.
+    /*
+     * 3. Fallback to employer_verifications.
+     */
     const {
       data: verification,
       error: verificationError
     } = await supabase
       .from('employer_verifications')
       .select(
-        'company_id,company_name,verification_status'
+        `
+        company_id,
+        company_name,
+        verification_status
+        `
       )
       .eq('user_id', user.id)
       .limit(1)
       .maybeSingle();
 
-    if (
-      !verificationError &&
-      verification?.company_id
-    ) {
+    if (verificationError) {
+      console.error(
+        'Verification lookup failed:',
+        verificationError
+      );
+    }
+
+    if (verification?.company_id) {
       return sendJson(res, 200, {
         success: true,
+        source: 'verification',
         company: {
           id: verification.company_id,
           accountNumber: null,
           name:
-            verification.company_name || null,
+            verification.company_name ||
+            null,
           verificationStatus:
             verification.verification_status ||
             'pending_review'
         }
       });
     }
+
+    console.error(
+      'No company found for employer:',
+      user.id
+    );
 
     return sendJson(res, 404, {
       success: false,
