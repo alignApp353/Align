@@ -417,8 +417,8 @@ function validateCurrent(){
     const emailField=document.getElementById('business-email');
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value.trim())){showMessage('Enter a valid business email address.');return false}
 
-    const phone=document.getElementById('business-phone').value.replace(/\D/g,'');
-    if(phone.length<10||phone.length>15){showMessage('Enter a valid business phone number (10 to 15 digits).');return false}
+    const phoneField=document.getElementById('business-phone');
+    if(!isValidPhone(phoneField.value)){showMessage('Enter a valid business phone number, like (919) 555-0123 or +44 20 7946 0958.');return false}
 
     const ein=document.getElementById('ein').value.replace(/\D/g,'');
     if(!isPlausibleEin(ein)){showMessage('Enter a valid EIN. Alygnn checks it against real IRS-issued prefixes — this number doesn\'t match a valid format.');return false}
@@ -466,7 +466,18 @@ function isValidWebsite(value){
     return url.protocol==='https:' && hostname.includes('.') && !hostname.includes(' ') && !hostname.endsWith('.');
   }catch{return false}
 }
-function isValidPhone(value){const n=(value||'').replace(/\D/g,'');return n.length>=10 && n.length<=15}
+// A bare string of 10-15 digits with no formatting or country code (e.g.
+// "929239299299292") technically satisfies a length check but isn't a
+// plausible phone number. Domestic numbers (no "+") must be exactly 10
+// digits, or 11 with a leading 1 (US long-distance prefix). Numbers typed
+// with a leading "+" are treated as international and allowed the full
+// E.164 range of 8-15 digits, since country codes vary in length.
+function isValidPhone(value){
+  const trimmed=(value||'').trim();
+  const digits=trimmed.replace(/\D/g,'');
+  if(trimmed.startsWith('+')) return digits.length>=8 && digits.length<=15;
+  return digits.length===10 || (digits.length===11 && digits.startsWith('1'));
+}
 function isValidBusinessEmail(value){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value||'').trim())}
 function isValidAddress(value){return (value||'').trim().length>=5}
 function getDomainFromWebsite(value){try{return new URL((value||'').trim()).hostname.toLowerCase().replace(/^www\./,'')}catch{return ''}}
