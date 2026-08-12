@@ -165,6 +165,55 @@ async function resolveEmployerCompany(){
     return {id:companyId};
   }
 
+  // Resolve the company through Alygnn's server first. This uses the
+  // service-role key on the server, so browser RLS cannot hide the
+  // employer's own company/membership from this verification page.
+  try{
+    const response=await fetch('/api/company/resolve-company',{
+      method:'GET',
+      headers:{
+        'Authorization':'Bearer '+session.access_token
+      }
+    });
+
+    const result=await response.json().catch(()=>({}));
+
+    if(response.ok && result?.company?.id){
+      companyId=String(result.company.id).trim();
+
+      localStorage.setItem('alygnn_company_id',companyId);
+      sessionStorage.setItem('alygnn_company_id',companyId);
+
+      if(result.company.accountNumber){
+        localStorage.setItem(
+          'alygnn_company_account_number',
+          result.company.accountNumber
+        );
+      }
+
+      if(result.company.verificationStatus){
+        localStorage.setItem(
+          'alygnn_employer_verification_status',
+          result.company.verificationStatus
+        );
+      }
+
+      return {
+        id:companyId,
+        verification_status:
+          result.company.verificationStatus || 'pending_review',
+        company_name:result.company.name || ''
+      };
+    }
+
+    console.warn(
+      'Server could not resolve employer company:',
+      result?.error || response.status
+    );
+  }catch(error){
+    console.warn('Server company resolver failed:',error);
+  }
+
   // First try the user's company membership. Include pending memberships because
   // a brand-new employer may not be marked active until verification is complete.
   try{
@@ -267,7 +316,7 @@ if(!companyId){
 }
 
 if(!companyId){
-  throw new Error('Alygnn could not connect this verification document to your company. Go back to your job draft and open Verify Company again.');
+  throw new Error('Alygnn still cannot find a company workspace for this account. The verification document was not uploaded.');
 }
 const safeName=selectedFile.name.replace(/[^a-zA-Z0-9._-]/g,'-').slice(-100);const storagePath=`${companyId}/${session.user.id}/${Date.now()}-${safeName}`;const {error:uploadError}=await sb.storage.from(BUCKET).upload(storagePath,selectedFile,{cacheControl:'3600',upsert:false,contentType:'application/pdf'});if(uploadError)throw uploadError;const {error:recordError}=await sb.from('employer_verification_documents').insert({company_id:companyId,uploaded_by:session.user.id,document_type:'ein_verification',storage_path:storagePath,original_file_name:selectedFile.name,mime_type:'application/pdf',file_size_bytes:selectedFile.size,review_status:'pending_review'});if(recordError){await sb.storage.from(BUCKET).remove([storagePath]);throw recordError}localStorage.setItem('alygnn_verification_document_submitted','true');localStorage.setItem('alygnn_employer_verification_status','pending_review');showMessage('Your document was submitted successfully.','success');setTimeout(()=>location.replace('app-employer-verification-status.html'),700)}catch(error){console.error(error);showMessage(error.message||'Unable to upload your document.');submitButton.disabled=false;submitButton.textContent='Submit Document'}};(async()=>{
   const result=await sb.auth.getSession();
