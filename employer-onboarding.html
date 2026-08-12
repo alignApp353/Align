@@ -170,7 +170,7 @@
   <div class="inline-check"><input id="has-dba" name="has_dba" type="checkbox"><label for="has-dba">This company operates under a DBA or trade name</label></div>
   <div class="field conditional" id="dba-field"><label class="required" for="dba-name">DBA / trade name</label><input id="dba-name" name="dba_name" placeholder="Public-facing business name"></div>
   <div class="grid">
-    <div class="field"><label class="required" for="business-phone">Business phone number</label><input id="business-phone" name="business_phone" required type="tel" inputmode="tel" maxlength="25" placeholder="(919) 555-0123"><p class="field-error" id="business-phone-error">Enter a valid phone number — a real 10-digit number, or include a country code (e.g. +44) for international.</p></div>
+    <div class="field"><label class="required" for="business-phone">Business phone number</label><input id="business-phone" name="business_phone" required type="tel" inputmode="numeric" maxlength="14" autocomplete="tel-national" placeholder="(919) 555-0123"><p class="field-error" id="business-phone-error">Enter a valid 10-digit U.S. phone number, such as (919) 555-0123.</p></div>
     <div class="field"><label class="required" for="business-email">Business email</label><input id="business-email" name="business_email" required type="email" autocomplete="email" placeholder="admin@yourcompany.com"></div>
     <div class="field"><label class="required" for="business-address">Business address</label><input id="business-address" name="business_address" required autocomplete="street-address" placeholder="123 Main St, City, State"></div>
     <div class="field suggest-wrap"><label class="required" for="industry">Industry</label><input id="industry" name="industry" required autocomplete="off" placeholder="Start typing an industry"><div id="industry-suggestions" class="suggestions"></div></div>
@@ -208,6 +208,7 @@
     <div class="value">IRS 147C Letter</div>
     <div class="value">A completed Form W-9</div>
   </div>
+  <p class="helper">Don't have one? <a href="https://www.irs.gov/pub/irs-pdf/fw9.pdf" target="_blank" rel="noopener">Download a blank W-9</a>, fill it in, and upload it as a PDF.</p>
   <div class="field">
     <label class="required" for="ein-document">Upload document (PDF)</label>
     <input id="ein-document" name="ein_document" type="file" accept="application/pdf">
@@ -278,7 +279,7 @@ function restoreDraft(){
   if(!draft)return false;
   document.getElementById('company-name').value=draft.company_name||'';
   document.getElementById('website').value=draft.website||'';
-  document.getElementById('business-phone').value=draft.business_phone||'';
+  document.getElementById('business-phone').value=formatUsPhone(draft.business_phone||'');
   document.getElementById('business-email').value=draft.business_email||'';
   document.getElementById('business-address').value=draft.business_address||'';
   document.getElementById('industry').value=draft.industry||'';
@@ -420,9 +421,11 @@ function validateCurrent(){
     if(!isValidPhone(phoneField.value)){
       phoneField.classList.add('field-invalid');
       document.getElementById('business-phone-error').classList.add('show');
-      showMessage('Enter a valid business phone number, like (919) 555-0123 or +44 20 7946 0958.');
+      phoneField.focus();
+      showMessage('Enter a valid 10-digit U.S. business phone number, like (919) 555-0123.');
       return false;
     }
+    phoneField.value=formatUsPhone(phoneField.value);
 
     const ein=document.getElementById('ein').value.replace(/\D/g,'');
     if(!isPlausibleEin(ein)){showMessage('Enter a valid EIN. Alygnn checks it against real IRS-issued prefixes — this number doesn\'t match a valid format.');return false}
@@ -470,17 +473,32 @@ function isValidWebsite(value){
     return url.protocol==='https:' && hostname.includes('.') && !hostname.includes(' ') && !hostname.endsWith('.');
   }catch{return false}
 }
-// A bare string of 10-15 digits with no formatting or country code (e.g.
-// "929239299299292") technically satisfies a length check but isn't a
-// plausible phone number. Domestic numbers (no "+") must be exactly 10
-// digits, or 11 with a leading 1 (US long-distance prefix). Numbers typed
-// with a leading "+" are treated as international and allowed the full
-// E.164 range of 8-15 digits, since country codes vary in length.
+// U.S.-only phone validation. Alygnn accepts exactly 10 digits and applies
+// basic NANP plausibility rules: area code and exchange must start 2-9,
+// N11 service codes are rejected, and obvious fake/repeated patterns fail.
+// This validates the number's structure; proving that the line actually
+// exists would require SMS/voice verification or a phone lookup provider.
 function isValidPhone(value){
-  const trimmed=(value||'').trim();
-  const digits=trimmed.replace(/\D/g,'');
-  if(trimmed.startsWith('+')) return digits.length>=8 && digits.length<=15;
-  return digits.length===10 || (digits.length===11 && digits.startsWith('1'));
+  const digits=(value||'').replace(/\D/g,'');
+  if(!/^\d{10}$/.test(digits))return false;
+
+  const area=digits.slice(0,3);
+  const exchange=digits.slice(3,6);
+
+  if(!/^[2-9]\d{2}$/.test(area))return false;
+  if(!/^[2-9]\d{2}$/.test(exchange))return false;
+  if(/^[2-9]11$/.test(area)||/^[2-9]11$/.test(exchange))return false;
+  if(/^(\d)\1{9}$/.test(digits))return false;
+  if(hasLongSequentialRun(digits,6))return false;
+  if(hasRepeatingPattern(digits))return false;
+
+  return true;
+}
+function formatUsPhone(value){
+  const digits=(value||'').replace(/\D/g,'').slice(0,10);
+  if(digits.length<=3)return digits;
+  if(digits.length<=6)return `(${digits.slice(0,3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
 }
 function isValidBusinessEmail(value){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value||'').trim())}
 function isValidAddress(value){return (value||'').trim().length>=5}
@@ -630,33 +648,18 @@ document.getElementById('ein').addEventListener('input',e=>{
   e.target.value=d.length>2?d.slice(0,2)+'-'+d.slice(2):d;
 });
 
-// Allow normal phone formatting characters (digits, spaces, parens,
-// dashes, a leading +) but strip anything else and cap at 15 digits —
-// the same upper bound isValidPhone() and the step-2 check above enforce
-// — so a wall of pasted digits can't sit in the field unnoticed.
+// Keep only the first 10 digits and format them as a U.S. phone number.
+// Pasting or typing an 11th digit has no effect.
 document.getElementById('business-phone').addEventListener('input',e=>{
-  let value=e.target.value.replace(/[^\d+()\-\s]/g,'');
-  const digitCount=(value.match(/\d/g)||[]).length;
-  if(digitCount>15){
-    let seen=0;
-    value=value.split('').filter(ch=>{
-      if(/\d/.test(ch)){
-        seen++;
-        return seen<=15;
-      }
-      return true;
-    }).join('');
-  }
-  e.target.value=value;
-  // Clear the invalid state as soon as they start fixing it — the red
-  // border/message only reappears on blur if it's still wrong, so this
-  // doesn't nag mid-typing.
+  const digits=e.target.value.replace(/\D/g,'').slice(0,10);
+  e.target.value=formatUsPhone(digits);
   e.target.classList.remove('field-invalid');
   document.getElementById('business-phone-error').classList.remove('show');
 });
 document.getElementById('business-phone').addEventListener('blur',e=>{
   const value=e.target.value.trim();
   const invalid=value.length>0 && !isValidPhone(value);
+  if(value)e.target.value=formatUsPhone(value);
   e.target.classList.toggle('field-invalid',invalid);
   document.getElementById('business-phone-error').classList.toggle('show',invalid);
 });
@@ -697,7 +700,7 @@ window.addEventListener('beforeunload',saveDraft);
   if(!restoreDraft()){
     if(profile?.company_name) document.getElementById('company-name').value=profile.company_name;
     if(profile?.company_website) document.getElementById('website').value=profile.company_website;
-    if(profile?.company_phone) document.getElementById('business-phone').value=profile.company_phone;
+    if(profile?.company_phone) document.getElementById('business-phone').value=formatUsPhone(profile.company_phone);
     if(profile?.business_email) document.getElementById('business-email').value=profile.business_email;
     if(profile?.business_address) document.getElementById('business-address').value=profile.business_address;
     showStep(0);
