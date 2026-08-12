@@ -1144,7 +1144,7 @@
   // fetching, no network calls. Safe to call before checkAuth() resolves
   // so the correct tab is on screen immediately, instead of always
   // painting Overview first and swapping a moment later.
-  function applyPanelVisual(name, trigger) {
+  function applyPanelVisual(name) {
     const targetPanel = document.getElementById('panel-' + name);
     if (!targetPanel) return;
 
@@ -1153,10 +1153,7 @@
 
     targetPanel.classList.add('active');
 
-    const navButton = trigger && trigger.classList && trigger.classList.contains('nav-item')
-      ? trigger
-      : document.querySelector(`.nav-item[onclick*="${name}"]`);
-
+    const navButton = document.querySelector(`.nav-item[onclick*="${name}"]`);
     if (navButton) navButton.classList.add('active');
 
     // currentProfile isn't loaded yet on the very first sync call before
@@ -1164,10 +1161,6 @@
     // loadPanelData path (which runs after updateVerificationUI already
     // ran once) keep the lock UI correct.
     if (currentProfile !== null) updateVerificationUI();
-
-    if (window.location.hash !== '#' + name) {
-      history.replaceState(null, '', '#' + name);
-    }
   }
 
   // The actual data-fetching side effects for a given panel.
@@ -1177,19 +1170,41 @@
     if (name === 'interviews') loadInterviews();
   }
 
-  function showPanel(name, trigger) {
+  // Every real panel switch changes the URL hash, which is a genuine
+  // history entry (not history.replaceState). That means the browser's
+  // own Back button steps back through Jobs → Candidates → Jobs etc.
+  // instead of jumping straight past the whole dashboard to whatever page
+  // linked in — e.g. from a job's "Candidates" button back to My Jobs,
+  // not all the way back to Account.
+  function showPanel(name) {
     if (name === 'post' && !employerVerified) {
       window.location.href = 'employer-onboarding.html';
       return;
     }
 
-    applyPanelVisual(name, trigger);
+    if (window.location.hash === '#' + name) {
+      // Already there (e.g. clicking the same nav item twice) — hashchange
+      // won't fire on its own, so drive the update directly.
+      applyPanelVisual(name);
+      loadPanelData(name);
+    } else {
+      window.location.hash = name;
+    }
+  }
+
+  function handleHashRoute() {
+    const name = getPanelFromHash();
+    applyPanelVisual(name);
     loadPanelData(name);
   }
 
+  window.addEventListener('hashchange', handleHashRoute);
+
   // Switch to the right panel immediately based on the URL hash, before
   // checkAuth()'s network calls even start — this is what prevents the
-  // "flashes Overview, then jumps to Candidates" flicker on refresh.
+  // "flashes Overview, then jumps to Candidates" flicker on refresh. This
+  // call is purely visual (no hash write, since the hash already matches),
+  // so it doesn't create a spurious history entry.
   applyPanelVisual(getPanelFromHash());
 
   checkAuth();
