@@ -1098,20 +1098,27 @@
 
     currentUser = authedUser;
 
-    const role = String(authedUser.user_metadata?.role || '').toLowerCase();
-    if (role === 'seeker' || role === 'job_seeker') {
-      window.location.href = 'account.html';
-      return;
-    }
-
     const { data: profile, error: profileError } = await sb
       .from('profiles')
-      .select('company_name, full_name, employer_verified, verification_status')
+      .select('role, company_name, full_name, employer_verified, verification_status')
       .eq('id', authedUser.id)
       .maybeSingle();
 
     if (profileError) {
       console.error('Failed to load employer profile:', profileError);
+    }
+
+    // A session merely proves someone is logged in — it says nothing about
+    // whether they're an employer. This previously only excluded sessions
+    // explicitly marked 'seeker'/'job_seeker', which let ANY other
+    // session through (including one with no role set at all) straight
+    // into the employer dashboard. Now it requires a positive employer
+    // match from either profiles.role (set once onboarding completes) or
+    // user_metadata.role (set at signup, before onboarding finishes).
+    const role = String(profile?.role || authedUser.user_metadata?.role || '').toLowerCase();
+    if (role !== 'employer') {
+      window.location.href = 'login.html?role=employer';
+      return;
     }
 
     currentProfile = profile || {};
