@@ -238,10 +238,23 @@
      flashes on screen for a moment before the redirect to login fires. */
   body { visibility: hidden; }
   body.auth-ready { visibility: visible; }
+
+  /* Shown while body is hidden, so the auth check reads as a brief
+     loading moment instead of a broken blank white page. visibility on a
+     child can override an ancestor's visibility:hidden, so this shows
+     even though body doesn't. */
+  #auth-loading {
+    visibility: visible; position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; z-index: 9999;
+    font-size: 14px; color: var(--text-muted);
+  }
+  body.auth-ready #auth-loading { display: none; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+
+<div id="auth-loading">Loading…</div>
 
 <nav>
   <a href="employers.html" class="logo">Alygnn<span>.</span></a>
@@ -984,7 +997,7 @@
 
   async function initEmployerAccountPage(){
     const session = await waitForSession();
-    if (!session) { window.location.href = 'login.html?role=employer'; return; }
+    if (!session) { window.location.replace('login.html?role=employer'); return; }
 
     currentUserId = session.user.id;
 
@@ -1010,7 +1023,7 @@
     // seeker's session, or no session-linked profile at all) gets sent to
     // log in as an employer instead of silently seeing this page half-built.
     const role = String(profile?.role || session.user.user_metadata?.role || '').toLowerCase();
-    if (role !== 'employer') { window.location.href = 'login.html?role=employer'; return; }
+    if (role !== 'employer') { window.location.replace('login.html?role=employer'); return; }
 
     document.body.classList.add('auth-ready');
 
