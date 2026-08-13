@@ -2,245 +2,1558 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#F6F8F7">
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1,viewport-fit=cover"
+>
+
+<meta
+  name="theme-color"
+  content="#F6F8F7"
+>
+
 <title>Employer Login | Alygnn</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+
+<link
+  rel="preconnect"
+  href="https://fonts.googleapis.com"
+>
+
+<link
+  rel="preconnect"
+  href="https://fonts.gstatic.com"
+  crossorigin
+>
+
+<link
+  href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap"
+  rel="stylesheet"
+>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
-:root{--brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--text:#172333;--muted:#59697A;--border:#DDE3E8;--accent:#3568C0;--accent-dark:#2857A8;--accent-bg:#EAF1FC;--danger:#B64040;--danger-bg:#FCEDED;--success:#18794E;--success-bg:#E8F6EE}
-html,body{width:100%;min-height:100%}
-body{min-height:100vh;background:radial-gradient(circle at 12% 8%,rgba(140,182,155,.13),transparent 28%),radial-gradient(circle at 90% 84%,rgba(93,127,163,.13),transparent 31%),var(--bg);color:var(--text)}
-button,input,a{font:inherit}
-.page{width:100%;max-width:520px;min-height:100vh;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
-.topbar{min-height:51px;display:grid;grid-template-columns:48px 1fr 48px;align-items:center}
-.back-btn{width:44px;height:44px;border:1px solid var(--border);border-radius:50%;background:#fff;color:var(--text);font-size:21px;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 16px rgba(23,35,51,.06)}
-.brand{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:31px;color:var(--brand)}
-.brand span{color:var(--sage)}
-.login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 0 14px}
-.identity{text-align:center}
-.identity-icon{width:72px;height:72px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--accent);background:var(--accent-bg)}
-.identity-icon svg{width:35px;height:35px}
-h1{margin-top:19px;font-size:30px;line-height:1.1;letter-spacing:-.55px;font-weight:900}
-.subtitle{max-width:330px;margin:9px auto 0;color:var(--muted);font-size:14px;line-height:1.5}
-.form{margin-top:31px}
-.field{margin-top:17px}.field:first-child{margin-top:0}
-.label-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-label{font-size:13px;font-weight:900}
-.forgot{border:none;background:transparent;color:var(--accent-dark);font-size:12px;font-weight:900}
-.input-wrap{min-height:56px;padding:0 15px;border:1px solid var(--border);border-radius:17px;background:rgba(255,255,255,.94);display:flex;align-items:center;gap:11px}
-.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px rgba(93,127,163,.1)}
-.field-icon{width:20px;height:20px;color:#7A8794;flex:0 0 20px}
-input{width:100%;min-width:0;border:none;outline:none;background:transparent;color:var(--text);font-size:15px}
-input::placeholder{color:#98A2AD}
-.show-btn{border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:900}
-.message{display:none;margin-top:16px;padding:12px 14px;border-radius:14px;font-size:12px;line-height:1.45;font-weight:700}
-.message.error{display:block;color:var(--danger);background:var(--danger-bg)}
-.message.success{display:block;color:var(--success);background:var(--success-bg)}
-.primary{width:100%;min-height:56px;margin-top:22px;border:none;border-radius:17px;background:var(--accent);color:#fff;font-size:15px;font-weight:900;box-shadow:0 9px 24px rgba(52,95,145,.2)}
-.primary:disabled,.social:disabled{opacity:.65}
-.divider{margin:25px 0 15px;display:flex;align-items:center;gap:13px;color:#8995A1;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px}
-.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--border)}
-.social{width:100%;min-height:54px;margin-top:10px;border:1px solid var(--border);border-radius:17px;background:#fff;color:var(--text);display:flex;align-items:center;justify-content:center;gap:12px;font-size:14px;font-weight:900}
-.social:first-of-type{margin-top:0}
-.google-mark{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:16px;font-weight:900;color:#4285F4}
-.apple-mark{font-size:22px;line-height:1}
-.signup{margin-top:25px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
-.signup a{color:var(--accent-dark);text-decoration:none;font-weight:900}
-.switch{margin-top:15px;text-align:center}
-.switch-btn{border:none;background:transparent;color:var(--brand);font-size:12px;font-weight:900}
-@media(max-height:760px){.login{justify-content:flex-start;padding-top:15px}.identity-icon{width:61px;height:61px}h1{font-size:27px;margin-top:13px}.form{margin-top:23px}.field{margin-top:13px}.input-wrap{min-height:51px}.primary{min-height:52px;margin-top:17px}.divider{margin:18px 0 11px}.social{min-height:49px;margin-top:8px}.signup{margin-top:17px}}
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:'DM Sans',Arial,sans-serif!important;
+}
+
+:root{
+  --brand:#5D7FA3;
+  --sage:#8CB69B;
+  --bg:#F6F8F7;
+  --text:#172333;
+  --muted:#59697A;
+  --border:#DDE3E8;
+
+  --accent:#3568C0;
+  --accent-dark:#2857A8;
+  --accent-bg:#EAF1FC;
+
+  --danger:#B64040;
+  --danger-bg:#FCEDED;
+
+  --success:#18794E;
+  --success-bg:#E8F6EE;
+}
+
+html,
+body{
+  width:100%;
+  min-height:100%;
+}
+
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(
+      circle at 12% 8%,
+      rgba(140,182,155,.13),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 90% 84%,
+      rgba(93,127,163,.13),
+      transparent 31%
+    ),
+    var(--bg);
+
+  color:var(--text);
+}
+
+button,
+input,
+a{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+.page{
+  width:100%;
+  max-width:520px;
+  min-height:100vh;
+  margin:0 auto;
+
+  padding:
+    calc(18px + env(safe-area-inset-top))
+    20px
+    calc(28px + env(safe-area-inset-bottom));
+
+  display:flex;
+  flex-direction:column;
+}
+
+.topbar{
+  min-height:51px;
+
+  display:grid;
+  grid-template-columns:48px 1fr 48px;
+  align-items:center;
+}
+
+.back-btn{
+  width:44px;
+  height:44px;
+
+  border:1px solid var(--border);
+  border-radius:50%;
+
+  background:#fff;
+  color:var(--text);
+
+  font-size:21px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  box-shadow:
+    0 5px 16px
+    rgba(23,35,51,.06);
+}
+
+.brand{
+  text-align:center;
+
+  font-family:
+    'DM Serif Display',
+    Georgia,
+    serif!important;
+
+  font-size:31px;
+  color:var(--brand);
+}
+
+.brand span{
+  color:var(--sage);
+}
+
+.login{
+  flex:1;
+
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+
+  padding:24px 0 14px;
+}
+
+.identity{
+  text-align:center;
+}
+
+.identity-icon{
+  width:72px;
+  height:72px;
+
+  margin:0 auto;
+
+  border-radius:50%;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  color:var(--accent);
+  background:var(--accent-bg);
+}
+
+.identity-icon svg{
+  width:35px;
+  height:35px;
+}
+
+h1{
+  margin-top:19px;
+
+  font-size:30px;
+  line-height:1.1;
+  letter-spacing:-.55px;
+  font-weight:900;
+}
+
+.subtitle{
+  max-width:330px;
+
+  margin:
+    9px
+    auto
+    0;
+
+  color:var(--muted);
+
+  font-size:14px;
+  line-height:1.5;
+}
+
+.form{
+  margin-top:31px;
+}
+
+.field{
+  margin-top:17px;
+}
+
+.field:first-child{
+  margin-top:0;
+}
+
+.label-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+  margin-bottom:8px;
+}
+
+label{
+  font-size:13px;
+  font-weight:900;
+}
+
+.forgot{
+  border:none;
+  background:transparent;
+
+  color:var(--accent-dark);
+
+  font-size:12px;
+  font-weight:900;
+}
+
+.input-wrap{
+  min-height:56px;
+
+  padding:0 15px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:17px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .94
+    );
+
+  display:flex;
+  align-items:center;
+  gap:11px;
+}
+
+.input-wrap:focus-within{
+  border-color:var(--accent);
+
+  box-shadow:
+    0 0 0 4px
+    rgba(93,127,163,.1);
+}
+
+.field-icon{
+  width:20px;
+  height:20px;
+
+  color:#7A8794;
+
+  flex:0 0 20px;
+}
+
+input{
+  width:100%;
+  min-width:0;
+
+  border:none;
+  outline:none;
+
+  background:transparent;
+  color:var(--text);
+
+  font-size:15px;
+}
+
+input::placeholder{
+  color:#98A2AD;
+}
+
+.show-btn{
+  border:none;
+  background:transparent;
+
+  color:var(--muted);
+
+  font-size:12px;
+  font-weight:900;
+}
+
+.message{
+  display:none;
+
+  margin-top:16px;
+
+  padding:
+    12px
+    14px;
+
+  border-radius:14px;
+
+  font-size:12px;
+  line-height:1.45;
+  font-weight:700;
+}
+
+.message.error{
+  display:block;
+
+  color:var(--danger);
+  background:var(--danger-bg);
+}
+
+.message.success{
+  display:block;
+
+  color:var(--success);
+  background:var(--success-bg);
+}
+
+.primary{
+  width:100%;
+  min-height:56px;
+
+  margin-top:22px;
+
+  border:none;
+  border-radius:17px;
+
+  background:var(--accent);
+  color:#fff;
+
+  font-size:15px;
+  font-weight:900;
+
+  box-shadow:
+    0 9px 24px
+    rgba(52,95,145,.2);
+}
+
+.primary:disabled,
+.social:disabled{
+  opacity:.65;
+}
+
+.divider{
+  margin:
+    25px
+    0
+    15px;
+
+  display:flex;
+  align-items:center;
+  gap:13px;
+
+  color:#8995A1;
+
+  font-size:11px;
+  font-weight:800;
+
+  text-transform:uppercase;
+  letter-spacing:.7px;
+}
+
+.divider::before,
+.divider::after{
+  content:"";
+
+  flex:1;
+
+  height:1px;
+
+  background:var(--border);
+}
+
+.social{
+  width:100%;
+  min-height:54px;
+
+  margin-top:10px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:17px;
+
+  background:#fff;
+  color:var(--text);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+
+  font-size:14px;
+  font-weight:900;
+}
+
+.social:first-of-type{
+  margin-top:0;
+}
+
+.google-mark{
+  width:22px;
+  height:22px;
+
+  border-radius:50%;
+
+  display:grid;
+  place-items:center;
+
+  font-size:16px;
+  font-weight:900;
+
+  color:#4285F4;
+}
+
+.apple-mark{
+  font-size:22px;
+  line-height:1;
+}
+
+.signup{
+  margin-top:25px;
+
+  text-align:center;
+
+  color:var(--muted);
+
+  font-size:13px;
+  line-height:1.6;
+}
+
+.signup a{
+  color:var(--accent-dark);
+
+  text-decoration:none;
+  font-weight:900;
+}
+
+.switch{
+  margin-top:15px;
+  text-align:center;
+}
+
+.switch-btn{
+  border:none;
+  background:transparent;
+
+  color:var(--brand);
+
+  font-size:12px;
+  font-weight:900;
+}
+
+.admin-access{
+  margin-top:18px;
+  padding-top:17px;
+
+  border-top:
+    1px solid
+    var(--border);
+
+  text-align:center;
+}
+
+.admin-access a{
+  color:#7A8794;
+
+  text-decoration:none;
+
+  font-size:11px;
+  font-weight:800;
+}
+
+.admin-access a:hover{
+  color:var(--accent-dark);
+}
+
+@media(max-height:760px){
+
+  .login{
+    justify-content:flex-start;
+    padding-top:15px;
+  }
+
+  .identity-icon{
+    width:61px;
+    height:61px;
+  }
+
+  h1{
+    font-size:27px;
+    margin-top:13px;
+  }
+
+  .form{
+    margin-top:23px;
+  }
+
+  .field{
+    margin-top:13px;
+  }
+
+  .input-wrap{
+    min-height:51px;
+  }
+
+  .primary{
+    min-height:52px;
+    margin-top:17px;
+  }
+
+  .divider{
+    margin:
+      18px
+      0
+      11px;
+  }
+
+  .social{
+    min-height:49px;
+    margin-top:8px;
+  }
+
+  .signup{
+    margin-top:17px;
+  }
+}
 </style>
 </head>
+
 <body>
+
 <main class="page">
+
 <header class="topbar">
-<button class="back-btn" id="back-btn" type="button" aria-label="Go back">←</button>
-<div class="brand">Alygnn<span>.</span></div><div></div>
+
+<button
+  class="back-btn"
+  id="back-btn"
+  type="button"
+  aria-label="Go back"
+>
+←
+</button>
+
+<div class="brand">
+Alygnn<span>.</span>
+</div>
+
+<div></div>
+
 </header>
+
+
 <section class="login">
+
 <div class="identity">
+
 <div class="identity-icon">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"></path><path d="M3 12h18"></path><path d="M10 12v2h4v-2"></path></svg>
+
+<svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+>
+<rect
+  x="3"
+  y="7"
+  width="18"
+  height="13"
+  rx="2"
+></rect>
+
+<path
+  d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"
+></path>
+
+<path d="M3 12h18"></path>
+
+<path d="M10 12v2h4v-2"></path>
+
+</svg>
+
 </div>
-<h1>Welcome back</h1>
-<p class="subtitle">Sign in to manage your jobs and candidates.</p>
+
+<h1>
+Welcome back
+</h1>
+
+<p class="subtitle">
+Sign in to manage your jobs and candidates.
+</p>
+
 </div>
+
+
 <div class="form">
+
 <div class="field">
-<div class="label-row"><label for="email">Email address</label></div>
+
+<div class="label-row">
+
+<label for="email">
+Email address
+</label>
+
+</div>
+
 <div class="input-wrap">
-<svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg>
-<input id="email" type="email" placeholder="Enter your email" autocomplete="email" inputmode="email">
-</div></div>
+
+<svg
+  class="field-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+>
+<rect
+  x="3"
+  y="5"
+  width="18"
+  height="14"
+  rx="2"
+></rect>
+
+<path d="m3 7 9 6 9-6"></path>
+</svg>
+
+<input
+  id="email"
+  type="email"
+  placeholder="Enter your email"
+  autocomplete="email"
+  inputmode="email"
+>
+
+</div>
+</div>
+
+
 <div class="field">
-<div class="label-row"><label for="password">Password</label><button class="forgot" id="forgot-btn" type="button">Forgot password?</button></div>
+
+<div class="label-row">
+
+<label for="password">
+Password
+</label>
+
+<button
+  class="forgot"
+  id="forgot-btn"
+  type="button"
+>
+Forgot password?
+</button>
+
+</div>
+
 <div class="input-wrap">
-<svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
-<input id="password" type="password" placeholder="Enter your password" autocomplete="current-password">
-<button class="show-btn" id="show-btn" type="button">Show</button>
-</div></div>
-<div id="message" class="message" aria-live="polite"></div>
-<button class="primary" id="sign-in-btn" type="button">Sign in</button>
-<div class="divider">or continue with</div>
-<button class="social" id="google-btn" type="button"><span class="google-mark">G</span><span>Continue with Google</span></button>
-<button class="social" id="apple-btn" type="button"><span class="apple-mark">●</span><span>Continue with Apple</span></button>
-<div class="signup">Don’t have an account? <a href="app-employer-create-account.html">Create one</a></div>
-<div class="switch"><button class="switch-btn" id="switch-btn" type="button">Switch to candidate sign in</button></div>
-</div></section></main>
+
+<svg
+  class="field-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+>
+<rect
+  x="5"
+  y="10"
+  width="14"
+  height="10"
+  rx="2"
+></rect>
+
+<path
+  d="M8 10V7a4 4 0 0 1 8 0v3"
+></path>
+</svg>
+
+<input
+  id="password"
+  type="password"
+  placeholder="Enter your password"
+  autocomplete="current-password"
+>
+
+<button
+  class="show-btn"
+  id="show-btn"
+  type="button"
+>
+Show
+</button>
+
+</div>
+</div>
+
+
+<div
+  id="message"
+  class="message"
+  aria-live="polite"
+></div>
+
+
+<button
+  class="primary"
+  id="sign-in-btn"
+  type="button"
+>
+Sign in
+</button>
+
+
+<div class="divider">
+or continue with
+</div>
+
+
+<button
+  class="social"
+  id="google-btn"
+  type="button"
+>
+
+<span class="google-mark">
+G
+</span>
+
+<span>
+Continue with Google
+</span>
+
+</button>
+
+
+<button
+  class="social"
+  id="apple-btn"
+  type="button"
+>
+
+<span class="apple-mark">
+●
+</span>
+
+<span>
+Continue with Apple
+</span>
+
+</button>
+
+
+<div class="signup">
+
+Don’t have an account?
+
+<a href="app-employer-create-account.html">
+Create one
+</a>
+
+</div>
+
+
+<div class="switch">
+
+<button
+  class="switch-btn"
+  id="switch-btn"
+  type="button"
+>
+Switch to candidate sign in
+</button>
+
+</div>
+
+
+<div class="admin-access">
+
+<a href="app-admin-login.html">
+Alygnn Admin sign in
+</a>
+
+</div>
+
+</div>
+
+</section>
+
+</main>
+
+
 <script>
-const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-const ACCOUNT_TYPE='employer';
-const TARGET_PAGE='app-employer-dashboard.html';
-const ONBOARDING_PAGE='app-employer-onboarding.html';
-const STATUS_PAGE='app-employer-verification-status.html';
-function showMessage(text,type){const m=document.getElementById('message');m.textContent=text;m.className='message '+type}
-function setLoading(b,l,lt,nt){b.disabled=l;b.textContent=l?lt:nt}
-function friendlyError(error){const raw=String(error?.message||'').toLowerCase();if(raw.includes('invalid login credentials')||raw.includes('invalid credentials'))return'Incorrect email or password. Please try again.';if(raw.includes('email not confirmed')||raw.includes('confirm your email'))return'Please verify your email before signing in.';if(raw.includes('fetch')||raw.includes('network')||raw.includes('failed to fetch'))return'Unable to connect. Please check your internet connection.';if(raw.includes('too many requests')||raw.includes('rate limit'))return'Too many attempts. Please wait a few minutes and try again.';return error?.message||'Unable to sign in. Please try again.'}
-function resetEmployerCacheForUser(userId){
-  const previousUserId=localStorage.getItem('alygnn_employer_user_id')||'';
 
-  if(previousUserId && previousUserId!==userId){
-    localStorage.removeItem('alygnn_company_id');
-    localStorage.removeItem('alygnn_company_account_number');
-    localStorage.removeItem('alygnn_employer_verification_status');
-    localStorage.removeItem('alygnn_verification_document_submitted');
-    sessionStorage.removeItem('alygnn_company_id');
-    sessionStorage.removeItem('alygnnAiProfileReturnTo');
+const sb=supabase.createClient(
+  'https://auth.alygnn.com',
+  'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+  {
+    auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true
+    }
   }
+);
 
-  localStorage.setItem('alygnn_employer_user_id',userId);
+
+const ACCOUNT_TYPE='employer';
+
+const TARGET_PAGE=
+  'app-employer-dashboard.html';
+
+const ONBOARDING_PAGE=
+  'app-employer-onboarding.html';
+
+const STATUS_PAGE=
+  'app-employer-verification-status.html';
+
+
+function showMessage(
+  text,
+  type
+){
+
+  const message=
+    document.getElementById(
+      'message'
+    );
+
+  message.textContent=text;
+
+  message.className=
+    'message '+type;
 }
 
-async function employerDestination(userId){
-  resetEmployerCacheForUser(userId);
 
-  const {data:{session}}=await sb.auth.getSession();
-  if(!session)return 'app-employer-login.html';
+function setLoading(
+  button,
+  loading,
+  loadingText,
+  normalText
+){
+
+  button.disabled=loading;
+
+  button.textContent=
+    loading
+      ?loadingText
+      :normalText;
+}
+
+
+function friendlyError(
+  error
+){
+
+  const raw=
+    String(
+      error?.message||''
+    ).toLowerCase();
+
+
+  if(
+    raw.includes(
+      'invalid login credentials'
+    )||
+    raw.includes(
+      'invalid credentials'
+    )
+  ){
+    return(
+      'Incorrect email or password. Please try again.'
+    );
+  }
+
+
+  if(
+    raw.includes(
+      'email not confirmed'
+    )||
+    raw.includes(
+      'confirm your email'
+    )
+  ){
+    return(
+      'Please verify your email before signing in.'
+    );
+  }
+
+
+  if(
+    raw.includes('fetch')||
+    raw.includes('network')||
+    raw.includes('failed to fetch')
+  ){
+    return(
+      'Unable to connect. Please check your internet connection.'
+    );
+  }
+
+
+  if(
+    raw.includes(
+      'too many requests'
+    )||
+    raw.includes(
+      'rate limit'
+    )
+  ){
+    return(
+      'Too many attempts. Please wait a few minutes and try again.'
+    );
+  }
+
+
+  return(
+    error?.message||
+    'Unable to sign in. Please try again.'
+  );
+}
+
+
+function resetEmployerCacheForUser(
+  userId
+){
+
+  const previousUserId=
+    localStorage.getItem(
+      'alygnn_employer_user_id'
+    )||'';
+
+
+  if(
+    previousUserId &&
+    previousUserId!==userId
+  ){
+
+    localStorage.removeItem(
+      'alygnn_company_id'
+    );
+
+    localStorage.removeItem(
+      'alygnn_company_account_number'
+    );
+
+    localStorage.removeItem(
+      'alygnn_employer_verification_status'
+    );
+
+    localStorage.removeItem(
+      'alygnn_verification_document_submitted'
+    );
+
+    sessionStorage.removeItem(
+      'alygnn_company_id'
+    );
+
+    sessionStorage.removeItem(
+      'alygnnAiProfileReturnTo'
+    );
+  }
+
+
+  localStorage.setItem(
+    'alygnn_employer_user_id',
+    userId
+  );
+}
+
+
+async function employerDestination(
+  userId
+){
+
+  resetEmployerCacheForUser(
+    userId
+  );
+
+
+  const {
+    data:{
+      session
+    }
+  }=
+    await sb.auth.getSession();
+
+
+  if(!session){
+
+    return(
+      'app-employer-login.html'
+    );
+  }
+
 
   try{
-    const response=await fetch('https://alygnn.com/api/company/resolve-company',{
-      method:'GET',
-      headers:{
-        'Authorization':'Bearer '+session.access_token
-      }
-    });
 
-    const result=await response.json().catch(()=>({}));
+    const response=
+      await fetch(
+        'https://alygnn.com/api/company/resolve-company',
+        {
+          method:'GET',
 
-    // New employer with no workspace: go to onboarding so create-company runs.
-    if(response.status===404 || !result?.company?.id){
-      return ONBOARDING_PAGE;
+          headers:{
+            'Authorization':
+              'Bearer '+
+              session.access_token
+          }
+        }
+      );
+
+
+    const result=
+      await response
+        .json()
+        .catch(()=>({}));
+
+
+    /*
+     * No company exists yet.
+     *
+     * Send employer through onboarding
+     * so /api/company/create-company
+     * actually creates the workspace.
+     */
+
+    if(
+      response.status===404||
+      !result?.company?.id
+    ){
+
+      return(
+        ONBOARDING_PAGE
+      );
     }
+
 
     if(!response.ok){
-      console.error('Company workspace check failed:',result);
-      return ONBOARDING_PAGE;
+
+      console.error(
+        'Company workspace check failed:',
+        result
+      );
+
+      return(
+        ONBOARDING_PAGE
+      );
     }
 
-    const company=result.company;
-    const status=String(company.verificationStatus||'pending_review').toLowerCase();
 
-    localStorage.setItem('alygnn_company_id',company.id);
-    sessionStorage.setItem('alygnn_company_id',company.id);
-    localStorage.setItem('alygnn_employer_verification_status',status);
+    const company=
+      result.company;
 
-    if(company.accountNumber){
-      localStorage.setItem('alygnn_company_account_number',company.accountNumber);
+
+    const status=
+      String(
+        company.verificationStatus||
+        'pending_review'
+      ).toLowerCase();
+
+
+    /*
+     * Save the REAL company belonging
+     * to this signed-in employer.
+     */
+
+    localStorage.setItem(
+      'alygnn_company_id',
+      company.id
+    );
+
+    sessionStorage.setItem(
+      'alygnn_company_id',
+      company.id
+    );
+
+    localStorage.setItem(
+      'alygnn_employer_verification_status',
+      status
+    );
+
+
+    if(
+      company.accountNumber
+    ){
+
+      localStorage.setItem(
+        'alygnn_company_account_number',
+        company.accountNumber
+      );
     }
 
-    if(status==='approved'){
-      return TARGET_PAGE;
+
+    /*
+     * APPROVED
+     */
+
+    if(
+      status==='approved'
+    ){
+
+      return(
+        TARGET_PAGE
+      );
     }
 
-    if(localStorage.getItem('alygnn_verification_document_submitted')==='true'){
-      return STATUS_PAGE;
+
+    /*
+     * DOCUMENT ALREADY SUBMITTED
+     */
+
+    if(
+      localStorage.getItem(
+        'alygnn_verification_document_submitted'
+      )==='true'
+    ){
+
+      return(
+        STATUS_PAGE
+      );
     }
 
-    return `app-employer-document-upload.html?company_id=${encodeURIComponent(company.id)}`;
+
+    /*
+     * COMPANY EXISTS
+     * BUT DOCUMENT STILL NEEDED
+     */
+
+    return(
+      'app-employer-document-upload.html'+
+      '?company_id='+
+      encodeURIComponent(
+        company.id
+      )
+    );
+
   }catch(error){
-    console.error('Unable to determine employer destination:',error);
-    return ONBOARDING_PAGE;
+
+    console.error(
+      'Unable to determine employer destination:',
+      error
+    );
+
+
+    return(
+      ONBOARDING_PAGE
+    );
   }
 }
+
+
 async function redirectIfLoggedIn(){
-  const params=new URLSearchParams(location.search);
-  if(params.has('logout'))return;
 
-  const {data}=await sb.auth.getSession();
-  if(!data.session)return;
+  const params=
+    new URLSearchParams(
+      location.search
+    );
 
-  const role=String(
-    data.session.user.user_metadata?.account_type||
-    data.session.user.app_metadata?.account_type||
-    ''
-  ).toLowerCase();
 
-  if(role==='employer'){
-    location.replace(await employerDestination(data.session.user.id));
+  if(
+    params.has('logout')
+  ){
+    return;
+  }
+
+
+  const {
+    data
+  }=
+    await sb.auth.getSession();
+
+
+  if(
+    !data.session
+  ){
+    return;
+  }
+
+
+  const role=
+    String(
+
+      data.session.user
+        .user_metadata
+        ?.account_type
+
+      ||
+
+      data.session.user
+        .app_metadata
+        ?.account_type
+
+      ||
+
+      ''
+
+    ).toLowerCase();
+
+
+  if(
+    role==='employer'
+  ){
+
+    location.replace(
+      await employerDestination(
+        data.session.user.id
+      )
+    );
   }
 }
+
+
 async function signIn(){
-  const email=document.getElementById('email').value.trim().toLowerCase();
-  const password=document.getElementById('password').value;
-  const button=document.getElementById('sign-in-btn');
+
+  const email=
+    document
+      .getElementById(
+        'email'
+      )
+      .value
+      .trim()
+      .toLowerCase();
+
+
+  const password=
+    document
+      .getElementById(
+        'password'
+      )
+      .value;
+
+
+  const button=
+    document.getElementById(
+      'sign-in-btn'
+    );
+
 
   if(!email){
-    showMessage('Please enter your email address.','error');
+
+    showMessage(
+      'Please enter your email address.',
+      'error'
+    );
+
     return;
   }
+
 
   if(!password){
-    showMessage('Please enter your password.','error');
+
+    showMessage(
+      'Please enter your password.',
+      'error'
+    );
+
     return;
   }
 
-  setLoading(button,true,'Signing in…','Sign in');
 
-  const {data,error}=await sb.auth.signInWithPassword({email,password});
+  setLoading(
+    button,
+    true,
+    'Signing in…',
+    'Sign in'
+  );
+
+
+  const {
+    data,
+    error
+  }=
+    await sb.auth
+      .signInWithPassword({
+        email,
+        password
+      });
+
 
   if(error){
-    showMessage(friendlyError(error),'error');
-    setLoading(button,false,'Signing in…','Sign in');
+
+    showMessage(
+      friendlyError(error),
+      'error'
+    );
+
+
+    setLoading(
+      button,
+      false,
+      'Signing in…',
+      'Sign in'
+    );
+
     return;
   }
 
-  const role=String(
-    data.user.user_metadata?.account_type||
-    data.user.app_metadata?.account_type||
-    ''
-  ).toLowerCase();
 
-  if(role!=='employer'){
+  const role=
+    String(
+
+      data.user
+        .user_metadata
+        ?.account_type
+
+      ||
+
+      data.user
+        .app_metadata
+        ?.account_type
+
+      ||
+
+      ''
+
+    ).toLowerCase();
+
+
+  /*
+   * DO NOT allow admin or candidate
+   * accounts through Employer Sign In.
+   */
+
+  if(
+    role!=='employer'
+  ){
+
     await sb.auth.signOut();
 
-    const message=role==='candidate'
-      ?'This account is registered as a candidate. Please use Candidate Sign In.'
-      :'This account is not registered as an employer. Please create an employer account first.';
 
-    showMessage(message,'error');
-    setLoading(button,false,'Signing in…','Sign in');
+    const message=
+      role==='candidate'
+
+        ?(
+          'This account is registered as a candidate. Please use Candidate Sign In.'
+        )
+
+        :(
+          'This account is not registered as an employer.'
+        );
+
+
+    showMessage(
+      message,
+      'error'
+    );
+
+
+    setLoading(
+      button,
+      false,
+      'Signing in…',
+      'Sign in'
+    );
+
+
     return;
   }
 
-  localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
-  showMessage('Welcome back. Checking verification…','success');
 
-  const destination=await employerDestination(data.user.id);
-  setTimeout(()=>location.replace(destination),450);
+  localStorage.setItem(
+    'alygnn_account_type',
+    ACCOUNT_TYPE
+  );
+
+
+  showMessage(
+    'Welcome back. Checking your company…',
+    'success'
+  );
+
+
+  const destination=
+    await employerDestination(
+      data.user.id
+    );
+
+
+  setTimeout(
+    ()=>{
+      location.replace(
+        destination
+      );
+    },
+    450
+  );
 }
-async function googleLogin(){showMessage('Employer Google sign-in is disabled. Sign in with your verified company email and password.','error')}
-document.getElementById('back-btn').addEventListener('click',()=>location.href='index.html');
-document.getElementById('show-btn').addEventListener('click',e=>{const i=document.getElementById('password');const s=i.type==='text';i.type=s?'password':'text';e.currentTarget.textContent=s?'Show':'Hide'});
-document.getElementById('forgot-btn').addEventListener('click',()=>location.href='app-forgot-password.html');
-document.getElementById('sign-in-btn').addEventListener('click',signIn);
-document.getElementById('google-btn').addEventListener('click',googleLogin);
-document.getElementById('apple-btn').addEventListener('click',()=>showMessage('Apple sign-in is not connected yet.','error'));
-document.getElementById('switch-btn').addEventListener('click',()=>location.href=ACCOUNT_TYPE==='employer'?'app-login.html':'app-employer-login.html');
-document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')signIn()});
+
+
+async function googleLogin(){
+
+  showMessage(
+    'Employer Google sign-in is disabled. Sign in with your verified company email and password.',
+    'error'
+  );
+}
+
+
+document
+  .getElementById(
+    'back-btn'
+  )
+  .addEventListener(
+    'click',
+    ()=>{
+      location.href='index.html';
+    }
+  );
+
+
+document
+  .getElementById(
+    'show-btn'
+  )
+  .addEventListener(
+    'click',
+    event=>{
+
+      const input=
+        document.getElementById(
+          'password'
+        );
+
+
+      const showing=
+        input.type==='text';
+
+
+      input.type=
+        showing
+          ?'password'
+          :'text';
+
+
+      event.currentTarget
+        .textContent=
+          showing
+            ?'Show'
+            :'Hide';
+    }
+  );
+
+
+document
+  .getElementById(
+    'forgot-btn'
+  )
+  .addEventListener(
+    'click',
+    ()=>{
+      location.href=
+        'app-forgot-password.html';
+    }
+  );
+
+
+document
+  .getElementById(
+    'sign-in-btn'
+  )
+  .addEventListener(
+    'click',
+    signIn
+  );
+
+
+document
+  .getElementById(
+    'google-btn'
+  )
+  .addEventListener(
+    'click',
+    googleLogin
+  );
+
+
+document
+  .getElementById(
+    'apple-btn'
+  )
+  .addEventListener(
+    'click',
+    ()=>{
+      showMessage(
+        'Apple sign-in is not connected yet.',
+        'error'
+      );
+    }
+  );
+
+
+document
+  .getElementById(
+    'switch-btn'
+  )
+  .addEventListener(
+    'click',
+    ()=>{
+      location.href=
+        'app-login.html';
+    }
+  );
+
+
+document
+  .getElementById(
+    'password'
+  )
+  .addEventListener(
+    'keydown',
+    event=>{
+
+      if(
+        event.key==='Enter'
+      ){
+        signIn();
+      }
+    }
+  );
+
+
 redirectIfLoggedIn();
+
 </script>
-</body></html>
+
+</body>
+</html>
