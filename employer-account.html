@@ -232,6 +232,12 @@
   .mini-footer{ text-align:center; padding:24px 6% 40px; font-size:12px; color:var(--text-muted); }
   .mini-footer a{ color:var(--text-muted); text-decoration:none; }
   .mini-footer a:hover{ color:var(--brand); }
+
+  /* Hidden until initEmployerAccountPage() confirms this session actually
+     belongs to an employer — otherwise the real page (name, account data)
+     flashes on screen for a moment before the redirect to login fires. */
+  body { visibility: hidden; }
+  body.auth-ready { visibility: visible; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -1005,6 +1011,8 @@
     // log in as an employer instead of silently seeing this page half-built.
     const role = String(profile?.role || session.user.user_metadata?.role || '').toLowerCase();
     if (role !== 'employer') { window.location.href = 'login.html?role=employer'; return; }
+
+    document.body.classList.add('auth-ready');
 
     currentProfile = profile || {
       employer_verified: false,
