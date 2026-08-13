@@ -1310,44 +1310,25 @@
           authLink.href = 'account.html';
         }
 
-        // Keep the homepage resume CTA consistent with the candidate account page.
-        // resume_data (built with the Alygnn resume builder) and
-        // resume_file_path (an uploaded file) are both valid signs a resume
-        // exists — checking file_path alone misses anyone who used the
-        // builder, since the generated-file upload to Storage is
+        // Keep the homepage resume CTA consistent with actual account
+        // state. resume_data (built with the Alygnn resume builder) and
+        // resume_file_path (an uploaded file) are both valid signs a
+        // resume exists — checking file_path alone misses anyone who used
+        // the builder, since the generated-file upload to Storage is
         // best-effort and can fail silently while resume_data still saves.
+        // If either exists, send them straight to swiping; otherwise send
+        // them to upload/build a resume first.
         const hasResume = !!(profile?.resume_file_path || profile?.resume_data);
 
         if (hasResume) {
-          const openSavedResume = async () => {
-            if (profile?.resume_file_path) {
-              const { data: signedUrlData, error: signedUrlError } = await sb.storage
-                .from('resumes')
-                .createSignedUrl(profile.resume_file_path, 60 * 5);
-
-              if (signedUrlError || !signedUrlData?.signedUrl) {
-                console.error('Unable to open saved resume:', signedUrlError);
-                window.location.href = 'account.html';
-                return;
-              }
-
-              window.open(signedUrlData.signedUrl, '_blank', 'noopener');
-              return;
-            }
-
-            // No file in Storage, but resume_data exists — open the
-            // builder's read-only view mode instead of a Storage file.
-            window.location.href = 'resume-builder.html?view=1';
-          };
-
           if (ctaBtn) {
-            ctaBtn.textContent = 'View resume';
-            ctaBtn.onclick = openSavedResume;
+            ctaBtn.textContent = 'Swipe';
+            ctaBtn.onclick = () => { window.location.href = 'swipe.html'; };
           }
 
           if (heroResumeBtn) {
-            heroResumeBtn.textContent = 'View resume';
-            heroResumeBtn.onclick = openSavedResume;
+            heroResumeBtn.textContent = 'Swipe';
+            heroResumeBtn.onclick = () => { window.location.href = 'swipe.html'; };
           }
         } else {
           if (ctaBtn) {
