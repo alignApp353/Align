@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#071823">
+<title>Alygnn Admin Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#071823;--panel:#0E1F2D;--border:#294054;--text:#F6F8FA;--muted:#A9B6C5;--brand:#6F99C4;--brand2:#3B6FA7;--sage:#8CB69B;--red:#FF9D9D;--red-bg:#401F25;--green:#77D7A4;--green-bg:#123A2A}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 0%,rgba(111,153,196,.16),transparent 28%),radial-gradient(circle at 90% 10%,rgba(140,182,155,.11),transparent 25%),var(--bg);color:var(--text);font-family:'DM Sans',Arial,sans-serif}
+.wrap{min-height:100vh;display:grid;place-items:center;padding:28px 18px}
+.card{width:min(100%,460px);border:1px solid var(--border);border-radius:26px;background:linear-gradient(180deg,rgba(18,38,56,.98),rgba(14,31,45,.98));padding:28px;box-shadow:0 30px 90px rgba(0,0,0,.28)}
+.brand{font-family:'DM Serif Display',Georgia,serif;font-size:38px;color:var(--brand);text-align:center}.brand span{color:var(--sage)}
+.pill{width:max-content;margin:14px auto 0;padding:8px 11px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:10px;font-weight:900;letter-spacing:.6px}
+h1{margin:28px 0 8px;font-size:30px;line-height:1.08;letter-spacing:-.8px}.sub{margin:0 0 24px;color:var(--muted);line-height:1.55;font-size:14px}
+label{display:block;margin:16px 0 8px;font-size:12px;font-weight:900}.field{position:relative}
+input{width:100%;height:54px;border:1px solid var(--border);border-radius:14px;background:#0A1B28;color:var(--text);padding:0 14px;outline:none;font-size:15px}
+input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(111,153,196,.12)}
+.show{position:absolute;right:8px;top:7px;height:40px;padding:0 10px;border:0;background:transparent;color:var(--brand);font-weight:900}
+.primary{width:100%;height:54px;margin-top:22px;border:0;border-radius:14px;background:var(--brand2);color:#fff;font-weight:900;font-size:15px}.primary:disabled{opacity:.55;cursor:not-allowed}
+.message{display:none;margin-top:16px;padding:12px 13px;border-radius:12px;font-size:12px;font-weight:800;line-height:1.45}.message.show{display:block}.message.error{background:var(--red-bg);color:var(--red);border:1px solid #6B303A}.message.success{background:var(--green-bg);color:var(--green);border:1px solid #24563F}
+.security{margin-top:20px;padding-top:18px;border-top:1px solid var(--border);color:var(--muted);font-size:11px;line-height:1.5;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card">
+    <div class="brand">Alygnn<span>.</span></div>
+    <div class="pill">ADMIN ACCESS</div>
+    <h1>Admin sign in</h1>
+    <p class="sub">Sign in with an authorized Alygnn administrator account to review employer verification requests.</p>
+    <label for="email">Admin email</label>
+    <input id="email" type="email" autocomplete="username" placeholder="admin@alygnn.com">
+    <label for="password">Password</label>
+    <div class="field">
+      <input id="password" type="password" autocomplete="current-password" placeholder="Enter your password">
+      <button class="show" id="show-password" type="button">Show</button>
+    </div>
+    <button class="primary" id="sign-in" type="button">Sign in to Admin</button>
+    <div class="message" id="message"></div>
+    <div class="security">Admin authorization is enforced by the Alygnn server. A valid Supabase login alone does not grant admin access.</div>
+  </main>
+</div>
+<script>
+const SUPABASE_URL='https://auth.alygnn.com';
+const SUPABASE_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+const ADMIN_API='https://alygnn.com/api/admin/employer-verifications';
+const DESTINATION='app-admin-employer-reviews.html';
+
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+
+const email=document.getElementById('email');
+const password=document.getElementById('password');
+const signInButton=document.getElementById('sign-in');
+const message=document.getElementById('message');
+
+function showMessage(text,type='error'){message.textContent=text;message.className='message show '+type}
+function clearMessage(){message.textContent='';message.className='message'}
+function setLoading(loading){signInButton.disabled=loading;signInButton.textContent=loading?'Checking admin access…':'Sign in to Admin'}
+
+async function verifyAdminAccess(session){
+  const response=await fetch(ADMIN_API+'?status=pending_review',{method:'GET',headers:{'Authorization':'Bearer '+session.access_token}});
+  const result=await response.json().catch(()=>({}));
+  if(response.status===403)throw new Error('This account is not authorized as an Alygnn administrator.');
+  if(response.status===401)throw new Error('Your admin session is invalid or expired.');
+  if(!response.ok)throw new Error(result.error||'Unable to verify admin access.');
+  return true;
+}
+
+async function signIn(){
+  clearMessage();
+  const adminEmail=email.value.trim().toLowerCase();
+  const adminPassword=password.value;
+  if(!adminEmail){showMessage('Enter your admin email.');return}
+  if(!adminPassword){showMessage('Enter your password.');return}
+  setLoading(true);
+  try{
+    const {data,error}=await sb.auth.signInWithPassword({email:adminEmail,password:adminPassword});
+    if(error)throw error;
+    if(!data.session)throw new Error('Unable to create an admin session.');
+    await verifyAdminAccess(data.session);
+    showMessage('Admin access confirmed. Opening verification queue…','success');
+    setTimeout(()=>location.replace(DESTINATION),350);
+  }catch(error){
+    await sb.auth.signOut().catch(()=>{});
+    showMessage(error?.message||'Unable to sign in.');
+    setLoading(false);
+  }
+}
+
+async function redirectIfAlreadyAdmin(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session)return;
+  try{
+    await verifyAdminAccess(session);
+    location.replace(DESTINATION);
+  }catch(error){
+    await sb.auth.signOut().catch(()=>{});
+  }
+}
+
+document.getElementById('show-password').addEventListener('click',()=>{
+  const hidden=password.type==='password';
+  password.type=hidden?'text':'password';
+  document.getElementById('show-password').textContent=hidden?'Hide':'Show';
+});
+
+signInButton.addEventListener('click',signIn);
+password.addEventListener('keydown',event=>{if(event.key==='Enter')signIn()});
+redirectIfAlreadyAdmin();
+</script>
+</body>
+</html>
