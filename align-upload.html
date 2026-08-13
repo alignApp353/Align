@@ -95,6 +95,21 @@
     margin-bottom: 40px;
   }
 
+  .existing-resume-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    background: var(--mint-light); border: 1px solid var(--mint);
+    border-radius: 16px; padding: 18px 22px; margin-bottom: 28px;
+  }
+  .existing-resume-text { display: flex; flex-direction: column; gap: 3px; }
+  .existing-resume-text strong { font-size: 14px; color: var(--text); font-weight: 500; }
+  .existing-resume-text span { font-size: 13px; color: var(--text-muted); }
+  .existing-resume-btn {
+    flex-shrink: 0; min-height: 42px; padding: 0 20px; border-radius: 100px;
+    border: none; background: var(--brand); color: #fff;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+  .existing-resume-btn:hover { opacity: 0.9; }
+
   .drop-zone {
     background: var(--card-bg);
     border: 2px dashed var(--border);
@@ -439,6 +454,14 @@
     <h1>Drop your<br>resume, let<br><em>AI</em> do the rest.</h1>
     <p class="upload-sub">We'll read your skills, experience, and salary history — then match you with jobs that actually fit.</p>
 
+    <div class="existing-resume-banner" id="existing-resume-banner" style="display:none;">
+      <div class="existing-resume-text">
+        <strong>You already have a resume on Alygnn.</strong>
+        <span>You can view it, or upload/build a new one below to replace it.</span>
+      </div>
+      <button type="button" class="existing-resume-btn" id="view-existing-resume-btn">View resume</button>
+    </div>
+
     <div class="drop-zone" id="drop-zone">
       <input type="file" id="file-input" accept=".pdf,.doc,.docx" />
       <div class="drop-icon">
@@ -633,6 +656,46 @@
   const progressPct = document.getElementById('progress-pct');
   const progressTitle = document.getElementById('progress-title');
   const progressSub = document.getElementById('progress-sub');
+
+  // If someone lands here (any entry point — nav, footer link, bookmark,
+  // back button) while already having a resume on file, tell them plainly
+  // instead of just dropping them into "upload a resume" as if they were
+  // starting from scratch. The upload flow below stays fully usable, since
+  // replacing an existing resume is a legitimate thing to want to do.
+  (async () => {
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+
+      const { data: profile } = await sb
+        .from('profiles')
+        .select('resume_file_path, resume_data')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      const hasResume = !!(profile?.resume_file_path || profile?.resume_data);
+      if (!hasResume) return;
+
+      const banner = document.getElementById('existing-resume-banner');
+      const viewBtn = document.getElementById('view-existing-resume-btn');
+      if (!banner || !viewBtn) return;
+
+      banner.style.display = 'flex';
+      viewBtn.addEventListener('click', () => {
+        // Prefer resume_data — resume-builder.html's view mode reads it
+        // directly and works regardless of whether a file also exists in
+        // Storage. If only a file exists (no resume_data), open that
+        // instead via a signed URL.
+        if (profile.resume_data) {
+          window.location.href = 'resume-builder.html?view=1';
+          return;
+        }
+        window.location.href = 'account.html';
+      });
+    } catch (error) {
+      console.error('Could not check for an existing resume:', error);
+    }
+  })();
 
   dropZone.addEventListener('dragover', function(e) {
     e.preventDefault();
