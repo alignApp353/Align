@@ -295,6 +295,12 @@
   .mini-footer{ text-align:center; padding:24px 6% 40px; font-size:12px; color:var(--text-muted); }
   .mini-footer a{ color:var(--text-muted); text-decoration:none; }
   .mini-footer a:hover{ color:var(--brand); }
+
+  /* Hidden until checkAuth() confirms this session actually belongs to an
+     employer — otherwise the real dashboard flashes on screen for a
+     moment before the redirect to login fires. */
+  body { visibility: hidden; }
+  body.auth-ready { visibility: visible; }
 </style>
 </head>
 <body>
@@ -1120,6 +1126,8 @@
       window.location.href = 'login.html?role=employer';
       return;
     }
+
+    document.body.classList.add('auth-ready');
 
     currentProfile = profile || {};
     employerVerified =
