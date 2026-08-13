@@ -487,13 +487,24 @@
 
   const { data: { session } } = await sb.auth.getSession();
 
-  // A session existing just means SOMEONE is logged in — it doesn't tell us
-  // whether they're an employer or a job seeker. Without this check, a
-  // job-seeker session on this employer-facing page was being treated as
-  // if it were a logged-in employer (showing "My account" / "Dashboard"
-  // and unlocking pricing) even though they'd never created an employer
-  // account here.
-  const role = String(session?.user?.user_metadata?.role || '').toLowerCase();
+  // The real employer/seeker role lives in profiles.role (that's what
+  // employer-onboarding.html writes and what employer-dashboard.html and
+  // employer-account.html both check) — session.user.user_metadata.role
+  // is never actually populated anywhere in the app, so checking only
+  // that field meant this nav always thought a logged-in employer was
+  // signed out, even while the linked account/dashboard pages correctly
+  // recognized the same session.
+  let profile = null;
+  if (session) {
+    const { data } = await sb
+      .from('profiles')
+      .select('role, company_name')
+      .eq('id', session.user.id)
+      .maybeSingle();
+    profile = data;
+  }
+
+  const role = String(profile?.role || session?.user?.user_metadata?.role || '').toLowerCase();
   const isEmployerSession = !!session && role === 'employer';
 
   if (!isEmployerSession) {
@@ -518,12 +529,6 @@
   const mobilePricingLink = document.getElementById('mobile-pricing-link');
   if (navPricingLink) navPricingLink.href = '#pricing';
   if (mobilePricingLink) mobilePricingLink.href = '#pricing';
-
-  const { data: profile } = await sb
-    .from('profiles')
-    .select('company_name')
-    .eq('id', session.user.id)
-    .maybeSingle();
 
   const isVerified = !!(profile?.company_name && profile.company_name.trim().length > 0);
 
