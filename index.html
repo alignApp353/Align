@@ -1296,7 +1296,7 @@
 
       const { data: profile } = await sb
         .from('profiles')
-        .select('role, resume_file_path, preferences')
+        .select('role, resume_file_path, resume_data, preferences')
         .eq('id', session.user.id)
         .maybeSingle();
 
@@ -1311,22 +1311,33 @@
         }
 
         // Keep the homepage resume CTA consistent with the candidate account page.
-        // If a resume exists, both homepage buttons become "View resume" and
-        // open the candidate's saved resume from the private Supabase bucket.
-        // If no resume exists yet, both buttons continue to the upload flow.
-        if (profile?.resume_file_path) {
-          const openSavedResume = async () => {
-            const { data: signedUrlData, error: signedUrlError } = await sb.storage
-              .from('resumes')
-              .createSignedUrl(profile.resume_file_path, 60 * 5);
+        // resume_data (built with the Alygnn resume builder) and
+        // resume_file_path (an uploaded file) are both valid signs a resume
+        // exists — checking file_path alone misses anyone who used the
+        // builder, since the generated-file upload to Storage is
+        // best-effort and can fail silently while resume_data still saves.
+        const hasResume = !!(profile?.resume_file_path || profile?.resume_data);
 
-            if (signedUrlError || !signedUrlData?.signedUrl) {
-              console.error('Unable to open saved resume:', signedUrlError);
-              window.location.href = 'account.html';
+        if (hasResume) {
+          const openSavedResume = async () => {
+            if (profile?.resume_file_path) {
+              const { data: signedUrlData, error: signedUrlError } = await sb.storage
+                .from('resumes')
+                .createSignedUrl(profile.resume_file_path, 60 * 5);
+
+              if (signedUrlError || !signedUrlData?.signedUrl) {
+                console.error('Unable to open saved resume:', signedUrlError);
+                window.location.href = 'account.html';
+                return;
+              }
+
+              window.open(signedUrlData.signedUrl, '_blank', 'noopener');
               return;
             }
 
-            window.open(signedUrlData.signedUrl, '_blank', 'noopener');
+            // No file in Storage, but resume_data exists — open the
+            // builder's read-only view mode instead of a Storage file.
+            window.location.href = 'resume-builder.html?view=1';
           };
 
           if (ctaBtn) {
