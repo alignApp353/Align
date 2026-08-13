@@ -990,11 +990,22 @@
 
     const { data: profile, error } = await sb
       .from('profiles')
-      .select('company_name, company_headline, company_website, company_phone, business_email, business_address, verification_status, employer_verified, full_name')
+      .select('role, company_name, company_headline, company_website, company_phone, business_email, business_address, verification_status, employer_verified, full_name')
       .eq('id', currentUserId)
       .single();
 
     if (error && error.code !== 'PGRST116') console.error('Failed to load employer profile', error);
+
+    // A session merely proves someone is logged in — it says nothing about
+    // whether they're an employer. profiles.role is set once onboarding
+    // completes, but a brand-new employer mid-onboarding won't have that
+    // yet, so user_metadata.role (set at signup) is checked too. Only
+    // reject if NEITHER source says "employer" — anyone else (a job
+    // seeker's session, or no session-linked profile at all) gets sent to
+    // log in as an employer instead of silently seeing this page half-built.
+    const role = String(profile?.role || session.user.user_metadata?.role || '').toLowerCase();
+    if (role !== 'employer') { window.location.href = 'login.html?role=employer'; return; }
+
     currentProfile = profile || {
       employer_verified: false,
       verification_status: 'not_submitted'
