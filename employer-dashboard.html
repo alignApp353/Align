@@ -301,9 +301,22 @@
      moment before the redirect to login fires. */
   body { visibility: hidden; }
   body.auth-ready { visibility: visible; }
+
+  /* Shown while body is hidden, so the auth check reads as a brief
+     loading moment instead of a broken blank white page. visibility on a
+     child can override an ancestor's visibility:hidden, so this shows
+     even though body doesn't. */
+  #auth-loading {
+    visibility: visible; position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; z-index: 9999;
+    font-size: 14px; color: var(--text-muted);
+  }
+  body.auth-ready #auth-loading { display: none; }
 </style>
 </head>
 <body>
+
+<div id="auth-loading">Loading…</div>
 
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
@@ -1098,7 +1111,7 @@
     const authedUser = data && data.user;
 
     if (error || !authedUser) {
-      window.location.href = 'login.html';
+      window.location.replace('login.html');
       return;
     }
 
@@ -1123,7 +1136,7 @@
     // user_metadata.role (set at signup, before onboarding finishes).
     const role = String(profile?.role || authedUser.user_metadata?.role || '').toLowerCase();
     if (role !== 'employer') {
-      window.location.href = 'login.html?role=employer';
+      window.location.replace('login.html?role=employer');
       return;
     }
 
