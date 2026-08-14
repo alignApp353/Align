@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1,viewport-fit=cover"
+>
+
+<meta
+  name="theme-color"
+  content="#F6F8F7"
+>
+
+<title>Business Verification | Alygnn</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link
+  href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap"
+  rel="stylesheet"
+>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+*{
+  box-sizing:border-box;
+  font-family:'DM Sans',Arial,sans-serif!important;
+}
+
+:root{
+  --bg:#F6F8F7;
+  --card:#FFFFFF;
+  --text:#172333;
+  --muted:#637181;
+  --border:#DDE3E8;
+
+  --brand:#5D7FA3;
+  --sage:#8CB69B;
+
+  --blue:#386AA2;
+  --blue-bg:#EDF3F8;
+
+  --amber:#A06700;
+  --amber-bg:#FFF3D6;
+
+  --green:#18794E;
+  --green-bg:#E8F6EE;
+
+  --red:#B64040;
+  --red-bg:#FCEDED;
+}
+
+html,
+body{
+  margin:0;
+  min-height:100%;
+}
+
+body{
+  min-height:100vh;
+
+  background:
+    radial-gradient(
+      circle at 12% 5%,
+      rgba(93,127,163,.12),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 90% 90%,
+      rgba(140,182,155,.12),
+      transparent 30%
+    ),
+    var(--bg);
+
+  color:var(--text);
+
+  display:flex;
+  justify-content:center;
+  align-items:center;
+
+  padding:
+    calc(24px + env(safe-area-inset-top))
+    18px
+    calc(24px + env(safe-area-inset-bottom));
+}
+
+.card{
+  width:min(100%,540px);
+
+  padding:
+    28px
+    27px
+    31px;
+
+  border:1px solid var(--border);
+
+  border-radius:28px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .97
+    );
+
+  box-shadow:
+    0 25px 70px
+    rgba(23,35,51,.10);
+}
+
+.brand{
+  text-align:center;
+
+  font-family:
+    'DM Serif Display',
+    Georgia,
+    serif!important;
+
+  font-size:34px;
+
+  color:var(--brand);
+}
+
+.brand span{
+  color:var(--sage);
+}
+
+.icon{
+  width:76px;
+  height:76px;
+
+  margin:
+    27px
+    0
+    0;
+
+  border-radius:23px;
+
+  background:var(--amber-bg);
+
+  color:var(--amber);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:34px;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+
+  margin-top:25px;
+
+  min-height:42px;
+
+  padding:
+    0
+    16px;
+
+  border-radius:999px;
+
+  background:var(--amber-bg);
+
+  color:var(--amber);
+
+  font-size:12px;
+  font-weight:900;
+
+  text-transform:uppercase;
+
+  letter-spacing:.5px;
+}
+
+h1{
+  margin:
+    22px
+    0
+    0;
+
+  font-size:32px;
+  line-height:1.12;
+
+  letter-spacing:-.7px;
+}
+
+.sub{
+  margin-top:17px;
+
+  color:var(--muted);
+
+  font-size:15px;
+  line-height:1.6;
+}
+
+.details{
+  margin-top:26px;
+
+  padding:
+    17px
+    21px;
+
+  border-radius:19px;
+
+  background:var(--blue-bg);
+}
+
+.row{
+  min-height:52px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  gap:20px;
+
+  border-bottom:
+    1px solid
+    #D6E0E8;
+
+  font-size:13px;
+}
+
+.row:last-child{
+  border-bottom:0;
+}
+
+.row span{
+  color:var(--muted);
+}
+
+.row strong{
+  text-align:right;
+  line-height:1.35;
+}
+
+.notice{
+  margin-top:25px;
+
+  padding:
+    21px;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:20px;
+
+  background:#fff;
+}
+
+.notice h2{
+  margin:0;
+
+  font-size:16px;
+  line-height:1.3;
+}
+
+.notice p{
+  margin:
+    12px
+    0
+    0;
+
+  color:var(--muted);
+
+  font-size:14px;
+  line-height:1.6;
+}
+
+.rejection{
+  display:none;
+
+  margin-top:18px;
+
+  padding:
+    16px
+    17px;
+
+  border:
+    1px solid
+    #F0C4C7;
+
+  border-radius:16px;
+
+  background:var(--red-bg);
+
+  color:#79383D;
+
+  font-size:13px;
+  line-height:1.55;
+}
+
+.rejection.show{
+  display:block;
+}
+
+.rejection strong{
+  display:block;
+
+  margin-bottom:5px;
+
+  color:var(--red);
+
+  font-size:11px;
+  font-weight:900;
+
+  text-transform:uppercase;
+  letter-spacing:.5px;
+}
+
+.btn{
+  width:100%;
+  min-height:56px;
+
+  margin-top:22px;
+
+  border:none;
+  border-radius:17px;
+
+  background:var(--blue);
+  color:#fff;
+
+  font-size:14px;
+  font-weight:900;
+
+  cursor:pointer;
+}
+
+.btn.secondary{
+  margin-top:10px;
+
+  border:
+    1px solid
+    var(--border);
+
+  background:#fff;
+  color:var(--text);
+}
+
+.btn.danger-action{
+  background:#A33F48;
+}
+
+.btn:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+.message{
+  display:none;
+
+  margin-top:15px;
+
+  padding:
+    12px
+    14px;
+
+  border-radius:14px;
+
+  background:var(--blue-bg);
+
+  color:var(--muted);
+
+  font-size:12px;
+  line-height:1.5;
+}
+
+.message.show{
+  display:block;
+}
+
+.message.error{
+  background:var(--red-bg);
+  color:var(--red);
+}
+
+@media(max-width:480px){
+
+  body{
+    align-items:flex-start;
+  }
+
+  .card{
+    padding:
+      22px
+      21px
+      27px;
+  }
+
+  h1{
+    font-size:29px;
+  }
+
+  .icon{
+    width:72px;
+    height:72px;
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<main class="card">
+
+<div class="brand">
+Alygnn<span>.</span>
+</div>
+
+
+<div
+  class="icon"
+  id="icon"
+>
+⌛
+</div>
+
+
+<div
+  class="badge"
+  id="badge"
+>
+Pending Business Verification
+</div>
+
+
+<h1 id="title">
+Your business is under review.
+</h1>
+
+
+<p
+  class="sub"
+  id="copy"
+>
+Alygnn is reviewing your business verification document.
+</p>
+
+
+<div class="details">
+
+<div class="row">
+
+<span>
+Status
+</span>
+
+<strong id="status">
+Checking…
+</strong>
+
+</div>
+
+
+<div class="row">
+
+<span>
+Company
+</span>
+
+<strong id="company">
+Checking…
+</strong>
+
+</div>
+
+
+<div class="row">
+
+<span>
+Verification document
+</span>
+
+<strong id="document-status">
+Checking…
+</strong>
+
+</div>
+
+</div>
+
+
+<div
+  class="rejection"
+  id="rejection"
+>
+
+<strong>
+Reason for rejection
+</strong>
+
+<span id="rejection-reason"></span>
+
+</div>
+
+
+<div
+  class="notice"
+  id="notice"
+>
+
+<h2 id="notice-title">
+You can keep building.
+</h2>
+
+<p id="notice-copy">
+You can continue preparing your employer account while Alygnn reviews your business.
+</p>
+
+</div>
+
+
+<button
+  class="btn"
+  id="primary-action"
+  type="button"
+>
+Continue to Employer Dashboard
+</button>
+
+
+<button
+  class="btn secondary"
+  id="refresh"
+  type="button"
+>
+Check Verification Status
+</button>
+
+
+<button
+  class="btn secondary"
+  id="signout"
+  type="button"
+>
+Sign out
+</button>
+
+
+<div
+  class="message"
+  id="message"
+></div>
+
+</main>
+
+
+<script>
+
+const sb=
+  supabase.createClient(
+    'https://auth.alygnn.com',
+    'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+    {
+      auth:{
+        persistSession:true,
+        autoRefreshToken:true
+      }
+    }
+  );
+
+
+const RESOLVE_API=
+  'https://alygnn.com/api/company/resolve-company';
+
+
+let currentCompanyId='';
+
+let currentVerificationStatus=
+  'pending_review';
+
+
+let currentAccountStatus=
+  'active';
+
+
+
+function formatStatus(
+  value
+){
+
+  const status=
+    String(
+      value||''
+    )
+    .trim()
+    .toLowerCase();
+
+
+  if(
+    status==='approved'
+  ){
+    return(
+      'Business Verified'
+    );
+  }
+
+
+  if(
+    status==='rejected'
+  ){
+    return(
+      'Verification Rejected'
+    );
+  }
+
+
+  return(
+    'Pending Business Verification'
+  );
+}
+
+
+
+function showMessage(
+  text,
+  type=''
+){
+
+  const box=
+    document.getElementById(
+      'message'
+    );
+
+
+  box.textContent=
+    text;
+
+
+  box.className=
+    'message show'+
+    (
+      type
+        ?' '+type
+        :''
+    );
+}
+
+
+
+function clearMessage(){
+
+  const box=
+    document.getElementById(
+      'message'
+    );
+
+
+  box.textContent='';
+
+  box.className=
+    'message';
+}
+
+
+
+function resetVisualState(){
+
+  const icon=
+    document.getElementById(
+      'icon'
+    );
+
+
+  const badge=
+    document.getElementById(
+      'badge'
+    );
+
+
+  icon.textContent='⌛';
+
+  icon.style.background=
+    '#FFF3D6';
+
+  icon.style.color=
+    '#A06700';
+
+
+  badge.style.background=
+    '#FFF3D6';
+
+  badge.style.color=
+    '#A06700';
+
+
+  document
+    .getElementById(
+      'rejection'
+    )
+    .classList
+    .remove('show');
+
+
+  const primary=
+    document.getElementById(
+      'primary-action'
+    );
+
+
+  primary.className=
+    'btn';
+
+}
+
+
+
+async function latestDocument(
+  companyId
+){
+
+  if(!companyId){
+    return null;
+  }
+
+
+  try{
+
+    const {
+      data,
+      error
+    }=
+      await sb
+        .from(
+          'employer_verification_documents'
+        )
+        .select(
+          [
+            'id',
+            'review_status',
+            'rejection_reason',
+            'original_file_name',
+            'created_at'
+          ].join(',')
+        )
+        .eq(
+          'company_id',
+          companyId
+        )
+        .order(
+          'created_at',
+          {
+            ascending:false
+          }
+        )
+        .limit(1)
+        .maybeSingle();
+
+
+    if(error){
+
+      console.warn(
+        'Could not read verification document:',
+        error
+      );
+
+      return null;
+    }
+
+
+    return data||null;
+
+  }catch(error){
+
+    console.warn(
+      'Verification document lookup failed:',
+      error
+    );
+
+    return null;
+  }
+}
+
+
+
+function renderPending(
+  company
+){
+
+  resetVisualState();
+
+
+  document
+    .getElementById(
+      'badge'
+    )
+    .textContent=
+      'Pending Business Verification';
+
+
+  document
+    .getElementById(
+      'title'
+    )
+    .textContent=
+      'Your business is under review.';
+
+
+  document
+    .getElementById(
+      'copy'
+    )
+    .textContent=
+      'Alygnn is reviewing your business verification document. We’ll update your employer account when the review is complete.';
+
+
+  document
+    .getElementById(
+      'status'
+    )
+    .textContent=
+      'Pending Business Verification';
+
+
+  document
+    .getElementById(
+      'notice-title'
+    )
+    .textContent=
+      'You can keep building.';
+
+
+  document
+    .getElementById(
+      'notice-copy'
+    )
+    .textContent=
+      'Create jobs, edit your company profile, and prepare your hiring page. Jobs should remain private until the business is approved.';
+
+
+  const button=
+    document.getElementById(
+      'primary-action'
+    );
+
+
+  button.textContent=
+    'Continue to Employer Dashboard';
+
+
+  button.onclick=
+    ()=>{
+
+      location.replace(
+        'app-employer-dashboard.html'
+      );
+    };
+}
+
+
+
+function renderApproved(
+  company
+){
+
+  resetVisualState();
+
+
+  const icon=
+    document.getElementById(
+      'icon'
+    );
+
+
+  const badge=
+    document.getElementById(
+      'badge'
+    );
+
+
+  icon.textContent='✓';
+
+  icon.style.background=
+    '#E8F6EE';
+
+  icon.style.color=
+    '#18794E';
+
+
+  badge.textContent=
+    'Business Verified';
+
+  badge.style.background=
+    '#E8F6EE';
+
+  badge.style.color=
+    '#18794E';
+
+
+  document
+    .getElementById(
+      'title'
+    )
+    .textContent=
+      'Your business is verified.';
+
+
+  document
+    .getElementById(
+      'copy'
+    )
+    .textContent=
+      'Your Alygnn employer account has been approved.';
+
+
+  document
+    .getElementById(
+      'status'
+    )
+    .textContent=
+      'Business Verified';
+
+
+  document
+    .getElementById(
+      'notice-title'
+    )
+    .textContent=
+      'Your employer workspace is ready.';
+
+
+  document
+    .getElementById(
+      'notice-copy'
+    )
+    .textContent=
+      'You can now manage your company and publish eligible jobs to candidates.';
+
+
+  const button=
+    document.getElementById(
+      'primary-action'
+    );
+
+
+  button.textContent=
+    'Open Employer Dashboard';
+
+
+  button.onclick=
+    ()=>{
+
+      location.replace(
+        'app-employer-dashboard.html'
+      );
+    };
+
+
+  localStorage.setItem(
+    'alygnn_employer_verification_status',
+    'approved'
+  );
+}
+
+
+
+function renderRejected(
+  company,
+  documentRow
+){
+
+  resetVisualState();
+
+
+  const icon=
+    document.getElementById(
+      'icon'
+    );
+
+
+  const badge=
+    document.getElementById(
+      'badge'
+    );
+
+
+  icon.textContent='!';
+
+  icon.style.background=
+    '#FCEDED';
+
+  icon.style.color=
+    '#B64040';
+
+
+  badge.textContent=
+    'Verification Rejected';
+
+  badge.style.background=
+    '#FCEDED';
+
+  badge.style.color=
+    '#B64040';
+
+
+  document
+    .getElementById(
+      'title'
+    )
+    .textContent=
+      'We could not verify your business.';
+
+
+  document
+    .getElementById(
+      'copy'
+    )
+    .textContent=
+      'Your business verification was not approved. Review the reason below and submit a new verification document if requested.';
+
+
+  document
+    .getElementById(
+      'status'
+    )
+    .textContent=
+      'Verification Rejected';
+
+
+  document
+    .getElementById(
+      'notice-title'
+    )
+    .textContent=
+      'Verification needs attention.';
+
+
+  document
+    .getElementById(
+      'notice-copy'
+    )
+    .textContent=
+      'Your company is not currently verified and jobs cannot be publicly published until Alygnn approves the business.';
+
+
+  const rejectionReason=
+    documentRow?.rejection_reason||
+    'Alygnn could not verify the information provided.';
+
+
+  document
+    .getElementById(
+      'rejection-reason'
+    )
+    .textContent=
+      rejectionReason;
+
+
+  document
+    .getElementById(
+      'rejection'
+    )
+    .classList
+    .add('show');
+
+
+  const button=
+    document.getElementById(
+      'primary-action'
+    );
+
+
+  button.className=
+    'btn danger-action';
+
+
+  button.textContent=
+    'Upload New Verification Document';
+
+
+  button.onclick=
+    ()=>{
+
+      location.replace(
+        'app-employer-document-upload.html'+
+        '?company_id='+
+        encodeURIComponent(
+          currentCompanyId
+        )
+      );
+    };
+
+
+  localStorage.setItem(
+    'alygnn_employer_verification_status',
+    'rejected'
+  );
+}
+
+
+
+async function load(){
+
+  clearMessage();
+
+
+  const refreshButton=
+    document.getElementById(
+      'refresh'
+    );
+
+
+  refreshButton.disabled=true;
+
+  refreshButton.textContent=
+    'Checking…';
+
+
+  try{
+
+    const {
+      data:{
+        session
+      }
+    }=
+      await sb.auth
+        .getSession();
+
+
+    if(!session){
+
+      location.replace(
+        'app-employer-login.html'
+      );
+
+      return;
+    }
+
+
+    /*
+     * ==========================================
+     * COMPANY STATUS FROM SERVER
+     * ==========================================
+     */
+
+    const response=
+      await fetch(
+        RESOLVE_API,
+        {
+          method:'GET',
+
+          headers:{
+            'Authorization':
+              'Bearer '+
+              session.access_token
+          }
+        }
+      );
+
+
+    const result=
+      await response
+        .json()
+        .catch(
+          ()=>({})
+        );
+
+
+    if(
+      response.status===404
+    ){
+
+      location.replace(
+        'app-employer-onboarding.html'
+      );
+
+      return;
+    }
+
+
+    if(!response.ok){
+
+      throw new Error(
+        result.error||
+        'Unable to check your verification status.'
+      );
+    }
+
+
+    const company=
+      result.company;
+
+
+    if(
+      !company?.id
+    ){
+
+      throw new Error(
+        'Alygnn could not find your company workspace.'
+      );
+    }
+
+
+    currentCompanyId=
+      company.id;
+
+
+    currentVerificationStatus=
+      String(
+        company.verificationStatus||
+        'pending_review'
+      )
+      .trim()
+      .toLowerCase();
+
+
+    currentAccountStatus=
+      String(
+        company.accountStatus||
+        'active'
+      )
+      .trim()
+      .toLowerCase();
+
+
+    /*
+     * ==========================================
+     * DEACTIVATED ALWAYS OVERRIDES VERIFICATION
+     * ==========================================
+     */
+
+    if(
+      currentAccountStatus===
+      'deactivated'
+    ){
+
+      location.replace(
+        'app-employer-deactivated.html'
+      );
+
+      return;
+    }
+
+
+    localStorage.setItem(
+      'alygnn_company_id',
+      currentCompanyId
+    );
+
+
+    sessionStorage.setItem(
+      'alygnn_company_id',
+      currentCompanyId
+    );
+
+
+    localStorage.setItem(
+      'alygnn_employer_verification_status',
+      currentVerificationStatus
+    );
+
+
+    localStorage.setItem(
+      'alygnn_company_account_status',
+      currentAccountStatus
+    );
+
+
+    document
+      .getElementById(
+        'company'
+      )
+      .textContent=
+        company.name||
+        'Your company';
+
+
+    /*
+     * ==========================================
+     * VERIFICATION DOCUMENT
+     * ==========================================
+     */
+
+    const documentRow=
+      await latestDocument(
+        currentCompanyId
+      );
+
+
+    if(documentRow){
+
+      document
+        .getElementById(
+          'document-status'
+        )
+        .textContent=
+          formatStatus(
+            documentRow.review_status
+          );
+
+    }else if(
+      localStorage.getItem(
+        'alygnn_verification_document_submitted'
+      )==='true'
+    ){
+
+      document
+        .getElementById(
+          'document-status'
+        )
+        .textContent=
+          'Submitted';
+
+    }else{
+
+      document
+        .getElementById(
+          'document-status'
+        )
+        .textContent=
+          'Not submitted';
+    }
+
+
+    /*
+     * ==========================================
+     * RENDER CORRECT STATE
+     * ==========================================
+     */
+
+    if(
+      currentVerificationStatus===
+      'approved'
+    ){
+
+      renderApproved(
+        company
+      );
+
+    }else if(
+      currentVerificationStatus===
+      'rejected'
+    ){
+
+      renderRejected(
+        company,
+        documentRow
+      );
+
+    }else{
+
+      renderPending(
+        company
+      );
+    }
+
+
+    showMessage(
+      'Verification status updated.'
+    );
+
+
+  }catch(error){
+
+    console.error(
+      'Unable to load verification status:',
+      error
+    );
+
+
+    showMessage(
+      error.message||
+      'Unable to check your verification status right now.',
+      'error'
+    );
+
+  }finally{
+
+    refreshButton.disabled=
+      false;
+
+
+    refreshButton.textContent=
+      'Check Verification Status';
+  }
+}
+
+
+
+document
+  .getElementById(
+    'refresh'
+  )
+  .addEventListener(
+    'click',
+    load
+  );
+
+
+document
+  .getElementById(
+    'signout'
+  )
+  .addEventListener(
+    'click',
+    async ()=>{
+
+      await sb.auth
+        .signOut();
+
+
+      location.replace(
+        'app-employer-login.html?logout=1'
+      );
+    }
+  );
+
+
+load();
+
+</script>
+
+</body>
+</html>
