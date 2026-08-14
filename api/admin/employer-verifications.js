@@ -2,13 +2,19 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
+
+/* =========================================================
+   CORS
+========================================================= */
+
 function applyCors(req, res) {
   const allowedOrigins = new Set([
     'https://alygnn.com',
     'https://www.alygnn.com',
     'http://localhost:3000',
     'http://localhost:5173',
-    'capacitor://localhost'
+    'capacitor://localhost',
+    'https://localhost'
   ]);
 
   const origin = String(req.headers.origin || '').trim();
@@ -21,7 +27,10 @@ function applyCors(req, res) {
   }
 
   res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET, PATCH, OPTIONS'
+  );
   res.setHeader(
     'Access-Control-Allow-Headers',
     'Authorization, Content-Type'
@@ -29,33 +38,51 @@ function applyCors(req, res) {
   res.setHeader('Access-Control-Max-Age', '86400');
 }
 
+
 function sendJson(res, status, payload) {
   return res.status(status).json(payload);
 }
 
-function bearerToken(req) {
-  const header = String(req.headers.authorization || '');
 
-  return header.toLowerCase().startsWith('bearer ')
-    ? header.slice(7).trim()
-    : '';
+function bearerToken(req) {
+  const header = String(
+    req.headers.authorization || ''
+  );
+
+  return header
+    .toLowerCase()
+    .startsWith('bearer ')
+      ? header.slice(7).trim()
+      : '';
 }
+
+
+/* =========================================================
+   ADMIN SECURITY
+========================================================= */
 
 function adminEmails() {
   return new Set(
-    String(process.env.ALYGNN_ADMIN_EMAILS || '')
+    String(
+      process.env.ALYGNN_ADMIN_EMAILS || ''
+    )
       .split(',')
-      .map(value => value.trim().toLowerCase())
+      .map(value =>
+        value.trim().toLowerCase()
+      )
       .filter(Boolean)
   );
 }
+
 
 function serviceClient() {
   if (
     !process.env.SUPABASE_URL ||
     !process.env.SUPABASE_SERVICE_ROLE_KEY
   ) {
-    throw new Error('Server configuration is incomplete.');
+    throw new Error(
+      'Server configuration is incomplete.'
+    );
   }
 
   return createClient(
@@ -70,6 +97,7 @@ function serviceClient() {
   );
 }
 
+
 async function requireAdmin(req, supabase) {
   const token = bearerToken(req);
 
@@ -77,82 +105,112 @@ async function requireAdmin(req, supabase) {
     const error = new Error(
       'Sign in before opening the admin review page.'
     );
+
     error.status = 401;
     throw error;
   }
 
-  const { data, error } = await supabase.auth.getUser(token);
+
+  const {
+    data,
+    error
+  } = await supabase.auth.getUser(token);
+
+
   const user = data?.user;
+
 
   if (error || !user) {
     const authError = new Error(
       'Your login session is invalid or expired.'
     );
+
     authError.status = 401;
     throw authError;
   }
 
+
   const allowed = adminEmails();
+
+  const email = String(
+    user.email || ''
+  ).toLowerCase();
+
 
   if (
     !allowed.size ||
-    !allowed.has(String(user.email || '').toLowerCase())
+    !allowed.has(email)
   ) {
     const permissionError = new Error(
       'This account is not authorized to review employers.'
     );
+
     permissionError.status = 403;
     throw permissionError;
   }
 
+
   return user;
 }
 
-async function latestDocuments(supabase, companyIds) {
-  if (!companyIds.length) {
-    return new Map();
+
+/* =========================================================
+   SIGNED PDF URL
+========================================================= */
+
+async function signedDocumentUrl(
+  supabase,
+  document
+) {
+  if (!document?.storage_path) {
+    return '';
   }
 
-  const { data, error } = await supabase
-    .from('employer_verification_documents')
-    .select(
-      [
-        'id',
-        'company_id',
-        'storage_path',
-        'original_file_name',
-        'document_type',
-        'review_status',
-        'rejection_reason',
-        'reviewed_by',
-        'reviewed_at',
-        'created_at'
-      ].join(',')
+
+  const {
+    data,
+    error
+  } = await supabase.storage
+    .from(
+      'employer-verification-documents'
     )
-    .in('company_id', companyIds)
-    .order('created_at', { ascending: false });
+    .createSignedUrl(
+      document.storage_path,
+      300
+    );
+
 
   if (error) {
-    throw error;
+    console.error(
+      'Unable to create signed verification URL:',
+      error
+    );
+
+    return '';
   }
 
-  const map = new Map();
 
-  for (const document of data || []) {
-    if (!map.has(document.company_id)) {
-      map.set(document.company_id, document);
-    }
-  }
-
-  return map;
+  return data?.signedUrl || '';
 }
 
-async function companyRecords(supabase, companyIds) {
+
+/* =========================================================
+   COMPANY / VERIFICATION DATA
+========================================================= */
+
+async function loadCompanies(
+  supabase,
+  companyIds
+) {
   if (!companyIds.length) {
     return new Map();
   }
 
-  const { data, error } = await supabase
+
+  const {
+    data,
+    error
+  } = await supabase
     .from('companies')
     .select(
       [
@@ -160,20 +218,28 @@ async function companyRecords(supabase, companyIds) {
         'company_name',
         'account_number',
         'owner_user_id',
+        'website',
+        'business_phone',
+        'industry',
+        'company_size',
+        'headquarters',
         'verification_status',
         'account_status',
         'deactivation_reason',
         'deactivated_at',
         'deactivated_by',
         'reactivated_at',
-        'reactivated_by'
+        'reactivated_by',
+        'created_at'
       ].join(',')
     )
     .in('id', companyIds);
 
+
   if (error) {
     throw error;
   }
+
 
   return new Map(
     (data || []).map(company => [
@@ -183,132 +249,419 @@ async function companyRecords(supabase, companyIds) {
   );
 }
 
-async function addReviewDetails(supabase, rows) {
-  const companyIds = [
-    ...new Set(
-      rows
-        .map(row => row.company_id)
-        .filter(Boolean)
-        .map(String)
-    )
-  ];
 
-  const documentMap = await latestDocuments(
-    supabase,
-    companyIds
-  );
+async function loadVerificationExtras(
+  supabase,
+  companyIds,
+  userIds = []
+) {
+  const byCompany = new Map();
+  const byUser = new Map();
 
-  const companyMap = await companyRecords(
-    supabase,
-    companyIds
-  );
 
-  return Promise.all(
-    rows.map(async row => {
-      const company =
-        companyMap.get(String(row.company_id)) || null;
+  if (companyIds.length) {
+    const {
+      data,
+      error
+    } = await supabase
+      .from('employer_verifications')
+      .select(
+        [
+          'user_id',
+          'company_id',
+          'company_name',
+          'website',
+          'business_phone',
+          'industry',
+          'company_size',
+          'headquarters',
+          'ein_last4',
+          'verification_status',
+          'rejection_reason',
+          'reviewed_by',
+          'reviewed_at',
+          'created_at',
+          'updated_at'
+        ].join(',')
+      )
+      .in('company_id', companyIds);
 
-      const document =
-        documentMap.get(row.company_id) || null;
 
-      let documentUrl = '';
-
-      if (document?.storage_path) {
-        const { data, error } = await supabase.storage
-          .from('employer-verification-documents')
-          .createSignedUrl(
-            document.storage_path,
-            300
+    /*
+     * IMPORTANT:
+     * employer_verifications is optional
+     * for the admin queue.
+     */
+    if (!error) {
+      for (const row of data || []) {
+        if (row.company_id) {
+          byCompany.set(
+            String(row.company_id),
+            row
           );
+        }
 
-        if (!error) {
-          documentUrl = data?.signedUrl || '';
+        if (row.user_id) {
+          byUser.set(
+            String(row.user_id),
+            row
+          );
         }
       }
+    } else {
+      console.error(
+        'Could not load verification extras:',
+        error
+      );
+    }
+  }
 
-      return {
-        ...row,
 
-        company_name:
-          row.company_name ||
-          company?.company_name ||
-          '',
-
-        account_number:
-          company?.account_number || '',
-
-        account_status:
-          company?.account_status || 'active',
-
-        deactivation_reason:
-          company?.deactivation_reason || '',
-
-        deactivated_at:
-          company?.deactivated_at || null,
-
-        reactivated_at:
-          company?.reactivated_at || null,
-
-        document,
-
-        document_url: documentUrl
-      };
-    })
+  const missingUsers = userIds.filter(
+    userId =>
+      userId &&
+      !byUser.has(String(userId))
   );
+
+
+  if (missingUsers.length) {
+    const {
+      data,
+      error
+    } = await supabase
+      .from('employer_verifications')
+      .select(
+        [
+          'user_id',
+          'company_id',
+          'company_name',
+          'website',
+          'business_phone',
+          'industry',
+          'company_size',
+          'headquarters',
+          'ein_last4',
+          'verification_status',
+          'rejection_reason',
+          'reviewed_by',
+          'reviewed_at',
+          'created_at',
+          'updated_at'
+        ].join(',')
+      )
+      .in('user_id', missingUsers);
+
+
+    if (!error) {
+      for (const row of data || []) {
+        if (row.company_id) {
+          byCompany.set(
+            String(row.company_id),
+            row
+          );
+        }
+
+        if (row.user_id) {
+          byUser.set(
+            String(row.user_id),
+            row
+          );
+        }
+      }
+    }
+  }
+
+
+  return {
+    byCompany,
+    byUser
+  };
 }
 
-async function getVerificationRows(
+
+/* =========================================================
+   NORMAL VERIFICATION QUEUE
+
+   Source of truth:
+   employer_verification_documents
+========================================================= */
+
+async function loadDocumentReviews(
   supabase,
   status
 ) {
-  const { data, error } = await supabase
-    .from('employer_verifications')
+  const {
+    data: documents,
+    error
+  } = await supabase
+    .from(
+      'employer_verification_documents'
+    )
     .select(
       [
-        'user_id',
+        'id',
         'company_id',
-        'company_name',
-        'website',
-        'business_phone',
-        'industry',
-        'company_size',
-        'headquarters',
-        'ein_last4',
-        'verification_status',
+        'uploaded_by',
+        'document_type',
+        'storage_path',
+        'original_file_name',
+        'mime_type',
+        'file_size_bytes',
+        'review_status',
         'rejection_reason',
         'reviewed_by',
         'reviewed_at',
-        'created_at',
-        'updated_at'
+        'created_at'
       ].join(',')
     )
-    .eq('verification_status', status)
-    .order('created_at', { ascending: true });
+    .eq('review_status', status)
+    .order(
+      'created_at',
+      {
+        ascending: false
+      }
+    );
+
 
   if (error) {
     throw error;
   }
 
-  const reviews = await addReviewDetails(
-    supabase,
-    data || []
-  );
+
+  if (!documents?.length) {
+    return [];
+  }
+
 
   /*
-   * Deactivated companies get their own admin tab.
-   * Do not also show them inside Approved,
-   * Pending or Rejected.
+   * Keep newest document per company.
    */
-  return reviews.filter(
-    review =>
+  const latestByCompany = new Map();
+
+
+  for (const document of documents) {
+    const key = String(
+      document.company_id || ''
+    );
+
+    if (
+      key &&
+      !latestByCompany.has(key)
+    ) {
+      latestByCompany.set(
+        key,
+        document
+      );
+    }
+  }
+
+
+  const latestDocuments =
+    [...latestByCompany.values()];
+
+
+  const companyIds = [
+    ...new Set(
+      latestDocuments
+        .map(document =>
+          String(
+            document.company_id || ''
+          )
+        )
+        .filter(Boolean)
+    )
+  ];
+
+
+  const userIds = [
+    ...new Set(
+      latestDocuments
+        .map(document =>
+          String(
+            document.uploaded_by || ''
+          )
+        )
+        .filter(Boolean)
+    )
+  ];
+
+
+  const companies =
+    await loadCompanies(
+      supabase,
+      companyIds
+    );
+
+
+  const extras =
+    await loadVerificationExtras(
+      supabase,
+      companyIds,
+      userIds
+    );
+
+
+  const reviews = [];
+
+
+  for (const document of latestDocuments) {
+    const companyId =
+      String(document.company_id);
+
+
+    const company =
+      companies.get(companyId) || {};
+
+
+    /*
+     * Deactivated companies have
+     * their own admin tab.
+     */
+    if (
       String(
-        review.account_status || 'active'
-      ).toLowerCase() !== 'deactivated'
-  );
+        company.account_status || 'active'
+      ).toLowerCase() === 'deactivated'
+    ) {
+      continue;
+    }
+
+
+    const verification =
+      extras.byCompany.get(companyId)
+
+      ||
+
+      extras.byUser.get(
+        String(
+          document.uploaded_by || ''
+        )
+      )
+
+      ||
+
+      {};
+
+
+    reviews.push({
+      user_id:
+        document.uploaded_by,
+
+      company_id:
+        document.company_id,
+
+      company_name:
+        company.company_name
+        ||
+        verification.company_name
+        ||
+        'Unnamed company',
+
+      account_number:
+        company.account_number
+        ||
+        '',
+
+      website:
+        company.website
+        ||
+        verification.website
+        ||
+        '',
+
+      business_phone:
+        company.business_phone
+        ||
+        verification.business_phone
+        ||
+        '',
+
+      industry:
+        company.industry
+        ||
+        verification.industry
+        ||
+        '',
+
+      company_size:
+        company.company_size
+        ||
+        verification.company_size
+        ||
+        '',
+
+      headquarters:
+        company.headquarters
+        ||
+        verification.headquarters
+        ||
+        '',
+
+      ein_last4:
+        verification.ein_last4
+        ||
+        '',
+
+      verification_status:
+        document.review_status,
+
+      account_status:
+        company.account_status
+        ||
+        'active',
+
+      rejection_reason:
+        document.rejection_reason
+        ||
+        verification.rejection_reason
+        ||
+        null,
+
+      deactivation_reason:
+        company.deactivation_reason
+        ||
+        null,
+
+      deactivated_at:
+        company.deactivated_at
+        ||
+        null,
+
+      created_at:
+        document.created_at,
+
+      updated_at:
+        verification.updated_at
+        ||
+        document.reviewed_at
+        ||
+        document.created_at,
+
+      document,
+
+      document_url:
+        await signedDocumentUrl(
+          supabase,
+          document
+        )
+    });
+  }
+
+
+  return reviews;
 }
 
-async function getDeactivatedRows(supabase) {
-  const { data: companies, error } = await supabase
+
+/* =========================================================
+   DEACTIVATED COMPANIES
+========================================================= */
+
+async function loadDeactivatedReviews(
+  supabase
+) {
+  const {
+    data: companies,
+    error
+  } = await supabase
     .from('companies')
     .select(
       [
@@ -316,195 +669,437 @@ async function getDeactivatedRows(supabase) {
         'company_name',
         'account_number',
         'owner_user_id',
-        'verification_status',
-        'account_status',
-        'deactivation_reason',
-        'deactivated_at',
-        'deactivated_by',
-        'reactivated_at'
-      ].join(',')
-    )
-    .eq('account_status', 'deactivated')
-    .order('deactivated_at', {
-      ascending: false,
-      nullsFirst: false
-    });
-
-  if (error) {
-    throw error;
-  }
-
-  if (!companies?.length) {
-    return [];
-  }
-
-  const companyIds = companies.map(
-    company => company.id
-  );
-
-  const {
-    data: verificationRows,
-    error: verificationError
-  } = await supabase
-    .from('employer_verifications')
-    .select(
-      [
-        'user_id',
-        'company_id',
-        'company_name',
         'website',
         'business_phone',
         'industry',
         'company_size',
         'headquarters',
-        'ein_last4',
         'verification_status',
+        'account_status',
+        'deactivation_reason',
+        'deactivated_at',
+        'deactivated_by',
+        'reactivated_at',
+        'created_at'
+      ].join(',')
+    )
+    .eq(
+      'account_status',
+      'deactivated'
+    )
+    .order(
+      'deactivated_at',
+      {
+        ascending: false
+      }
+    );
+
+
+  if (error) {
+    throw error;
+  }
+
+
+  if (!companies?.length) {
+    return [];
+  }
+
+
+  const companyIds =
+    companies.map(company =>
+      String(company.id)
+    );
+
+
+  const extras =
+    await loadVerificationExtras(
+      supabase,
+      companyIds
+    );
+
+
+  const {
+    data: documents,
+    error: documentError
+  } = await supabase
+    .from(
+      'employer_verification_documents'
+    )
+    .select(
+      [
+        'id',
+        'company_id',
+        'uploaded_by',
+        'document_type',
+        'storage_path',
+        'original_file_name',
+        'review_status',
         'rejection_reason',
         'reviewed_by',
         'reviewed_at',
-        'created_at',
-        'updated_at'
+        'created_at'
       ].join(',')
     )
-    .in('company_id', companyIds);
+    .in(
+      'company_id',
+      companyIds
+    )
+    .order(
+      'created_at',
+      {
+        ascending: false
+      }
+    );
 
-  if (verificationError) {
-    throw verificationError;
+
+  if (documentError) {
+    throw documentError;
   }
 
-  const verificationMap = new Map(
-    (verificationRows || []).map(row => [
-      String(row.company_id),
-      row
-    ])
-  );
 
-  const rows = companies.map(company => {
+  const latestDocument =
+    new Map();
+
+
+  for (const document of documents || []) {
+    const key =
+      String(document.company_id);
+
+    if (
+      !latestDocument.has(key)
+    ) {
+      latestDocument.set(
+        key,
+        document
+      );
+    }
+  }
+
+
+  const reviews = [];
+
+
+  for (const company of companies) {
+    const companyId =
+      String(company.id);
+
+
     const verification =
-      verificationMap.get(
-        String(company.id)
+      extras.byCompany.get(
+        companyId
       ) || {};
 
-    return {
-      ...verification,
 
-      company_id: company.id,
+    const document =
+      latestDocument.get(
+        companyId
+      ) || null;
+
+
+    reviews.push({
+      user_id:
+        verification.user_id
+        ||
+        company.owner_user_id
+        ||
+        null,
+
+      company_id:
+        company.id,
 
       company_name:
-        verification.company_name ||
-        company.company_name ||
+        company.company_name
+        ||
+        verification.company_name
+        ||
+        'Unnamed company',
+
+      account_number:
+        company.account_number
+        ||
+        '',
+
+      website:
+        company.website
+        ||
+        verification.website
+        ||
+        '',
+
+      business_phone:
+        company.business_phone
+        ||
+        verification.business_phone
+        ||
+        '',
+
+      industry:
+        company.industry
+        ||
+        verification.industry
+        ||
+        '',
+
+      company_size:
+        company.company_size
+        ||
+        verification.company_size
+        ||
+        '',
+
+      headquarters:
+        company.headquarters
+        ||
+        verification.headquarters
+        ||
+        '',
+
+      ein_last4:
+        verification.ein_last4
+        ||
         '',
 
       verification_status:
-        verification.verification_status ||
-        company.verification_status ||
+        company.verification_status
+        ||
+        verification.verification_status
+        ||
+        document?.review_status
+        ||
         'pending_review',
 
-      account_number:
-        company.account_number || '',
-
       account_status:
-        company.account_status,
+        'deactivated',
+
+      rejection_reason:
+        verification.rejection_reason
+        ||
+        document?.rejection_reason
+        ||
+        null,
 
       deactivation_reason:
-        company.deactivation_reason || '',
+        company.deactivation_reason
+        ||
+        null,
 
       deactivated_at:
-        company.deactivated_at || null,
+        company.deactivated_at
+        ||
+        null,
 
-      reactivated_at:
-        company.reactivated_at || null
-    };
-  });
+      created_at:
+        verification.created_at
+        ||
+        document?.created_at
+        ||
+        company.created_at,
 
-  return addReviewDetails(
-    supabase,
-    rows
-  );
+      document,
+
+      document_url:
+        await signedDocumentUrl(
+          supabase,
+          document
+        )
+    });
+  }
+
+
+  return reviews;
 }
+
+
+/* =========================================================
+   ADMIN AUDIT LOG
+========================================================= */
 
 async function logAdminAction(
   supabase,
-  {
-    companyId,
-    action,
-    reason,
-    adminId
-  }
+  companyId,
+  action,
+  reason,
+  adminId
 ) {
-  const { error } = await supabase
-    .from('company_admin_actions')
+  const {
+    error
+  } = await supabase
+    .from(
+      'company_admin_actions'
+    )
     .insert({
-      company_id: companyId,
+      company_id:
+        companyId,
+
       action,
-      reason: reason || null,
-      performed_by: adminId
+
+      reason:
+        reason || null,
+
+      performed_by:
+        adminId
     });
+
 
   if (error) {
     throw error;
   }
 }
+
+
+/* =========================================================
+   LATEST PDF UPDATE
+========================================================= */
 
 async function updateLatestDocument(
   supabase,
   companyId,
-  {
-    status,
-    reason,
-    adminId,
-    reviewedAt
-  }
+  status,
+  reason,
+  adminId,
+  now
 ) {
-  const { data, error } = await supabase
-    .from('employer_verification_documents')
+  const {
+    data,
+    error
+  } = await supabase
+    .from(
+      'employer_verification_documents'
+    )
     .select('id')
-    .eq('company_id', companyId)
-    .order('created_at', {
-      ascending: false
-    })
+    .eq(
+      'company_id',
+      companyId
+    )
+    .order(
+      'created_at',
+      {
+        ascending: false
+      }
+    )
     .limit(1)
     .maybeSingle();
+
 
   if (error) {
     throw error;
   }
+
 
   if (!data?.id) {
     return;
   }
 
-  const payload = {
-    review_status: status,
-    rejection_reason:
-      status === 'rejected'
-        ? reason || null
-        : null,
-    reviewed_by:
-      status === 'pending_review'
-        ? null
-        : adminId,
-    reviewed_at:
-      status === 'pending_review'
-        ? null
-        : reviewedAt
-  };
 
-  const { error: updateError } = await supabase
-    .from('employer_verification_documents')
-    .update(payload)
-    .eq('id', data.id);
+  const {
+    error: updateError
+  } = await supabase
+    .from(
+      'employer_verification_documents'
+    )
+    .update({
+      review_status:
+        status,
+
+      rejection_reason:
+        status === 'rejected'
+          ? reason || null
+          : null,
+
+      reviewed_by:
+        status === 'pending_review'
+          ? null
+          : adminId,
+
+      reviewed_at:
+        status === 'pending_review'
+          ? null
+          : now
+    })
+    .eq(
+      'id',
+      data.id
+    );
+
 
   if (updateError) {
     throw updateError;
   }
 }
 
-async function companyEmployerIds(
+
+/* =========================================================
+   OPTIONAL employer_verifications SYNC
+
+   This table is NOT required for the queue.
+========================================================= */
+
+async function syncEmployerVerification(
+  supabase,
+  companyId,
+  status,
+  reason,
+  adminId,
+  now
+) {
+  const {
+    error
+  } = await supabase
+    .from(
+      'employer_verifications'
+    )
+    .update({
+      verification_status:
+        status,
+
+      rejection_reason:
+        status === 'rejected'
+          ? reason || null
+          : null,
+
+      reviewed_by:
+        status === 'pending_review'
+          ? null
+          : adminId,
+
+      reviewed_at:
+        status === 'pending_review'
+          ? null
+          : now,
+
+      updated_at:
+        now
+    })
+    .eq(
+      'company_id',
+      companyId
+    );
+
+
+  /*
+   * Do NOT break the admin action if
+   * there is no verification profile row.
+   */
+  if (error) {
+    console.error(
+      'Unable to sync employer_verifications:',
+      error
+    );
+  }
+}
+
+
+/* =========================================================
+   PAUSE COMPANY JOBS
+========================================================= */
+
+async function pauseCompanyJobs(
   supabase,
   companyId
 ) {
-  const ids = new Set();
+  const employerIds =
+    new Set();
+
 
   const {
     data: company,
@@ -515,13 +1110,23 @@ async function companyEmployerIds(
     .eq('id', companyId)
     .maybeSingle();
 
+
   if (companyError) {
-    throw companyError;
+    console.error(
+      'Unable to read company owner:',
+      companyError
+    );
   }
 
+
   if (company?.owner_user_id) {
-    ids.add(String(company.owner_user_id));
+    employerIds.add(
+      String(
+        company.owner_user_id
+      )
+    );
   }
+
 
   const {
     data: members,
@@ -529,34 +1134,37 @@ async function companyEmployerIds(
   } = await supabase
     .from('company_members')
     .select('user_id')
-    .eq('company_id', companyId);
-
-  if (memberError) {
-    throw memberError;
-  }
-
-  for (const member of members || []) {
-    if (member?.user_id) {
-      ids.add(String(member.user_id));
-    }
-  }
-
-  return [...ids];
-}
-
-async function pauseCompanyJobs(
-  supabase,
-  companyId
-) {
-  const employerIds =
-    await companyEmployerIds(
-      supabase,
+    .eq(
+      'company_id',
       companyId
     );
 
-  if (!employerIds.length) {
+
+  if (memberError) {
+    console.error(
+      'Unable to read company members:',
+      memberError
+    );
+  }
+
+
+  for (const member of members || []) {
+    if (member.user_id) {
+      employerIds.add(
+        String(member.user_id)
+      );
+    }
+  }
+
+
+  const ids =
+    [...employerIds];
+
+
+  if (!ids.length) {
     return 0;
   }
+
 
   const {
     data,
@@ -565,156 +1173,144 @@ async function pauseCompanyJobs(
     .from('jobs')
     .update({
       status: 'paused',
-      updated_at: new Date().toISOString()
+      updated_at:
+        new Date()
+          .toISOString()
     })
-    .in('employer_id', employerIds)
-    .eq('status', 'active')
+    .in(
+      'employer_id',
+      ids
+    )
+    .eq(
+      'status',
+      'active'
+    )
     .select('id');
 
+
+  /*
+   * Job schema differences should not stop
+   * Alygnn from deactivating a company.
+   */
   if (error) {
-    /*
-     * Don't allow an old jobs schema to break
-     * employer administration entirely.
-     */
     console.error(
-      'Unable to pause company jobs:',
+      'Unable to pause jobs:',
       error
     );
 
     return 0;
   }
 
+
   return data?.length || 0;
 }
 
-async function handleVerificationDecision(
+
+/* =========================================================
+   APPROVE / REJECT / MOVE TO PENDING
+========================================================= */
+
+async function changeVerificationStatus(
   supabase,
   admin,
-  {
-    companyId,
-    decision,
-    reason
-  }
+  companyId,
+  status,
+  reason
 ) {
-  const now = new Date().toISOString();
+  const now =
+    new Date()
+      .toISOString();
+
 
   if (
-    ![
-      'approved',
-      'rejected',
-      'pending_review'
-    ].includes(decision)
-  ) {
-    const error = new Error(
-      'Invalid verification decision.'
-    );
-    error.status = 400;
-    throw error;
-  }
-
-  if (
-    decision === 'rejected' &&
+    status === 'rejected' &&
     !reason
   ) {
-    const error = new Error(
-      'Enter a reason before declining the employer.'
-    );
+    const error =
+      new Error(
+        'Enter a reason before declining the employer.'
+      );
+
     error.status = 400;
     throw error;
   }
 
-  const verificationPayload = {
-    verification_status: decision,
-
-    rejection_reason:
-      decision === 'rejected'
-        ? reason
-        : null,
-
-    reviewed_by:
-      decision === 'pending_review'
-        ? null
-        : admin.id,
-
-    reviewed_at:
-      decision === 'pending_review'
-        ? null
-        : now,
-
-    updated_at: now
-  };
 
   const {
-    data: updatedVerification,
-    error: verificationError
-  } = await supabase
-    .from('employer_verifications')
-    .update(verificationPayload)
-    .eq('company_id', companyId)
-    .select('company_id')
-    .maybeSingle();
-
-  if (verificationError) {
-    throw verificationError;
-  }
-
-  if (!updatedVerification) {
-    const error = new Error(
-      'Employer verification record was not found.'
-    );
-    error.status = 404;
-    throw error;
-  }
-
-  const {
+    data: company,
     error: companyError
   } = await supabase
     .from('companies')
     .update({
-      verification_status: decision
+      verification_status:
+        status
     })
-    .eq('id', companyId);
+    .eq(
+      'id',
+      companyId
+    )
+    .select(
+      'id,company_name,verification_status,account_status'
+    )
+    .maybeSingle();
+
 
   if (companyError) {
     throw companyError;
   }
 
+
+  if (!company) {
+    const error =
+      new Error(
+        'Company was not found.'
+      );
+
+    error.status = 404;
+    throw error;
+  }
+
+
   await updateLatestDocument(
     supabase,
     companyId,
-    {
-      status: decision,
-      reason,
-      adminId: admin.id,
-      reviewedAt: now
-    }
+    status,
+    reason,
+    admin.id,
+    now
   );
 
-  let auditAction = decision;
 
-  if (decision === 'pending_review') {
-    auditAction = 'moved_to_pending';
-  }
+  await syncEmployerVerification(
+    supabase,
+    companyId,
+    status,
+    reason,
+    admin.id,
+    now
+  );
+
 
   await logAdminAction(
     supabase,
-    {
-      companyId,
-      action: auditAction,
-      reason,
-      adminId: admin.id
-    }
+    companyId,
+
+    status === 'pending_review'
+      ? 'moved_to_pending'
+      : status,
+
+    reason,
+
+    admin.id
   );
+
 
   let pausedJobs = 0;
 
-  /*
-   * If Alygnn removes verification,
-   * active jobs should stop being public.
-   */
+
   if (
-    decision === 'pending_review' ||
-    decision === 'rejected'
+    status === 'pending_review' ||
+    status === 'rejected'
   ) {
     pausedJobs =
       await pauseCompanyJobs(
@@ -723,11 +1319,18 @@ async function handleVerificationDecision(
       );
   }
 
+
   return {
-    verification_status: decision,
-    paused_jobs: pausedJobs
+    company,
+    paused_jobs:
+      pausedJobs
   };
 }
+
+
+/* =========================================================
+   DEACTIVATE
+========================================================= */
 
 async function deactivateCompany(
   supabase,
@@ -736,14 +1339,20 @@ async function deactivateCompany(
   reason
 ) {
   if (!reason) {
-    const error = new Error(
-      'Enter a reason before deactivating the company.'
-    );
+    const error =
+      new Error(
+        'Enter a reason before deactivating the company.'
+      );
+
     error.status = 400;
     throw error;
   }
 
-  const now = new Date().toISOString();
+
+  const now =
+    new Date()
+      .toISOString();
+
 
   const {
     data,
@@ -751,28 +1360,43 @@ async function deactivateCompany(
   } = await supabase
     .from('companies')
     .update({
-      account_status: 'deactivated',
-      deactivation_reason: reason,
-      deactivated_at: now,
-      deactivated_by: admin.id
+      account_status:
+        'deactivated',
+
+      deactivation_reason:
+        reason,
+
+      deactivated_at:
+        now,
+
+      deactivated_by:
+        admin.id
     })
-    .eq('id', companyId)
+    .eq(
+      'id',
+      companyId
+    )
     .select(
       'id,company_name,verification_status,account_status'
     )
     .maybeSingle();
 
+
   if (error) {
     throw error;
   }
 
+
   if (!data) {
-    const notFound = new Error(
-      'Company was not found.'
-    );
+    const notFound =
+      new Error(
+        'Company was not found.'
+      );
+
     notFound.status = 404;
     throw notFound;
   }
+
 
   const pausedJobs =
     await pauseCompanyJobs(
@@ -780,21 +1404,29 @@ async function deactivateCompany(
       companyId
     );
 
+
   await logAdminAction(
     supabase,
-    {
-      companyId,
-      action: 'deactivated',
-      reason,
-      adminId: admin.id
-    }
+    companyId,
+    'deactivated',
+    reason,
+    admin.id
   );
 
+
   return {
-    company: data,
-    paused_jobs: pausedJobs
+    company:
+      data,
+
+    paused_jobs:
+      pausedJobs
   };
 }
+
+
+/* =========================================================
+   REACTIVATE
+========================================================= */
 
 async function reactivateCompany(
   supabase,
@@ -802,7 +1434,10 @@ async function reactivateCompany(
   companyId,
   reason
 ) {
-  const now = new Date().toISOString();
+  const now =
+    new Date()
+      .toISOString();
+
 
   const {
     data,
@@ -810,70 +1445,107 @@ async function reactivateCompany(
   } = await supabase
     .from('companies')
     .update({
-      account_status: 'active',
+      account_status:
+        'active',
 
-      deactivation_reason: null,
-      deactivated_at: null,
-      deactivated_by: null,
+      deactivation_reason:
+        null,
 
-      reactivated_at: now,
-      reactivated_by: admin.id
+      deactivated_at:
+        null,
+
+      deactivated_by:
+        null,
+
+      reactivated_at:
+        now,
+
+      reactivated_by:
+        admin.id
     })
-    .eq('id', companyId)
+    .eq(
+      'id',
+      companyId
+    )
     .select(
       'id,company_name,verification_status,account_status'
     )
     .maybeSingle();
 
+
   if (error) {
     throw error;
   }
 
+
   if (!data) {
-    const notFound = new Error(
-      'Company was not found.'
-    );
+    const notFound =
+      new Error(
+        'Company was not found.'
+      );
+
     notFound.status = 404;
     throw notFound;
   }
 
+
   await logAdminAction(
     supabase,
-    {
-      companyId,
-      action: 'reactivated',
-      reason:
-        reason ||
-        'Company reactivated by Alygnn admin.',
-      adminId: admin.id
-    }
+    companyId,
+    'reactivated',
+
+    reason ||
+    'Company reactivated by Alygnn admin.',
+
+    admin.id
   );
 
+
   /*
-   * IMPORTANT:
-   * Jobs stay paused.
-   * We intentionally DO NOT automatically
-   * republish them.
+   * We DO NOT automatically republish jobs.
    */
 
   return {
-    company: data
+    company:
+      data
   };
 }
 
-module.exports = async function handler(
+
+/* =========================================================
+   HANDLER
+========================================================= */
+
+module.exports =
+async function handler(
   req,
   res
 ) {
-  applyCors(req, res);
+  applyCors(
+    req,
+    res
+  );
 
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
+
+  res.setHeader(
+    'Cache-Control',
+    'no-store'
+  );
+
+
+  if (
+    req.method === 'OPTIONS'
+  ) {
+    return res
+      .status(204)
+      .end();
   }
+
 
   try {
     const supabase =
       serviceClient();
+
 
     const admin =
       await requireAdmin(
@@ -881,13 +1553,14 @@ module.exports = async function handler(
         supabase
       );
 
-    /*
-     * =====================================================
-     * GET ADMIN REVIEW QUEUE
-     * =====================================================
-     */
 
-    if (req.method === 'GET') {
+    /* =========================
+       GET
+    ========================= */
+
+    if (
+      req.method === 'GET'
+    ) {
       const requestedStatus =
         String(
           req.query.status ||
@@ -896,45 +1569,52 @@ module.exports = async function handler(
           .trim()
           .toLowerCase();
 
+
       if (
         requestedStatus ===
         'deactivated'
       ) {
         const reviews =
-          await getDeactivatedRows(
+          await loadDeactivatedReviews(
             supabase
           );
+
 
         return sendJson(
           res,
           200,
           {
             success: true,
-            status: 'deactivated',
+            status:
+              'deactivated',
             reviews
           }
         );
       }
 
-      const allowedStatuses =
+
+      const allowed =
         new Set([
           'pending_review',
           'approved',
           'rejected'
         ]);
 
+
       const status =
-        allowedStatuses.has(
+        allowed.has(
           requestedStatus
         )
           ? requestedStatus
           : 'pending_review';
 
+
       const reviews =
-        await getVerificationRows(
+        await loadDocumentReviews(
           supabase,
           status
         );
+
 
       return sendJson(
         res,
@@ -947,13 +1627,14 @@ module.exports = async function handler(
       );
     }
 
-    /*
-     * =====================================================
-     * ADMIN ACTION
-     * =====================================================
-     */
 
-    if (req.method === 'PATCH') {
+    /* =========================
+       PATCH
+    ========================= */
+
+    if (
+      req.method === 'PATCH'
+    ) {
       const body =
         typeof req.body === 'string'
           ? JSON.parse(
@@ -961,20 +1642,13 @@ module.exports = async function handler(
             )
           : req.body || {};
 
+
       const companyId =
         String(
           body.company_id || ''
         ).trim();
 
-      /*
-       * Supports old admin page:
-       *
-       * decision: "approved"
-       *
-       * and new admin page:
-       *
-       * action: "deactivate"
-       */
+
       const action =
         String(
           body.action ||
@@ -984,10 +1658,12 @@ module.exports = async function handler(
           .trim()
           .toLowerCase();
 
+
       const reason =
         String(
           body.reason || ''
         ).trim();
+
 
       if (!companyId) {
         return sendJson(
@@ -1001,9 +1677,11 @@ module.exports = async function handler(
         );
       }
 
+
       /*
-       * APPROVE / REJECT / MOVE TO PENDING
+       * VERIFICATION STATUS
        */
+
       if (
         [
           'approved',
@@ -1012,15 +1690,14 @@ module.exports = async function handler(
         ].includes(action)
       ) {
         const result =
-          await handleVerificationDecision(
+          await changeVerificationStatus(
             supabase,
             admin,
-            {
-              companyId,
-              decision: action,
-              reason
-            }
+            companyId,
+            action,
+            reason
           );
+
 
         return sendJson(
           res,
@@ -1029,14 +1706,20 @@ module.exports = async function handler(
             success: true,
             company_id:
               companyId,
+
+            verification_status:
+              action,
+
             ...result
           }
         );
       }
 
+
       /*
-       * DEACTIVATE COMPANY
+       * DEACTIVATE
        */
+
       if (
         action === 'deactivate' ||
         action === 'deactivated'
@@ -1049,6 +1732,7 @@ module.exports = async function handler(
             reason
           );
 
+
         return sendJson(
           res,
           200,
@@ -1056,16 +1740,20 @@ module.exports = async function handler(
             success: true,
             company_id:
               companyId,
+
             account_status:
               'deactivated',
+
             ...result
           }
         );
       }
 
+
       /*
-       * REACTIVATE COMPANY
+       * REACTIVATE
        */
+
       if (
         action === 'reactivate' ||
         action === 'reactivated'
@@ -1078,6 +1766,7 @@ module.exports = async function handler(
             reason
           );
 
+
         return sendJson(
           res,
           200,
@@ -1085,12 +1774,15 @@ module.exports = async function handler(
             success: true,
             company_id:
               companyId,
+
             account_status:
               'active',
+
             ...result
           }
         );
       }
+
 
       return sendJson(
         res,
@@ -1103,10 +1795,12 @@ module.exports = async function handler(
       );
     }
 
+
     res.setHeader(
       'Allow',
       'GET, PATCH, OPTIONS'
     );
+
 
     return sendJson(
       res,
@@ -1117,17 +1811,21 @@ module.exports = async function handler(
           'Method not allowed.'
       }
     );
+
+
   } catch (error) {
     console.error(
       'Employer verification admin error:',
       error
     );
 
+
     return sendJson(
       res,
       error.status || 500,
       {
         success: false,
+
         error:
           error.message ||
           'Unable to process the employer review.'
