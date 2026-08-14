@@ -1270,7 +1270,7 @@
     <h4>Job Seekers</h4>
     <ul>
       <li><a href="align-upload.html">Upload your resume</a></li>
-      <li><a href="swipe.html">Swipe jobs</a></li>
+      <li><a href="swipe.html" id="footer-swipe-link">Swipe jobs</a></li>
     </ul>
   </div>
 
@@ -1301,13 +1301,21 @@
     const ctaBtn = document.getElementById('nav-cta-btn');
     const heroResumeBtn = document.getElementById('hero-resume-btn');
     const ctaSectionBtn = document.getElementById('cta-section-btn');
+    const footerSwipeLink = document.getElementById('footer-swipe-link');
 
     // This is the JOB SEEKER homepage.
     // Employers are allowed to view this page, but we do NOT redirect them
     // and we do NOT change the top buttons into employer-account buttons.
     try {
       const { data: { session } } = await sb.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        // Every other resume/swipe entry point on this page already checks
+        // login state before deciding where to send someone — this footer
+        // link was the one static exception, still pointing straight at
+        // swipe.html by default even when signed out.
+        if (footerSwipeLink) footerSwipeLink.href = 'login.html';
+        return;
+      }
 
       const { data: profile } = await sb
         .from('profiles')
@@ -1350,6 +1358,8 @@
             ctaSectionBtn.textContent = 'Swipe';
             ctaSectionBtn.onclick = () => { window.location.href = 'swipe.html'; };
           }
+
+          if (footerSwipeLink) footerSwipeLink.href = 'swipe.html';
         } else {
           if (ctaBtn) {
             ctaBtn.textContent = 'Upload your resume';
@@ -1365,6 +1375,8 @@
             ctaSectionBtn.textContent = 'Get started for free';
             ctaSectionBtn.onclick = () => { window.location.href = 'align-upload.html'; };
           }
+
+          if (footerSwipeLink) footerSwipeLink.href = 'align-upload.html';
         }
       }
     } finally {
