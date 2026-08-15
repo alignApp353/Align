@@ -1,1001 +1,1553 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Alygnn – Candidate Preview</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    :root{
-      --brand:#5D7FA3;
-      --brand-dark:#355C87;
-      --sage:#8CB69B;
-      --bg:#F4F7F8;
-      --card:#FFFFFF;
-      --text:#172333;
-      --muted:#66788A;
-      --border:#D9E3EA;
-      --soft:#EEF4F8;
-      --soft-green:#E7F3EB;
-      --green:#3D9461;
-      --soft-red:#F8EAEA;
-      --red:#B45B5B;
-      --soft-chip:#EFF3F6;
-      --shadow:0 20px 60px rgba(23,35,51,.08);
-    }
-
-    body{
-      font-family:'DM Sans',sans-serif;
-      background:var(--bg);
-      color:var(--text);
-      min-height:100vh;
-      padding-bottom:calc(110px + env(safe-area-inset-bottom));
-    }
-
-    .header{
-      position:sticky;
-      top:0;
-      z-index:20;
-      display:grid;
-      grid-template-columns:48px 1fr 48px;
-      align-items:center;
-      padding:calc(14px + env(safe-area-inset-top)) 18px 14px;
-      background:rgba(244,247,248,.96);
-      backdrop-filter:blur(14px);
-      border-bottom:1px solid var(--border);
-    }
-
-    .back-btn{
-      width:44px;
-      height:44px;
-      border-radius:50%;
-      border:1px solid var(--border);
-      background:#fff;
-      font-size:22px;
-      color:var(--text);
-      cursor:pointer;
-    }
-
-    .logo{
-      text-align:center;
-      font-family:'DM Serif Display',serif;
-      font-size:31px;
-      color:var(--brand);
-    }
-
-    .logo span{ color:var(--sage); }
-
-    .page{
-      width:100%;
-      max-width:520px;
-      margin:0 auto;
-      padding:24px 18px 24px;
-    }
-
-    .eyebrow{
-      color:var(--brand-dark);
-      font-size:12px;
-      font-weight:800;
-      letter-spacing:1.2px;
-      text-transform:uppercase;
-      margin-bottom:8px;
-    }
-
-    .title{
-      font-size:30px;
-      line-height:1.08;
-      font-weight:800;
-      letter-spacing:-.6px;
-      margin-bottom:8px;
-    }
-
-    .subtitle{
-      color:var(--muted);
-      font-size:14px;
-      line-height:1.55;
-      margin-bottom:18px;
-    }
-
-    .status-wrap{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-bottom:18px;
-    }
-
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:8px 12px;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:800;
-      background:#fff;
-      border:1px solid var(--border);
-    }
-
-    .pill.ok{ background:var(--soft-green); color:var(--green); border-color:transparent; }
-    .pill.warn{ background:#FFF4E0; color:#9E6B10; border-color:transparent; }
-    .pill.bad{ background:#FBEAEA; color:#B13A3A; border-color:transparent; }
-
-    .card-wrap{
-      position:relative;
-      margin-top:10px;
-      padding:10px 0 24px;
-    }
-
-    .card-shadow{
-      position:absolute;
-      inset:18px 18px -10px 18px;
-      border-radius:36px;
-      background:rgba(93,127,163,.08);
-      filter:blur(18px);
-      z-index:0;
-    }
-
-    .candidate-card{
-      position:relative;
-      z-index:1;
-      background:#fff;
-      border:1px solid var(--border);
-      border-radius:34px;
-      padding:22px;
-      box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-
-    .top-row{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:14px;
-      margin-bottom:18px;
-    }
-
-    .company-block{
-      display:flex;
-      gap:14px;
-      min-width:0;
-      flex:1;
-    }
-
-    .company-logo{
-      width:64px;
-      height:64px;
-      border-radius:18px;
-      background:var(--brand);
-      color:#fff;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:34px;
-      font-weight:800;
-      flex-shrink:0;
-      overflow:hidden;
-    }
-
-    .company-logo img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-    }
-
-    .company-meta{
-      min-width:0;
-      flex:1;
-      padding-top:2px;
-    }
-
-    .company-name{
-      font-size:16px;
-      font-weight:800;
-      line-height:1.25;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .company-sub{
-      margin-top:4px;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.35;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .salary-box{
-      min-width:132px;
-      border:1px solid var(--border);
-      background:#fff;
-      border-radius:22px;
-      padding:14px 14px 12px;
-      box-shadow:0 8px 18px rgba(23,35,51,.05);
-      align-self:flex-start;
-    }
-
-    .salary-box .label{
-      color:var(--muted);
-      font-size:11px;
-      font-weight:700;
-      margin-bottom:4px;
-    }
-
-    .salary-box .value{
-      color:var(--brand);
-      font-size:24px;
-      line-height:1;
-      font-weight:800;
-    }
-
-    .job-title{
-      font-family:'DM Serif Display',serif;
-      font-size:28px;
-      line-height:1.08;
-      margin-bottom:14px;
-      letter-spacing:-.4px;
-    }
-
-    .match-pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      background:var(--soft-green);
-      color:var(--green);
-      border-radius:999px;
-      padding:10px 16px;
-      font-size:16px;
-      font-weight:800;
-      margin-bottom:22px;
-    }
-
-    .match-pill .star{
-      font-size:16px;
-      line-height:1;
-    }
-
-    .divider{
-      height:1px;
-      background:var(--border);
-      margin:0 0 20px;
-    }
-
-    .facts-grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:16px 20px;
-      margin-bottom:22px;
-    }
-
-    .fact .label{
-      color:#5E6D7E;
-      font-size:12px;
-      font-weight:700;
-      text-transform:uppercase;
-      letter-spacing:.8px;
-      margin-bottom:6px;
-    }
-
-    .fact .value{
-      font-size:17px;
-      line-height:1.25;
-      font-weight:800;
-      color:var(--text);
-    }
-
-    .chip-row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      margin-bottom:18px;
-    }
-
-    .chip{
-      padding:10px 16px;
-      border-radius:999px;
-      background:var(--soft-chip);
-      color:var(--brand);
-      font-size:13px;
-      font-weight:700;
-      line-height:1;
-    }
-
-    .callout{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      margin-bottom:18px;
-      padding:10px 16px;
-      border-radius:20px;
-      background:#fff;
-      border:1px solid var(--border);
-      box-shadow:0 6px 14px rgba(23,35,51,.04);
-      color:#7AA987;
-      font-size:14px;
-      font-weight:800;
-    }
-
-    .about{
-      margin-top:8px;
-      background:#FBFCFD;
-      border:1px solid var(--border);
-      border-radius:22px;
-      padding:18px;
-    }
-
-    .about-title{
-      font-size:15px;
-      font-weight:800;
-      margin-bottom:10px;
-    }
-
-    .about-copy{
-      color:#314256;
-      font-size:14px;
-      line-height:1.7;
-      white-space:pre-wrap;
-      word-break:break-word;
-    }
-
-    .message{
-      margin-top:18px;
-      padding:14px 16px;
-      border-radius:16px;
-      font-size:13px;
-      font-weight:700;
-      display:none;
-    }
-
-    .message.error{ display:block; background:#FBEAEA; color:#B13A3A; }
-    .message.success{ display:block; background:var(--soft-green); color:var(--green); }
-
-    .footer{
-      position:fixed;
-      left:0;
-      right:0;
-      bottom:0;
-      z-index:30;
-      padding:12px 18px calc(12px + env(safe-area-inset-bottom));
-      background:rgba(255,255,255,.97);
-      border-top:1px solid var(--border);
-      backdrop-filter:blur(14px);
-    }
-
-    .footer-inner{
-      width:100%;
-      max-width:520px;
-      margin:0 auto;
-      display:grid;
-      grid-template-columns:1fr 1.2fr;
-      gap:14px;
-    }
-
-    .btn{
-      min-height:58px;
-      border-radius:22px;
-      font-size:18px;
-      font-weight:800;
-      border:none;
-      cursor:pointer;
-    }
-
-    .btn-secondary{
-      background:var(--soft-red);
-      color:var(--red);
-      border:1px solid rgba(180,91,91,.08);
-    }
-
-    .btn-primary{
-      background:var(--soft-green);
-      color:var(--green);
-    }
-
-    .btn:disabled{
-      opacity:.55;
-      cursor:not-allowed;
-    }
-
-    .loading{
-      position:fixed;
-      inset:0;
-      background:rgba(244,247,248,.98);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:100;
-      flex-direction:column;
-      gap:12px;
-    }
-
-    .spinner{
-      width:42px;
-      height:42px;
-      border-radius:50%;
-      border:4px solid #DCE4EA;
-      border-top-color:var(--brand-dark);
-      animation:spin .8s linear infinite;
-    }
-
-    @keyframes spin { to { transform:rotate(360deg); } }
-
-    .success-screen{
-      position:fixed;
-      inset:0;
-      z-index:110;
-      background:rgba(244,247,248,.98);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding:22px;
-    }
-
-    .success-card{
-      width:100%;
-      max-width:420px;
-      background:#fff;
-      border:1px solid var(--border);
-      border-radius:30px;
-      padding:30px 22px;
-      text-align:center;
-      box-shadow:var(--shadow);
-    }
-
-    .success-icon{
-      width:70px;
-      height:70px;
-      border-radius:22px;
-      margin:0 auto 16px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:var(--soft-green);
-      color:var(--green);
-      font-size:32px;
-      font-weight:800;
-    }
-
-    .success-card h2{
-      font-size:28px;
-      font-weight:800;
-      margin-bottom:8px;
-    }
-
-    .success-card p{
-      color:var(--muted);
-      font-size:14px;
-      line-height:1.55;
-    }
-
-    .success-job{
-      margin-top:18px;
-      background:#F8FAFB;
-      border:1px solid var(--border);
-      border-radius:18px;
-      padding:14px;
-      font-size:14px;
-      font-weight:800;
-    }
-
-    .success-actions{
-      display:grid;
-      gap:10px;
-      margin-top:18px;
-    }
-
-    .success-actions button{
-      min-height:54px;
-      border-radius:18px;
-      font-size:15px;
-      font-weight:800;
-      border:none;
-      cursor:pointer;
-    }
-
-    .success-actions .primary2{
-      background:var(--brand-dark);
-      color:#fff;
-    }
-
-    .success-actions .secondary2{
-      background:#fff;
-      color:var(--text);
-      border:1px solid var(--border);
-    }
-
-    .error-state{
-      max-width:420px;
-      margin:90px auto 0;
-      padding:24px;
-      text-align:center;
-      background:#fff;
-      border:1px solid var(--border);
-      border-radius:24px;
-    }
-
-    .error-state h2{
-      font-size:24px;
-      margin-bottom:8px;
-    }
-
-    .error-state p{
-      color:var(--muted);
-      font-size:14px;
-      line-height:1.55;
-      margin-bottom:16px;
-    }
-
-    .error-state button{
-      min-height:50px;
-      padding:0 18px;
-      border-radius:16px;
-      border:none;
-      background:var(--brand-dark);
-      color:#fff;
-      font-size:15px;
-      font-weight:800;
-      cursor:pointer;
-    }
-
-    @media (max-width:420px){
-      .salary-box{ min-width:118px; }
-      .salary-box .value{ font-size:20px; }
-      .job-title{ font-size:24px; }
-      .facts-grid{ gap:14px 14px; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F5F8F8">
+<title>Candidate Preview | Alygnn</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:'DM Sans',Arial,sans-serif!important;
+}
+
+:root{
+  --brand:#5D7FA3;
+  --brand-dark:#35679A;
+  --sage:#8CB69B;
+  --bg:#F5F8F8;
+  --card:#FFFFFF;
+  --text:#172333;
+  --muted:#627285;
+  --border:#D9E3EA;
+  --soft:#EFF4F7;
+  --green:#359762;
+  --green-soft:#E7F4EB;
+  --red:#AC5B5B;
+  --red-soft:#F9ECEC;
+  --amber:#976A16;
+  --amber-soft:#FFF4DF;
+}
+
+[hidden]{display:none!important}
+
+html,body{
+  width:100%;
+  min-height:100%;
+}
+
+body{
+  min-height:100vh;
+  background:var(--bg);
+  color:var(--text);
+  padding-bottom:calc(94px + env(safe-area-inset-bottom));
+}
+
+button{
+  font:inherit;
+  cursor:pointer;
+}
+
+.header{
+  position:sticky;
+  top:0;
+  z-index:50;
+  min-height:78px;
+  padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
+  display:grid;
+  grid-template-columns:46px 1fr 46px;
+  align-items:center;
+  background:rgba(245,248,248,.97);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+
+.back{
+  width:42px;
+  height:42px;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:#fff;
+  color:var(--text);
+  font-size:20px;
+}
+
+.logo{
+  text-align:center;
+  font-family:'DM Serif Display',Georgia,serif!important;
+  font-size:29px;
+  color:var(--brand);
+}
+
+.logo span{color:var(--sage)}
+
+.page{
+  width:100%;
+  max-width:560px;
+  margin:auto;
+  padding:22px 16px 32px;
+}
+
+.eyebrow{
+  color:var(--brand-dark);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:1.15px;
+  text-transform:uppercase;
+}
+
+.page-title{
+  margin-top:8px;
+  font-size:27px;
+  line-height:1.12;
+  letter-spacing:-.55px;
+  font-weight:900;
+}
+
+.page-copy{
+  margin-top:7px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
+
+.status-wrap{
+  margin-top:14px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.status-pill{
+  padding:7px 10px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:900;
+}
+
+.status-pill.approved{
+  background:var(--green-soft);
+  color:var(--green);
+}
+
+.status-pill.pending{
+  background:var(--amber-soft);
+  color:var(--amber);
+}
+
+.status-pill.blocked{
+  background:var(--red-soft);
+  color:var(--red);
+}
+
+/* =====================================================
+   FLIP CARD
+===================================================== */
+
+.flip-shell{
+  position:relative;
+  width:100%;
+  height:min(68vh,690px);
+  min-height:585px;
+  margin-top:17px;
+  perspective:1600px;
+}
+
+.flip-shadow{
+  position:absolute;
+  left:18px;
+  right:18px;
+  bottom:-12px;
+  height:90px;
+  border-radius:50%;
+  background:rgba(23,35,51,.09);
+  filter:blur(28px);
+}
+
+.flip-inner{
+  position:relative;
+  width:100%;
+  height:100%;
+  transform-style:preserve-3d;
+  transition:transform .58s cubic-bezier(.2,.74,.22,1);
+}
+
+.flip-inner.flipped{
+  transform:rotateY(180deg);
+}
+
+.card-face{
+  position:absolute;
+  inset:0;
+  border:1px solid var(--border);
+  border-radius:30px;
+  background:#fff;
+  box-shadow:0 18px 50px rgba(23,35,51,.08);
+  overflow:hidden;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+}
+
+.card-front{
+  display:flex;
+  flex-direction:column;
+  padding:22px;
+}
+
+.card-back{
+  transform:rotateY(180deg);
+  display:flex;
+  flex-direction:column;
+}
+
+.company-top{
+  display:grid;
+  grid-template-columns:62px minmax(0,1fr) auto;
+  align-items:center;
+  gap:13px;
+}
+
+.company-logo{
+  width:62px;
+  height:62px;
+  border-radius:18px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  background:var(--brand);
+  color:#fff;
+  font-family:'DM Serif Display',Georgia,serif!important;
+  font-size:28px;
+  font-weight:700;
+}
+
+.company-logo img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.company-name{
+  font-size:17px;
+  font-weight:900;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.company-meta{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:600;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.salary-badge{
+  min-width:102px;
+  max-width:125px;
+  padding:11px 12px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:#fff;
+  box-shadow:0 7px 18px rgba(23,35,51,.05);
+}
+
+.salary-badge small{
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:800;
+}
+
+.salary-badge strong{
+  display:block;
+  margin-top:3px;
+  color:var(--brand);
+  font-size:17px;
+  line-height:1.15;
+}
+
+.job-title{
+  margin-top:23px;
+  font-family:'DM Serif Display',Georgia,serif!important;
+  font-size:30px;
+  line-height:1.05;
+  letter-spacing:-.45px;
+}
+
+.verified-pill{
+  width:max-content;
+  margin-top:12px;
+  padding:8px 12px;
+  border-radius:999px;
+  background:var(--green-soft);
+  color:var(--green);
+  font-size:11px;
+  font-weight:900;
+}
+
+.divider{
+  height:1px;
+  background:var(--border);
+  margin:19px 0;
+}
+
+.quick-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px 18px;
+}
+
+.quick-item small{
+  display:block;
+  color:#627285;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.75px;
+  text-transform:uppercase;
+}
+
+.quick-item strong{
+  display:block;
+  margin-top:4px;
+  font-size:14px;
+  line-height:1.28;
+}
+
+.summary-title{
+  margin-top:20px;
+  font-size:12px;
+  font-weight:900;
+}
+
+.summary-copy{
+  margin-top:7px;
+  color:#405267;
+  font-size:12px;
+  line-height:1.58;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:4;
+  overflow:hidden;
+}
+
+.chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:16px;
+}
+
+.chip{
+  padding:8px 11px;
+  border-radius:999px;
+  background:var(--soft);
+  color:var(--brand);
+  font-size:10px;
+  font-weight:800;
+}
+
+.flip-hint{
+  margin-top:auto;
+  padding-top:17px;
+  text-align:center;
+  color:var(--brand-dark);
+  font-size:11px;
+  font-weight:900;
+}
+
+.flip-hint span{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:9px 13px;
+  border-radius:999px;
+  background:#F4F8FB;
+  border:1px solid #DCE7EF;
+}
+
+/* =====================================================
+   BACK / FULL JOB
+===================================================== */
+
+.back-header{
+  flex:0 0 auto;
+  padding:17px 18px 14px;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  border-bottom:1px solid var(--border);
+}
+
+.summary-btn{
+  width:36px;
+  height:36px;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:#fff;
+  color:var(--text);
+}
+
+.back-title{
+  min-width:0;
+}
+
+.back-title strong{
+  display:block;
+  font-size:15px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.back-title span{
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:10px;
+}
+
+.full-job{
+  min-height:0;
+  flex:1;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:19px 18px 28px;
+}
+
+.full-section{
+  padding-bottom:18px;
+  margin-bottom:18px;
+  border-bottom:1px solid var(--border);
+}
+
+.full-section:last-child{
+  border-bottom:0;
+  margin-bottom:0;
+}
+
+.full-section h2{
+  font-size:15px;
+  margin-bottom:9px;
+}
+
+.full-copy{
+  color:#34465A;
+  font-size:12px;
+  line-height:1.7;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+
+.full-list{
+  display:grid;
+  gap:8px;
+}
+
+.full-list-item{
+  display:flex;
+  gap:9px;
+  align-items:flex-start;
+  color:#34465A;
+  font-size:12px;
+  line-height:1.58;
+}
+
+.full-list-item:before{
+  content:'';
+  width:6px;
+  height:6px;
+  flex:0 0 6px;
+  margin-top:7px;
+  border-radius:50%;
+  background:var(--brand);
+}
+
+.detail-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.detail-box{
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:#FAFCFD;
+}
+
+.detail-box small{
+  display:block;
+  color:var(--muted);
+  font-size:8px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.6px;
+}
+
+.detail-box strong{
+  display:block;
+  margin-top:4px;
+  font-size:11px;
+}
+
+/* =====================================================
+   FOOTER
+===================================================== */
+
+.footer{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:60;
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.98);
+  border-top:1px solid var(--border);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+
+.footer-inner{
+  width:100%;
+  max-width:560px;
+  margin:auto;
+  display:grid;
+  grid-template-columns:1fr 1.5fr;
+  gap:10px;
+}
+
+.secondary,
+.primary{
+  min-height:54px;
+  border-radius:16px;
+  font-size:13px;
+  font-weight:900;
+}
+
+.secondary{
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+}
+
+.primary{
+  border:0;
+  background:var(--brand-dark);
+  color:#fff;
+}
+
+.primary:disabled,
+.secondary:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+.message{
+  display:none;
+  margin-top:15px;
+  padding:12px 14px;
+  border-radius:14px;
+  font-size:11px;
+  line-height:1.5;
+  font-weight:800;
+}
+
+.message.error{
+  display:block;
+  background:var(--red-soft);
+  color:var(--red);
+}
+
+.loading{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  display:grid;
+  place-items:center;
+  background:rgba(245,248,248,.98);
+}
+
+.spinner{
+  width:42px;
+  height:42px;
+  margin:auto;
+  border:4px solid #E1E7EB;
+  border-top-color:var(--brand-dark);
+  border-radius:50%;
+  animation:spin .75s linear infinite;
+}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.loading-copy{
+  margin-top:12px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+}
+
+.error-state{
+  max-width:420px;
+  margin:70px auto 0;
+  padding:24px;
+  border:1px solid var(--border);
+  border-radius:22px;
+  background:#fff;
+  text-align:center;
+}
+
+.error-state h2{font-size:21px}
+
+.error-state p{
+  margin-top:8px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+}
+
+.error-state button{
+  margin-top:16px;
+  min-height:48px;
+  padding:0 17px;
+  border:0;
+  border-radius:14px;
+  background:var(--brand-dark);
+  color:#fff;
+  font-weight:900;
+}
+
+.success-screen{
+  position:fixed;
+  inset:0;
+  z-index:120;
+  display:grid;
+  place-items:center;
+  padding:24px;
+  background:
+    radial-gradient(circle at top,rgba(140,182,155,.18),transparent 34%),
+    var(--bg);
+}
+
+.success-card{
+  width:min(100%,420px);
+  padding:31px 22px;
+  border:1px solid var(--border);
+  border-radius:28px;
+  background:#fff;
+  text-align:center;
+  box-shadow:0 22px 62px rgba(23,35,51,.13);
+}
+
+.success-icon{
+  width:68px;
+  height:68px;
+  margin:auto;
+  border-radius:22px;
+  display:grid;
+  place-items:center;
+  background:var(--green-soft);
+  color:var(--green);
+  font-size:31px;
+  font-weight:900;
+}
+
+.success-card h2{
+  margin-top:17px;
+  font-size:26px;
+}
+
+.success-card p{
+  margin-top:8px;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.55;
+}
+
+.success-job{
+  margin-top:17px;
+  padding:13px;
+  border:1px solid var(--border);
+  border-radius:15px;
+  background:#F8FAFB;
+  font-size:12px;
+  font-weight:900;
+}
+
+.success-actions{
+  display:grid;
+  gap:10px;
+  margin-top:18px;
+}
+
+.success-actions button{
+  min-height:52px;
+  border-radius:15px;
+  font-size:13px;
+  font-weight:900;
+}
+
+.dashboard{
+  border:0;
+  background:var(--brand-dark);
+  color:#fff;
+}
+
+.view{
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+}
+
+@media(max-width:390px){
+  .company-top{
+    grid-template-columns:55px minmax(0,1fr) 96px;
+    gap:10px;
+  }
+
+  .company-logo{
+    width:55px;
+    height:55px;
+    border-radius:16px;
+    font-size:25px;
+  }
+
+  .salary-badge{
+    min-width:96px;
+    padding:10px;
+  }
+
+  .salary-badge strong{
+    font-size:15px;
+  }
+
+  .job-title{
+    font-size:27px;
+  }
+}
+</style>
 </head>
+
 <body>
-  <div class="loading" id="loading">
+
+<div class="loading" id="loading">
+  <div>
     <div class="spinner"></div>
-    <div style="font-size:13px;color:#66788A;font-weight:700;">Preparing candidate preview…</div>
+    <div class="loading-copy">Preparing candidate preview…</div>
+  </div>
+</div>
+
+<header class="header">
+  <button class="back" id="header-back" type="button">←</button>
+  <div class="logo">Alygnn<span>.</span></div>
+  <div></div>
+</header>
+
+<main class="page" id="page" hidden>
+  <div class="eyebrow">Candidate Preview</div>
+  <div class="page-title">See the swipe card candidates will see.</div>
+  <div class="page-copy">
+    The front summarizes the opportunity. Tap the card to flip it and open the full job.
   </div>
 
-  <header class="header">
-    <button class="back-btn" id="back-btn" type="button">←</button>
-    <div class="logo">Alygnn<span>.</span></div>
-    <div></div>
-  </header>
+  <div class="status-wrap" id="status-wrap"></div>
 
-  <main class="page" id="page" hidden>
-    <div class="eyebrow">Candidate Preview</div>
-    <div class="title">This should feel like a swipe card.</div>
-    <div class="subtitle">Review how this role will look to candidates before you publish it live.</div>
+  <div class="flip-shell">
+    <div class="flip-shadow"></div>
 
-    <div class="status-wrap" id="status-wrap"></div>
+    <div class="flip-inner" id="flip-inner">
 
-    <div class="card-wrap">
-      <div class="card-shadow"></div>
+      <!-- FRONT: SUMMARY FLASH CARD -->
+      <article class="card-face card-front" id="card-front">
+        <div class="company-top">
+          <div class="company-logo" id="company-logo"></div>
 
-      <article class="candidate-card">
-        <div class="top-row">
-          <div class="company-block">
-            <div class="company-logo" id="company-logo">A</div>
-            <div class="company-meta">
-              <div class="company-name" id="company-name">Company</div>
-              <div class="company-sub" id="company-sub">Remote OK · Great team</div>
-            </div>
+          <div>
+            <div class="company-name" id="company-name">Company</div>
+            <div class="company-meta" id="company-meta">Location · Work style</div>
           </div>
 
-          <div class="salary-box">
-            <div class="label">Base salary</div>
-            <div class="value" id="salary-box">$0</div>
+          <div class="salary-badge">
+            <small>Compensation</small>
+            <strong id="salary-badge">—</strong>
           </div>
         </div>
 
         <div class="job-title" id="job-title">Job title</div>
 
-        <div class="match-pill">
-          <span class="star">✦</span>
-          <span id="match-text">94% match</span>
+        <div class="verified-pill" id="verified-pill">
+          ✓ Verified employer
         </div>
 
         <div class="divider"></div>
 
-        <div class="facts-grid">
-          <div class="fact">
-            <div class="label">Salary</div>
-            <div class="value" id="salary-range">$0</div>
+        <div class="quick-grid">
+          <div class="quick-item">
+            <small>Job type</small>
+            <strong id="job-type">—</strong>
           </div>
-          <div class="fact">
-            <div class="label">Job type</div>
-            <div class="value" id="job-type">Full-time</div>
+
+          <div class="quick-item">
+            <small>Work style</small>
+            <strong id="work-style">—</strong>
           </div>
-          <div class="fact">
-            <div class="label">Location</div>
-            <div class="value" id="job-location">Raleigh, NC</div>
+
+          <div class="quick-item">
+            <small>Location</small>
+            <strong id="location">—</strong>
           </div>
-          <div class="fact">
-            <div class="label">Work style</div>
-            <div class="value" id="work-style">On-site</div>
+
+          <div class="quick-item">
+            <small>Salary</small>
+            <strong id="salary">—</strong>
           </div>
         </div>
 
-        <div class="chip-row" id="chip-row"></div>
+        <div class="summary-title">Quick summary</div>
+        <div class="summary-copy" id="summary-copy"></div>
 
-        <div class="callout" id="callout">✓ Great fit</div>
+        <div class="chips" id="chips"></div>
 
-        <div class="about">
-          <div class="about-title">About the role</div>
-          <div class="about-copy" id="about-role"></div>
+        <div class="flip-hint">
+          <span>Tap card to view full job ↻</span>
         </div>
       </article>
+
+      <!-- BACK: FULL JOB -->
+      <article class="card-face card-back" id="card-back">
+        <div class="back-header">
+          <button class="summary-btn" id="summary-btn" type="button">←</button>
+
+          <div class="back-title">
+            <strong id="back-job-title">Job title</strong>
+            <span id="back-company">Company</span>
+          </div>
+        </div>
+
+        <div class="full-job" id="full-job">
+          <section class="full-section">
+            <h2>Job details</h2>
+
+            <div class="detail-grid">
+              <div class="detail-box">
+                <small>Location</small>
+                <strong id="detail-location">—</strong>
+              </div>
+
+              <div class="detail-box">
+                <small>Job type</small>
+                <strong id="detail-job-type">—</strong>
+              </div>
+
+              <div class="detail-box">
+                <small>Work style</small>
+                <strong id="detail-work-style">—</strong>
+              </div>
+
+              <div class="detail-box">
+                <small>Compensation</small>
+                <strong id="detail-salary">—</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="full-section">
+            <h2>About the role</h2>
+            <div class="full-copy" id="description"></div>
+          </section>
+
+          <section class="full-section">
+            <h2>Requirements & skills</h2>
+            <div class="full-list" id="requirements"></div>
+          </section>
+
+          <section class="full-section">
+            <h2>Benefits</h2>
+            <div class="full-list" id="benefits"></div>
+          </section>
+
+          <section class="full-section">
+            <h2>About the company</h2>
+            <div class="full-copy" id="company-about"></div>
+          </section>
+        </div>
+      </article>
+
     </div>
-
-    <div class="message" id="message"></div>
-  </main>
-
-  <div class="error-state" id="error-state" hidden>
-    <h2>No job draft found</h2>
-    <p>Go back to the job builder and complete the job first, then open preview again.</p>
-    <button id="return-builder" type="button">Return to Job Builder</button>
   </div>
 
-  <footer class="footer" id="footer" hidden>
-    <div class="footer-inner">
-      <button class="btn btn-secondary" id="edit-btn" type="button">✕ Skip</button>
-      <button class="btn btn-primary" id="publish-btn" type="button">✓ Apply</button>
-    </div>
-  </footer>
+  <div class="message" id="message"></div>
+</main>
 
-  <div class="success-screen" id="success-screen">
-    <div class="success-card">
-      <div class="success-icon">✓</div>
-      <h2>Job published</h2>
-      <p>Your job is now live on Alygnn.</p>
-      <div class="success-job" id="success-job"></div>
-      <div class="success-actions">
-        <button class="primary2" id="dashboard-btn" type="button">Go to Employer Dashboard</button>
-        <button class="secondary2" id="view-job-btn" type="button">View Live Job</button>
-      </div>
+<div class="error-state" id="error-state" hidden>
+  <h2>No job draft found</h2>
+  <p>Return to the job builder and complete the job before opening Candidate Preview.</p>
+  <button id="return-builder" type="button">Return to Job Builder</button>
+</div>
+
+<footer class="footer" id="footer" hidden>
+  <div class="footer-inner">
+    <button class="secondary" id="edit-btn" type="button">Back to Edit</button>
+    <button class="primary" id="publish-btn" type="button">Publish Job</button>
+  </div>
+</footer>
+
+<div class="success-screen" id="success" hidden>
+  <div class="success-card">
+    <div class="success-icon">✓</div>
+    <h2>Job published</h2>
+    <p>Your job was saved to Alygnn and is now available to candidates.</p>
+
+    <div class="success-job" id="success-job"></div>
+
+    <div class="success-actions">
+      <button class="dashboard" id="dashboard-btn" type="button">
+        Go to Employer Dashboard
+      </button>
+
+      <button class="view" id="view-job-btn" type="button">
+        View Live Job
+      </button>
     </div>
   </div>
+</div>
 
-  <script>
-    const sb = supabase.createClient(
-      'https://auth.alygnn.com',
-      'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+<script>
+const sb=supabase.createClient(
+  'https://auth.alygnn.com',
+  'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+  {
+    auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true
+    }
+  }
+);
+
+const $=id=>document.getElementById(id);
+
+let session=null;
+let draft=null;
+let liveCompany=null;
+let publishedJobId=null;
+
+function initials(name){
+  const parts=String(name||'Company')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  return(
+    (parts[0]?.[0]||'C')+
+    (parts[1]?.[0]||'')
+  ).toUpperCase();
+}
+
+function listValues(value){
+  return String(value||'')
+    .split(/\n|•|\u2022|;/)
+    .map(value=>
+      value
+        .replace(/^[-–—✓✔\s]+/,'')
+        .trim()
+    )
+    .filter(Boolean);
+}
+
+function summaryText(value,max=320){
+  const clean=String(value||'')
+    .replace(/\s+/g,' ')
+    .trim();
+
+  if(!clean){
+    return 'Open the full job to review the complete opportunity.';
+  }
+
+  return clean.length>max
+    ?clean.slice(0,max).trim()+'…'
+    :clean;
+}
+
+function showMessage(text){
+  $('message').textContent=text;
+  $('message').className='message error';
+}
+
+function clearMessage(){
+  $('message').textContent='';
+  $('message').className='message';
+}
+
+async function resolveCompanyLive(){
+  try{
+    const response=await fetch(
+      'https://alygnn.com/api/company/resolve-company',
       {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true
-        }
+        headers:{
+          Authorization:'Bearer '+session.access_token
+        },
+        cache:'no-store'
       }
     );
 
-    const $ = (id) => document.getElementById(id);
+    const result=await response.json().catch(()=>({}));
 
-    let session = null;
-    let draft = null;
-    let liveCompany = null;
-    let publishedJobId = null;
-
-    function escapeHtml(value){
-      return String(value ?? '').replace(/[&<>"']/g, c => ({
-        '&':'&amp;',
-        '<':'&lt;',
-        '>':'&gt;',
-        '"':'&quot;',
-        "'":'&#039;'
-      }[c]));
+    if(response.ok&&result?.company){
+      return result.company;
     }
 
-    function initials(name){
-      const parts = String(name || 'A').trim().split(/\s+/).filter(Boolean);
-      return ((parts[0]?.[0] || 'A') + (parts[1]?.[0] || '')).toUpperCase();
+    return null;
+  }catch(error){
+    console.warn(
+      'Live company lookup failed:',
+      error
+    );
+    return null;
+  }
+}
+
+function setLogo(){
+  const box=$('company-logo');
+  box.innerHTML='';
+
+  if(draft.company_logo){
+    const img=document.createElement('img');
+    img.src=draft.company_logo;
+    img.alt=(draft.company||'Company')+' logo';
+
+    img.onerror=()=>{
+      box.textContent=initials(draft.company);
+    };
+
+    box.appendChild(img);
+    return;
+  }
+
+  box.textContent=initials(
+    draft.company||
+    liveCompany?.name
+  );
+}
+
+function renderList(id,value,fallback){
+  const container=$(id);
+  const values=listValues(value);
+
+  container.innerHTML='';
+
+  (values.length?values:[fallback])
+    .forEach(value=>{
+      const row=document.createElement('div');
+      row.className='full-list-item';
+      row.textContent=value;
+      container.appendChild(row);
+    });
+}
+
+function renderStatus(){
+  const wrap=$('status-wrap');
+  wrap.innerHTML='';
+
+  const verification=String(
+    liveCompany?.verificationStatus||
+    draft.verification_status||
+    'not_submitted'
+  ).toLowerCase();
+
+  const account=String(
+    liveCompany?.accountStatus||
+    'active'
+  ).toLowerCase();
+
+  if(account==='deactivated'){
+    wrap.innerHTML=
+      '<span class="status-pill blocked">Company account deactivated</span>';
+
+    $('publish-btn').disabled=true;
+    $('publish-btn').textContent='Publishing Disabled';
+
+    $('verified-pill').textContent='Company account deactivated';
+    $('verified-pill').style.background='var(--red-soft)';
+    $('verified-pill').style.color='var(--red)';
+    return;
+  }
+
+  if(verification==='approved'){
+    wrap.innerHTML=
+      '<span class="status-pill approved">✓ Verified employer</span>';
+
+    $('publish-btn').disabled=false;
+    $('publish-btn').textContent='Publish Job';
+    return;
+  }
+
+  wrap.innerHTML=
+    '<span class="status-pill pending">Verification '+verification.replaceAll('_',' ')+'</span>';
+
+  $('publish-btn').disabled=true;
+  $('publish-btn').textContent='Verification Required';
+
+  $('verified-pill').textContent='Verification '+verification.replaceAll('_',' ');
+  $('verified-pill').style.background='var(--amber-soft)';
+  $('verified-pill').style.color='var(--amber)';
+}
+
+function render(){
+  const company=
+    draft.company||
+    liveCompany?.name||
+    'Your company';
+
+  const title=
+    draft.title||
+    'Untitled position';
+
+  const location=
+    draft.location||
+    'Not listed';
+
+  const jobType=
+    draft.job_type||
+    'Not listed';
+
+  const workStyle=
+    draft.work_style||
+    'Not listed';
+
+  const salary=
+    draft.salary||
+    'Not listed';
+
+  $('company-name').textContent=company;
+  $('company-meta').textContent=
+    location+
+    ' · '+
+    workStyle;
+
+  $('salary-badge').textContent=salary;
+  $('job-title').textContent=title;
+
+  $('job-type').textContent=jobType;
+  $('work-style').textContent=workStyle;
+  $('location').textContent=location;
+  $('salary').textContent=salary;
+
+  $('summary-copy').textContent=
+    summaryText(
+      draft.description
+    );
+
+  /*
+   * Front card only shows a few useful signals.
+   */
+  const tags=[
+    ...listValues(
+      draft.requirements
+    ),
+    ...listValues(
+      draft.benefits
+    )
+  ];
+
+  const unique=[
+    ...new Set(tags)
+  ].slice(0,4);
+
+  $('chips').innerHTML='';
+
+  unique.forEach(tag=>{
+    const chip=document.createElement('span');
+    chip.className='chip';
+    chip.textContent=tag;
+    $('chips').appendChild(chip);
+  });
+
+  $('back-job-title').textContent=title;
+  $('back-company').textContent=company;
+
+  $('detail-location').textContent=location;
+  $('detail-job-type').textContent=jobType;
+  $('detail-work-style').textContent=workStyle;
+  $('detail-salary').textContent=salary;
+
+  $('description').textContent=
+    draft.description||
+    'No job description was provided.';
+
+  renderList(
+    'requirements',
+    draft.requirements,
+    'Requirements will be discussed with qualified candidates.'
+  );
+
+  renderList(
+    'benefits',
+    draft.benefits,
+    'No benefits were listed.'
+  );
+
+  $('company-about').textContent=
+    draft.company_headline||
+    (
+      company+
+      ' is hiring for this opportunity through Alygnn.'
+    );
+
+  setLogo();
+  renderStatus();
+}
+
+function flipOpen(){
+  $('flip-inner').classList.add('flipped');
+}
+
+function flipClosed(){
+  $('flip-inner').classList.remove('flipped');
+}
+
+function editJob(){
+  if(draft){
+    sessionStorage.setItem(
+      'alygnnJobDraft',
+      JSON.stringify(draft)
+    );
+  }
+
+  location.href='app-post-job.html';
+}
+
+function baseJobPayload(){
+  return{
+    employer_id:session.user.id,
+    title:draft.title,
+    company:draft.company,
+    location:draft.location,
+    job_type:draft.job_type,
+    work_style:draft.work_style,
+    salary:draft.salary,
+    description:draft.description,
+    requirements:draft.requirements,
+    benefits:draft.benefits,
+    status:'active',
+    created_at:new Date().toISOString()
+  };
+}
+
+function extendedJobPayload(){
+  return{
+    ...baseJobPayload(),
+
+    company_id:
+      draft.company_id||
+      liveCompany?.id||
+      null,
+
+    pay_period:
+      draft.pay_period||
+      null,
+
+    pay_min:
+      draft.pay_min??
+      null,
+
+    pay_max:
+      draft.pay_max??
+      null,
+
+    onet_soc_code:
+      draft.onet_soc_code||
+      null,
+
+    location_city:
+      draft.location_city||
+      null,
+
+    location_state:
+      draft.location_state||
+      null,
+
+    location_postal_code:
+      draft.location_postal_code||
+      null,
+
+    location_latitude:
+      draft.location_latitude??
+      null,
+
+    location_longitude:
+      draft.location_longitude??
+      null
+  };
+}
+
+function missingColumn(error){
+  const text=String(
+    error?.message||
+    ''
+  ).toLowerCase();
+
+  return(
+    text.includes('column')||
+    text.includes('schema cache')||
+    text.includes('could not find')
+  );
+}
+
+async function insertJob(){
+  let result=await sb
+    .from('jobs')
+    .insert(
+      extendedJobPayload()
+    )
+    .select('id')
+    .single();
+
+  if(
+    result.error&&
+    missingColumn(result.error)
+  ){
+    result=await sb
+      .from('jobs')
+      .insert(
+        baseJobPayload()
+      )
+      .select('id')
+      .single();
+  }
+
+  return result;
+}
+
+async function publishJob(){
+  clearMessage();
+
+  liveCompany=
+    await resolveCompanyLive();
+
+  const verification=String(
+    liveCompany?.verificationStatus||
+    draft.verification_status||
+    ''
+  ).toLowerCase();
+
+  const account=String(
+    liveCompany?.accountStatus||
+    'active'
+  ).toLowerCase();
+
+  renderStatus();
+
+  if(account==='deactivated'){
+    showMessage(
+      'This company account is deactivated. Reactivate it before publishing jobs.'
+    );
+    return;
+  }
+
+  if(verification!=='approved'){
+    showMessage(
+      'Your company must be approved before this job can be published.'
+    );
+    return;
+  }
+
+  const button=$('publish-btn');
+
+  button.disabled=true;
+  button.textContent='Publishing…';
+
+  try{
+    const{
+      data,
+      error
+    }=await insertJob();
+
+    if(error){
+      throw error;
     }
 
-    function showMessage(text, type='error'){
-      const box = $('message');
-      box.textContent = text;
-      box.className = 'message ' + type;
-      box.style.display = 'block';
+    if(!data?.id){
+      throw new Error(
+        'Alygnn did not receive the published job ID.'
+      );
     }
 
-    function clearMessage(){
-      const box = $('message');
-      box.textContent = '';
-      box.className = 'message';
-      box.style.display = 'none';
-    }
+    publishedJobId=data.id;
 
-    function parseTags(){
-      const raw = String(
-        draft.skills ||
-        draft.requirements ||
-        ''
+    sessionStorage.removeItem(
+      'alygnnJobDraft'
+    );
+
+    sessionStorage.removeItem(
+      'alygnnEditJobId'
+    );
+
+    $('success-job').textContent=
+      (draft.title||'Job')+
+      ' · '+
+      (
+        draft.company||
+        liveCompany?.name||
+        'Company'
       );
 
-      const tags = raw
-        .split(/\n|,|•|\u2022|;/)
-        .map(v => v.replace(/^[-–—✓✔\s]+/, '').trim())
-        .filter(Boolean);
+    $('footer').hidden=true;
+    $('success').hidden=false;
 
-      return [...new Set(tags)].slice(0, 4);
+  }catch(error){
+    console.error(
+      'Job publish failed:',
+      error
+    );
+
+    showMessage(
+      error?.message
+        ?'Could not publish the job: '+error.message
+        :'Could not publish the job. Please try again.'
+    );
+
+    button.disabled=false;
+    button.textContent='Publish Job';
+  }
+}
+
+function wire(){
+  $('header-back').onclick=editJob;
+  $('edit-btn').onclick=editJob;
+
+  $('return-builder').onclick=()=>{
+    location.href='app-post-job.html';
+  };
+
+  /*
+   * Front of the card is the summarized swipe card.
+   * Candidate taps anywhere on it to open the full job.
+   */
+  $('card-front').addEventListener(
+    'click',
+    flipOpen
+  );
+
+  /*
+   * Back uses an explicit Summary button so the user
+   * can scroll the full job without accidentally flipping.
+   */
+  $('summary-btn').addEventListener(
+    'click',
+    event=>{
+      event.stopPropagation();
+      flipClosed();
+    }
+  );
+
+  $('publish-btn').onclick=publishJob;
+
+  $('dashboard-btn').onclick=()=>{
+    location.replace(
+      'app-employer-dashboard.html'
+    );
+  };
+
+  $('view-job-btn').onclick=()=>{
+    if(publishedJobId){
+      location.href=
+        'app-job-details.html?id='+
+        encodeURIComponent(
+          publishedJobId
+        );
+      return;
     }
 
-    function setLogo(){
-      const box = $('company-logo');
-      if (draft.company_logo){
-        box.innerHTML = '<img src="' + escapeHtml(draft.company_logo) + '" alt="logo">';
-        return;
-      }
-      box.textContent = initials(draft.company || liveCompany?.name || 'A');
+    location.replace(
+      'app-employer-dashboard.html'
+    );
+  };
+}
+
+(async function init(){
+  wire();
+
+  try{
+    const raw=
+      sessionStorage.getItem(
+        'alygnnJobDraft'
+      );
+
+    if(!raw){
+      $('error-state').hidden=false;
+      return;
     }
 
-    async function resolveCompanyLive(){
-      try{
-        const response = await fetch('https://alygnn.com/api/company/resolve-company', {
-          headers: {
-            Authorization: 'Bearer ' + session.access_token
-          },
-          cache: 'no-store'
-        });
+    draft=JSON.parse(raw);
 
-        const result = await response.json().catch(() => ({}));
+    const{
+      data,
+      error
+    }=await sb.auth.getSession();
 
-        if(response.ok && result?.company){
-          return result.company;
-        }
-
-        return null;
-      }catch(error){
-        console.warn(error);
-        return null;
-      }
+    if(
+      error||
+      !data.session
+    ){
+      location.replace(
+        'app-employer-login.html'
+      );
+      return;
     }
 
-    function renderStatus(){
-      const wrap = $('status-wrap');
-      wrap.innerHTML = '';
+    session=data.session;
 
-      const verification = String(
-        liveCompany?.verificationStatus ||
-        draft.verification_status ||
-        'not_submitted'
-      ).toLowerCase();
+    if(
+      draft.employer_id&&
+      draft.employer_id!==session.user.id
+    ){
+      sessionStorage.removeItem(
+        'alygnnJobDraft'
+      );
 
-      const account = String(
-        liveCompany?.accountStatus ||
-        'active'
-      ).toLowerCase();
-
-      if(account === 'deactivated'){
-        wrap.innerHTML = '<span class="pill bad">Company account deactivated</span>';
-        $('publish-btn').disabled = true;
-        $('publish-btn').textContent = 'Publishing Disabled';
-        return;
-      }
-
-      if(verification === 'approved'){
-        wrap.innerHTML = '<span class="pill ok">✓ Verified employer</span>';
-        $('publish-btn').disabled = false;
-        $('publish-btn').textContent = '✓ Apply';
-        return;
-      }
-
-      wrap.innerHTML = '<span class="pill warn">Verification ' + escapeHtml(verification.replaceAll('_', ' ')) + '</span>';
-      $('publish-btn').disabled = true;
-      $('publish-btn').textContent = 'Verification Required';
+      $('error-state').hidden=false;
+      return;
     }
 
-    function renderCard(){
-      const company = draft.company || liveCompany?.name || 'Your company';
-      $('company-name').textContent = company;
+    liveCompany=
+      await resolveCompanyLive();
 
-      const location = draft.location || 'Location not set';
-      const jobType = draft.job_type || 'Job type not set';
-      const workStyle = draft.work_style || 'Work style not set';
-      const salary = draft.salary || 'Compensation not listed';
-
-      $('company-sub').textContent = location + ' · ' + workStyle;
-      $('job-title').textContent = draft.title || 'Untitled role';
-      $('salary-box').textContent = salary;
-      $('salary-range').textContent = salary;
-      $('job-type').textContent = jobType;
-      $('job-location').textContent = location;
-      $('work-style').textContent = workStyle;
-
-      const matchValue = draft.match_score || 94;
-      $('match-text').textContent = matchValue + '% match';
-
-      const tags = parseTags();
-      $('chip-row').innerHTML = tags.length
-        ? tags.map(tag => '<span class="chip">' + escapeHtml(tag) + '</span>').join('')
-        : '<span class="chip">Alygnn recommendation</span>';
-
-      const about = draft.description || 'No job description provided yet.';
-      $('about-role').textContent = about;
-
-      const fitText = draft.company_headline || 'Remote friendly';
-      $('callout').textContent = fitText;
-
-      setLogo();
-      renderStatus();
+    if(liveCompany?.name){
+      draft.company=
+        liveCompany.name;
     }
 
-    function editJob(){
-      if(draft){
-        sessionStorage.setItem('alygnnJobDraft', JSON.stringify(draft));
-      }
-      location.href = 'app-post-job.html';
+    if(liveCompany?.id){
+      draft.company_id=
+        liveCompany.id;
     }
 
-    function baseJobPayload(){
-      return {
-        employer_id: session.user.id,
-        title: draft.title,
-        company: draft.company,
-        location: draft.location,
-        job_type: draft.job_type,
-        work_style: draft.work_style,
-        salary: draft.salary,
-        description: draft.description,
-        requirements: draft.requirements,
-        benefits: draft.benefits,
-        status: 'active',
-        created_at: new Date().toISOString()
-      };
-    }
+    render();
 
-    function extendedJobPayload(){
-      return {
-        ...baseJobPayload(),
-        company_id: draft.company_id || liveCompany?.id || null,
-        pay_period: draft.pay_period || null,
-        pay_min: draft.pay_min ?? null,
-        pay_max: draft.pay_max ?? null,
-        onet_soc_code: draft.onet_soc_code || null,
-        location_city: draft.location_city || null,
-        location_state: draft.location_state || null,
-        location_postal_code: draft.location_postal_code || null,
-        location_latitude: draft.location_latitude ?? null,
-        location_longitude: draft.location_longitude ?? null
-      };
-    }
+    $('page').hidden=false;
+    $('footer').hidden=false;
 
-    function looksLikeMissingColumn(error){
-      const text = String(error?.message || '').toLowerCase();
-      return text.includes('column') || text.includes('schema cache') || text.includes('could not find');
-    }
-
-    async function insertJob(){
-      let result = await sb
-        .from('jobs')
-        .insert(extendedJobPayload())
-        .select('id')
-        .single();
-
-      if(result.error && looksLikeMissingColumn(result.error)){
-        result = await sb
-          .from('jobs')
-          .insert(baseJobPayload())
-          .select('id')
-          .single();
-      }
-
-      return result;
-    }
-
-    async function publishJob(){
-      clearMessage();
-
-      if(!draft || !session) return;
-
-      liveCompany = await resolveCompanyLive();
-
-      const verification = String(
-        liveCompany?.verificationStatus ||
-        draft.verification_status ||
-        ''
-      ).toLowerCase();
-
-      const account = String(
-        liveCompany?.accountStatus ||
-        'active'
-      ).toLowerCase();
-
-      renderStatus();
-
-      if(account === 'deactivated'){
-        showMessage('This company account is deactivated. Reactivate it before publishing jobs.');
-        return;
-      }
-
-      if(verification !== 'approved'){
-        showMessage('Your company must be approved before this job can be published.');
-        return;
-      }
-
-      const button = $('publish-btn');
-      button.disabled = true;
-      button.textContent = 'Publishing…';
-
-      try{
-        const { data, error } = await insertJob();
-
-        if(error) throw error;
-        if(!data?.id) throw new Error('The job was saved but Alygnn did not receive a job ID.');
-
-        publishedJobId = data.id;
-
-        sessionStorage.removeItem('alygnnJobDraft');
-        sessionStorage.removeItem('alygnnEditJobId');
-
-        $('success-job').textContent = (draft.title || 'Job') + ' · ' + (draft.company || liveCompany?.name || 'Company');
-        $('success-screen').style.display = 'flex';
-        $('footer').hidden = true;
-
-      }catch(error){
-        console.error(error);
-        showMessage(error?.message ? 'Could not publish the job: ' + error.message : 'Could not publish the job.');
-        button.disabled = false;
-        button.textContent = '✓ Apply';
-      }
-    }
-
-    function wire(){
-      $('back-btn').onclick = editJob;
-      $('edit-btn').onclick = editJob;
-      $('return-builder').onclick = () => location.href = 'app-post-job.html';
-      $('publish-btn').onclick = publishJob;
-      $('dashboard-btn').onclick = () => location.replace('app-employer-dashboard.html');
-      $('view-job-btn').onclick = () => {
-        if(publishedJobId){
-          location.href = 'app-job-details.html?id=' + encodeURIComponent(publishedJobId);
-        }else{
-          location.replace('app-employer-dashboard.html');
-        }
-      };
-    }
-
-    (async function init(){
-      wire();
-
-      try{
-        const raw = sessionStorage.getItem('alygnnJobDraft');
-
-        if(!raw){
-          $('error-state').hidden = false;
-          $('loading').style.display = 'none';
-          return;
-        }
-
-        draft = JSON.parse(raw);
-
-        const { data, error } = await sb.auth.getSession();
-
-        if(error || !data.session){
-          location.replace('app-employer-login.html');
-          return;
-        }
-
-        session = data.session;
-        liveCompany = await resolveCompanyLive();
-
-        if(liveCompany?.name) draft.company = liveCompany.name;
-        if(liveCompany?.id) draft.company_id = liveCompany.id;
-
-        renderCard();
-
-        $('page').hidden = false;
-        $('footer').hidden = false;
-      }catch(error){
-        console.error(error);
-        $('error-state').hidden = false;
-      }finally{
-        $('loading').style.display = 'none';
-      }
-    })();
-  </script>
+  }catch(error){
+    console.error(error);
+    $('error-state').hidden=false;
+  }finally{
+    $('loading').hidden=true;
+  }
+})();
+</script>
 </body>
 </html>
