@@ -217,7 +217,7 @@
 
 <div class="step" data-title="Overview">
   <div class="eyebrow">Overview</div><h1>Review your hiring preferences.</h1>
-  <p class="intro">Confirm the information below. Your employer account will then be automatically approved or placed into manual review.</p>
+  <p class="intro">Confirm the information below. Your business will then be submitted to Alygnn for manual verification.</p>
   <div class="overview-grid">
     <div class="overview-card"><div class="overview-head"><h2>Company Voice</h2><button class="edit" type="button" data-go="2">Edit</button></div><div class="overview-content" id="overview-voice"></div></div>
     <div class="overview-card"><div class="overview-head"><h2>What Makes Your Company Stand Out</h2><button class="edit" type="button" data-go="3">Edit</button></div><ol class="overview-content ordered" id="overview-company"></ol></div>
@@ -526,33 +526,265 @@ function payload(){
   };
 }
 
+async function resolveExistingCompany(session){
+  // Prefer Alygnn's authenticated company resolver so the website and app
+  // point to the same companies/company_members records.
+  try{
+    const response=await fetch('https://alygnn.com/api/company/my-company',{
+      method:'GET',
+      headers:{'Authorization':'Bearer '+session.access_token}
+    });
+
+    if(response.ok){
+      const result=await response.json().catch(()=>({}));
+      const companyId=String(
+        result.company?.id||
+        result.company_id||
+        result.companyId||
+        ''
+      ).trim();
+
+      if(companyId){
+        return{
+          id:companyId,
+          accountNumber:
+            result.company?.accountNumber||
+            result.company?.account_number||
+            '',
+          verificationStatus:
+            result.company?.verificationStatus||
+            result.company?.verification_status||
+            'pending_review'
+        };
+      }
+    }
+  }catch(error){
+    console.warn('Server company resolver was unavailable:',error);
+  }
+
+  // Browser-side fallback for an existing active company membership.
+  try{
+    const {data,error}=await sb
+      .from('company_members')
+      .select('company_id,companies(id,account_number,verification_status)')
+      .eq('user_id',session.user.id)
+      .eq('membership_status','active')
+      .limit(1)
+      .maybeSingle();
+
+    if(!error&&data?.company_id){
+      const company=Array.isArray(data.companies)?data.companies[0]:data.companies;
+      return{
+        id:String(data.company_id),
+        accountNumber:company?.account_number||'',
+        verificationStatus:company?.verification_status||'pending_review'
+      };
+    }
+  }catch(error){
+    console.warn('Company membership lookup failed:',error);
+  }
+
+  return null;
+}
+
+async function createOrResolveCompany(session,data){
+  const existing=await resolveExistingCompany(session);
+  if(existing?.id)return existing;
+
+  const response=await fetch('https://alygnn.com/api/company/create-company',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':'Bearer '+session.access_token
+    },
+    body:JSON.stringify(data)
+  });
+
+  const result=await response.json().catch(()=>({}));
+
+  // If another attempt already created the company, continue with the SAME
+  // company rather than creating a second workspace.
+  if(!response.ok){
+    const existingId=String(
+      result.company?.id||
+      result.company_id||
+      result.companyId||
+      ''
+    ).trim();
+
+    if(response.status===409&&existingId){
+      return{
+        id:existingId,
+        accountNumber:
+          result.company?.accountNumber||
+          result.company?.account_number||
+          '',
+        verificationStatus:
+          result.company?.verificationStatus||
+          result.company?.verification_status||
+          'pending_review'
+      };
+    }
+
+    throw new Error(result.error||'Unable to create your company workspace.');
+  }
+
+  const companyId=String(
+    result.company?.id||
+    result.company_id||
+    result.companyId||
+    result.id||
+    ''
+  ).trim();
+
+  if(!companyId){
+    throw new Error('Alygnn created the company but did not return its company ID.');
+  }
+
+  return{
+    id:companyId,
+    accountNumber:
+      result.company?.accountNumber||
+      result.company?.account_number||
+      '',
+    verificationStatus:
+      result.company?.verificationStatus||
+      result.company?.verification_status||
+      'pending_review'
+  };
+}
+
+async function ensureVerificationQueueRow(session,companyId,data){
+  // The admin verification page reads employer_verifications, so make sure
+  // this exact company is represented there. Do not create a duplicate row.
+  const {data:existing,error:existingError}=await sb
+    .from('employer_verifications')
+    .select('user_id,company_id,verification_status')
+    .eq('user_id',session.user.id)
+    .maybeSingle();
+
+  if(existingError){
+    console.warn('Could not check existing verification row:',existingError);
+  }
+
+  if(existing){
+    return existing;
+  }
+
+  const emailDomain=String(session.user.email||'')
+    .toLowerCase()
+    .split('@')[1]||'';
+
+  const {data:inserted,error:insertError}=await sb
+    .from('employer_verifications')
+    .insert({
+      user_id:session.user.id,
+      company_id:companyId,
+      company_name:data.company_name,
+      email_domain:emailDomain,
+      website:data.website,
+      business_phone:data.business_phone,
+      industry:data.industry,
+      company_size:data.company_size,
+      headquarters:data.headquarters,
+      ein_last4:data.ein_last4,
+      authorized:true,
+      blueprint_complete:true,
+      verification_status:'pending_review'
+    })
+    .select('user_id,company_id,verification_status')
+    .single();
+
+  if(insertError)throw insertError;
+  return inserted;
+}
+
+async function uploadVerificationDocument(session,companyId){
+  const input=document.getElementById('ein-document');
+  const existingPath=String(input.dataset.uploadedPath||'').trim();
+
+  if(existingPath)return existingPath;
+
+  const file=input.files&&input.files[0];
+  if(!file)throw new Error('Choose your verification PDF before finishing setup.');
+
+  const safeName=file.name
+    .replace(/[^a-zA-Z0-9._-]/g,'-')
+    .slice(-100);
+
+  // IMPORTANT: the first folder is COMPANY ID. This matches the existing
+  // Supabase storage policy used by the app/shared verification system.
+  const storagePath=`${companyId}/${session.user.id}/${Date.now()}-${safeName}`;
+
+  const {error:uploadError}=await sb.storage
+    .from('employer-verification-documents')
+    .upload(storagePath,file,{
+      cacheControl:'3600',
+      upsert:false,
+      contentType:'application/pdf'
+    });
+
+  if(uploadError)throw uploadError;
+
+  const {error:recordError}=await sb
+    .from('employer_verification_documents')
+    .insert({
+      company_id:companyId,
+      uploaded_by:session.user.id,
+      document_type:'ein_verification',
+      storage_path:storagePath,
+      original_file_name:file.name,
+      mime_type:'application/pdf',
+      file_size_bytes:file.size,
+      review_status:'pending_review'
+    });
+
+  if(recordError){
+    await sb.storage
+      .from('employer-verification-documents')
+      .remove([storagePath])
+      .catch(()=>{});
+    throw recordError;
+  }
+
+  input.dataset.uploadedPath=storagePath;
+  return storagePath;
+}
+
 async function submit(){
-  nextButton.disabled=true;nextButton.textContent='Saving your profile…';clearMessage();
+  nextButton.disabled=true;
+  nextButton.textContent='Finishing setup…';
+  clearMessage();
   saveDraft();
+
   try{
     const {data:{session},error:sessionError}=await sb.auth.getSession();
     if(sessionError)throw sessionError;
-    if(!session){location.replace('login.html?role=employer');return}
+    if(!session){
+      location.replace('login.html?role=employer');
+      return;
+    }
 
     const data=payload();
 
-    // Upload the IRS verification document (required to reach this point)
-    // so a human reviewer has something concrete to check against the
-    // self-reported EIN, since there's no free way to verify it automatically.
-    let einDocumentPath=document.getElementById('ein-document').dataset.uploadedPath||null;
-    const fileInput=document.getElementById('ein-document');
-    if(fileInput.files&&fileInput.files.length>0){
-      const file=fileInput.files[0];
-      const path=`${session.user.id}/ein-verification-${Date.now()}.pdf`;
-      const {error:uploadError}=await sb.storage.from('employer-verification-documents').upload(path,file,{upsert:true});
-      if(uploadError){
-        console.error('EIN document upload failed:',uploadError);
-        throw new Error('Could not upload your verification document. Check that the "employer-verification-documents" storage bucket exists and its upload policy allows this.');
-      }
-      einDocumentPath=path;
-      fileInput.dataset.uploadedPath=path;
+    // 1. Create/resolve the SAME company workspace used by the app/admin system.
+    const company=await createOrResolveCompany(session,data);
+    const companyId=company.id;
+
+    localStorage.setItem('alygnn_company_id',companyId);
+    sessionStorage.setItem('alygnn_company_id',companyId);
+    if(company.accountNumber){
+      localStorage.setItem('alygnn_company_account_number',company.accountNumber);
     }
 
+    // 2. Ensure the shared admin queue has this employer/company.
+    await ensureVerificationQueueRow(session,companyId,data);
+
+    // 3. Upload the PDF under COMPANY-ID/USER-ID/... and create the document row.
+    const einDocumentPath=await uploadVerificationDocument(session,companyId);
+
+    // 4. Keep the older website profile fields synchronized for pages that
+    // still read profiles, while the company/admin system remains canonical.
     const hiring_blueprint={
       industry:data.industry,
       company_size:data.company_size,
@@ -564,6 +796,7 @@ async function submit(){
       company_priorities:data.company_priorities,
       candidate_priorities:data.candidate_priorities,
       ai_summary:data.ai_summary,
+      company_id:companyId,
       irs_document_path:einDocumentPath,
       irs_document_review_status:'pending_review'
     };
@@ -574,53 +807,98 @@ async function submit(){
       company_phone:data.business_phone,
       business_email:data.business_email,
       business_address:data.business_address,
-      hiring_blueprint
+      hiring_blueprint,
+      employer_verified:false,
+      verification_status:'pending_review'
     };
 
-    const {data:updatedRows,error:updateError}=await sb.from('profiles').update(profilePayload).eq('id',session.user.id).select('id');
+    const {data:updatedRows,error:updateError}=await sb
+      .from('profiles')
+      .update(profilePayload)
+      .eq('id',session.user.id)
+      .select('id');
+
     if(updateError||!updatedRows||updatedRows.length===0){
-      const {error:insertError}=await sb.from('profiles').insert({id:session.user.id,role:'employer',...profilePayload});
-      if(insertError){
-        console.error('Profile save failed:',updateError||insertError);
-        throw new Error('Could not save your profile. If this keeps happening, the profiles table may be missing a hiring_blueprint jsonb column, or its RLS policies may not allow you to insert/update your own row.');
+      const {error:insertError}=await sb
+        .from('profiles')
+        .insert({
+          id:session.user.id,
+          role:'employer',
+          ...profilePayload
+        });
+
+      if(insertError)throw insertError;
+    }
+
+    // Keep the shared company status pending while a human reviews the PDF.
+    // If owner-update RLS does not permit this, the employer_verifications row
+    // still remains pending_review and the admin queue remains authoritative.
+    try{
+      const {error:companyStatusError}=await sb
+        .from('companies')
+        .update({verification_status:'pending_review'})
+        .eq('id',companyId);
+
+      if(companyStatusError){
+        console.warn('Could not force company status to pending_review:',companyStatusError);
       }
+    }catch(error){
+      console.warn('Company status sync skipped:',error);
     }
 
-    const allFieldsValid=
-      isValidCompanyName(profilePayload.company_name) &&
-      isValidWebsite(profilePayload.company_website) &&
-      isValidPhone(profilePayload.company_phone) &&
-      isValidBusinessEmail(profilePayload.business_email) &&
-      isValidAddress(profilePayload.business_address);
-
-    const websiteDomain=getDomainFromWebsite(profilePayload.company_website);
-    const emailDomain=getDomainFromEmail(profilePayload.business_email);
-    const domainsMatch=!!websiteDomain && !!emailDomain && websiteDomain===emailDomain;
-
-    let employer_verified=false;
-    let verification_status='not_submitted';
-    if(allFieldsValid){
-      verification_status=domainsMatch?'approved':'pending';
-      employer_verified=domainsMatch;
+    // Cache the exact company-scoped setup answers for dashboard/account reuse.
+    try{
+      const existingMetadata=session.user.user_metadata||{};
+      await sb.auth.updateUser({
+        data:{
+          ...existingMetadata,
+          company_name:data.company_name,
+          onboarding_company_profile:{
+            user_id:session.user.id,
+            company_id:companyId,
+            company_name:data.company_name,
+            website:data.website,
+            business_phone:data.business_phone,
+            business_email:data.business_email,
+            business_address:data.business_address,
+            industry:data.industry,
+            company_size:data.company_size,
+            headquarters:data.headquarters,
+            company_voice:data.company_voice,
+            company_priorities:data.company_priorities,
+            candidate_priorities:data.candidate_priorities,
+            ai_summary:data.ai_summary,
+            saved_at:new Date().toISOString()
+          }
+        }
+      });
+    }catch(error){
+      console.warn('Could not cache onboarding metadata:',error);
     }
 
-    await sb.from('profiles').update({employer_verified,verification_status}).eq('id',session.user.id);
-
+    localStorage.setItem('alygnn_employer_verification_status','pending_review');
     try{localStorage.removeItem(DRAFT_KEY)}catch{}
 
-    if(employer_verified){
-      showMessage('Your company is verified. Opening your Employer Dashboard…','success');
-    }else{
-      showMessage('Your Hiring Blueprint is complete. Your company is pending manual review — you can explore your dashboard while you wait.','success');
-    }
-    // Onboarding always lands on the dashboard now, verified or not — the
-    // dashboard itself shows the pending/locked state (see
-    // updateVerificationUI() in employer-dashboard.html) instead of the
-    // account hub gatekeeping it.
-    setTimeout(()=>location.replace('employer-dashboard.html'),1100);
+    showMessage(
+      'Setup complete. Your verification document was submitted for review. Opening your Employer Dashboard…',
+      'success'
+    );
+
+    setTimeout(()=>location.replace('employer-dashboard.html'),900);
+
   }catch(error){
-    console.error(error);
-    showMessage(error.message||'Unable to finish setup.');
+    console.error('Employer onboarding failed:',error);
+
+    const raw=String(error?.message||'');
+    let friendly=raw||'Unable to finish setup.';
+
+    if(/row-level security|violates row-level|policy/i.test(raw)){
+      friendly='Your company was created, but Alygnn could not save the verification document because the verification permissions are not configured for this company yet.';
+    }else if(/bucket not found/i.test(raw)){
+      friendly='The employer verification document bucket is missing in Supabase.';
+    }
+
+    showMessage(friendly);
     nextButton.disabled=false;
     nextButton.textContent='Finish Setup';
   }
@@ -633,7 +911,7 @@ nextButton.addEventListener('click',()=>{
   else submit();
 });
 backButton.addEventListener('click',()=>{
-  if(current===0){window.location.href='employer-dashboard.html';return}
+  if(current===0){window.location.href='employers.html';return}
   saveDraft();
   showStep(current-1);
 });
@@ -693,11 +971,19 @@ window.addEventListener('beforeunload',saveDraft);
 
   const {data:profile}=await sb
     .from('profiles')
-    .select('company_name,company_website,company_phone,business_email,business_address,employer_verified,verification_status')
+    .select('company_name,company_website,company_phone,business_email,business_address,employer_verified,verification_status,hiring_blueprint')
     .eq('id',session.user.id)
     .maybeSingle();
 
-  if(profile?.employer_verified){location.replace('employer-dashboard.html');return}
+  const existingStatus=String(profile?.verification_status||'').trim().toLowerCase();
+  const onboardingComplete=
+    !!profile?.hiring_blueprint ||
+    (!!existingStatus && !['not_submitted','incomplete','onboarding'].includes(existingStatus));
+
+  if(onboardingComplete){
+    location.replace('employer-dashboard.html');
+    return;
+  }
 
   if(!restoreDraft()){
     if(profile?.company_name) document.getElementById('company-name').value=profile.company_name;
