@@ -83,35 +83,356 @@
   }
   .verified-badge.show{ display:inline-flex; }
 
-  .profile-card{ display:flex; align-items:flex-start; gap:22px; background:var(--card-bg); border:1px solid var(--border); border-radius:20px; padding:32px; margin-bottom:28px; min-width:0; }
-  .avatar{ width:76px; height:76px; border-radius:16px; background:var(--brand); display:flex; align-items:center; justify-content:center; font-family:'DM Serif Display',serif; font-size:1.7rem; color:white; flex-shrink:0; overflow:hidden; cursor:pointer; position:relative; }
-  .avatar img{ width:100%; height:100%; object-fit:cover; }
-  .profile-info{ min-width:0; flex:1; }
-  .profile-info h1{ font-family:'DM Serif Display',serif; font-size:1.6rem; letter-spacing:-0.5px; color:var(--text); margin-bottom:4px; word-wrap:break-word; overflow-wrap:break-word; white-space:normal; }
-  .profile-info p{ color:var(--text-muted); font-size:14px; font-weight:300; word-wrap:break-word; overflow-wrap:break-word; white-space:normal; }
-  .headline-empty{ color:#9BA8B3; font-style:italic; }
-  [contenteditable="true"]{ outline:none; border-radius:6px; transition:background .15s; }
-  [contenteditable="true"]:hover{ background:rgba(93,127,163,0.06); }
-  [contenteditable="true"]:focus{ background:rgba(93,127,163,0.08); }
-  [contenteditable="true"]:empty::before{ content:attr(data-placeholder); color:#9BA8B3; font-style:italic; }
-  #company-name:empty::before{ font-style:normal; font-family:'DM Serif Display',serif; }
 
-  /* Inline editable fields for website and phone */
-  .company-fields{ display:flex; flex-direction:column; gap:8px; margin-top:12px; }
-  .company-field-row{ display:flex; align-items:center; gap:8px; }
-  .field-icon{ font-size:13px; color:var(--text-muted); flex-shrink:0; width:16px; }
-  .field-input{
-    flex:1; font-size:13px; font-family:'DM Sans',sans-serif; color:var(--text);
-    border:none; background:transparent; outline:none; padding:4px 8px; border-radius:6px;
+  /* ── Premium company identity card ─────────────────────────────── */
+  .profile-card{
+    position:relative;
+    display:block;
+    background:
+      radial-gradient(circle at 92% 4%, rgba(140,182,155,.14), transparent 28%),
+      linear-gradient(180deg, #FEFEFC 0%, var(--card-bg) 100%);
+    border:1px solid rgba(93,127,163,.18);
+    border-radius:26px;
+    padding:0;
+    margin-bottom:32px;
+    min-width:0;
+    overflow:hidden;
+    box-shadow:0 18px 50px rgba(38,54,70,.06);
+  }
+
+  .profile-card::before{
+    content:'';
+    display:block;
+    height:5px;
+    background:linear-gradient(90deg,var(--brand),var(--sage));
+  }
+
+  .company-profile-top{
+    display:flex;
+    align-items:flex-start;
+    gap:22px;
+    padding:28px 30px 24px;
+  }
+
+  .company-avatar-wrap{
+    position:relative;
+    flex-shrink:0;
+  }
+
+  .avatar{
+    width:88px;
+    height:88px;
+    border-radius:22px;
+    background:
+      linear-gradient(145deg, rgba(255,255,255,.12), transparent),
+      var(--brand);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'DM Serif Display',serif;
+    font-size:2rem;
+    color:white;
+    overflow:hidden;
+    cursor:pointer;
+    position:relative;
+    box-shadow:0 12px 28px rgba(93,127,163,.22);
+  }
+
+  .avatar::after{
+    content:'Change';
+    position:absolute;
+    inset:auto 7px 7px 7px;
+    padding:4px 6px;
+    border-radius:100px;
+    background:rgba(26,37,48,.72);
+    color:white;
+    font-family:'DM Sans',sans-serif;
+    font-size:9px;
+    letter-spacing:.4px;
+    text-align:center;
+    opacity:0;
+    transform:translateY(4px);
+    transition:.2s ease;
+  }
+
+  .avatar:hover::after{ opacity:1; transform:translateY(0); }
+  .avatar img{ width:100%; height:100%; object-fit:cover; }
+
+  .profile-info{ min-width:0; flex:1; }
+
+  .company-eyebrow{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:8px;
+  }
+
+  .company-eyebrow-label{
+    font-size:10px;
+    font-weight:500;
+    letter-spacing:1.7px;
+    text-transform:uppercase;
+    color:var(--brand);
+  }
+
+  .company-support-link{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:7px 11px;
+    border:1px solid var(--border);
+    border-radius:100px;
+    color:var(--text-muted);
+    text-decoration:none;
+    font-size:11px;
+    background:rgba(255,255,255,.72);
+    transition:.2s ease;
+    white-space:nowrap;
+  }
+
+  .company-support-link:hover{
+    color:var(--brand);
+    border-color:rgba(93,127,163,.42);
+    background:white;
+  }
+
+  .company-title-row{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .profile-info h1{
+    font-family:'DM Serif Display',serif;
+    font-size:2rem;
+    line-height:1.08;
+    letter-spacing:-.7px;
+    color:var(--text);
+    margin:0;
+    word-wrap:break-word;
+    overflow-wrap:break-word;
+    white-space:normal;
+  }
+
+  .verified-badge{
+    display:none;
+    align-items:center;
+    gap:5px;
+    font-size:11px;
+    font-weight:500;
+    color:#2d8a57;
+    background:var(--mint-tint);
+    border:1px solid rgba(111,191,143,.28);
+    border-radius:100px;
+    padding:5px 9px;
+    margin-top:4px;
+    width:fit-content;
+  }
+
+  .verified-badge.show{ display:inline-flex; }
+
+  .company-description-wrap{
+    margin-top:12px;
+    padding:13px 15px;
+    border-left:3px solid rgba(93,127,163,.38);
+    background:rgba(93,127,163,.045);
+    border-radius:0 12px 12px 0;
+  }
+
+  .company-description-label{
+    font-size:9px;
+    letter-spacing:1.35px;
+    text-transform:uppercase;
+    color:#7C8996;
+    margin-bottom:5px;
+    font-weight:500;
+  }
+
+  #company-headline{
+    color:var(--text-muted);
+    font-size:13px;
+    line-height:1.6;
+    min-height:21px;
+    font-weight:300;
+  }
+
+  .headline-empty{ color:#9BA8B3; font-style:italic; }
+
+  [contenteditable="true"]{
+    outline:none;
+    border-radius:6px;
     transition:background .15s;
   }
-  .field-input:hover{ background:rgba(93,127,163,0.06); }
-  .field-input:focus{ background:rgba(93,127,163,0.08); }
-  .field-input::placeholder{ color:#9BA8B3; font-style:italic; }
-  /* Website/phone/email/address are set during onboarding and read-only
-     here — no hover/focus highlight, since they're not editable inline. */
+  [contenteditable="true"]:hover{ background:rgba(93,127,163,0.06); }
+  [contenteditable="true"]:focus{ background:rgba(93,127,163,0.08); }
+  [contenteditable="true"]:empty::before{
+    content:attr(data-placeholder);
+    color:#9BA8B3;
+    font-style:italic;
+  }
+  #company-name:empty::before{
+    font-style:normal;
+    font-family:'DM Serif Display',serif;
+  }
+
+  .company-details-zone{
+    border-top:1px solid rgba(221,227,232,.9);
+    padding:22px 30px 24px;
+    background:rgba(246,248,247,.56);
+  }
+
+  .company-details-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:14px;
+  }
+
+  .company-details-title{
+    font-size:12px;
+    font-weight:500;
+    color:var(--text);
+  }
+
+  .company-details-note{
+    font-size:11px;
+    color:#7F8B97;
+  }
+
+  .company-fields{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    margin-top:0;
+  }
+
+  .company-field-row{
+    min-width:0;
+    display:grid;
+    grid-template-columns:34px minmax(0,1fr);
+    align-items:center;
+    gap:10px;
+    padding:12px 13px;
+    background:rgba(255,255,255,.8);
+    border:1px solid rgba(221,227,232,.95);
+    border-radius:14px;
+    transition:border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+  }
+
+  .company-field-row:hover{
+    border-color:rgba(93,127,163,.28);
+    transform:translateY(-1px);
+    box-shadow:0 8px 18px rgba(38,54,70,.035);
+  }
+
+  .field-icon{
+    width:34px;
+    height:34px;
+    border-radius:10px;
+    display:grid;
+    place-items:center;
+    background:var(--brand-tint);
+    color:var(--brand);
+    font-size:14px;
+    flex-shrink:0;
+  }
+
+  .field-stack{ min-width:0; }
+
+  .field-label{
+    display:block;
+    font-size:9px;
+    line-height:1;
+    letter-spacing:1.15px;
+    text-transform:uppercase;
+    color:#8A96A2;
+    margin-bottom:5px;
+    font-weight:500;
+  }
+
+  .field-input{
+    width:100%;
+    min-width:0;
+    font-size:12.5px;
+    line-height:1.35;
+    font-family:'DM Sans',sans-serif;
+    color:var(--text);
+    border:none;
+    background:transparent;
+    outline:none;
+    padding:0;
+    border-radius:0;
+    text-overflow:ellipsis;
+  }
+
+  .field-input::placeholder{
+    color:#A7B1BB;
+    font-style:normal;
+  }
+
   .field-input[readonly]{ cursor:default; }
-  .field-input[readonly]:hover, .field-input[readonly]:focus{ background:transparent; }
+  .field-input[readonly]:hover,
+  .field-input[readonly]:focus{ background:transparent; }
+
+  .verification-footer{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:18px;
+    margin-top:14px;
+    padding:13px 14px;
+    border-radius:14px;
+    background:linear-gradient(90deg, rgba(93,127,163,.075), rgba(140,182,155,.07));
+    border:1px solid rgba(93,127,163,.12);
+  }
+
+  .verification-footer-left{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    min-width:0;
+  }
+
+  .verification-status-dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--brand);
+    box-shadow:0 0 0 5px rgba(93,127,163,.10);
+    margin:6px 2px 0 3px;
+    flex-shrink:0;
+  }
+
+  .verification-note{
+    margin:0;
+    font-size:11.5px;
+    color:var(--text-muted);
+    line-height:1.55;
+  }
+
+  .verification-help{
+    flex-shrink:0;
+    color:var(--brand);
+    text-decoration:none;
+    font-size:11px;
+    font-weight:500;
+    white-space:nowrap;
+  }
+  .verification-help:hover{ text-decoration:underline; }
+
+  @media (max-width:640px){
+    .company-profile-top{ padding:24px 20px 20px; }
+    .company-details-zone{ padding:18px 20px 20px; }
+    .company-profile-top{ gap:16px; }
+    .avatar{ width:72px; height:72px; border-radius:18px; }
+    .profile-info h1{ font-size:1.65rem; }
+    .company-eyebrow{ align-items:flex-start; flex-direction:column; }
+    .company-fields{ grid-template-columns:1fr; }
+    .verification-footer{ align-items:flex-start; flex-direction:column; }
+  }
 
   .section{ margin-bottom:40px; }
   .section-header{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:16px; }
@@ -282,38 +603,82 @@
   </div>
 
   <div class="profile-card">
-    <div class="avatar" id="avatar" onclick="document.getElementById('photo-input').click()" title="Click to add a logo">
-      <span id="avatar-initials">C</span>
-      <img id="avatar-img" style="display:none;">
-    </div>
-    <input type="file" id="photo-input" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)">
-    <div class="profile-info">
-      <h1 id="company-name" data-placeholder="Company name"></h1>
-      <p style="font-size:12px; color:var(--text-muted); margin-top:-8px; margin-bottom:12px;">Need to change your company name? <a href="contact.html" style="color:var(--brand);">Contact support</a>.</p>
-      <p id="company-headline" contenteditable="true" class="headline-empty" data-placeholder="Add a company description" onblur="saveField('companyHeadline', this)" onfocus="clearPlaceholder(this)"></p>
+    <div class="company-profile-top">
+      <div class="company-avatar-wrap">
+        <div class="avatar" id="avatar" onclick="document.getElementById('photo-input').click()" title="Click to add a logo">
+          <span id="avatar-initials">C</span>
+          <img id="avatar-img" style="display:none;">
+        </div>
+        <input type="file" id="photo-input" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)">
+      </div>
 
-      <!-- Small quiet confirmation shown once the business is approved -->
-      <div class="verified-badge" id="verified-badge">✓ Verified business</div>
+      <div class="profile-info">
+        <div class="company-eyebrow">
+          <span class="company-eyebrow-label">Company profile</span>
+          <a href="contact.html" class="company-support-link">Request an update →</a>
+        </div>
+
+        <div class="company-title-row">
+          <h1 id="company-name" data-placeholder="Company name"></h1>
+          <div class="verified-badge" id="verified-badge">✓ Verified business</div>
+        </div>
+
+        <div class="company-description-wrap">
+          <div class="company-description-label">About the company</div>
+          <p id="company-headline" contenteditable="true" class="headline-empty"
+             data-placeholder="Add a short company description"
+             onblur="saveField('companyHeadline', this)"
+             onfocus="clearPlaceholder(this)"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="company-details-zone">
+      <div class="company-details-head">
+        <div class="company-details-title">Verified business details</div>
+        <div class="company-details-note">Locked after verification</div>
+      </div>
 
       <div class="company-fields">
-        <p style="font-size:12px; color:var(--text-muted); margin:0 0 4px;">These details are set during employer verification. Need to update them? <a href="contact.html" style="color:var(--brand);">Contact support</a>.</p>
         <div class="company-field-row">
-          <span class="field-icon">🌐</span>
-          <input type="url" class="field-input" id="company-website" placeholder="Website (e.g. https://acmecorp.com)" readonly />
+          <span class="field-icon">↗</span>
+          <div class="field-stack">
+            <span class="field-label">Website</span>
+            <input type="url" class="field-input" id="company-website" placeholder="Not provided" readonly />
+          </div>
         </div>
+
         <div class="company-field-row">
-          <span class="field-icon">📞</span>
-          <input type="tel" class="field-input" id="company-phone" placeholder="Business phone number" readonly />
+          <span class="field-icon">☎</span>
+          <div class="field-stack">
+            <span class="field-label">Business phone</span>
+            <input type="tel" class="field-input" id="company-phone" placeholder="Not provided" readonly />
+          </div>
         </div>
+
         <div class="company-field-row">
-          <span class="field-icon">📧</span>
-          <input type="email" class="field-input" id="business-email" placeholder="Business email (e.g. admin@company.com)" readonly />
+          <span class="field-icon">@</span>
+          <div class="field-stack">
+            <span class="field-label">Business email</span>
+            <input type="email" class="field-input" id="business-email" placeholder="Not provided" readonly />
+          </div>
         </div>
+
         <div class="company-field-row">
-          <span class="field-icon">📍</span>
-          <input type="text" class="field-input" id="business-address" placeholder="Business address" readonly />
+          <span class="field-icon">⌖</span>
+          <div class="field-stack">
+            <span class="field-label">Business address</span>
+            <input type="text" class="field-input" id="business-address" placeholder="Not provided" readonly />
+          </div>
         </div>
-        <p class="verification-note" id="verification-note">Once your business profile is complete, our team reviews it before you can post jobs. You'll be notified once it's approved.</p>
+      </div>
+
+      <div class="verification-footer">
+        <div class="verification-footer-left">
+          <span class="verification-status-dot"></span>
+          <p class="verification-note" id="verification-note">Once your business profile is complete, our team reviews it before you can post jobs. You'll be notified once it's approved.</p>
+        </div>
+        <a href="contact.html" class="verification-help">Need to change something?</a>
       </div>
     </div>
   </div>
