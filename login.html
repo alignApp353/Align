@@ -304,7 +304,27 @@
     document.addEventListener('DOMContentLoaded', () => switchRole('employer'));
   }
 
-  const redirectFor = r => window.location.origin + (r === 'employer' ? '/employer-account.html' : '/account.html');
+  // Seekers always land on account.html (unchanged). Employers now skip
+  // the account hub entirely: brand-new/incomplete employers go straight
+  // to onboarding, and employers who've already finished onboarding go
+  // straight to the dashboard. "Onboarding complete" is read off
+  // profiles.verification_status, which is NULL until employer-onboarding.html's
+  // submit() runs for the first time (it always sets that column, to either
+  // 'approved', 'pending', or 'not_submitted') — so no new DB column needed.
+  async function redirectFor(r, userId) {
+    if (r !== 'employer') return window.location.origin + '/account.html';
+    if (userId) {
+      const { data: profile } = await sb
+        .from('profiles')
+        .select('verification_status')
+        .eq('id', userId)
+        .maybeSingle();
+      if (profile?.verification_status != null) {
+        return window.location.origin + '/employer-dashboard.html';
+      }
+    }
+    return window.location.origin + '/employer-onboarding.html';
+  }
 
   function switchRole(role) {
     currentRole = role;
@@ -377,7 +397,7 @@
     if (error) { showMsg(error.message); return; }
     await savePendingPreferences(data.user);
     const r = data.user?.user_metadata?.role || 'seeker';
-    window.location.href = redirectFor(r);
+    window.location.href = await redirectFor(r, data.user?.id);
   }
 
   async function doSignup() {
@@ -458,7 +478,12 @@
     if (data.session) {
       await savePendingPreferences(data.user, name);
       showMsg('Account created! Redirecting…', 'success');
-      setTimeout(() => { window.location.href = redirectFor(currentRole); }, 600);
+      // A brand-new account has no verification_status row yet either way,
+      // so this is always onboarding for employers — no need to query.
+      const dest = currentRole === 'employer'
+        ? window.location.origin + '/employer-onboarding.html'
+        : window.location.origin + '/account.html';
+      setTimeout(() => { window.location.href = dest; }, 600);
       return;
     }
 
