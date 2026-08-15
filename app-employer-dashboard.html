@@ -1889,29 +1889,112 @@
       `;
     }
 
-    function renderJobs(){
-      const empty = '<div class="empty"><strong>No jobs yet</strong>Post your first job to begin receiving applicants.</div>';
+    function safeJobCard(job,compact=false){
+      try{
+        const id = job?.id ?? '';
+        const title = escapeHtml(job?.title || 'Untitled position');
+        const location = escapeHtml(job?.location || job?.city || 'Location not listed');
+        const jobType = escapeHtml(job?.job_type || job?.employment_type || 'Job type not listed');
+        const statusRaw = String(job?.status || 'active').toLowerCase();
+        const status = escapeHtml(statusRaw);
+        const apps = Array.isArray(state.applications)
+          ? state.applications.filter(application =>
+              String(application?.job_id) === String(id)
+            )
+          : [];
 
+        const created = job?.created_at || job?.updated_at || '';
+        let posted = 'Recently posted';
+
+        try{
+          posted = created ? `Posted ${timeAgo(created)}` : 'Recently posted';
+        }catch(_){
+          posted = 'Recently posted';
+        }
+
+        const actionHtml = compact ? '' : `
+          <div class="job-actions">
+            <button class="mini-btn primary" data-job-action="applicants" data-job-id="${escapeHtml(id)}">View Applicants</button>
+            <button class="mini-btn" data-job-action="edit" data-job-id="${escapeHtml(id)}">Edit</button>
+            <button class="mini-btn" data-job-action="${statusRaw === 'paused' ? 'activate' : 'pause'}" data-job-id="${escapeHtml(id)}">${statusRaw === 'paused' ? 'Activate' : 'Pause'}</button>
+            <button class="mini-btn danger" data-job-action="archive" data-job-id="${escapeHtml(id)}">Archive</button>
+          </div>
+        `;
+
+        return `
+          <article class="job-card" style="display:block;visibility:visible;opacity:1">
+            <div class="job-top">
+              <div style="min-width:0">
+                <div class="job-title">${title}</div>
+                <div class="job-meta">${posted}</div>
+                <div class="job-meta" style="margin-top:7px">${location} · ${jobType}</div>
+              </div>
+              <span class="status-badge ${statusClass(statusRaw)}">${status}</span>
+            </div>
+
+            <div class="job-stats">
+              <div class="job-stat"><strong>${apps.length}</strong><span>Applications</span></div>
+              <div class="job-stat"><strong>${Number(job?.views || job?.view_count || 0)}</strong><span>Views</span></div>
+              <div class="job-stat"><strong>${Number(job?.saves || job?.save_count || 0)}</strong><span>Saves</span></div>
+            </div>
+
+            ${actionHtml}
+          </article>
+        `;
+      }catch(error){
+        console.error('Could not render job card:',error,job);
+
+        return `
+          <article class="job-card" style="display:block;visibility:visible;opacity:1">
+            <div class="job-title">${escapeHtml(job?.title || 'Posted job')}</div>
+            <div class="job-meta">This job is live. Some management details could not be displayed.</div>
+          </article>
+        `;
+      }
+    }
+
+    function renderJobs(){
       const jobs = Array.isArray(state.jobs)
         ? state.jobs.filter(Boolean)
         : [];
 
-      els.jobsList.innerHTML = jobs.length
-        ? jobs.map(job => jobCard(job)).join('')
-        : empty;
-
-      els.dashboardJobs.innerHTML = jobs.length
-        ? jobs.slice(0,2).map(job => jobCard(job,true)).join('')
-        : empty;
+      const empty = `
+        <div class="empty">
+          <strong>No jobs yet</strong>
+          Post your first job to begin receiving applicants.
+        </div>
+      `;
 
       /*
-       * Make sure the jobs container is never left visually collapsed
-       * after switching from Dashboard to My Jobs.
+       * Use a defensive renderer here. The Open Jobs metric can already
+       * see these records, so My Jobs should never disappear because one
+       * optional job field is missing or malformed.
        */
       if(els.jobsList){
         els.jobsList.style.display='block';
-        els.jobsList.style.minHeight=jobs.length ? '1px' : '72px';
+        els.jobsList.style.visibility='visible';
+        els.jobsList.style.opacity='1';
+        els.jobsList.style.minHeight=jobs.length ? '120px' : '72px';
+        els.jobsList.innerHTML = jobs.length
+          ? jobs.map(job => safeJobCard(job,false)).join('')
+          : empty;
       }
+
+      if(els.dashboardJobs){
+        els.dashboardJobs.innerHTML = jobs.length
+          ? jobs.slice(0,2).map(job => safeJobCard(job,true)).join('')
+          : empty;
+      }
+
+      console.log(
+        'RENDERING MY JOBS:',
+        jobs.length,
+        jobs.map(job => ({
+          id:job?.id,
+          title:job?.title,
+          status:job?.status
+        }))
+      );
     }
 
     function candidateCard(application){
