@@ -515,8 +515,32 @@ select.form-input{
   white-space:nowrap;
   flex-shrink:0;
 }
-.job-row-status.status-accepted{ border-color:var(--sage); color:#2d8a57; background:rgba(140,182,155,.12); }
-.job-row-status.status-rejected{ border-color:#D79A9A; color:#a05858; background:rgba(215,154,154,.12); }
+.job-row-status.status-applied{
+  border-color:var(--border);
+  color:var(--text-muted);
+  background:transparent;
+}
+.job-row-status.status-reviewed{
+  border-color:rgba(93,127,163,.55);
+  color:#456b93;
+  background:rgba(93,127,163,.10);
+}
+.job-row-status.status-interview{
+  border-color:#C8A35A;
+  color:#8A6725;
+  background:rgba(200,163,90,.12);
+}
+.job-row-status.status-hired,
+.job-row-status.status-accepted{
+  border-color:var(--sage);
+  color:#2d8a57;
+  background:rgba(140,182,155,.12);
+}
+.job-row-status.status-rejected{
+  border-color:#D79A9A;
+  color:#a05858;
+  background:rgba(215,154,154,.12);
+}
 
 .job-list-view-all{
   display:block;
@@ -987,6 +1011,36 @@ function showToast(msg, actionFn){
 // on profile-details.html, which is where they're actually used — kept
 // here too only if other code on this page still calls them.
 
+// Keep the candidate-facing application wording in one place.
+// Employer dashboard statuses currently use:
+// applied -> reviewed -> interview -> hired / rejected.
+function applicationStatusMeta(rawStatus){
+  const status = String(rawStatus || 'applied').trim().toLowerCase();
+
+  if(status === 'rejected' || status === 'declined' || status === 'not_selected'){
+    return { key:'rejected', label:'Not selected' };
+  }
+
+  if(status === 'hired' || status === 'hire'){
+    return { key:'hired', label:'Hired' };
+  }
+
+  // Keep support for the older Alygnn "accepted" value too.
+  if(status === 'accepted'){
+    return { key:'accepted', label:'Accepted' };
+  }
+
+  if(status.includes('interview')){
+    return { key:'interview', label:'Interview' };
+  }
+
+  if(status === 'reviewed' || status === 'under_review' || status === 'under review'){
+    return { key:'reviewed', label:'Under review' };
+  }
+
+  return { key:'applied', label:'Applied' };
+}
+
 // Loads this candidate's own applications (RLS already lets a candidate
 // read their own rows) and joins in the job's title/company/location so
 // the "Applied jobs" list actually shows something, instead of the
@@ -1035,10 +1089,9 @@ async function loadAppliedJobs(){
   if(rows.length === 0) return;
 
   listEl.innerHTML = rows.map(({ app, job }) => {
-    const statusClass = app.status === 'accepted' ? 'status-accepted'
-      : app.status === 'rejected' ? 'status-rejected' : '';
-    const statusLabel = app.status === 'accepted' ? 'Accepted'
-      : app.status === 'rejected' ? 'Not selected' : 'Applied';
+    const statusMeta = applicationStatusMeta(app.status);
+    const statusClass = 'status-' + statusMeta.key;
+    const statusLabel = statusMeta.label;
 
     const metaParts = [job.company, job.job_type, job.location].filter(Boolean).join(' · ');
     const detailsUrl = `job-details.html?job=${encodeURIComponent(job.id)}&app=${encodeURIComponent(app.id)}`;
@@ -1462,8 +1515,38 @@ async function initAccountPage(){
   await loadAppliedJobs();
   await loadSkippedJobs();
 
+  // Listen for employer-side application status changes when Supabase
+  // Realtime is enabled for the applications table.
+  try{
+    sb.channel('candidate-application-status-' + currentUserId)
+      .on(
+        'postgres_changes',
+        {
+          event:'UPDATE',
+          schema:'public',
+          table:'applications',
+          filter:`candidate_id=eq.${currentUserId}`
+        },
+        () => loadAppliedJobs()
+      )
+      .subscribe();
+  }catch(realtimeError){
+    console.warn('Application realtime sync unavailable:', realtimeError);
+  }
+
   showPage();
 }
+
+// Safe fallback: whenever the candidate comes back to this tab/window,
+// refresh the list from Supabase so reviewed/interview/hired/rejected
+// changes are reflected immediately.
+window.addEventListener('focus', () => {
+  if(currentUserId) loadAppliedJobs();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden && currentUserId) loadAppliedJobs();
+});
 
 initAccountPage();
 </script>
