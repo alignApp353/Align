@@ -241,7 +241,7 @@
       <div class="field">
         <label>Password</label>
         <div class="password-wrap">
-          <input type="password" id="signup-password" placeholder="At least 8 characters" oninput="checkStrength(this.value)" onkeydown="if(event.key==='Enter') doSignup()" />
+          <input type="password" id="signup-password" placeholder="At least 8 characters" oninput="checkStrength(this.value); checkPasswordMatch()" onkeydown="if(event.key==='Enter') doSignup()" />
           <button type="button" class="eye-btn" onclick="toggleEye('signup-password',this)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
@@ -259,6 +259,17 @@
             <div class="rule" id="rule-special"><div class="rule-dot"></div>Symbol</div>
           </div>
         </div>
+      </div>
+
+      <div class="field">
+        <label>Confirm password</label>
+        <div class="password-wrap">
+          <input type="password" id="signup-password-confirm" placeholder="Re-enter your password" oninput="checkPasswordMatch()" onkeydown="if(event.key==='Enter') doSignup()" />
+          <button type="button" class="eye-btn" onclick="toggleEye('signup-password-confirm',this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div id="password-match-message" style="display:none;margin-top:7px;font-size:11px;font-weight:500;"></div>
       </div>
       <label class="terms-check">
         <input type="checkbox" id="signup-terms" />
@@ -373,10 +384,12 @@
     const name = document.getElementById('signup-name').value.trim();
     const email = document.getElementById('signup-email').value.trim();
     const password = document.getElementById('signup-password').value;
+    const confirmPassword = document.getElementById('signup-password-confirm').value;
     const company = document.getElementById('signup-company').value.trim();
-    if (!name || !email || !password) { showMsg('Please fill in all fields.'); return; }
+    if (!name || !email || !password || !confirmPassword) { showMsg('Please fill in all fields.'); return; }
     if (currentRole === 'employer' && !company) { showMsg('Please enter your company name.'); return; }
     if (password.length < 8) { showMsg('Password must be at least 8 characters.'); return; }
+    if (password !== confirmPassword) { showMsg('Passwords do not match.'); return; }
     if (!document.getElementById('signup-terms').checked) { showMsg('Please agree to the Terms of Service and Privacy Policy to continue.'); return; }
     hideMsg();
     const btn = document.getElementById('signup-btn');
@@ -499,6 +512,27 @@
     btn.querySelector('svg').innerHTML = hide
       ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
       : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+
+  function checkPasswordMatch() {
+    const password = document.getElementById('signup-password');
+    const confirm = document.getElementById('signup-password-confirm');
+    const message = document.getElementById('password-match-message');
+
+    if (!password || !confirm || !message) return;
+
+    if (!confirm.value) {
+      message.style.display = 'none';
+      message.textContent = '';
+      confirm.style.borderColor = '';
+      return;
+    }
+
+    const matches = password.value === confirm.value;
+    message.style.display = 'block';
+    message.textContent = matches ? '✓ Passwords match' : 'Passwords do not match';
+    message.style.color = matches ? '#2d8a57' : '#8a4040';
+    confirm.style.borderColor = matches ? 'var(--mint)' : '#D79A9A';
   }
 
   function checkStrength(val) {
