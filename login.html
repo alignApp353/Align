@@ -185,7 +185,7 @@
       <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Create account</button>
     </div>
 
-    <button class="google-btn" id="google-btn" onclick="handleGoogle()">
+    <button class="google-btn" onclick="handleGoogle()">
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
         <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
         <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
@@ -195,14 +195,14 @@
       Continue with Google
     </button>
 
-    <button class="google-btn" id="apple-btn" onclick="handleApple()" >
+    <button class="google-btn" onclick="handleApple()" >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="black">
         <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.39.07 2.36.74 3.18.8 1.21-.24 2.37-.93 3.67-.84 1.58.13 2.77.79 3.53 1.98-3.25 1.94-2.48 6.18.57 7.37-.67 1.63-1.53 3.24-2.95 3.57zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
       </svg>
       Continue with Apple
     </button>
 
-    <div class="divider" id="divider-row"><span id="divider-text">or sign in with email</span></div>
+    <div class="divider"><span id="divider-text">or sign in with email</span></div>
     <div class="msg-box" id="msg-box"></div>
 
     <!-- LOGIN FORM -->
@@ -271,8 +271,8 @@
       No account? <a href="#" onclick="switchTab('signup'); return false;">Sign up free</a>
     </p>
 
-    <p class="admin-link-row" id="admin-link-row">
-      <a href="login.html?admin=1">Admin login</a>
+    <p class="admin-link-row">
+      <a href="admin-login.html">Admin login</a>
     </p>
 
   </div>
@@ -285,27 +285,6 @@
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let currentRole = 'seeker';
-
-  // Reached via the "Admin login" link. Same login form, same auth flow —
-  // the only difference is where a successful sign-in sends you afterward.
-  // The real gate is still employer-verification-admin.html checking
-  // profiles.is_admin (and the RLS policies behind it); this just routes
-  // people to the right place instead of the seeker/employer dashboards.
-  const isAdminLogin = new URLSearchParams(window.location.search).get('admin') === '1';
-  if (isAdminLogin) {
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('role-seeker').closest('.role-switcher').style.display = 'none';
-      document.getElementById('company-field').style.display = 'none';
-      document.getElementById('switch-prompt').style.display = 'none';
-      document.getElementById('tab-signup').style.display = 'none';
-      document.getElementById('form-title').textContent = 'Admin login';
-      document.getElementById('form-subtitle').textContent = 'Restricted to Alygnn admin accounts.';
-      document.getElementById('admin-link-row').style.display = 'none';
-      document.getElementById('google-btn').style.display = 'none';
-      document.getElementById('apple-btn').style.display = 'none';
-      document.getElementById('divider-row').style.display = 'none';
-    });
-  }
 
   // Pre-select role from URL param
   const urlRole = new URLSearchParams(window.location.search).get('role');
@@ -386,10 +365,6 @@
     btn.disabled = false; btn.textContent = orig;
     if (error) { showMsg(error.message); return; }
     await savePendingPreferences(data.user);
-    if (isAdminLogin) {
-      window.location.href = window.location.origin + '/employer-verification-admin.html';
-      return;
-    }
     const r = data.user?.user_metadata?.role || 'seeker';
     window.location.href = redirectFor(r);
   }
