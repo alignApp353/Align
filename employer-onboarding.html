@@ -177,7 +177,7 @@
     <div class="field"><label class="required" for="company-size">Company size</label><select id="company-size" name="company_size" required><option value="">Select size</option><option>1–10</option><option>11–50</option><option>51–200</option><option>201–500</option><option>501–1,000</option><option>1,001+</option></select></div>
     <div class="field suggest-wrap"><label class="required" for="headquarters">Headquarters</label><input id="headquarters" name="headquarters" required autocomplete="off" placeholder="Start typing a city"><div id="city-suggestions" class="suggestions"></div></div>
   </div>
-  <div class="field"><label class="required" for="ein">Federal EIN</label><input id="ein" name="ein" required inputmode="numeric" maxlength="10" autocomplete="off" placeholder="12-3456789"><p class="helper">Checked against real IRS-issued prefix ranges to catch fake or made-up numbers. Alygnn stores only the last four digits — never the full number. This isn't a live IRS lookup, so it won't catch a fake number that happens to use a real prefix.</p></div>
+  <div class="field"><label class="required" for="ein">Federal EIN</label><input id="ein" name="ein" required inputmode="numeric" maxlength="10" autocomplete="off" placeholder="12-3456789"><p class="helper">Checked for the required 9-digit EIN format and a current IRS-issued prefix. Your full EIN is used only during secure submission; Alygnn stores the last four digits and a one-way hash, not the full EIN. Final verification is completed by reviewing your IRS document.</p></div>
   <p class="helper">We also use your business email and website domain to auto-verify your account.</p>
 </div>
 
@@ -374,7 +374,18 @@ function isValidWebsiteUrl(rawValue){
   }catch{return null}
 }
 
-const VALID_EIN_PREFIXES=new Set(['01','02','03','04','05','06','10','11','12','13','14','15','16','20','21','22','23','24','25','26','27','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','50','51','52','53','54','55','56','57','58','59','60','61','62','63','64','65','66','67','68','71','72','73','74','75','76','77','80','81','82','83','84','85','86','87','88','90','91','92','93','94','95','98','99']);
+const VALID_EIN_PREFIXES=new Set([
+  '01','02','03','04','05','06',
+  '10','11','12','13','14','15','16',
+  '21','22','23','24','25',
+  '30','32','33','34','35','36','37','38','39',
+  '40','41','42','43','44','46','48',
+  '50','51','52','53','54','55','56','57','58','59',
+  '60','61','62','63','64','65','66','67','68',
+  '71','72','73','74','75','76','77',
+  '80','85','86','87','88',
+  '90','91','92','93','94','95','98','99'
+]);
 function hasLongSequentialRun(digits,minRun=5){
   let ascRun=1,descRun=1;
   for(let i=1;i<digits.length;i++){
@@ -397,9 +408,12 @@ function hasRepeatingPattern(digits){
 function isPlausibleEin(digits){
   if(!/^\d{9}$/.test(digits))return false;
   if(!VALID_EIN_PREFIXES.has(digits.slice(0,2)))return false;
-  if(digits==='123456789')return false;
-  if(hasLongSequentialRun(digits))return false;
-  if(hasRepeatingPattern(digits))return false;
+
+  // Reject only obvious placeholders. A legitimate IRS-issued EIN can have
+  // digit patterns that look repetitive, so pattern matching alone should
+  // never invalidate an otherwise structurally valid EIN.
+  if(/^0{9}$/.test(digits)||/^9{9}$/.test(digits)||digits==='123456789')return false;
+
   return true;
 }
 
@@ -517,6 +531,7 @@ function payload(){
     headquarters:document.getElementById('headquarters').value.trim(),
     has_dba:document.getElementById('has-dba').checked,
     dba_name:document.getElementById('has-dba').checked?document.getElementById('dba-name').value.trim():'',
+    ein:ein,
     ein_last4:ein.slice(-4),
     company_voice:[...selectedVoices],
     company_priorities:getRanking('company-priorities'),
