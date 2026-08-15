@@ -720,6 +720,36 @@ function setupSuggestions(){
 }
 
 
+async function resolveCompanyLive(){
+  try{
+    if(!session?.access_token)return null;
+
+    const response=await fetch(
+      'https://alygnn.com/api/company/resolve-company',
+      {
+        method:'GET',
+        headers:{
+          Authorization:'Bearer '+session.access_token
+        },
+        cache:'no-store'
+      }
+    );
+
+    const result=await response.json().catch(()=>({}));
+
+    if(!response.ok||!result?.company){
+      console.warn('Live company lookup failed:',response.status,result);
+      return null;
+    }
+
+    console.log('LIVE COMPANY STATUS:',result.company);
+    return result.company;
+  }catch(error){
+    console.warn('Could not resolve live company:',error);
+    return null;
+  }
+}
+
 const el = id => document.getElementById(id);
 function escapeHtml(value){
   return String(value||'').replace(/[&<>"']/g,char=>({
@@ -1205,6 +1235,10 @@ el('description').addEventListener('input', () => {
 
     const userId=session.user.id;
 
+    // Use the server-resolved company as the source of truth for
+    // approval / pending / rejected / deactivated status.
+    const liveCompany=await resolveCompanyLive();
+
     const [
       profileResult,
       verificationResult,
@@ -1229,6 +1263,7 @@ el('description').addEventListener('input', () => {
     const membership=membershipResult.data||null;
 
     currentCompanyId=
+      liveCompany?.id ||
       membership?.company_id ||
       verification.company_id ||
       sessionStorage.getItem('alygnn_company_id') ||
@@ -1237,6 +1272,37 @@ el('description').addEventListener('input', () => {
     currentCompany=membership
       ? (Array.isArray(membership.companies)?membership.companies[0]:membership.companies)
       : null;
+
+    if(liveCompany){
+      currentCompany={
+        ...(currentCompany||{}),
+        id:liveCompany.id||currentCompany?.id||currentCompanyId,
+        company_name:
+          liveCompany.name ||
+          currentCompany?.company_name ||
+          currentCompany?.legal_name ||
+          currentCompany?.name ||
+          null,
+        verification_status:
+          liveCompany.verificationStatus ||
+          currentCompany?.verification_status ||
+          null,
+        account_status:
+          liveCompany.accountStatus ||
+          currentCompany?.account_status ||
+          'active',
+        website:liveCompany.website||currentCompany?.website||'',
+        business_phone:liveCompany.businessPhone||currentCompany?.business_phone||'',
+        industry:liveCompany.industry||currentCompany?.industry||'',
+        company_size:liveCompany.companySize||currentCompany?.company_size||'',
+        headquarters:liveCompany.headquarters||currentCompany?.headquarters||''
+      };
+    }
+
+    if(currentCompanyId){
+      localStorage.setItem('alygnn_company_id',currentCompanyId);
+      sessionStorage.setItem('alygnn_company_id',currentCompanyId);
+    }
 
     let verificationDocument=null;
 
@@ -1277,15 +1343,32 @@ el('description').addEventListener('input', () => {
     );
 
     const storedVerificationStatus=String(
-      verification.verification_status ||
+      liveCompany?.verificationStatus ||
       currentCompany?.verification_status ||
+      verification.verification_status ||
       profile.verification_status ||
       'not_submitted'
     ).toLowerCase();
 
     employerVerified=
-      profile.employer_verified===true ||
-      storedVerificationStatus==='approved';
+      storedVerificationStatus==='approved' ||
+      profile.employer_verified===true;
+
+    localStorage.setItem(
+      'alygnn_employer_verification_status',
+      storedVerificationStatus
+    );
+
+    console.log(
+      'POST JOB VERIFICATION STATUS:',
+      {
+        liveStatus:liveCompany?.verificationStatus||null,
+        companyStatus:currentCompany?.verification_status||null,
+        verificationRowStatus:verification.verification_status||null,
+        profileStatus:profile.verification_status||null,
+        effectiveStatus:storedVerificationStatus
+      }
+    );
 
     if(employerVerified){
       verificationStatus='approved';
