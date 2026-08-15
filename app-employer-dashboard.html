@@ -4083,31 +4083,81 @@
 
     async function updateApplicationStatus(status){
       const application = state.activeCandidate;
-      if(!application) return;
-
-      const payload = {
-        status,
-        updated_at:new Date().toISOString()
-      };
-
-      if(status === 'hired') payload.hired_at = new Date().toISOString();
-
-      const { error } = await sb
-        .from('applications')
-        .update(payload)
-        .eq('id',application.id);
-
-      if(error){
-        console.error(error);
-        toast('Could not update candidate.');
-        return;
+      if(!application){
+        toast('No active candidate selected.');
+        return false;
       }
 
-      application.status = status;
-      Object.assign(application,payload);
-      els.candidateSheet.hidden = true;
-      renderAll();
-      toast('Candidate updated.');
+      const allowed = new Set([
+        'reviewed',
+        'interview',
+        'hired',
+        'rejected'
+      ]);
+
+      const nextStatus = String(status || '').toLowerCase();
+
+      if(!allowed.has(nextStatus)){
+        toast('That candidate action is not supported.');
+        return false;
+      }
+
+      /*
+       * Only update the status column here.
+       * Older Alygnn applications rows do not consistently have
+       * updated_at / hired_at columns, which caused valid actions to fail.
+       */
+      const { data, error } = await sb
+        .from('applications')
+        .update({ status:nextStatus })
+        .eq('id',application.id)
+        .select('id,status')
+        .maybeSingle();
+
+      if(error){
+        console.error('Failed to update candidate:',error);
+
+        const message = String(error.message || '').toLowerCase();
+
+        if(
+          message.includes('row-level security') ||
+          message.includes('policy') ||
+          message.includes('permission')
+        ){
+          toast('Employer permission is missing for candidate updates.');
+        }else if(message.includes('check constraint')){
+          toast('This candidate status is not allowed by the database yet.');
+        }else{
+          toast('Could not update candidate: ' + (error.message || 'Unknown error'));
+        }
+
+        return false;
+      }
+
+      if(!data){
+        /*
+         * Supabase UPDATE can return no visible row when RLS blocks it.
+         * Treat that as a failed update instead of pretending it worked.
+         */
+        toast('Employer permission is missing for candidate updates.');
+        return false;
+      }
+
+      application.status = data.status || nextStatus;
+
+      renderApplicants();
+      renderMetrics();
+      renderActivity();
+
+      const labels = {
+        reviewed:'Marked reviewed',
+        interview:'Moved to interview',
+        hired:'Candidate hired',
+        rejected:'Candidate rejected'
+      };
+
+      toast(labels[nextStatus] || 'Candidate updated.');
+      return true;
     }
 
     async function handleJobAction(action,id){
@@ -4896,16 +4946,20 @@
     document.querySelectorAll('[data-candidate-page-action]').forEach(button => {
       button.onclick = async () => {
         const action = button.dataset.candidatePageAction;
+        const original = button.textContent;
 
-        if(action === 'interview'){
-          openProModal('Schedule interviews');
-          return;
-        }
+        button.disabled = true;
+        button.textContent = 'Updating…';
 
-        await updateApplicationStatus(action);
+        try{
+          const updated = await updateApplicationStatus(action);
 
-        if(state.activeCandidate){
-          openCandidate(state.activeCandidate.id);
+          if(updated && state.activeCandidate){
+            openCandidate(state.activeCandidate.id);
+          }
+        }finally{
+          button.disabled = false;
+          button.textContent = original;
         }
       };
     });
