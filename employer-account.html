@@ -313,7 +313,7 @@
           <span class="field-icon">📍</span>
           <input type="text" class="field-input" id="business-address" placeholder="Business address" readonly />
         </div>
-        <p class="verification-note" id="verification-note">Alygnn can auto-approve companies when the business email domain matches the website domain. Otherwise, the account stays pending for review.</p>
+        <p class="verification-note" id="verification-note">Once your business profile is complete, our team reviews it before you can post jobs. You'll be notified once it's approved.</p>
       </div>
     </div>
   </div>
@@ -513,15 +513,19 @@
       isValidBusinessEmail(profile.business_email) &&
       isValidAddress(profile.business_address);
 
-    const domainsMatch = domainsActuallyMatch(profile.company_website, profile.business_email);
+    // Alygnn no longer auto-approves based on domain matching — every
+    // completed profile goes to manual review on the admin verification
+    // page. If an admin has already approved or denied this account, later
+    // edits here (e.g. company name) must NOT re-run and overwrite that
+    // decision — only a brand-new, not-yet-submitted account moves to
+    // 'pending' once its fields become complete.
+    const currentStatus = currentProfile?.verification_status || 'not_submitted';
+    if (currentStatus !== 'not_submitted') return;
 
-    let employer_verified = false;
-    let verification_status = 'not_submitted';
+    if (!allFieldsValid) return;
 
-    if (allFieldsValid) {
-      verification_status = domainsMatch ? 'approved' : 'pending';
-      employer_verified = domainsMatch;
-    }
+    const employer_verified = false;
+    const verification_status = 'pending';
 
     const { error } = await sb
       .from('profiles')
@@ -615,14 +619,7 @@
       { label: 'Website', done: isValidWebsite(profile.company_website) },
       { label: 'Phone number', done: isValidPhone(profile.company_phone) },
       { label: 'Business email', done: isValidBusinessEmail(profile.business_email) },
-      { label: 'Business address', done: isValidAddress(profile.business_address) },
-      {
-        label: 'Email matches website',
-        // Was previously true whenever BOTH fields were empty, since ''
-        // === '' evaluates to true. domainsActuallyMatch() requires both
-        // domains to be real and non-empty before counting as a match.
-        done: domainsActuallyMatch(profile.company_website, profile.business_email)
-      }
+      { label: 'Business address', done: isValidAddress(profile.business_address) }
     ];
 
     const approved = currentProfile?.employer_verified === true;
@@ -648,7 +645,7 @@
     icon.textContent = fields.every(f => f.done) ? '⏳' : '⚠️';
     title.className = 'verify-title incomplete';
     title.textContent = fields.every(f => f.done)
-      ? 'Business verification pending — Alygnn review may be needed'
+      ? 'Business verification pending — Alygnn review in progress'
       : 'Complete your business profile to unlock posting';
     if (dashboardBtn) dashboardBtn.classList.add('locked');
 
@@ -984,7 +981,7 @@
 
   function goToDashboard() {
     if (!currentProfile?.employer_verified) {
-      alert('Your business must be approved before you can post jobs. Use a business email that matches your website domain for automatic approval.');
+      alert('Your business must be approved before you can post jobs. We review new accounts and will notify you once approved.');
       return;
     }
     window.location.href = 'employer-dashboard.html';
