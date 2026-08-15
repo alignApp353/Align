@@ -1429,8 +1429,25 @@ el('description').addEventListener('input', () => {
     }
 
     setupSuggestions();
+
+    // If the employer came back from Candidate Preview to edit,
+    // restore the saved draft and reopen the final review step
+    // instead of restarting at Step 1.
+    const returnStep=Number(
+      sessionStorage.getItem('alygnnJobReturnStep') || '1'
+    );
+
     restoreDraft();
-    showStep(1);
+
+    showStep(
+      Number.isFinite(returnStep) &&
+      returnStep>=1 &&
+      returnStep<=5
+        ? returnStep
+        : 1
+    );
+
+    sessionStorage.removeItem('alygnnJobReturnStep');
   }catch(error){
     console.error(error);
     showMessage('Could not prepare the job form. Please return to the dashboard and try again.');
