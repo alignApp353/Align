@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
   <style>
     *{
@@ -761,6 +762,157 @@
     @keyframes spin{to{transform:rotate(360deg)}}
 
 
+
+    /* =====================================================
+       RESUME PREVIEW
+    ===================================================== */
+
+    .resume-modal{
+      position:fixed;
+      inset:0;
+      z-index:140;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background:rgba(18,30,43,.58);
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
+    }
+
+    .resume-modal[hidden]{
+      display:none!important;
+    }
+
+    .resume-modal-panel{
+      width:min(100%,560px);
+      max-height:88vh;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      border:1px solid var(--border);
+      border-radius:25px;
+      background:#fff;
+      box-shadow:0 28px 80px rgba(23,35,51,.26);
+    }
+
+    .resume-modal-head{
+      flex:0 0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 16px;
+      border-bottom:1px solid var(--border-soft);
+    }
+
+    .resume-modal-head strong{
+      display:block;
+      font-size:14px;
+      font-weight:900;
+    }
+
+    .resume-modal-head span{
+      display:block;
+      margin-top:2px;
+      color:var(--muted);
+      font-size:9px;
+      font-weight:700;
+    }
+
+    .resume-modal-close{
+      width:36px;
+      height:36px;
+      border:1px solid var(--border);
+      border-radius:50%;
+      background:#fff;
+      color:var(--text);
+      font-size:19px;
+      line-height:1;
+    }
+
+    .resume-paper-shell{
+      min-height:0;
+      flex:1;
+      overflow:auto;
+      padding:18px;
+      background:#E9EEF1;
+    }
+
+    .resume-paper-preview{
+      width:100%;
+      aspect-ratio:8.5/11;
+      min-height:560px;
+      overflow:hidden;
+      border:1px solid #D5DCE2;
+      border-radius:5px;
+      background:#fff;
+      box-shadow:0 12px 34px rgba(23,35,51,.13);
+    }
+
+    .resume-paper-preview iframe{
+      width:100%;
+      height:100%;
+      min-height:560px;
+      border:0;
+      background:#fff;
+    }
+
+    .resume-modal-actions{
+      flex:0 0 auto;
+      display:grid;
+      grid-template-columns:1fr 1.35fr;
+      gap:9px;
+      padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+      border-top:1px solid var(--border-soft);
+      background:#fff;
+    }
+
+    .resume-modal-actions button{
+      min-height:46px;
+      border-radius:14px;
+      font-size:11px;
+      font-weight:900;
+    }
+
+    .resume-modal-secondary{
+      border:1px solid var(--border);
+      background:#fff;
+      color:var(--text);
+    }
+
+    .resume-modal-primary{
+      border:0;
+      background:var(--brand-dark);
+      color:#fff;
+    }
+
+    .profile-list{
+      display:grid;
+      gap:10px;
+    }
+
+    .profile-list-item{
+      padding:13px 14px;
+      border:1px solid var(--border-soft);
+      border-radius:15px;
+      background:#FAFBFC;
+    }
+
+    .profile-list-item strong{
+      display:block;
+      font-size:12px;
+      line-height:1.4;
+    }
+
+    .profile-list-item span{
+      display:block;
+      margin-top:4px;
+      color:var(--muted);
+      font-size:10px;
+      line-height:1.45;
+    }
+
     /* =====================================================
        APPLICANT PROFILE VIEW
     ===================================================== */
@@ -1440,12 +1592,12 @@
             </div>
 
             <div class="candidate-detail-box">
-              <span>Experience</span>
+              <span>Phone</span>
               <strong id="candidate-page-experience">Not provided</strong>
             </div>
 
             <div class="candidate-detail-box">
-              <span>Availability</span>
+              <span>Languages</span>
               <strong id="candidate-page-availability">Not provided</strong>
             </div>
 
@@ -1471,6 +1623,16 @@
         <section class="candidate-profile-section">
           <h3>Skills</h3>
           <div class="candidate-profile-skills" id="candidate-page-skills"></div>
+        </section>
+
+        <section class="candidate-profile-section">
+          <h3>Experience</h3>
+          <div class="profile-list" id="candidate-page-experience-list"></div>
+        </section>
+
+        <section class="candidate-profile-section">
+          <h3>Education</h3>
+          <div class="profile-list" id="candidate-page-education-list"></div>
         </section>
 
         <section class="candidate-profile-section">
@@ -1726,7 +1888,40 @@
     <button class="nav-item" data-view="settings" type="button"><span class="nav-icon">⚙</span><span>Settings</span></button>
   </nav>
 
-  <div class="sheet" id="candidate-sheet" hidden>
+  
+  <div class="resume-modal" id="resume-modal" hidden>
+    <div class="resume-modal-panel">
+      <div class="resume-modal-head">
+        <div>
+          <strong id="resume-modal-name">Candidate Resume</strong>
+          <span>Resume preview</span>
+        </div>
+
+        <button class="resume-modal-close" id="resume-modal-close" type="button">×</button>
+      </div>
+
+      <div class="resume-paper-shell">
+        <div class="resume-paper-preview">
+          <iframe
+            id="resume-modal-frame"
+            title="Candidate resume preview"
+          ></iframe>
+        </div>
+      </div>
+
+      <div class="resume-modal-actions">
+        <button class="resume-modal-secondary" id="resume-modal-back" type="button">
+          Close
+        </button>
+
+        <button class="resume-modal-primary" id="resume-modal-download" type="button">
+          Download PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+<div class="sheet" id="candidate-sheet" hidden>
     <div class="sheet-panel wide">
       <div class="sheet-grip"></div>
       <button class="icon-btn" id="close-candidate" style="float:right" type="button">×</button>
@@ -2041,32 +2236,883 @@
       application.candidate_id || application.user_id || application.profile_id || ''
     )) || {};
 
+    function parseResumeData(value){
+      if(!value) return {};
+
+      if(typeof value === 'object' && !Array.isArray(value)){
+        return value;
+      }
+
+      if(typeof value === 'string'){
+        try{
+          const parsed = JSON.parse(value);
+          return parsed && typeof parsed === 'object'
+            ? parsed
+            : {};
+        }catch(_){
+          return {};
+        }
+      }
+
+      return {};
+    }
+
+    function resumePersonal(resume){
+      const personal =
+        resume?.personal &&
+        typeof resume.personal === 'object'
+          ? resume.personal
+          : {};
+
+      const full =
+        [
+          personal.first_name,
+          personal.last_name
+        ]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+
+      return {
+        name:firstValue(
+          resume?.name,
+          full
+        ),
+        email:firstValue(
+          resume?.email,
+          personal.email
+        ),
+        phone:firstValue(
+          resume?.phone,
+          personal.phone
+        ),
+        location:firstValue(
+          resume?.location,
+          [
+            personal.city,
+            personal.state
+          ]
+          .filter(Boolean)
+          .join(', ')
+        ),
+        title:firstValue(
+          resume?.title,
+          resume?.headline
+        )
+      };
+    }
+
+    function formatEducationValue(value){
+      const list = Array.isArray(value)
+        ? value
+        : [];
+
+      if(!list.length){
+        return '';
+      }
+
+      const first = list[0] || {};
+
+      return [
+        first.degree,
+        first.school
+      ]
+      .filter(Boolean)
+      .join(' — ');
+    }
+
+    function formatExperienceCount(value){
+      const list = Array.isArray(value)
+        ? value.filter(Boolean)
+        : [];
+
+      if(!list.length){
+        return '';
+      }
+
+      return list.length === 1
+        ? '1 role listed'
+        : list.length + ' roles listed';
+    }
+
+    function formatLanguages(value){
+      const list = normalizeList(value);
+      return list.join(', ');
+    }
+
+    function resumeProfileComplete(data){
+      const signals = [
+        data.name,
+        data.email,
+        data.location,
+        data.summary,
+        data.skills?.length,
+        data.education,
+        data.experience
+      ].filter(Boolean);
+
+      return signals.length >= 5;
+    }
+
     const candidateData = application => {
       const profile = appProfile(application);
-      return {
+
+      const resumeData =
+        parseResumeData(
+          firstValue(
+            profile.resume_data,
+            application.resume_data
+          )
+        );
+
+      const personal =
+        resumePersonal(
+          resumeData
+        );
+
+      const resumeExperience =
+        Array.isArray(resumeData.experience)
+          ? resumeData.experience
+          : [];
+
+      const resumeEducation =
+        Array.isArray(resumeData.education)
+          ? resumeData.education
+          : [];
+
+      const resumeSkills =
+        normalizeList(
+          resumeData.skills
+        );
+
+      const resumeLanguages =
+        normalizeList(
+          resumeData.languages
+        );
+
+      const data = {
         profile,
-        name:fullName(profile,application),
-        email:firstValue(profile.email,profile.contact_email,application.candidate_email,application.applicant_email,application.email),
-        location:firstValue(profile.location,profile.city,profile.city_state,application.location,application.candidate_location),
-        experience:firstValue(profile.years_experience,profile.experience_years,profile.experience,application.years_experience),
-        availability:firstValue(profile.availability,profile.start_date,application.availability),
-        education:firstValue(profile.education,profile.highest_education,application.education),
-        summary:firstValue(profile.professional_summary,profile.summary,profile.bio,profile.about,application.summary),
-        skills:normalizeList(firstValue(profile.skills,profile.skill_list,profile.top_skills,application.skills)),
-        resumeUrl:firstValue(profile.resume_url,profile.resume_file_url,application.resume_url),
+        resumeData,
+
+        name:firstValue(
+          profile.full_name,
+          profile.name,
+          [profile.first_name,profile.last_name].filter(Boolean).join(' '),
+          personal.name,
+          application.candidate_name,
+          application.applicant_name,
+          application.full_name,
+          [application.first_name,application.last_name].filter(Boolean).join(' '),
+          application.candidate_email?.split('@')[0],
+          application.email?.split('@')[0]
+        ) || 'Applicant',
+
+        email:firstValue(
+          profile.email,
+          profile.contact_email,
+          personal.email,
+          application.candidate_email,
+          application.applicant_email,
+          application.email
+        ),
+
+        phone:firstValue(
+          profile.phone,
+          profile.phone_number,
+          personal.phone,
+          application.phone,
+          application.phone_number
+        ),
+
+        headline:firstValue(
+          profile.headline,
+          profile.title,
+          personal.title
+        ),
+
+        location:firstValue(
+          profile.location,
+          profile.city,
+          profile.city_state,
+          personal.location,
+          application.location,
+          application.candidate_location
+        ),
+
+        experience:firstValue(
+          profile.years_experience,
+          profile.experience_years,
+          typeof profile.experience === 'string' ? profile.experience : '',
+          formatExperienceCount(resumeExperience),
+          application.years_experience
+        ),
+
+        experienceList:resumeExperience,
+
+        availability:firstValue(
+          profile.availability,
+          profile.start_date,
+          application.availability
+        ),
+
+        education:firstValue(
+          typeof profile.education === 'string' ? profile.education : '',
+          profile.highest_education,
+          formatEducationValue(resumeEducation),
+          application.education
+        ),
+
+        educationList:resumeEducation,
+
+        languages:firstValue(
+          formatLanguages(resumeLanguages),
+          profile.languages
+        ),
+
+        summary:firstValue(
+          profile.professional_summary,
+          profile.summary,
+          profile.bio,
+          profile.about,
+          resumeData.summary,
+          resumeData.professional_summary,
+          application.summary
+        ),
+
+        skills:[
+          ...new Set([
+            ...normalizeList(
+              firstValue(
+                profile.skills,
+                profile.skill_list,
+                profile.top_skills,
+                application.skills
+              )
+            ),
+            ...resumeSkills
+          ])
+        ],
+
+        resumeUrl:firstValue(
+          profile.resume_url,
+          profile.resume_file_url,
+          application.resume_url
+        ),
+
         resumePath:firstValue(
           profile.resume_file_path,
           profile.resume_path,
           application.resume_file_path,
           application.resume_path
         ),
-        resumeData:firstValue(profile.resume_data,application.resume_data),
-        resumeText:firstValue(profile.resume_text,profile.resume_content,application.resume_text)
+
+        resumeText:firstValue(
+          profile.resume_text,
+          profile.resume_content,
+          application.resume_text
+        )
       };
+
+      data.profileComplete =
+        resumeProfileComplete(data);
+
+      return data;
     };
 
     function isWebUrl(value){
       return /^https?:\/\//i.test(String(value || '').trim());
+    }
+
+    function escapeResume(value){
+      return escapeHtml(
+        value ?? ''
+      );
+    }
+
+    function resumeDateLine(item){
+      return firstValue(
+        item?.dates,
+        [
+          item?.startYear || item?.start,
+          item?.endYear || item?.end
+        ]
+        .filter(Boolean)
+        .join(' – ')
+      ) || '';
+    }
+
+    function buildResumePreviewHtml(data){
+      const resume = data?.resumeData || {};
+      const experience = Array.isArray(data?.experienceList)
+        ? data.experienceList
+        : [];
+      const education = Array.isArray(data?.educationList)
+        ? data.educationList
+        : [];
+      const skills = Array.isArray(data?.skills)
+        ? data.skills
+        : [];
+      const languages = normalizeList(
+        resume.languages
+      );
+
+      const experienceHtml =
+        experience.length
+          ? experience.map(item => `
+              <div class="entry">
+                <div class="entry-top">
+                  <strong>${escapeResume(item.title || 'Role')}</strong>
+                  <span>${escapeResume(resumeDateLine(item))}</span>
+                </div>
+                <div class="entry-sub">${escapeResume(item.company || '')}</div>
+                ${
+                  item.description
+                    ? `<p>${escapeResume(item.description)}</p>`
+                    : ''
+                }
+              </div>
+            `).join('')
+          : '<p class="muted">No experience listed.</p>';
+
+      const educationHtml =
+        education.length
+          ? education.map(item => `
+              <div class="entry">
+                <div class="entry-top">
+                  <strong>${escapeResume(item.degree || 'Education')}</strong>
+                  <span>${escapeResume(resumeDateLine(item))}</span>
+                </div>
+                <div class="entry-sub">${escapeResume(item.school || '')}</div>
+              </div>
+            `).join('')
+          : '<p class="muted">No education listed.</p>';
+
+      return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    padding:34px 38px;
+    background:#fff;
+    color:#182536;
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:12px;
+    line-height:1.55;
+  }
+  h1{
+    margin:0;
+    font-family:Georgia,'Times New Roman',serif;
+    font-size:28px;
+    line-height:1.05;
+  }
+  .headline{
+    margin-top:5px;
+    color:#4E6784;
+    font-size:12px;
+    font-weight:700;
+  }
+  .contact{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px 13px;
+    margin-top:11px;
+    color:#607083;
+    font-size:9.5px;
+  }
+  .rule{
+    height:1px;
+    margin:17px 0;
+    background:#DCE4EA;
+  }
+  h2{
+    margin:0 0 8px;
+    color:#345F91;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.9px;
+  }
+  p{
+    margin:0;
+  }
+  section{
+    margin-bottom:16px;
+  }
+  .entry{
+    margin-bottom:12px;
+  }
+  .entry-top{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .entry-top strong{
+    font-size:11px;
+  }
+  .entry-top span{
+    color:#708094;
+    font-size:9px;
+    white-space:nowrap;
+  }
+  .entry-sub{
+    margin-top:2px;
+    color:#52667D;
+    font-size:10px;
+    font-weight:700;
+  }
+  .entry p{
+    margin-top:4px;
+    color:#43546A;
+    font-size:10px;
+  }
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .chip{
+    padding:5px 8px;
+    border-radius:999px;
+    background:#EEF4F8;
+    color:#345F91;
+    font-size:9px;
+    font-weight:700;
+  }
+  .muted{color:#7A8795}
+</style>
+</head>
+<body>
+  <h1>${escapeResume(data?.name || 'Candidate')}</h1>
+  ${
+    data?.headline
+      ? `<div class="headline">${escapeResume(data.headline)}</div>`
+      : ''
+  }
+
+  <div class="contact">
+    ${data?.email ? `<span>${escapeResume(data.email)}</span>` : ''}
+    ${data?.phone ? `<span>${escapeResume(data.phone)}</span>` : ''}
+    ${data?.location ? `<span>${escapeResume(data.location)}</span>` : ''}
+  </div>
+
+  <div class="rule"></div>
+
+  <section>
+    <h2>Professional Summary</h2>
+    <p>${escapeResume(data?.summary || 'No professional summary provided.')}</p>
+  </section>
+
+  <section>
+    <h2>Experience</h2>
+    ${experienceHtml}
+  </section>
+
+  <section>
+    <h2>Education</h2>
+    ${educationHtml}
+  </section>
+
+  <section>
+    <h2>Skills</h2>
+    <div class="chips">
+      ${
+        skills.length
+          ? skills.map(skill => `<span class="chip">${escapeResume(skill)}</span>`).join('')
+          : '<span class="muted">No skills listed.</span>'
+      }
+    </div>
+  </section>
+
+  ${
+    languages.length
+      ? `
+        <section>
+          <h2>Languages</h2>
+          <div class="chips">
+            ${languages.map(language => `<span class="chip">${escapeResume(language)}</span>`).join('')}
+          </div>
+        </section>
+      `
+      : ''
+  }
+</body>
+</html>`;
+    }
+
+    let activeResumePreviewUrl = '';
+
+    function revokeResumePreviewUrl(){
+      if(
+        activeResumePreviewUrl &&
+        activeResumePreviewUrl.startsWith('blob:')
+      ){
+        URL.revokeObjectURL(
+          activeResumePreviewUrl
+        );
+      }
+
+      activeResumePreviewUrl = '';
+    }
+
+    async function openResumeModal(data){
+      if(!data){
+        return;
+      }
+
+      revokeResumePreviewUrl();
+
+      $('resume-modal-name').textContent =
+        (data.name || 'Candidate') + ' Resume';
+
+      const html =
+        buildResumePreviewHtml(data);
+
+      const blob =
+        new Blob(
+          [html],
+          {
+            type:'text/html;charset=utf-8'
+          }
+        );
+
+      activeResumePreviewUrl =
+        URL.createObjectURL(blob);
+
+      $('resume-modal-frame').src =
+        activeResumePreviewUrl;
+
+      $('resume-modal').hidden = false;
+
+      document.body.style.overflow =
+        'hidden';
+    }
+
+    function pdfSafeText(value){
+      return String(value || '')
+        .replace(/[•–—]/g,'-')
+        .replace(/[^\x20-\x7E]/g,' ')
+        .replace(/\s+/g,' ')
+        .trim();
+    }
+
+    function addPdfLines(
+      doc,
+      text,
+      x,
+      y,
+      width,
+      lineHeight=5,
+      fontSize=10
+    ){
+      const lines =
+        doc.splitTextToSize(
+          pdfSafeText(text),
+          width
+        );
+
+      for(const line of lines){
+        if(y > 276){
+          doc.addPage();
+          y = 18;
+        }
+
+        doc.setFontSize(fontSize);
+        doc.text(
+          line,
+          x,
+          y
+        );
+
+        y += lineHeight;
+      }
+
+      return y;
+    }
+
+    async function downloadCandidateResumePdf(data){
+      if(
+        !window.jspdf ||
+        !window.jspdf.jsPDF
+      ){
+        throw new Error(
+          'PDF generator is still loading. Please try again.'
+        );
+      }
+
+      const {
+        jsPDF
+      } = window.jspdf;
+
+      const doc =
+        new jsPDF({
+          unit:'mm',
+          format:'letter',
+          orientation:'portrait'
+        });
+
+      const left = 18;
+      const right = 198;
+      const width = right - left;
+      let y = 20;
+
+      doc.setTextColor(23,35,51);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(20);
+      doc.text(
+        pdfSafeText(
+          data?.name || 'Candidate'
+        ),
+        left,
+        y
+      );
+
+      y += 7;
+
+      if(data?.headline){
+        doc.setTextColor(52,95,145);
+        doc.setFontSize(10);
+        doc.text(
+          pdfSafeText(
+            data.headline
+          ),
+          left,
+          y
+        );
+        y += 6;
+      }
+
+      doc.setTextColor(90,105,122);
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(8.5);
+
+      const contact =
+        [
+          data?.email,
+          data?.phone,
+          data?.location
+        ]
+        .filter(Boolean)
+        .map(pdfSafeText)
+        .join('  |  ');
+
+      if(contact){
+        y = addPdfLines(
+          doc,
+          contact,
+          left,
+          y,
+          width,
+          4.2,
+          8.5
+        );
+      }
+
+      y += 3;
+      doc.setDrawColor(220,228,234);
+      doc.line(left,y,right,y);
+      y += 8;
+
+      const sectionTitle = title => {
+        if(y > 270){
+          doc.addPage();
+          y = 18;
+        }
+
+        doc.setTextColor(52,95,145);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(9);
+        doc.text(
+          title.toUpperCase(),
+          left,
+          y
+        );
+
+        y += 6;
+        doc.setTextColor(45,59,77);
+        doc.setFont('helvetica','normal');
+      };
+
+      sectionTitle('Professional Summary');
+
+      y = addPdfLines(
+        doc,
+        data?.summary ||
+        'No professional summary provided.',
+        left,
+        y,
+        width,
+        5,
+        9.5
+      );
+
+      y += 5;
+
+      const experience =
+        Array.isArray(data?.experienceList)
+          ? data.experienceList
+          : [];
+
+      if(experience.length){
+        sectionTitle('Experience');
+
+        for(const item of experience){
+          if(y > 262){
+            doc.addPage();
+            y = 18;
+          }
+
+          doc.setFont('helvetica','bold');
+          doc.setFontSize(10);
+          y = addPdfLines(
+            doc,
+            [
+              item?.title,
+              item?.company
+            ]
+            .filter(Boolean)
+            .join(' - '),
+            left,
+            y,
+            width,
+            5,
+            10
+          );
+
+          const dates =
+            resumeDateLine(item);
+
+          if(dates){
+            doc.setTextColor(100,113,128);
+            doc.setFont('helvetica','normal');
+            y = addPdfLines(
+              doc,
+              dates,
+              left,
+              y,
+              width,
+              4.2,
+              8
+            );
+            doc.setTextColor(45,59,77);
+          }
+
+          if(item?.description){
+            doc.setFont('helvetica','normal');
+            y = addPdfLines(
+              doc,
+              item.description,
+              left,
+              y,
+              width,
+              4.7,
+              9
+            );
+          }
+
+          y += 4;
+        }
+
+        y += 2;
+      }
+
+      const education =
+        Array.isArray(data?.educationList)
+          ? data.educationList
+          : [];
+
+      if(education.length){
+        sectionTitle('Education');
+
+        for(const item of education){
+          doc.setFont('helvetica','bold');
+
+          y = addPdfLines(
+            doc,
+            [
+              item?.degree,
+              item?.school
+            ]
+            .filter(Boolean)
+            .join(' - '),
+            left,
+            y,
+            width,
+            5,
+            9.5
+          );
+
+          const dates =
+            resumeDateLine(item);
+
+          if(dates){
+            doc.setTextColor(100,113,128);
+            doc.setFont('helvetica','normal');
+
+            y = addPdfLines(
+              doc,
+              dates,
+              left,
+              y,
+              width,
+              4.2,
+              8
+            );
+
+            doc.setTextColor(45,59,77);
+          }
+
+          y += 4;
+        }
+
+        y += 2;
+      }
+
+      if(data?.skills?.length){
+        sectionTitle('Skills');
+
+        y = addPdfLines(
+          doc,
+          data.skills.join('  |  '),
+          left,
+          y,
+          width,
+          4.8,
+          9
+        );
+
+        y += 5;
+      }
+
+      const languages =
+        normalizeList(
+          data?.resumeData?.languages
+        );
+
+      if(languages.length){
+        sectionTitle('Languages');
+
+        y = addPdfLines(
+          doc,
+          languages.join(', '),
+          left,
+          y,
+          width,
+          4.8,
+          9
+        );
+      }
+
+      const fileName =
+        (data?.name || 'candidate')
+          .replace(/[^a-z0-9]+/gi,'-')
+          .replace(/^-|-$/g,'')
+          .toLowerCase() +
+        '-resume.pdf';
+
+      doc.save(fileName);
     }
 
     async function resolveCandidateResumeUrl(data){
@@ -2879,7 +3925,11 @@
         $('candidate-page-score').textContent =
           scoreInfo.score
             ? scoreInfo.score + ' Alygnn Score'
-            : 'Profile incomplete';
+            : (
+                data.profileComplete
+                  ? 'Profile complete'
+                  : 'Profile incomplete'
+              );
 
         $('candidate-page-status').textContent =
           String(application.status || 'applied');
@@ -2891,21 +3941,13 @@
           data.location || 'Not provided';
 
         $('candidate-page-experience').textContent =
-          data.experience
-            ? (
-                String(data.experience).match(/year/i)
-                  ? String(data.experience)
-                  : String(data.experience) + ' years'
-              )
-            : 'Not provided';
+          data.phone || 'Not provided';
 
         $('candidate-page-availability').textContent =
-          data.availability || 'Not provided';
+          data.languages || 'Not provided';
 
         $('candidate-page-education').textContent =
-          typeof data.education === 'object'
-            ? JSON.stringify(data.education)
-            : (data.education || 'Not provided');
+          data.education || 'Not provided';
 
         $('candidate-page-applied').textContent =
           timeAgo(
@@ -2933,6 +3975,64 @@
               ).join('')
             : '<span class="candidate-profile-chip">No skills added yet</span>';
 
+        const experienceList =
+          Array.isArray(data.experienceList)
+            ? data.experienceList
+            : [];
+
+        $('candidate-page-experience-list').innerHTML =
+          experienceList.length
+            ? experienceList.map(item => `
+                <div class="profile-list-item">
+                  <strong>
+                    ${escapeHtml(item?.title || 'Role')}
+                    ${
+                      item?.company
+                        ? ' · ' + escapeHtml(item.company)
+                        : ''
+                    }
+                  </strong>
+                  <span>
+                    ${escapeHtml(resumeDateLine(item) || 'Dates not provided')}
+                  </span>
+                </div>
+              `).join('')
+            : `
+                <div class="profile-list-item">
+                  <strong>No experience added yet</strong>
+                </div>
+              `;
+
+        const educationList =
+          Array.isArray(data.educationList)
+            ? data.educationList
+            : [];
+
+        $('candidate-page-education-list').innerHTML =
+          educationList.length
+            ? educationList.map(item => `
+                <div class="profile-list-item">
+                  <strong>
+                    ${escapeHtml(item?.degree || 'Education')}
+                  </strong>
+                  <span>
+                    ${
+                      escapeHtml(item?.school || 'School not provided')
+                    }
+                    ${
+                      resumeDateLine(item)
+                        ? ' · ' + escapeHtml(resumeDateLine(item))
+                        : ''
+                    }
+                  </span>
+                </div>
+              `).join('')
+            : `
+                <div class="profile-list-item">
+                  <strong>No education added yet</strong>
+                </div>
+              `;
+
         const resumeAvailable = Boolean(
           data.resumeUrl ||
           data.resumePath ||
@@ -2942,12 +4042,13 @@
 
         const downloadable = Boolean(
           data.resumeUrl ||
-          data.resumePath
+          data.resumePath ||
+          data.resumeData
         );
 
         $('candidate-page-resume-status').textContent =
           resumeAvailable
-            ? 'Resume uploaded and ready to view.'
+            ? 'Resume ready. Open the preview to review the formatted resume.'
             : 'No resume has been uploaded yet.';
 
         $('candidate-page-view-resume').disabled = !resumeAvailable;
@@ -3589,47 +4690,42 @@
       const application = state.activeCandidate;
       if(!application) return;
 
-      const data = candidateData(application);
-      const button = $('candidate-page-view-resume');
-      const original = button.textContent;
+      const data =
+        candidateData(application);
+
+      const button =
+        $('candidate-page-view-resume');
+
+      const original =
+        button.textContent;
 
       button.disabled = true;
       button.textContent = 'Opening…';
 
       try{
-        const resumeUrl = await resolveCandidateResumeUrl(data);
-
-        if(resumeUrl){
-          window.location.href = resumeUrl;
+        if(
+          !data.resumeData &&
+          !data.resumeText &&
+          !data.resumePath &&
+          !data.resumeUrl
+        ){
+          toast(
+            'No resume has been uploaded.'
+          );
           return;
         }
 
-        if(data.resumeText){
-          $('candidate-page-resume-status').textContent =
-            String(data.resumeText);
-
-          $('candidate-page-resume-status').scrollIntoView({
-            behavior:'smooth',
-            block:'center'
-          });
-
-          return;
-        }
-
-        if(data.resumeData){
-          $('candidate-page-resume-status').textContent =
-            typeof data.resumeData === 'string'
-              ? data.resumeData
-              : JSON.stringify(data.resumeData,null,2);
-
-          return;
-        }
-
-        toast('No resume has been uploaded.');
+        await openResumeModal(data);
 
       }catch(error){
-        console.error('Could not open resume:',error);
-        toast('Could not open this resume.');
+        console.error(
+          'Could not open resume:',
+          error
+        );
+
+        toast(
+          'Could not open this resume.'
+        );
       }finally{
         button.disabled = false;
         button.textContent = original;
@@ -3640,35 +4736,148 @@
       const application = state.activeCandidate;
       if(!application) return;
 
-      const data = candidateData(application);
-      const button = $('candidate-page-download-resume');
-      const original = button.textContent;
+      const data =
+        candidateData(application);
+
+      const button =
+        $('candidate-page-download-resume');
+
+      const original =
+        button.textContent;
 
       button.disabled = true;
-      button.textContent = 'Preparing…';
+      button.textContent = 'Creating PDF…';
 
       try{
-        const resumeUrl = await resolveCandidateResumeUrl(data);
-
-        if(!resumeUrl){
-          toast('No downloadable resume is available.');
+        if(data.resumeData){
+          await downloadCandidateResumePdf(
+            data
+          );
           return;
         }
 
-        const link = document.createElement('a');
-        link.href = resumeUrl;
+        const resumeUrl =
+          await resolveCandidateResumeUrl(
+            data
+          );
+
+        if(!resumeUrl){
+          toast(
+            'No downloadable resume is available.'
+          );
+          return;
+        }
+
+        const response =
+          await fetch(resumeUrl);
+
+        if(!response.ok){
+          throw new Error(
+            'Could not download the stored resume.'
+          );
+        }
+
+        const blob =
+          await response.blob();
+
+        const objectUrl =
+          URL.createObjectURL(blob);
+
+        const link =
+          document.createElement('a');
+
+        link.href =
+          objectUrl;
+
         link.download =
           (data.name || 'candidate')
-            .replace(/[^a-z0-9]+/gi,'-') +
-          '-resume';
+            .replace(/[^a-z0-9]+/gi,'-')
+          + '-resume';
 
-        document.body.appendChild(link);
+        document.body.appendChild(
+          link
+        );
+
         link.click();
         link.remove();
 
+        setTimeout(
+          ()=>URL.revokeObjectURL(objectUrl),
+          1000
+        );
+
       }catch(error){
-        console.error('Could not download resume:',error);
-        toast('Could not download this resume.');
+        console.error(
+          'Could not download resume:',
+          error
+        );
+
+        toast(
+          error?.message ||
+          'Could not download this resume.'
+        );
+      }finally{
+        button.disabled = false;
+        button.textContent = original;
+      }
+    };
+
+    $('resume-modal-close').onclick = () => {
+      $('resume-modal').hidden = true;
+      document.body.style.overflow = '';
+      $('resume-modal-frame').src = 'about:blank';
+      revokeResumePreviewUrl();
+    };
+
+    $('resume-modal-back').onclick =
+      $('resume-modal-close').onclick;
+
+    $('resume-modal').addEventListener(
+      'click',
+      event => {
+        if(
+          event.target ===
+          $('resume-modal')
+        ){
+          $('resume-modal-close').click();
+        }
+      }
+    );
+
+    $('resume-modal-download').onclick = async () => {
+      const application =
+        state.activeCandidate;
+
+      if(!application){
+        return;
+      }
+
+      const data =
+        candidateData(application);
+
+      const button =
+        $('resume-modal-download');
+
+      const original =
+        button.textContent;
+
+      button.disabled = true;
+      button.textContent = 'Creating PDF…';
+
+      try{
+        await downloadCandidateResumePdf(
+          data
+        );
+      }catch(error){
+        console.error(
+          'Could not create resume PDF:',
+          error
+        );
+
+        toast(
+          error?.message ||
+          'Could not create the PDF.'
+        );
       }finally{
         button.disabled = false;
         button.textContent = original;
