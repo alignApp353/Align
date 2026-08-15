@@ -97,7 +97,7 @@ h1{ font-family:'DM Serif Display', serif; font-size:2rem; letter-spacing:-.5px;
 
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
-  <div class="admin-pill">Admin · Employer verification</div>
+  <div style="display:flex;align-items:center;gap:10px"><div class="admin-pill">Admin · Employer verification</div><button class="refresh" id="signout" type="button">Sign out</button></div>
 </nav>
 
 <main>
@@ -121,7 +121,7 @@ h1{ font-family:'DM Serif Display', serif; font-size:2rem; letter-spacing:-.5px;
 
     <div class="toolbar">
       <div class="tabs">
-        <button class="tab active" data-status="pending">Pending</button>
+        <button class="tab active" data-status="pending_review">Pending</button>
         <button class="tab" data-status="approved">Approved</button>
         <button class="tab" data-status="rejected">Rejected</button>
       </div>
@@ -136,11 +136,17 @@ h1{ font-family:'DM Serif Display', serif; font-size:2rem; letter-spacing:-.5px;
 <script>
 const SUPABASE_URL = 'https://auth.alygnn.com';
 const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const ADMIN_API = 'https://alygnn.com/api/admin/employer-verifications';
 
-let currentStatus = 'pending';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+});
+
+let session = null;
+let currentStatus = 'pending_review';
 let rows = [];
+let companyExtras = new Map();
 
 const $ = id => document.getElementById(id);
 
@@ -150,97 +156,196 @@ function esc(value){
   return div.innerHTML;
 }
 
-function fmtStatus(value){ return String(value || 'pending').replaceAll('_', ' '); }
+function fmtStatus(value){
+  const v = String(value || 'pending_review');
+  if(v === 'pending_review') return 'pending';
+  return v.replaceAll('_', ' ');
+}
 
 function showMessage(text, type=''){
   const box = $('message');
   box.textContent = text;
   box.className = 'status-message show' + (type ? ' ' + type : '');
 }
+
 function clearMessage(){
   const box = $('message');
   box.textContent = '';
   box.className = 'status-message';
 }
 
-// Domain match is no longer what decides approval — every completed
-// profile lands here regardless. Still shown as informational context
-// for the admin, since a mismatch can be a legitimate reason to look
-// closer (e.g. a staffing agency posting under a client's name).
-function getDomainFromWebsite(url){
-  try {
-    const withProtocol = /^https?:\/\//i.test(url) ? url : 'https://' + url;
-    return new URL(withProtocol).hostname.replace(/^www\./, '').toLowerCase();
-  } catch { return null; }
+function digits(value){
+  return String(value || '').replace(/\D/g, '');
 }
-function getDomainFromEmail(email){
-  const at = String(email || '').split('@')[1];
-  return at ? at.toLowerCase() : null;
+
+function validPhone(value){
+  return digits(value).length === 10;
+}
+
+function validEin(value){
+  return /^\d{4}$/.test(String(value || ''));
+}
+
+function formatDate(value){
+  if(!value) return 'Unknown';
+  const d = new Date(value);
+  if(Number.isNaN(d.getTime())) return 'Unknown';
+  return d.toLocaleString();
+}
+
+async function api(path='', options={}){
+  if(!session?.access_token) throw new Error('Your admin session expired. Sign in again.');
+
+  const response = await fetch(ADMIN_API + path, {
+    ...options,
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':'Bearer ' + session.access_token,
+      ...(options.headers || {})
+    }
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if(response.status === 401 || response.status === 403){
+    await sb.auth.signOut().catch(() => {});
+    location.replace('admin-login.html');
+    throw new Error(result.error || 'Admin authorization required.');
+  }
+
+  if(!response.ok){
+    throw new Error(result.error || `Request failed (${response.status})`);
+  }
+
+  return result;
+}
+
+/*
+  The verification API is the source of truth for review status and documents.
+  This optional lookup only enriches cards with company account number/state.
+  If the current database/RLS does not expose one of these fields, the page
+  still works and the verification queue remains fully functional.
+*/
+async function loadCompanyExtras(reviewRows){
+  companyExtras = new Map();
+  const ids = [...new Set(reviewRows.map(r => r.company_id).filter(Boolean))];
+  if(!ids.length) return;
+
+  try{
+    const {data,error} = await sb
+      .from('companies')
+      .select('id,account_number')
+      .in('id', ids);
+
+    if(!error){
+      (data || []).forEach(company => {
+        companyExtras.set(company.id, {
+          ...(companyExtras.get(company.id) || {}),
+          account_number: company.account_number || ''
+        });
+      });
+    }
+  }catch(error){
+    console.warn('Account number lookup skipped:', error);
+  }
+
+  try{
+    const {data,error} = await sb
+      .from('companies')
+      .select('id,account_status')
+      .in('id', ids);
+
+    if(!error){
+      (data || []).forEach(company => {
+        companyExtras.set(company.id, {
+          ...(companyExtras.get(company.id) || {}),
+          account_status: company.account_status || ''
+        });
+      });
+    }
+  }catch(error){
+    console.warn('Account status lookup skipped:', error);
+  }
 }
 
 function renderRow(row){
-  const hb = row.hiring_blueprint || {};
-  const websiteReady = !!String(row.company_website || '').trim();
-  const phoneReady = !!String(row.company_phone || '').trim();
-  const emailReady = !!String(row.business_email || '').trim();
-  const addressReady = !!String(row.business_address || '').trim();
-  const einReady = /^\d{4}$/.test(String(hb.ein_last4 || ''));
-  const documentReady = !!hb.irs_document_path;
+  const doc = row.document || null;
+  const extra = companyExtras.get(row.company_id) || {};
 
-  const websiteDomain = getDomainFromWebsite(row.company_website);
-  const emailDomain = getDomainFromEmail(row.business_email);
-  const domainsMatch = !!websiteDomain && !!emailDomain && websiteDomain === emailDomain;
+  const documentReady = !!row.document_url;
+  const websiteReady = !!String(row.website || '').trim();
+  const phoneReady = validPhone(row.business_phone);
+  const einReady = validEin(row.ein_last4);
+  const headquartersReady = !!String(row.headquarters || '').trim();
 
   const checks = [
     [documentReady, 'Verification PDF'],
     [websiteReady, 'Website'],
-    [phoneReady, 'Phone'],
-    [emailReady, 'Business email'],
-    [addressReady, 'Address'],
+    [phoneReady, '10-digit phone'],
     [einReady, 'EIN last 4'],
-    [domainsMatch, 'Email matches website'],
-  ].map(([ok, label]) => `<span class="check ${ok ? 'good' : 'warn'}">${ok ? '✓' : '○'} ${esc(label)}</span>`).join('');
+    [headquartersReady, 'Headquarters']
+  ].map(([ok,label]) =>
+    `<span class="check ${ok ? 'good' : 'warn'}">${ok ? '✓' : '○'} ${esc(label)}</span>`
+  ).join('');
 
-  const status = row.verification_status || 'not_submitted';
+  const status = row.verification_status || 'pending_review';
+  const accountNumber = row.account_number || extra.account_number || 'Not provided';
+  const accountState = row.account_status || extra.account_status || 'Active';
+  const submitted = row.created_at || doc?.created_at || null;
 
   return `
     <article class="card">
       <div class="card-head">
         <div>
-          <div class="company-name">${esc(row.company_name || 'Unnamed company')}${hb.dba_name ? ` <span style="font-size:12px;color:var(--text-muted);font-weight:400;">(dba ${esc(hb.dba_name)})</span>` : ''}</div>
-          <div class="company-sub">Account ID: ${esc(row.id)}</div>
+          <div class="company-name">${esc(row.company_name || 'Unnamed company')}</div>
+          <div class="company-sub">
+            Company ID: ${esc(row.company_id || 'Not connected')}
+            · Account: ${esc(accountNumber)}
+          </div>
         </div>
-        <span class="badge ${esc(status)}">${esc(fmtStatus(status))}</span>
+        <span class="badge ${status === 'pending_review' ? 'pending' : esc(status)}">${esc(fmtStatus(status))}</span>
       </div>
+
       <div class="card-body">
         <div class="facts">
-          <div class="fact"><div class="fact-label">Website</div><div class="fact-value">${esc(row.company_website || 'Not provided')}</div></div>
-          <div class="fact"><div class="fact-label">Phone</div><div class="fact-value">${esc(row.company_phone || 'Not provided')}</div></div>
-          <div class="fact"><div class="fact-label">Business email</div><div class="fact-value">${esc(row.business_email || 'Not provided')}</div></div>
-          <div class="fact"><div class="fact-label">Address</div><div class="fact-value">${esc(row.business_address || 'Not provided')}</div></div>
-          <div class="fact"><div class="fact-label">Industry</div><div class="fact-value">${esc(hb.industry || 'Not provided')}</div></div>
-          <div class="fact"><div class="fact-label">Company size</div><div class="fact-value">${esc(hb.company_size || 'Not provided')}</div></div>
-          <div class="fact"><div class="fact-label">Headquarters</div><div class="fact-value">${esc(hb.headquarters || 'Not provided')}</div></div>
-          <div class="fact"><div class="fact-label">EIN last 4</div><div class="fact-value">${esc(hb.ein_last4 || 'Not provided')}</div></div>
+          <div class="fact"><div class="fact-label">Website</div><div class="fact-value">${esc(row.website || 'Not provided')}</div></div>
+          <div class="fact"><div class="fact-label">Phone</div><div class="fact-value">${esc(row.business_phone || 'Not provided')}</div></div>
+          <div class="fact"><div class="fact-label">Industry</div><div class="fact-value">${esc(row.industry || 'Not provided')}</div></div>
+          <div class="fact"><div class="fact-label">Company size</div><div class="fact-value">${esc(row.company_size || 'Not provided')}</div></div>
+          <div class="fact"><div class="fact-label">Headquarters</div><div class="fact-value">${esc(row.headquarters || 'Not provided')}</div></div>
+          <div class="fact"><div class="fact-label">EIN last 4</div><div class="fact-value">${esc(row.ein_last4 || 'Not provided')}</div></div>
+          <div class="fact"><div class="fact-label">Submitted</div><div class="fact-value">${esc(formatDate(submitted))}</div></div>
+          <div class="fact"><div class="fact-label">Account state</div><div class="fact-value">${esc(accountState)}</div></div>
         </div>
+
         <div class="checks">${checks}</div>
+
         <div class="doc">
           <div>
-            <div class="doc-title">${hb.irs_document_path ? 'Verification document on file' : 'No verification document found'}</div>
-            <div class="doc-meta">${hb.irs_document_path ? 'Signed link expires in 5 minutes. Confirm the legal business name and EIN before approving.' : 'Employer must upload a document during onboarding before approval.'}</div>
+            <div class="doc-title">${esc(doc?.original_file_name || 'No verification document found')}</div>
+            <div class="doc-meta">${
+              documentReady
+                ? 'Secure link expires shortly. Review the legal business name and EIN before making a verification decision.'
+                : 'Employer must upload a verification PDF before approval.'
+            }</div>
           </div>
-          ${hb.irs_document_path
-            ? `<button class="doc-link" onclick="viewDocument('${esc(hb.irs_document_path)}', this)">View PDF</button>`
-            : `<span class="doc-link disabled">View PDF</span>`}
+          ${
+            documentReady
+              ? `<a class="doc-link" href="${esc(row.document_url)}" target="_blank" rel="noopener">View PDF</a>`
+              : `<span class="doc-link disabled">View PDF</span>`
+          }
         </div>
-        ${status === 'pending' || status === 'not_submitted' ? `
-          <div class="actions">
-            <button class="btn approve" onclick="reviewEmployer('${esc(row.id)}','approved',this)">Approve employer</button>
-            <button class="btn reject" onclick="reviewEmployer('${esc(row.id)}','rejected',this)">Decline</button>
-          </div>
-        ` : status === 'rejected' && hb.rejection_reason ? `
-          <div class="status-message show error" style="margin-top:14px">Reason: ${esc(hb.rejection_reason)}</div>
-        ` : ''}
+
+        ${
+          currentStatus === 'pending_review'
+            ? `<div class="actions">
+                <button class="btn approve" ${documentReady ? '' : 'disabled style="opacity:.45;cursor:not-allowed"'} onclick="reviewCompany('${esc(row.company_id)}','approved',this)">Approve employer</button>
+                <button class="btn reject" onclick="reviewCompany('${esc(row.company_id)}','rejected',this)">Decline</button>
+              </div>`
+            : row.verification_status === 'rejected' && row.rejection_reason
+              ? `<div class="status-message show error" style="margin-top:14px">Reason: ${esc(row.rejection_reason)}</div>`
+              : ''
+        }
       </div>
     </article>
   `;
@@ -248,10 +353,12 @@ function renderRow(row){
 
 function render(){
   const queue = $('queue');
-  if (!rows.length) {
+
+  if(!rows.length){
     queue.innerHTML = `<div class="empty">No ${esc(fmtStatus(currentStatus))} employer verifications.</div>`;
     return;
   }
+
   queue.innerHTML = rows.map(renderRow).join('');
 }
 
@@ -259,93 +366,94 @@ async function loadStatus(status = currentStatus){
   clearMessage();
   currentStatus = status;
   $('queue').classList.add('loading');
-  try {
-    const { data, error } = await sb
-      .from('profiles')
-      .select('id,company_name,company_website,company_phone,business_email,business_address,employer_verified,verification_status,hiring_blueprint')
-      .eq('role', 'employer')
-      .eq('verification_status', status);
 
-    if (error) throw error;
-    rows = data || [];
+  try{
+    const result = await api('?status=' + encodeURIComponent(status));
+    rows = result.reviews || [];
+
+    // Protect against an older endpoint silently falling back to pending_review.
+    if(status !== 'pending_review'){
+      rows = rows.filter(row => String(row.verification_status || '') === status);
+    }
+
+    await loadCompanyExtras(rows);
     render();
-  } catch (error) {
+  }catch(error){
     console.error('Failed to load employer verifications:', error);
     rows = [];
     $('queue').innerHTML = '';
     showMessage(error.message || 'Could not load employer verifications.', 'error');
-  } finally {
+  }finally{
     $('queue').classList.remove('loading');
   }
 }
 
 async function loadCounts(){
-  const statuses = ['pending', 'approved', 'rejected'];
-  await Promise.all(statuses.map(async status => {
-    try {
-      const { count, error } = await sb
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .eq('role', 'employer')
-        .eq('verification_status', status);
-      if (error) throw error;
-      $('count-' + status).textContent = String(count ?? 0);
-    } catch {
-      $('count-' + status).textContent = '—';
+  const statuses = [
+    ['pending_review','pending'],
+    ['approved','approved'],
+    ['rejected','rejected']
+  ];
+
+  await Promise.all(statuses.map(async ([status,key]) => {
+    try{
+      const result = await api('?status=' + encodeURIComponent(status));
+      const list = (result.reviews || []).filter(row =>
+        status === 'pending_review' ||
+        String(row.verification_status || '') === status
+      );
+      $('count-' + key).textContent = String(list.length);
+    }catch(error){
+      $('count-' + key).textContent = '—';
     }
   }));
 }
 
-async function viewDocument(path, button){
-  const oldText = button.textContent;
-  button.textContent = 'Loading…';
-  button.disabled = true;
-  try {
-    const { data, error } = await sb.storage.from('employer-verification-documents').createSignedUrl(path, 300);
-    if (error) throw error;
-    window.open(data.signedUrl, '_blank', 'noopener');
-  } catch (error) {
-    console.error('Could not open document:', error);
-    showMessage('Could not open this document. Check that the admin storage policy is in place.', 'error');
-  } finally {
-    button.textContent = oldText;
-    button.disabled = false;
-  }
-}
-
-async function reviewEmployer(profileId, decision, button){
-  let rejectionReason = '';
-  if (decision === 'rejected') {
-    rejectionReason = prompt('Why are you declining this employer?') || '';
-    if (!rejectionReason.trim()) return;
-  } else {
-    if (!confirm('Approve this employer and allow verified job publishing?')) return;
+async function reviewCompany(companyId, decision, button){
+  if(!companyId){
+    showMessage('This employer is missing a company ID.', 'error');
+    return;
   }
 
-  button.disabled = true;
+  const target = rows.find(row => row.company_id === companyId);
+
+  if(decision === 'approved' && !target?.document_url){
+    showMessage('A verification PDF is required before this employer can be approved.', 'error');
+    return;
+  }
+
+  let reason = '';
+
+  if(decision === 'rejected'){
+    reason = prompt('Why are you declining this employer?') || '';
+    if(!reason.trim()) return;
+  }else{
+    if(!confirm('Approve this employer after reviewing the business information and verification PDF?')) return;
+  }
+
   const oldText = button.textContent;
+  button.disabled = true;
   button.textContent = decision === 'approved' ? 'Approving…' : 'Declining…';
 
-  try {
-    const updatePayload = {
-      verification_status: decision,
-      employer_verified: decision === 'approved',
-    };
+  try{
+    await api('', {
+      method:'PATCH',
+      body:JSON.stringify({
+        company_id:companyId,
+        decision,
+        reason:reason.trim()
+      })
+    });
 
-    if (decision === 'rejected') {
-      // hiring_blueprint is a single jsonb column — read-modify-write so we
-      // don't clobber the employer's other onboarding answers.
-      const target = rows.find(r => r.id === profileId);
-      const existingBlueprint = target?.hiring_blueprint || {};
-      updatePayload.hiring_blueprint = { ...existingBlueprint, rejection_reason: rejectionReason.trim() };
-    }
+    showMessage(
+      decision === 'approved'
+        ? 'Employer approved. The shared company and verification records were updated.'
+        : 'Employer declined. The shared company and verification records were updated.',
+      'success'
+    );
 
-    const { error } = await sb.from('profiles').update(updatePayload).eq('id', profileId);
-    if (error) throw error;
-
-    showMessage(decision === 'approved' ? 'Employer approved.' : 'Employer declined.', 'success');
     await Promise.all([loadStatus(currentStatus), loadCounts()]);
-  } catch (error) {
+  }catch(error){
     console.error('Review action failed:', error);
     showMessage(error.message || 'Could not save this decision.', 'error');
     button.disabled = false;
@@ -360,23 +468,50 @@ document.querySelectorAll('.tab').forEach(button => {
     loadStatus(button.dataset.status);
   });
 });
-$('refresh').addEventListener('click', () => Promise.all([loadStatus(currentStatus), loadCounts()]));
+
+$('refresh').addEventListener('click', () =>
+  Promise.all([loadStatus(currentStatus), loadCounts()])
+);
+
+if($('signout')){
+  $('signout').addEventListener('click', async () => {
+    await sb.auth.signOut().catch(() => {});
+    location.replace('admin-login.html');
+  });
+}
 
 (async () => {
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) { window.location.href = 'admin-login.html'; return; }
+  const {data:{session:currentSession}} = await sb.auth.getSession();
+  session = currentSession;
 
-  // Client-side gate for UX only — the real enforcement is the is_admin()
-  // check in the Supabase RLS policies. Without those policies, an admin
-  // (or anyone) querying other people's profile rows returns nothing.
-  const { data: profile, error } = await sb.from('profiles').select('is_admin').eq('id', session.user.id).maybeSingle();
-  if (error || !profile?.is_admin) {
+  if(!session){
+    location.replace('admin-login.html');
+    return;
+  }
+
+  // Keep the website admin UX gate that you already set up.
+  const {data:profile,error} = await sb
+    .from('profiles')
+    .select('is_admin')
+    .eq('id',session.user.id)
+    .maybeSingle();
+
+  if(error || !profile?.is_admin){
+    $('gate-view').style.display = 'block';
+    return;
+  }
+
+  // The shared API performs the server-side admin authorization and
+  // returns the same employer verification/document records used elsewhere.
+  try{
+    await api('?status=pending_review');
+  }catch(error){
     $('gate-view').style.display = 'block';
     return;
   }
 
   $('admin-view').style.display = 'block';
-  await Promise.all([loadStatus('pending'), loadCounts()]);
+  await Promise.all([loadStatus('pending_review'), loadCounts()]);
 })();
 </script>
 
