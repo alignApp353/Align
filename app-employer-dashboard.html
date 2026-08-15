@@ -1771,10 +1771,16 @@
       view?.classList.remove('enter');
       requestAnimationFrame(() => view?.classList.add('enter'));
       window.scrollTo({top:0,behavior:'smooth'});
-      renderAll();
 
+      /*
+       * My Jobs gets its own direct refresh first.
+       * This prevents an unrelated Dashboard widget error from stopping
+       * the jobs list from rendering.
+       */
       if(name==='jobs'){
         refreshJobsView();
+      }else{
+        safeRenderAll();
       }
 
       if(name==='company'){
@@ -2442,15 +2448,27 @@
       $('pro-modal').hidden = false;
     }
 
+    function safeCall(label,fn){
+      try{
+        fn();
+      }catch(error){
+        console.error(label + ' render failed:',error);
+      }
+    }
+
+    function safeRenderAll(){
+      safeCall('Greeting',greeting);
+      safeCall('Hero',renderHero);
+      safeCall('Metrics',renderMetrics);
+      safeCall('Jobs',renderJobs);
+      safeCall('Applicants',renderApplicants);
+      safeCall('Activity',renderActivity);
+      safeCall('Company',renderCompany);
+      safeCall('AI profile',renderAiProfileCard);
+    }
+
     function renderAll(){
-      greeting();
-      renderHero();
-      renderMetrics();
-      renderJobs();
-      renderApplicants();
-      renderActivity();
-      renderCompany();
-      renderAiProfileCard();
+      safeRenderAll();
     }
 
     function openCandidate(id){
@@ -2936,17 +2954,30 @@
     async function refreshJobsView(){
       if(!state.session?.user?.id) return;
 
+      if(els.jobsList){
+        els.jobsList.style.display='block';
+        els.jobsList.style.visibility='visible';
+        els.jobsList.style.opacity='1';
+        els.jobsList.innerHTML=`
+          <div class="empty">
+            <strong>Loading jobs…</strong>
+            Checking your current job listings.
+          </div>
+        `;
+      }
+
       try{
         const jobs = await queryJobs(state.session.user.id);
-        state.jobs = jobs;
+        state.jobs = Array.isArray(jobs) ? jobs : [];
 
         /*
-         * Explicitly refresh the pieces that depend on jobs.
-         * This makes My Jobs update immediately after publishing.
+         * IMPORTANT: render My Jobs first.
+         * Nothing else on the dashboard is allowed to block this.
          */
-        renderHero();
-        renderMetrics();
         renderJobs();
+
+        safeCall('Hero',renderHero);
+        safeCall('Metrics',renderMetrics);
 
         console.log(
           'Alygnn My Jobs refreshed:',
@@ -2960,6 +2991,15 @@
         );
       }catch(error){
         console.error('Could not refresh My Jobs:',error);
+
+        if(els.jobsList){
+          els.jobsList.innerHTML=`
+            <div class="empty">
+              <strong>Could not load jobs</strong>
+              Tap Jobs again to retry.
+            </div>
+          `;
+        }
       }
     }
 
@@ -3017,12 +3057,16 @@
           }
         }
 
-        renderAll();
+        safeRenderAll();
       }catch(error){
         console.error('Employer workspace failed to initialize:',error);
-        renderAll();
+        safeRenderAll();
       }finally{
         els.loading.hidden = true;
+
+        if(state.currentView==='jobs'){
+          refreshJobsView();
+        }
       }
     }
 
