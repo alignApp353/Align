@@ -1154,15 +1154,6 @@
             </div>
           </button>
 
-          <button class="metric" data-view="applicants" type="button">
-            <div class="metric-icon people">◉</div>
-            <div>
-              <div class="metric-label">New Applications</div>
-              <div class="metric-value" id="new-applicants">0</div>
-              <div class="metric-note" id="applicant-note">No new activity</div>
-            </div>
-          </button>
-
           <button class="metric" type="button">
             <div class="metric-icon calendar">□</div>
             <div>
@@ -1676,10 +1667,48 @@
         education:firstValue(profile.education,profile.highest_education,application.education),
         summary:firstValue(profile.professional_summary,profile.summary,profile.bio,profile.about,application.summary),
         skills:normalizeList(firstValue(profile.skills,profile.skill_list,profile.top_skills,application.skills)),
-        resumeUrl:firstValue(profile.resume_url,profile.resume_file_url,profile.resume_path,application.resume_url,application.resume_path),
+        resumeUrl:firstValue(profile.resume_url,profile.resume_file_url,application.resume_url),
+        resumePath:firstValue(
+          profile.resume_file_path,
+          profile.resume_path,
+          application.resume_file_path,
+          application.resume_path
+        ),
+        resumeData:firstValue(profile.resume_data,application.resume_data),
         resumeText:firstValue(profile.resume_text,profile.resume_content,application.resume_text)
       };
     };
+
+    function isWebUrl(value){
+      return /^https?:\/\//i.test(String(value || '').trim());
+    }
+
+    async function resolveCandidateResumeUrl(data){
+      if(!data) return '';
+
+      if(data.resumeUrl && isWebUrl(data.resumeUrl)){
+        return String(data.resumeUrl);
+      }
+
+      const storagePath = String(
+        data.resumePath ||
+        (!isWebUrl(data.resumeUrl) ? data.resumeUrl : '') ||
+        ''
+      ).trim();
+
+      if(!storagePath) return '';
+
+      const { data:signed, error } = await sb.storage
+        .from('resumes')
+        .createSignedUrl(storagePath,300);
+
+      if(error || !signed?.signedUrl){
+        console.error('Unable to create employer resume link:',error);
+        return '';
+      }
+
+      return signed.signedUrl;
+    }
 
     function provisionalScore(application){
       const stored = Number(application.match_score || application.alygnn_score || 0);
@@ -1914,8 +1943,7 @@
 
         const actionHtml = compact ? '' : `
           <div class="job-actions">
-            <button class="mini-btn primary" data-job-action="applicants" data-job-id="${escapeHtml(id)}">View Applicants</button>
-            <button class="mini-btn" data-job-action="edit" data-job-id="${escapeHtml(id)}">Edit</button>
+            <button class="mini-btn primary" data-job-action="edit" data-job-id="${escapeHtml(id)}">Edit</button>
             <button class="mini-btn" data-job-action="${statusRaw === 'paused' ? 'activate' : 'pause'}" data-job-id="${escapeHtml(id)}">${statusRaw === 'paused' ? 'Activate' : 'Pause'}</button>
             <button class="mini-btn danger" data-job-action="archive" data-job-id="${escapeHtml(id)}">Archive</button>
           </div>
@@ -1933,7 +1961,6 @@
             </div>
 
             <div class="job-stats">
-              <div class="job-stat"><strong>${apps.length}</strong><span>Applications</span></div>
               <div class="job-stat"><strong>${Number(job?.views || job?.view_count || 0)}</strong><span>Views</span></div>
               <div class="job-stat"><strong>${Number(job?.saves || job?.save_count || 0)}</strong><span>Saves</span></div>
             </div>
@@ -2061,6 +2088,21 @@
       els.bestFits.innerHTML = top.length
         ? top.map(candidateCard).join('')
         : empty;
+
+      /*
+       * Android WebView can be inconsistent with the document-level
+       * delegated click after a view rerender. Bind each candidate row
+       * directly as well so tapping an applicant always opens details.
+       */
+      [els.applicantsList,els.bestFits].forEach(container => {
+        container?.querySelectorAll('[data-app-id]').forEach(button => {
+          button.onclick = event => {
+            event.preventDefault();
+            event.stopPropagation();
+            openCandidate(button.dataset.appId);
+          };
+        });
+      });
     }
 
     function renderActivity(){
@@ -2427,7 +2469,9 @@
       $('sheet-insight-points').innerHTML = insightPoints.map(point => `<div class="insight-point">${escapeHtml(point)}</div>`).join('');
       $('resume-preview').textContent = data.resumeText
         ? String(data.resumeText).slice(0,320) + (String(data.resumeText).length > 320 ? '…' : '')
-        : data.resumeUrl ? 'Resume uploaded and ready to view.' : 'No resume has been uploaded yet.';
+        : (data.resumePath || data.resumeUrl || data.resumeData)
+          ? 'Resume uploaded and ready to view.'
+          : 'No resume has been uploaded yet.';
       $('candidate-timeline').textContent = `Application received ${timeAgo(application.applied_at || application.created_at)} • Current status: ${application.status || 'new'}.`;
 
       const skills = data.skills;
@@ -2435,11 +2479,22 @@
         ? skills.slice(0,12).map(skill => `<span class="detail-chip">${escapeHtml(skill)}</span>`).join('')
         : '<span class="detail-chip">No skills added yet</span>';
 
-      const resumeAvailable = Boolean(data.resumeUrl || data.resumeText);
+      const resumeAvailable = Boolean(
+        data.resumeUrl ||
+        data.resumePath ||
+        data.resumeText ||
+        data.resumeData
+      );
+
+      const downloadableResume = Boolean(
+        data.resumeUrl ||
+        data.resumePath
+      );
+
       $('view-resume-btn').disabled = !resumeAvailable;
-      $('download-resume-btn').disabled = !data.resumeUrl;
+      $('download-resume-btn').disabled = !downloadableResume;
       $('view-resume-btn').style.opacity = resumeAvailable ? '1' : '.45';
-      $('download-resume-btn').style.opacity = data.resumeUrl ? '1' : '.45';
+      $('download-resume-btn').style.opacity = downloadableResume ? '1' : '.45';
 
       const missing = [];
       if(!data.email) missing.push('email');
@@ -2455,6 +2510,8 @@
       }
 
       els.candidateSheet.hidden = false;
+      els.candidateSheet.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
     }
 
     async function updateApplicationStatus(status){
@@ -3040,34 +3097,96 @@
     });
     applyTheme(savedThemePreference());
 
-    $('view-resume-btn').onclick = () => {
+    $('view-resume-btn').onclick = async () => {
       const data = state.activeCandidate ? candidateData(state.activeCandidate) : null;
       if(!data) return;
-      if(data.resumeUrl){ window.open(data.resumeUrl,'_blank','noopener'); return; }
-      if(data.resumeText){
-        const win = window.open('','_blank');
-        if(win) win.document.write('<pre style="white-space:pre-wrap;font-family:Arial;padding:24px">'+escapeHtml(data.resumeText)+'</pre>');
-        return;
+
+      const button = $('view-resume-btn');
+      const original = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Opening…';
+
+      try{
+        const resumeUrl = await resolveCandidateResumeUrl(data);
+
+        if(resumeUrl){
+          /*
+           * Use the current WebView instead of a popup. Android WebView
+           * frequently blocks window.open() for signed private files.
+           */
+          window.location.href = resumeUrl;
+          return;
+        }
+
+        if(data.resumeText){
+          $('resume-preview').textContent = String(data.resumeText);
+          $('resume-preview').scrollIntoView({behavior:'smooth',block:'center'});
+          return;
+        }
+
+        if(data.resumeData){
+          const resumeDataText = typeof data.resumeData === 'string'
+            ? data.resumeData
+            : JSON.stringify(data.resumeData,null,2);
+
+          $('resume-preview').textContent = resumeDataText;
+          $('resume-preview').scrollIntoView({behavior:'smooth',block:'center'});
+          return;
+        }
+
+        toast('No resume has been uploaded.');
+      }catch(error){
+        console.error('Could not open candidate resume:',error);
+        toast('Could not open this resume.');
+      }finally{
+        button.disabled = false;
+        button.textContent = original;
       }
-      toast('No resume has been uploaded.');
     };
 
-    $('download-resume-btn').onclick = () => {
+    $('download-resume-btn').onclick = async () => {
       const data = state.activeCandidate ? candidateData(state.activeCandidate) : null;
-      if(!data?.resumeUrl){ toast('No downloadable resume is available.'); return; }
-      const link = document.createElement('a');
-      link.href = data.resumeUrl;
-      link.download = (data.name || 'candidate').replace(/[^a-z0-9]+/gi,'-') + '-resume';
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      if(!data) return;
+
+      const button = $('download-resume-btn');
+      const original = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Preparing…';
+
+      try{
+        const resumeUrl = await resolveCandidateResumeUrl(data);
+
+        if(!resumeUrl){
+          toast('No downloadable resume is available.');
+          return;
+        }
+
+        const link = document.createElement('a');
+        link.href = resumeUrl;
+        link.download = (data.name || 'candidate').replace(/[^a-z0-9]+/gi,'-') + '-resume';
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }catch(error){
+        console.error('Could not download candidate resume:',error);
+        toast('Could not download this resume.');
+      }finally{
+        button.disabled = false;
+        button.textContent = original;
+      }
     };
 
-    $('close-candidate').onclick = () => els.candidateSheet.hidden = true;
+    function closeCandidateSheet(){
+      els.candidateSheet.hidden = true;
+      els.candidateSheet.style.display = '';
+      document.body.style.overflow = '';
+    }
+
+    $('close-candidate').onclick = closeCandidateSheet;
 
     els.candidateSheet.addEventListener('click',event => {
-      if(event.target === els.candidateSheet) els.candidateSheet.hidden = true;
+      if(event.target === els.candidateSheet) closeCandidateSheet();
     });
 
     $('sign-out-btn').onclick = async () => {
