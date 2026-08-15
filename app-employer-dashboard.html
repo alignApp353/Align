@@ -1058,6 +1058,16 @@
     }
     .company-edit-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:11px;margin-top:18px}
     .company-edit-actions button{min-height:48px}
+    .company-edit-actions .secondary-btn{background:#FFFFFF!important;color:#172333!important;border-color:#DDE3E8!important}
+    #preview-career-page{
+      background:#FFFFFF!important;
+      color:#172333!important;
+      border-color:#DDE3E8!important;
+      -webkit-text-fill-color:#172333!important;
+      opacity:1!important;
+    }
+    .locked-company-name{background:rgba(127,145,164,.10)!important;color:var(--muted)!important;cursor:not-allowed}
+    .locked-field-note{margin-top:7px;color:var(--muted);font-size:10px;line-height:1.45}
     @media(max-width:520px){
       .company-edit-grid{grid-template-columns:1fr}
       .company-edit-field.full{grid-column:auto}
@@ -1355,7 +1365,8 @@
       <div class="company-edit-grid">
         <div class="company-edit-field full">
           <label for="edit-company-name">Company name</label>
-          <input id="edit-company-name" type="text" maxlength="150">
+          <input class="locked-company-name" id="edit-company-name" type="text" readonly aria-readonly="true">
+          <div class="locked-field-note">Company names are locked after the workspace is created.</div>
         </div>
 
         <div class="company-edit-field">
@@ -1724,6 +1735,10 @@
       window.scrollTo({top:0,behavior:'smooth'});
       renderAll();
 
+      if(name==='jobs'){
+        refreshJobsView();
+      }
+
       if(name==='company'){
         refreshCompanyProfile().catch(error=>{
           console.error('Company profile refresh failed:',error);
@@ -1876,12 +1891,27 @@
 
     function renderJobs(){
       const empty = '<div class="empty"><strong>No jobs yet</strong>Post your first job to begin receiving applicants.</div>';
-      els.jobsList.innerHTML = state.jobs.length
-        ? state.jobs.map(job => jobCard(job)).join('')
+
+      const jobs = Array.isArray(state.jobs)
+        ? state.jobs.filter(Boolean)
+        : [];
+
+      els.jobsList.innerHTML = jobs.length
+        ? jobs.map(job => jobCard(job)).join('')
         : empty;
-      els.dashboardJobs.innerHTML = state.jobs.length
-        ? state.jobs.slice(0,2).map(job => jobCard(job,true)).join('')
+
+      els.dashboardJobs.innerHTML = jobs.length
+        ? jobs.slice(0,2).map(job => jobCard(job,true)).join('')
         : empty;
+
+      /*
+       * Make sure the jobs container is never left visually collapsed
+       * after switching from Dashboard to My Jobs.
+       */
+      if(els.jobsList){
+        els.jobsList.style.display='block';
+        els.jobsList.style.minHeight=jobs.length ? '1px' : '72px';
+      }
     }
 
     function candidateCard(application){
@@ -2072,6 +2102,7 @@
       const company=companyMetadata();
 
       $('edit-company-name').value=company.name==='Your Company'?'':company.name;
+      $('edit-company-name').readOnly=true;
       $('edit-company-industry').value=company.industry==='Not added'?'':company.industry;
       $('edit-company-size').value=company.size==='Not added'?'':company.size;
       $('edit-company-location').value=company.location==='Not added'?'':company.location;
@@ -2094,7 +2125,8 @@
       const button=$('save-company-edit');
       const message=$('company-edit-message');
 
-      const companyName=$('edit-company-name').value.trim();
+      const existingCompany=companyMetadata();
+      const companyName=existingCompany.name;
       const industry=$('edit-company-industry').value.trim();
       const companySize=$('edit-company-size').value.trim();
       const headquarters=$('edit-company-location').value.trim();
@@ -2630,15 +2662,23 @@
       };
     }
 
+    function isAiProfileReady(){
+      const progress=calculateAiProfileProgress();
+      return Boolean(state.aiProfileComplete||progress.percent>=100);
+    }
+
     function renderAiProfileCard(){
       const card=$('ai-profile-card');
       if(!card)return;
 
-      card.hidden=Boolean(state.aiProfileComplete);
-      if(card.hidden)return;
-
       const progress=calculateAiProfileProgress();
       const percent=Math.max(0,Math.min(100,progress.percent));
+      const isComplete=Boolean(state.aiProfileComplete||percent>=100);
+
+      // Once every required section is complete, remove this setup card.
+      state.aiProfileComplete=isComplete;
+      card.hidden=isComplete;
+      if(isComplete)return;
 
       $('ai-profile-percent').textContent=`${percent}%`;
       $('ai-profile-progress-fill').style.width=`${percent}%`;
@@ -2662,7 +2702,42 @@
       }
     }
 
+    function currentCompanyIdForJobs(){
+      return String(
+        state.companyRecord?.id ||
+        state.companyRecord?.company_id ||
+        state.employerVerification?.company_id ||
+        ''
+      ).trim();
+    }
+
     async function queryJobs(userId){
+      /*
+       * Do not stop at the first valid column if it returns zero rows.
+       * Older and newer Alygnn job records can be linked by different
+       * ownership columns, and newer jobs may also be linked by company_id.
+       */
+      const collected = [];
+      const seen = new Set();
+
+      const addRows = rows => {
+        (rows || []).forEach(job => {
+          const key = String(
+            job?.id ||
+            [
+              job?.title,
+              job?.created_at,
+              job?.company_id,
+              job?.employer_id
+            ].join('|')
+          );
+
+          if(seen.has(key)) return;
+          seen.add(key);
+          collected.push(job);
+        });
+      };
+
       for(const column of ['employer_id','created_by','user_id','owner_id']){
         const result = await sb
           .from('jobs')
@@ -2670,10 +2745,66 @@
           .eq(column,userId)
           .order('created_at',{ascending:false});
 
-        if(!result.error) return result.data || [];
+        if(!result.error){
+          addRows(result.data);
+        }else{
+          console.warn(`Jobs query using ${column} failed:`,result.error);
+        }
       }
 
-      return [];
+      const companyId = currentCompanyIdForJobs();
+
+      if(companyId){
+        const companyResult = await sb
+          .from('jobs')
+          .select('*')
+          .eq('company_id',companyId)
+          .order('created_at',{ascending:false});
+
+        if(!companyResult.error){
+          addRows(companyResult.data);
+        }else{
+          console.warn('Jobs query using company_id failed:',companyResult.error);
+        }
+      }
+
+      collected.sort((a,b) => {
+        const aTime = new Date(a?.created_at || a?.updated_at || 0).getTime() || 0;
+        const bTime = new Date(b?.created_at || b?.updated_at || 0).getTime() || 0;
+        return bTime - aTime;
+      });
+
+      return collected;
+    }
+
+    async function refreshJobsView(){
+      if(!state.session?.user?.id) return;
+
+      try{
+        const jobs = await queryJobs(state.session.user.id);
+        state.jobs = jobs;
+
+        /*
+         * Explicitly refresh the pieces that depend on jobs.
+         * This makes My Jobs update immediately after publishing.
+         */
+        renderHero();
+        renderMetrics();
+        renderJobs();
+
+        console.log(
+          'Alygnn My Jobs refreshed:',
+          state.jobs.map(job => ({
+            id:job.id,
+            title:job.title,
+            status:job.status,
+            employer_id:job.employer_id,
+            company_id:job.company_id
+          }))
+        );
+      }catch(error){
+        console.error('Could not refresh My Jobs:',error);
+      }
     }
 
     async function initialize(){
@@ -2774,7 +2905,7 @@
     els.candidateSort.addEventListener('change',renderApplicants);
 
     function openPostJob(){
-      if(!state.aiProfileComplete){
+      if(!isAiProfileReady()){
         location.href='app-employer-ai-profile.html';
         return;
       }
