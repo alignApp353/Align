@@ -610,11 +610,14 @@ async function submit(){
 
     if(employer_verified){
       showMessage('Your company is verified. Opening your Employer Dashboard…','success');
-      setTimeout(()=>location.replace('employer-dashboard.html'),900);
     }else{
-      showMessage('Your Hiring Blueprint is complete. Your company is pending manual review.','success');
-      setTimeout(()=>location.replace('employer-account.html'),1100);
+      showMessage('Your Hiring Blueprint is complete. Your company is pending manual review — you can explore your dashboard while you wait.','success');
     }
+    // Onboarding always lands on the dashboard now, verified or not — the
+    // dashboard itself shows the pending/locked state (see
+    // updateVerificationUI() in employer-dashboard.html) instead of the
+    // account hub gatekeeping it.
+    setTimeout(()=>location.replace('employer-dashboard.html'),1100);
   }catch(error){
     console.error(error);
     showMessage(error.message||'Unable to finish setup.');
@@ -630,7 +633,7 @@ nextButton.addEventListener('click',()=>{
   else submit();
 });
 backButton.addEventListener('click',()=>{
-  if(current===0){window.location.href='employer-account.html';return}
+  if(current===0){window.location.href='employer-dashboard.html';return}
   saveDraft();
   showStep(current-1);
 });
