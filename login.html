@@ -116,6 +116,9 @@
   .switch-prompt { text-align: center; margin-top: 22px; font-size: 14px; color: var(--text-muted); }
   .switch-prompt a { color: var(--brand); text-decoration: none; font-weight: 500; }
   .switch-prompt a:hover { text-decoration: underline; }
+  .admin-link-row { text-align: center; margin-top: 10px; }
+  .admin-link-row a { font-size: 12px; color: var(--text-muted); text-decoration: none; }
+  .admin-link-row a:hover { color: var(--brand); text-decoration: underline; }
 
   .terms-check { display: flex; align-items: flex-start; gap: 9px; margin: 14px 0 18px; cursor: pointer; }
   .terms-check input { width: 16px; height: 16px; min-width: 16px; margin-top: 2px; accent-color: var(--brand); cursor: pointer; }
@@ -268,6 +271,10 @@
       No account? <a href="#" onclick="switchTab('signup'); return false;">Sign up free</a>
     </p>
 
+    <p class="admin-link-row" id="admin-link-row">
+      <a href="login.html?admin=1">Admin login</a>
+    </p>
+
   </div>
 </div>
 
@@ -278,6 +285,24 @@
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let currentRole = 'seeker';
+
+  // Reached via the "Admin login" link. Same login form, same auth flow —
+  // the only difference is where a successful sign-in sends you afterward.
+  // The real gate is still employer-verification-admin.html checking
+  // profiles.is_admin (and the RLS policies behind it); this just routes
+  // people to the right place instead of the seeker/employer dashboards.
+  const isAdminLogin = new URLSearchParams(window.location.search).get('admin') === '1';
+  if (isAdminLogin) {
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('role-seeker').closest('.role-switcher').style.display = 'none';
+      document.getElementById('company-field').style.display = 'none';
+      document.getElementById('switch-prompt').style.display = 'none';
+      document.getElementById('tab-signup').style.display = 'none';
+      document.getElementById('form-title').textContent = 'Admin login';
+      document.getElementById('form-subtitle').textContent = 'Restricted to Alygnn admin accounts.';
+      document.getElementById('admin-link-row').style.display = 'none';
+    });
+  }
 
   // Pre-select role from URL param
   const urlRole = new URLSearchParams(window.location.search).get('role');
@@ -358,6 +383,10 @@
     btn.disabled = false; btn.textContent = orig;
     if (error) { showMsg(error.message); return; }
     await savePendingPreferences(data.user);
+    if (isAdminLogin) {
+      window.location.href = window.location.origin + '/employer-verification-admin.html';
+      return;
+    }
     const r = data.user?.user_metadata?.role || 'seeker';
     window.location.href = redirectFor(r);
   }
