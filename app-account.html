@@ -1,49 +1,1443 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alygnn My Profile</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F5F8F8">
+<title>Alygnn | Candidate Profile</title>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+
 <style>
-:root{--brand:#5D7FA3;--bg:#05080D;--card-bg:rgba(18,24,36,.94);--text:#FFFFFF;--border:rgba(255,255,255,.12);--text-muted:#A7B0BC;--mint:#6FBF8F;--rose:#D79A9A;}body.light{--bg:#F6F8F7;--card-bg:#FFFFFF;--text:#1A2530;--border:#DDE3E8;--text-muted:#4A5968;}*{box-sizing:border-box;font-family:'DM Sans',Arial,sans-serif!important;}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,rgba(93,127,163,.25),transparent 35%),var(--bg);color:var(--text)}.screen{min-height:100vh;max-width:520px;margin:auto;padding:28px 22px 100px}.logo{font-size:36px;font-weight:900;color:var(--brand)}.title{margin-top:28px;font-size:38px;font-weight:900}.subtitle{color:var(--text-muted);margin-top:8px;font-size:16px;line-height:1.5}.card{margin-top:18px;background:var(--card-bg);border:1px solid var(--border);border-radius:28px;padding:22px;box-shadow:0 18px 50px rgba(0,0,0,.25)}.profile-row{display:flex;align-items:center;gap:16px}.avatar{width:72px;height:72px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900}.name{font-size:22px;font-weight:900}.meta{color:var(--text-muted);margin-top:4px}.card-title{font-size:20px;font-weight:900;margin-bottom:8px}.card-sub{color:var(--text-muted);font-size:15px;line-height:1.5}.progress{margin-top:18px}.progress-top{display:flex;justify-content:space-between;font-weight:900;margin-bottom:10px}.bar{height:10px;background:rgba(93,127,163,.2);border-radius:999px;overflow:hidden}.fill{width:50%;height:100%;background:var(--brand)}.checklist{margin-top:16px;display:grid;gap:10px;color:var(--text-muted);font-weight:700}.good{color:var(--mint)}.warn{color:#F5A623}.btn{width:100%;min-height:58px;margin-top:14px;border-radius:20px;border:none;font-size:18px;font-weight:900;cursor:pointer;transition:.2s ease}.btn:active{transform:scale(.98)}.primary{background:var(--brand);color:white}.menu{display:grid;gap:12px;margin-top:14px}.menu-item{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:20px;padding:18px;color:var(--text);font-weight:800;display:flex;justify-content:space-between;align-items:center;cursor:pointer}.logout{color:var(--rose);text-align:center;margin:28px 0 10px;font-weight:900;cursor:pointer}.bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:auto;background:var(--card-bg);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:12px 10px 20px}.nav-item{color:var(--text-muted);font-size:13px;font-weight:800;text-align:center;cursor:pointer}.nav-item.active{color:var(--brand)}
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:'DM Sans',Arial,sans-serif!important;
+}
+
+:root{
+  --brand:#5D7FA3;
+  --brand-dark:#35679A;
+  --brand-soft:#EAF2F8;
+  --sage:#8CB69B;
+  --sage-soft:#E8F4EC;
+  --bg:#F5F8F8;
+  --card:#FFFFFF;
+  --text:#172333;
+  --muted:#66788A;
+  --border:#DCE5EB;
+  --soft:#F0F4F6;
+  --amber:#A06C12;
+  --amber-soft:#FFF3DF;
+  --rose:#B95D5D;
+  --rose-soft:#FDEEEE;
+  --shadow:0 14px 38px rgba(23,35,51,.055);
+}
+
+html,body{
+  width:100%;
+  min-height:100%;
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparent 27%),
+    var(--bg);
+  color:var(--text);
+  padding-bottom:calc(88px + env(safe-area-inset-bottom));
+}
+
+button{
+  font:inherit;
+  cursor:pointer;
+}
+
+[hidden]{display:none!important}
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+.app-header{
+  position:sticky;
+  top:0;
+  z-index:40;
+  min-height:86px;
+  display:grid;
+  grid-template-columns:46px 1fr 46px;
+  align-items:center;
+  padding:calc(12px + env(safe-area-inset-top)) 18px 12px;
+  background:rgba(245,248,248,.96);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+
+.header-spacer{
+  width:42px;
+  height:42px;
+}
+
+.logo{
+  text-align:center;
+  color:var(--brand);
+  font-family:'DM Serif Display',Georgia,serif!important;
+  font-size:31px;
+  line-height:1;
+}
+
+.logo span{
+  color:var(--sage);
+}
+
+.settings-shortcut{
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:#fff;
+  color:var(--brand-dark);
+  box-shadow:0 7px 20px rgba(23,35,51,.045);
+  font-size:18px;
+}
+
+/* =====================================================
+   PAGE
+===================================================== */
+
+.page{
+  width:100%;
+  max-width:560px;
+  margin:0 auto;
+  padding:28px 18px 34px;
+}
+
+.eyebrow{
+  color:var(--brand-dark);
+  font-size:11px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:1.35px;
+  text-transform:uppercase;
+}
+
+.greeting{
+  margin-top:10px;
+  font-size:34px;
+  line-height:1.08;
+  letter-spacing:-.75px;
+  font-weight:900;
+}
+
+.lead{
+  margin-top:9px;
+  max-width:440px;
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.6;
+}
+
+/* =====================================================
+   HERO
+===================================================== */
+
+.hero{
+  position:relative;
+  overflow:hidden;
+  margin-top:24px;
+  min-height:245px;
+  padding:24px;
+  border-radius:30px;
+  background:
+    linear-gradient(135deg,#35679A 0%,#5D89B4 78%,#6C94B8 100%);
+  color:#fff;
+  box-shadow:0 18px 44px rgba(53,103,154,.16);
+}
+
+.hero:after{
+  content:'';
+  position:absolute;
+  right:-52px;
+  bottom:-72px;
+  width:190px;
+  height:190px;
+  border-radius:50%;
+  background:rgba(255,255,255,.08);
+}
+
+.hero-top{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+}
+
+.hero-label{
+  color:rgba(255,255,255,.82);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+}
+
+.hero-title{
+  margin-top:10px;
+  max-width:330px;
+  font-size:28px;
+  line-height:1.14;
+  letter-spacing:-.6px;
+  font-weight:900;
+}
+
+.score-box{
+  flex:0 0 94px;
+  width:94px;
+  min-height:104px;
+  padding:14px 10px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:22px;
+  background:rgba(255,255,255,.12);
+  backdrop-filter:blur(10px);
+}
+
+.score-value{
+  font-size:26px;
+  line-height:1;
+  font-weight:900;
+}
+
+.score-label{
+  margin-top:7px;
+  color:rgba(255,255,255,.82);
+  font-size:8px;
+  line-height:1.2;
+  text-align:center;
+  text-transform:uppercase;
+  font-weight:900;
+  letter-spacing:.55px;
+}
+
+.hero-progress{
+  position:relative;
+  z-index:2;
+  margin-top:22px;
+}
+
+.hero-progress-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:8px;
+  color:rgba(255,255,255,.9);
+  font-size:10px;
+  font-weight:800;
+}
+
+.hero-bar{
+  height:8px;
+  overflow:hidden;
+  border-radius:999px;
+  background:rgba(255,255,255,.22);
+}
+
+.hero-fill{
+  width:0;
+  height:100%;
+  border-radius:999px;
+  background:#fff;
+  transition:width .35s ease;
+}
+
+.hero-actions{
+  position:relative;
+  z-index:2;
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:20px;
+}
+
+.hero-btn{
+  min-height:48px;
+  padding:0 18px;
+  border-radius:15px;
+  font-size:12px;
+  font-weight:900;
+}
+
+.hero-btn.primary{
+  border:none;
+  background:#fff;
+  color:var(--brand-dark);
+}
+
+.hero-btn.secondary{
+  border:1px solid rgba(255,255,255,.28);
+  background:rgba(255,255,255,.08);
+  color:#fff;
+}
+
+/* =====================================================
+   QUICK CARDS
+===================================================== */
+
+.section{
+  margin-top:24px;
+}
+
+.section-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.section-title{
+  font-size:19px;
+  font-weight:900;
+  letter-spacing:-.2px;
+}
+
+.section-link{
+  border:none;
+  background:transparent;
+  color:var(--brand-dark);
+  font-size:11px;
+  font-weight:900;
+}
+
+.quick-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.quick-card{
+  min-height:154px;
+  padding:17px;
+  border:1px solid var(--border);
+  border-radius:24px;
+  background:#fff;
+  box-shadow:var(--shadow);
+}
+
+.quick-icon{
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:14px;
+  background:var(--brand-soft);
+  color:var(--brand-dark);
+  font-size:18px;
+  font-weight:900;
+}
+
+.quick-icon.green{
+  background:var(--sage-soft);
+  color:#32935D;
+}
+
+.quick-icon.amber{
+  background:var(--amber-soft);
+  color:var(--amber);
+}
+
+.quick-icon.gray{
+  background:#EFF2F4;
+  color:#6E7A86;
+}
+
+.quick-label{
+  margin-top:14px;
+  color:#47596D;
+  font-size:11px;
+  font-weight:800;
+}
+
+.quick-value{
+  margin-top:5px;
+  font-size:23px;
+  line-height:1.1;
+  font-weight:900;
+}
+
+.quick-note{
+  margin-top:7px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.4;
+  font-weight:700;
+}
+
+/* =====================================================
+   PROFILE CARD
+===================================================== */
+
+.profile-card,
+.setup-card,
+.account-card{
+  padding:20px;
+  border:1px solid var(--border);
+  border-radius:26px;
+  background:#fff;
+  box-shadow:var(--shadow);
+}
+
+.profile-top{
+  display:flex;
+  align-items:center;
+  gap:15px;
+}
+
+.avatar{
+  width:66px;
+  height:66px;
+  flex:0 0 66px;
+  display:grid;
+  place-items:center;
+  border-radius:21px;
+  background:linear-gradient(145deg,#6D93B8,#527AA2);
+  color:#fff;
+  font-size:22px;
+  font-weight:900;
+}
+
+.profile-copy{
+  min-width:0;
+  flex:1;
+}
+
+.profile-name{
+  font-size:20px;
+  line-height:1.15;
+  font-weight:900;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.profile-meta{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.45;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.profile-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:18px;
+}
+
+.profile-btn{
+  min-height:46px;
+  border-radius:14px;
+  font-size:11px;
+  font-weight:900;
+}
+
+.profile-btn.primary{
+  border:none;
+  background:var(--brand-dark);
+  color:#fff;
+}
+
+.profile-btn.secondary{
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+}
+
+/* =====================================================
+   SETUP
+===================================================== */
+
+.setup-intro{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+}
+
+.setup-list{
+  display:grid;
+  gap:10px;
+  margin-top:16px;
+}
+
+.setup-item{
+  width:100%;
+  min-height:68px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:13px 14px;
+  border:1px solid var(--border);
+  border-radius:17px;
+  background:#FAFCFD;
+  color:var(--text);
+  text-align:left;
+}
+
+.setup-item.done{
+  background:#FAFCFB;
+}
+
+.setup-status{
+  width:36px;
+  height:36px;
+  flex:0 0 36px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:var(--amber-soft);
+  color:var(--amber);
+  font-size:14px;
+  font-weight:900;
+}
+
+.setup-item.done .setup-status{
+  background:var(--sage-soft);
+  color:#33945E;
+}
+
+.setup-text{
+  min-width:0;
+  flex:1;
+}
+
+.setup-text strong{
+  display:block;
+  font-size:12px;
+  line-height:1.3;
+}
+
+.setup-text span{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:9.5px;
+  line-height:1.35;
+}
+
+.setup-arrow{
+  color:#8B9BAB;
+  font-size:18px;
+  font-weight:700;
+}
+
+/* =====================================================
+   ACCOUNT
+===================================================== */
+
+.account-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  min-height:60px;
+  border:none;
+  background:transparent;
+  color:var(--text);
+  text-align:left;
+}
+
+.account-row + .account-row{
+  border-top:1px solid var(--border);
+}
+
+.account-row-icon{
+  width:38px;
+  height:38px;
+  flex:0 0 38px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:var(--soft);
+  color:var(--brand-dark);
+  font-size:15px;
+}
+
+.account-row-copy{
+  flex:1;
+}
+
+.account-row-copy strong{
+  display:block;
+  font-size:12px;
+}
+
+.account-row-copy span{
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:9px;
+}
+
+.account-row.logout{
+  color:var(--rose);
+}
+
+.account-row.logout .account-row-icon{
+  color:var(--rose);
+  background:var(--rose-soft);
+}
+
+/* =====================================================
+   BOTTOM NAV
+===================================================== */
+
+.bottom-nav{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:50;
+  max-width:560px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  padding:8px 12px calc(10px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--border);
+  background:rgba(255,255,255,.97);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+
+.nav-item{
+  position:relative;
+  min-height:54px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  border:none;
+  background:transparent;
+  color:#738394;
+  font-size:9px;
+  font-weight:800;
+}
+
+.nav-item.active{
+  color:var(--brand-dark);
+}
+
+.nav-item.active:before{
+  content:'';
+  position:absolute;
+  top:-9px;
+  width:34px;
+  height:3px;
+  border-radius:999px;
+  background:var(--brand-dark);
+}
+
+.nav-icon{
+  font-size:17px;
+  line-height:1;
+}
+
+/* =====================================================
+   LOADING
+===================================================== */
+
+.loading{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  display:grid;
+  place-items:center;
+  background:rgba(245,248,248,.98);
+}
+
+.spinner{
+  width:42px;
+  height:42px;
+  border:4px solid #E0E7EB;
+  border-top-color:var(--brand-dark);
+  border-radius:50%;
+  animation:spin .75s linear infinite;
+}
+
+.loading-text{
+  margin-top:10px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+}
+
+@keyframes spin{
+  to{transform:rotate(360deg)}
+}
+
+@media(max-width:390px){
+  .page{
+    padding-left:14px;
+    padding-right:14px;
+  }
+
+  .greeting{
+    font-size:30px;
+  }
+
+  .hero{
+    padding:20px;
+  }
+
+  .hero-title{
+    font-size:25px;
+  }
+
+  .score-box{
+    flex-basis:86px;
+    width:86px;
+    min-height:96px;
+  }
+}
 </style>
 </head>
+
 <body>
-<div class="screen"><div class="logo">Alygnn.</div><div class="title">My Profile</div><div class="subtitle">Manage your resume, preferences, and profile to get better job matches.</div><div class="card"><div class="profile-row"><div id="avatar" class="avatar">A</div><div><div id="profileName" class="name">Loading...</div><div id="profileEmail" class="meta">Checking account...</div><div id="profileLocation" class="meta">Alygnn member</div></div></div><div class="progress"><div class="progress-top"><span>Profile Completion</span><span id="completionText">50%</span></div><div class="bar"><div id="completionFill" class="fill"></div></div></div><div class="checklist"><div><span class="good">✓</span> Account Created</div><div id="resumeStatus"><span class="warn">!</span> Upload Resume</div><div id="prefStatus"><span class="warn">!</span> Complete Preferences</div></div></div><button class="btn primary" onclick="window.location.href='app-swipe.html'">Start Swiping</button><div class="card"><div class="card-title">Finish Setting Up Your Profile</div><div class="card-sub">Complete these steps to improve your matches.</div><div class="menu"><div class="menu-item" onclick="window.location.href='app-align-upload.html'">Upload or Build Resume <span>›</span></div><div class="menu-item" onclick="window.location.href='app-view-resume.html'">View Resume <span>›</span></div><div class="menu-item" onclick="window.location.href='app-preferences.html'">Job Preferences <span>›</span></div><div class="menu-item" onclick="alert('Work Experience page coming next')">Work Experience <span>›</span></div></div></div><div class="card"><div class="card-title">Account</div><div class="menu"><div class="menu-item" onclick="window.location.href='app-account-settings.html'">Settings <span>›</span></div></div></div><div class="logout" onclick="logoutUser()">Log out</div></div><div class="bottom-nav"><div class="nav-item" onclick="window.location.href='app-swipe.html'">Swipe</div><div class="nav-item" onclick="alert('Applied page coming next')">Applied</div><div class="nav-item active">My Profile</div></div>
+
+<div class="loading" id="loading">
+  <div style="text-align:center">
+    <div class="spinner"></div>
+    <div class="loading-text">Opening your candidate workspace…</div>
+  </div>
+</div>
+
+<header class="app-header">
+  <div class="header-spacer"></div>
+
+  <div class="logo">
+    Alygnn<span>.</span>
+  </div>
+
+  <button
+    class="settings-shortcut"
+    type="button"
+    aria-label="Open settings"
+    onclick="window.location.href='app-account-settings.html'"
+  >
+    ⚙
+  </button>
+</header>
+
+<main class="page">
+
+  <div class="eyebrow">Candidate Workspace</div>
+
+  <h1 class="greeting" id="greeting">
+    Welcome back.
+  </h1>
+
+  <p class="lead" id="lead">
+    Keep your profile ready so Alygnn can surface stronger job matches.
+  </p>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-top">
+      <div>
+        <div class="hero-label">Your Alygnn profile</div>
+
+        <div class="hero-title" id="hero-title">
+          Your profile is getting ready for stronger matches.
+        </div>
+      </div>
+
+      <div class="score-box">
+        <div class="score-value" id="hero-score">0%</div>
+        <div class="score-label">Profile ready</div>
+      </div>
+    </div>
+
+    <div class="hero-progress">
+      <div class="hero-progress-row">
+        <span>Profile completion</span>
+        <span id="completion-label">0%</span>
+      </div>
+
+      <div class="hero-bar">
+        <div class="hero-fill" id="completion-fill"></div>
+      </div>
+    </div>
+
+    <div class="hero-actions">
+      <button
+        class="hero-btn primary"
+        type="button"
+        onclick="window.location.href='app-swipe.html'"
+      >
+        Start Swiping
+      </button>
+
+      <button
+        class="hero-btn secondary"
+        id="hero-resume-btn"
+        type="button"
+        onclick="window.location.href='app-view-resume.html'"
+      >
+        View Resume
+      </button>
+    </div>
+  </section>
+
+  <!-- SNAPSHOT -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-title">Your snapshot</div>
+    </div>
+
+    <div class="quick-grid">
+      <article class="quick-card">
+        <div class="quick-icon" id="resume-icon">▤</div>
+        <div class="quick-label">Resume</div>
+        <div class="quick-value" id="resume-value">Checking</div>
+        <div class="quick-note" id="resume-note">Reviewing your resume status.</div>
+      </article>
+
+      <article class="quick-card">
+        <div class="quick-icon green" id="preference-icon">◎</div>
+        <div class="quick-label">Preferences</div>
+        <div class="quick-value" id="preference-value">Checking</div>
+        <div class="quick-note" id="preference-note">Checking your job preferences.</div>
+      </article>
+
+      <article class="quick-card">
+        <div class="quick-icon amber">◈</div>
+        <div class="quick-label">Applied Jobs</div>
+        <div class="quick-value" id="application-count">0</div>
+        <div class="quick-note" id="application-note">Applications connected to your profile.</div>
+      </article>
+
+      <article class="quick-card">
+        <div class="quick-icon gray">✓</div>
+        <div class="quick-label">Profile</div>
+        <div class="quick-value" id="profile-value">Ready</div>
+        <div class="quick-note" id="profile-note">Your Alygnn identity and contact information.</div>
+      </article>
+    </div>
+  </section>
+
+  <!-- PROFILE -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-title">Your profile</div>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-top">
+        <div class="avatar" id="avatar">A</div>
+
+        <div class="profile-copy">
+          <div class="profile-name" id="profileName">Loading…</div>
+          <div class="profile-meta" id="profileHeadline">Alygnn candidate</div>
+          <div class="profile-meta" id="profileEmail">Checking your account…</div>
+          <div class="profile-meta" id="profileLocation">Location not added</div>
+        </div>
+      </div>
+
+      <div class="profile-actions">
+        <button
+          class="profile-btn primary"
+          type="button"
+          onclick="window.location.href='app-view-resume.html'"
+        >
+          View Resume
+        </button>
+
+        <button
+          class="profile-btn secondary"
+          type="button"
+          onclick="window.location.href='app-preferences.html'"
+        >
+          Preferences
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETUP -->
+  <section class="section" id="setup-section">
+    <div class="section-head">
+      <div class="section-title">Finish your setup</div>
+    </div>
+
+    <div class="setup-card">
+      <p class="setup-intro">
+        Complete anything missing so Alygnn can make better recommendations.
+      </p>
+
+      <div class="setup-list">
+        <button
+          class="setup-item"
+          id="resume-setup"
+          type="button"
+          onclick="window.location.href='app-align-upload.html'"
+        >
+          <div class="setup-status" id="resume-setup-status">!</div>
+
+          <div class="setup-text">
+            <strong id="resume-setup-title">Upload or build your resume</strong>
+            <span id="resume-setup-copy">Give employers a complete view of your experience.</span>
+          </div>
+
+          <div class="setup-arrow">›</div>
+        </button>
+
+        <button
+          class="setup-item"
+          id="preferences-setup"
+          type="button"
+          onclick="window.location.href='app-preferences.html'"
+        >
+          <div class="setup-status" id="preferences-setup-status">!</div>
+
+          <div class="setup-text">
+            <strong id="preferences-setup-title">Complete job preferences</strong>
+            <span id="preferences-setup-copy">Tell Alygnn what roles, pay, and work style you want.</span>
+          </div>
+
+          <div class="setup-arrow">›</div>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACCOUNT -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-title">Account</div>
+    </div>
+
+    <div class="account-card">
+      <button
+        class="account-row"
+        type="button"
+        onclick="window.location.href='app-account-settings.html'"
+      >
+        <div class="account-row-icon">⚙</div>
+
+        <div class="account-row-copy">
+          <strong>Settings</strong>
+          <span>Appearance, account, security, and preferences</span>
+        </div>
+
+        <div class="setup-arrow">›</div>
+      </button>
+
+      <button
+        class="account-row logout"
+        type="button"
+        onclick="logoutUser()"
+      >
+        <div class="account-row-icon">↗</div>
+
+        <div class="account-row-copy">
+          <strong>Log out</strong>
+          <span>Sign out of this Alygnn account</span>
+        </div>
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<nav class="bottom-nav">
+  <button
+    class="nav-item"
+    type="button"
+    onclick="window.location.href='app-swipe.html'"
+  >
+    <span class="nav-icon">◇</span>
+    <span>Swipe</span>
+  </button>
+
+  <button
+    class="nav-item"
+    type="button"
+    onclick="window.location.href='app-applied.html'"
+  >
+    <span class="nav-icon">▣</span>
+    <span>Applied</span>
+  </button>
+
+  <button
+    class="nav-item active"
+    type="button"
+  >
+    <span class="nav-icon">◉</span>
+    <span>My Profile</span>
+  </button>
+</nav>
+
 <script>
-const SUPABASE_URL="https://auth.alygnn.com";const SUPABASE_KEY="sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG";const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-function applyTheme(){const theme=localStorage.getItem('alygnn-theme')||'system';document.body.classList.remove('light');if(theme==='light')document.body.classList.add('light');if(theme==='system'&&window.matchMedia('(prefers-color-scheme: light)').matches)document.body.classList.add('light');}
-function titleFromEmail(email){if(!email)return 'Alygnn Member';return email.split('@')[0].replace(/[._-]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());}
-function initials(value){if(!value)return 'A';const clean=value.replace(/@.*/,'').replace(/[._-]/g,' ').trim();const parts=clean.split(/\s+/).filter(Boolean);if(parts.length>=2)return(parts[0][0]+parts[1][0]).toUpperCase();return clean[0]?clean[0].toUpperCase():'A';}
-async function loadProfile(){const {data,error}=await sb.auth.getSession();if(error||!data.session){window.location.replace('app-login.html');return;}const user=data.session.user;const meta=user.user_metadata||{};const email=user.email||'';const name=meta.full_name||meta.name||meta.first_name||titleFromEmail(email);document.getElementById('profileName').textContent=name;document.getElementById('profileEmail').textContent=email;document.getElementById('profileLocation').textContent=meta.location||'Alygnn member';document.getElementById('avatar').textContent=initials(name||email);let completion=50;if(name)completion+=20;if(email)completion+=10;
+const SUPABASE_URL='https://auth.alygnn.com';
+const SUPABASE_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
 
-const {data:profileData,error:profileError}=await sb
-  .from('profiles')
-  .select('resume_file_path,resume_source')
-  .eq('id',user.id)
-  .maybeSingle();
+const sb=supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  {
+    auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true
+    }
+  }
+);
 
-if(profileError){
-  console.error('Profile resume check failed:',profileError);
+const $=id=>document.getElementById(id);
+
+function safeString(value){
+  return String(value ?? '').trim();
 }
 
-if(profileData&&profileData.resume_file_path){
-  completion+=20;
-  document.getElementById('resumeStatus').innerHTML='<span class="good">✓</span> Resume Uploaded';
+function titleFromEmail(email){
+  if(!email) return 'Alygnn Member';
+
+  return email
+    .split('@')[0]
+    .replace(/[._-]/g,' ')
+    .replace(/\b\w/g,c=>c.toUpperCase());
 }
 
-if(meta.preferences_complete){
-  document.getElementById('prefStatus').innerHTML='<span class="good">✓</span> Job Preferences Complete';
+function initials(value){
+  if(!value) return 'A';
+
+  const clean=String(value)
+    .replace(/@.*/,'')
+    .replace(/[._-]/g,' ')
+    .trim();
+
+  const parts=clean
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if(parts.length>=2){
+    return(
+      (parts[0][0]||'')+
+      (parts[1][0]||'')
+    ).toUpperCase();
+  }
+
+  return clean[0]
+    ?clean[0].toUpperCase()
+    :'A';
 }
 
-if(completion>100)completion=100;
-document.getElementById('completionText').textContent=completion+'%';
-document.getElementById('completionFill').style.width=completion+'%';
+function parseObject(value){
+  if(!value) return {};
+
+  if(
+    typeof value==='object' &&
+    !Array.isArray(value)
+  ){
+    return value;
+  }
+
+  if(typeof value==='string'){
+    try{
+      const parsed=JSON.parse(value);
+      return parsed && typeof parsed==='object'
+        ?parsed
+        :{};
+    }catch(_){
+      return {};
+    }
+  }
+
+  return {};
 }
-async function logoutUser(){try{await sb.auth.signOut({scope:'global'});}catch(error){console.log('Logout error:',error);}Object.keys(localStorage).forEach(function(key){const lower=key.toLowerCase();if(lower.includes('supabase')||lower.includes('sb-')||lower.includes('alygnn'))localStorage.removeItem(key);});sessionStorage.clear();window.location.replace('app-login.html?logout=1');}
-applyTheme();loadProfile();
+
+function getGreeting(name){
+  const hour=new Date().getHours();
+
+  let part='Welcome back';
+
+  if(hour<12){
+    part='Good morning';
+  }else if(hour<18){
+    part='Good afternoon';
+  }else{
+    part='Good evening';
+  }
+
+  const firstName=
+    safeString(name)
+      .split(/\s+/)
+      .filter(Boolean)[0];
+
+  return firstName
+    ?part+', '+firstName
+    :part;
+}
+
+function setSetupDone(item,status,title,copy){
+  item.classList.add('done');
+  status.textContent='✓';
+  title.textContent=title;
+  copy.textContent=copy;
+}
+
+async function countApplications(userId){
+  try{
+    const result=await sb
+      .from('applications')
+      .select('id',{count:'exact',head:true})
+      .eq('candidate_id',userId);
+
+    if(!result.error){
+      return result.count || 0;
+    }
+
+    const fallback=await sb
+      .from('applications')
+      .select('id',{count:'exact',head:true})
+      .eq('user_id',userId);
+
+    if(!fallback.error){
+      return fallback.count || 0;
+    }
+  }catch(error){
+    console.warn(
+      'Application count unavailable:',
+      error
+    );
+  }
+
+  return 0;
+}
+
+async function loadCandidateWorkspace(){
+  try{
+    const {
+      data,
+      error
+    }=await sb.auth.getSession();
+
+    if(
+      error ||
+      !data.session
+    ){
+      window.location.replace(
+        'app-login.html'
+      );
+      return;
+    }
+
+    const user=data.session.user;
+    const meta=user.user_metadata || {};
+    const email=user.email || '';
+
+    const {
+      data:profile,
+      error:profileError
+    }=await sb
+      .from('profiles')
+      .select('*')
+      .eq('id',user.id)
+      .maybeSingle();
+
+    if(profileError){
+      console.warn(
+        'Candidate profile lookup failed:',
+        profileError
+      );
+    }
+
+    const resumeData=
+      parseObject(
+        profile?.resume_data
+      );
+
+    const personal=
+      parseObject(
+        resumeData.personal
+      );
+
+    const resumeName=
+      [
+        personal.first_name,
+        personal.last_name
+      ]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    const name=
+      safeString(
+        profile?.full_name ||
+        profile?.name ||
+        meta.full_name ||
+        meta.name ||
+        resumeData.name ||
+        resumeName ||
+        titleFromEmail(email)
+      );
+
+    const location=
+      safeString(
+        profile?.location ||
+        resumeData.location ||
+        [
+          personal.city,
+          personal.state
+        ]
+        .filter(Boolean)
+        .join(', ') ||
+        meta.location
+      );
+
+    const headline=
+      safeString(
+        profile?.headline ||
+        profile?.title ||
+        resumeData.title ||
+        resumeData.headline ||
+        'Alygnn candidate'
+      );
+
+    const hasResume=Boolean(
+      profile?.resume_file_path ||
+      profile?.resume_url ||
+      profile?.resume_data ||
+      profile?.resume_text ||
+      resumeData.name ||
+      resumeData.skills ||
+      resumeData.experience
+    );
+
+    const preferencesComplete=Boolean(
+      meta.preferences_complete ||
+      profile?.preferences_complete ||
+      localStorage.getItem('alygnn_preferences_complete')==='true'
+    );
+
+    const hasProfileDetails=Boolean(
+      name &&
+      email &&
+      (
+        location ||
+        headline
+      )
+    );
+
+    /*
+     * Candidate completion is based on the four things that actually
+     * improve matching, rather than starting at an arbitrary 50%.
+     */
+    let completion=25;
+
+    if(hasResume){
+      completion+=30;
+    }
+
+    if(preferencesComplete){
+      completion+=25;
+    }
+
+    if(hasProfileDetails){
+      completion+=20;
+    }
+
+    completion=Math.min(
+      completion,
+      100
+    );
+
+    const applicationCount=
+      await countApplications(
+        user.id
+      );
+
+    $('greeting').textContent=
+      getGreeting(name);
+
+    $('lead').textContent=
+      applicationCount
+        ?`You have ${applicationCount} application${applicationCount===1?'':'s'} connected to your profile. Keep your information current for stronger matches.`
+        :'Keep your profile current so Alygnn can surface stronger job matches.';
+
+    $('avatar').textContent=
+      initials(
+        name || email
+      );
+
+    $('profileName').textContent=
+      name || 'Alygnn Member';
+
+    $('profileEmail').textContent=
+      email || 'Email not available';
+
+    $('profileLocation').textContent=
+      location || 'Location not added';
+
+    $('profileHeadline').textContent=
+      headline;
+
+    $('completion-label').textContent=
+      completion+'%';
+
+    $('hero-score').textContent=
+      completion+'%';
+
+    $('completion-fill').style.width=
+      completion+'%';
+
+    if(completion===100){
+      $('hero-title').textContent=
+        'Your profile is ready for your next strong match.';
+    }else if(completion>=75){
+      $('hero-title').textContent=
+        'Your profile is almost ready for stronger matches.';
+    }else{
+      $('hero-title').textContent=
+        'Finish your profile to unlock stronger matches.';
+    }
+
+    if(hasResume){
+      $('resume-value').textContent='Ready';
+      $('resume-note').textContent='Your resume is connected to Alygnn.';
+      $('resume-icon').classList.add('green');
+
+      setSetupDone(
+        $('resume-setup'),
+        $('resume-setup-status'),
+        $('resume-setup-title'),
+        $('resume-setup-copy')
+      );
+
+      $('resume-setup-title').textContent=
+        'Resume ready';
+
+      $('resume-setup-copy').textContent=
+        'View or update your resume whenever you need.';
+    }else{
+      $('resume-value').textContent='Missing';
+      $('resume-note').textContent='Upload or build a resume to strengthen your profile.';
+      $('hero-resume-btn').textContent='Build Resume';
+      $('hero-resume-btn').onclick=()=>{
+        window.location.href='app-align-upload.html';
+      };
+    }
+
+    if(preferencesComplete){
+      $('preference-value').textContent='Ready';
+      $('preference-note').textContent='Your match preferences are complete.';
+
+      setSetupDone(
+        $('preferences-setup'),
+        $('preferences-setup-status'),
+        $('preferences-setup-title'),
+        $('preferences-setup-copy')
+      );
+
+      $('preferences-setup-title').textContent=
+        'Preferences ready';
+
+      $('preferences-setup-copy').textContent=
+        'Update your target roles, salary, location, or work style anytime.';
+    }else{
+      $('preference-value').textContent='Missing';
+      $('preference-note').textContent='Complete your preferences for better job matching.';
+      $('preference-icon').classList.remove('green');
+      $('preference-icon').classList.add('amber');
+    }
+
+    $('application-count').textContent=
+      applicationCount;
+
+    $('application-note').textContent=
+      applicationCount
+        ?`${applicationCount} job application${applicationCount===1?'':'s'} on Alygnn.`
+        :'Your applications will appear here as you swipe and apply.';
+
+    $('profile-value').textContent=
+      hasProfileDetails
+        ?'Ready'
+        :'Finish';
+
+    $('profile-note').textContent=
+      hasProfileDetails
+        ?'Your identity and profile details are connected.'
+        :'Add your location or professional information.';
+
+    if(
+      hasResume &&
+      preferencesComplete
+    ){
+      $('setup-section').hidden=true;
+    }
+
+  }catch(error){
+    console.error(
+      'Candidate workspace failed:',
+      error
+    );
+  }finally{
+    $('loading').hidden=true;
+  }
+}
+
+async function logoutUser(){
+  try{
+    await sb.auth.signOut({
+      scope:'global'
+    });
+  }catch(error){
+    console.log(
+      'Logout error:',
+      error
+    );
+  }
+
+  Object.keys(localStorage)
+    .forEach(key=>{
+      const lower=
+        key.toLowerCase();
+
+      if(
+        lower.includes('supabase') ||
+        lower.includes('sb-') ||
+        lower.includes('alygnn')
+      ){
+        localStorage.removeItem(
+          key
+        );
+      }
+    });
+
+  sessionStorage.clear();
+
+  window.location.replace(
+    'app-login.html?logout=1'
+  );
+}
+
+loadCandidateWorkspace();
 </script>
+
 </body>
 </html>
-<!-- STANDALONE_ACCOUNT_VERSION -->
