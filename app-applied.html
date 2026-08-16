@@ -82,7 +82,7 @@ body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparen
 .secondary{border-color:var(--border)!important;background:#fff!important;color:var(--text)!important}
 .message.error{background:#FDEEEE!important;color:var(--rose)!important}
 .bottom-nav{
-  max-width:560px!important;display:grid!important;grid-template-columns:repeat(3,1fr)!important;
+  max-width:560px!important;display:grid!important;grid-template-columns:repeat(4,1fr)!important;
   padding:8px 12px calc(10px + env(safe-area-inset-bottom))!important;
   background:rgba(255,255,255,.97)!important;border-top:1px solid var(--border)!important;
   backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)
@@ -105,34 +105,50 @@ body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparen
   <button class="profile-btn" type="button" aria-label="Open profile" onclick="location.href='app-account.html'">◉</button>
 </header>
 <div class="eyebrow">Candidate Workspace</div>
-<div class="title">Your Applications</div>
-<div class="subtitle">Track every application, interview, and hiring update from one place.</div>
-<div class="stats"><div class="stat"><div id="totalCount" class="stat-number">0</div><div class="stat-label">Total</div></div><div class="stat"><div id="interviewCount" class="stat-number">0</div><div class="stat-label">Interviews</div></div><div class="stat"><div id="offerCount" class="stat-number">0</div><div class="stat-label">Offers</div></div></div>
-<div class="tabs"><button class="tab active" onclick="filterApps('all',this)">All</button><button class="tab" onclick="filterApps('applied',this)">Applied</button><button class="tab" onclick="filterApps('interview',this)">Interview</button><button class="tab" onclick="filterApps('offer',this)">Offer</button><button class="tab" onclick="filterApps('rejected',this)">Rejected</button></div>
+<div class="title">My Jobs</div>
+<div class="subtitle">Track the jobs you applied to and see every employer update in one place.</div>
+<div class="stats"><div class="stat"><div id="totalCount" class="stat-number">0</div><div class="stat-label">Total</div></div><div class="stat"><div id="interviewCount" class="stat-number">0</div><div class="stat-label">Interviews</div></div><div class="stat"><div id="offerCount" class="stat-number">0</div><div class="stat-label">Hired</div></div></div>
+<div class="tabs">
+  <button class="tab active" onclick="filterApps('all',this)">All</button>
+  <button class="tab" onclick="filterApps('applied',this)">Applied</button>
+  <button class="tab" onclick="filterApps('reviewed',this)">Under Review</button>
+  <button class="tab" onclick="filterApps('interview',this)">Interview</button>
+  <button class="tab" onclick="filterApps('hired',this)">Hired</button>
+  <button class="tab" onclick="filterApps('rejected',this)">Not Selected</button>
+</div>
 <div id="message" class="message"></div><div id="content"><div class="loading">Loading your applications...</div></div>
 </div>
-<div class="bottom-nav">
-  <button class="nav-item" type="button" onclick="location.href='app-swipe.html'"><span class="nav-icon">◇</span><span>Swipe</span></button>
-  <button class="nav-item active" type="button"><span class="nav-icon">▣</span><span>Applied</span></button>
-  <button class="nav-item" type="button" onclick="location.href='app-account.html'"><span class="nav-icon">◉</span><span>My Profile</span></button>
-</div>
+<nav class="bottom-nav" aria-label="Candidate navigation">
+  <button class="nav-item" type="button" onclick="window.location.href='app-account.html'"><span class="nav-icon">◉</span><span>My Profile</span></button>
+  <button class="nav-item" type="button" onclick="window.location.href='app-swipe.html'"><span class="nav-icon">◇</span><span>Swipe</span></button>
+  <button class="nav-item active" type="button"><span class="nav-icon">▣</span><span>My Jobs</span></button>
+  <button class="nav-item" type="button" onclick="window.location.href='app-account-settings.html'"><span class="nav-icon">⚙</span><span>Settings</span></button>
+</nav>
 <script>
 const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let apps=[],active='all';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 const fmt=v=>{const d=new Date(v);return isNaN(d)?'Recently':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})};
 function filterApps(s,b){active=s;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');render()}
+function statusLabel(status){
+ const s=String(status||'applied').toLowerCase();
+ if(s==='reviewed')return 'Under review';
+ if(s==='interview')return 'Interview';
+ if(s==='hired'||s==='accepted'||s==='offer')return 'Hired';
+ if(s==='rejected')return 'Not selected';
+ return 'Applied';
+}
 function render(){
- const rows=active==='all'?apps:apps.filter(x=>x.status===active);
+ const rows=active==='all'?apps:apps.filter(x=>active==='hired'?['hired','accepted','offer'].includes(x.status):x.status===active);
  document.getElementById('totalCount').textContent=apps.length;
  document.getElementById('interviewCount').textContent=apps.filter(x=>x.status==='interview').length;
- document.getElementById('offerCount').textContent=apps.filter(x=>x.status==='offer').length;
+ document.getElementById('offerCount').textContent=apps.filter(x=>['hired','accepted','offer'].includes(x.status)).length;
  if(!rows.length){document.getElementById('content').innerHTML=`<div class="empty"><div class="empty-title">No applications yet</div><div class="empty-copy">When you apply to jobs, they will appear here with their latest status.</div><button class="btn primary" onclick="location.href='app-swipe.html'">Find Jobs</button></div>`;return}
- document.getElementById('content').innerHTML=`<div class="list">${rows.map(x=>{const j=x.jobs||{};return `<div class="card"><div class="card-top"><div><div class="job-title">${esc(j.title||'Job Application')}</div><div class="company">${esc(j.company_name||j.company||'Employer')}</div></div><div class="status ${x.status}">${esc(x.status[0].toUpperCase()+x.status.slice(1))}</div></div><div class="meta"><span>${esc(j.location||'')}</span><span>Applied ${esc(fmt(x.applied_at))}</span></div>${x.match_score!=null?`<div class="match">${esc(x.match_score)}% Match</div>`:''}<div class="actions"><button class="btn primary" onclick="location.href='app-job-details.html?id=${encodeURIComponent(j.id||x.job_id)}'">View Job</button><button class="btn secondary" onclick="location.href='app-application-details.html?id=${encodeURIComponent(x.id)}'">Details</button></div></div>`}).join('')}</div>`;
+ document.getElementById('content').innerHTML=`<div class="list">${rows.map(x=>{const j=x.jobs||{};return `<div class="card"><div class="card-top"><div><div class="job-title">${esc(j.title||'Job Application')}</div><div class="company">${esc(j.company_name||j.company||'Employer')}</div></div><div class="status ${x.status}">${esc(statusLabel(x.status))}</div></div><div class="meta"><span>${esc(j.location||'')}</span><span>Applied ${esc(fmt(x.applied_at))}</span></div>${x.match_score!=null?`<div class="match">${esc(x.match_score)}% Match</div>`:''}<div class="actions"><button class="btn primary" onclick="location.href='app-job-details.html?id=${encodeURIComponent(j.id||x.job_id)}'">View Job</button><button class="btn secondary" onclick="location.href='app-application-details.html?id=${encodeURIComponent(x.id)}'">Details</button></div></div>`}).join('')}</div>`;
 }
 (async()=>{
  const{data,error}=await sb.auth.getSession();if(error||!data.session){location.replace('app-login.html');return}
- const{data:rows,error:e}=await sb.from('applications').select('id,job_id,status,applied_at,match_score,jobs(id,title,company_name,company,location)').eq('candidate_id',data.session.user.id).order('applied_at',{ascending:false});
+ const{data:rows,error:e}=await sb.from('applications').select('id,job_id,status,applied_at,match_score,jobs(id,title,company,location)').eq('candidate_id',data.session.user.id).order('applied_at',{ascending:false});
  if(e){console.error(e);document.getElementById('message').textContent=e.message||'Applications could not be loaded.';document.getElementById('message').className='message error';apps=[];render();return}
  apps=(rows||[]).map(x=>({...x,status:String(x.status||'applied').toLowerCase()}));render();
 })();
