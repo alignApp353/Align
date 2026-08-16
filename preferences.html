@@ -185,9 +185,11 @@
      picker further down the page, since a rigid <select> doesn't scale
      to thousands of cities the way it does for country/state. */
   .city-suggestions {
-    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    /* Keep autocomplete results in the document flow so the list expands
+       the Location section instead of covering the Work style cards below. */
+    position: relative; width: 100%; margin-top: 4px;
     background: white; border: 1px solid var(--border); border-radius: 10px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.08); max-height: 200px; overflow-y: auto;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08); max-height: 220px; overflow-y: auto;
     display: none; z-index: 10;
   }
   .city-suggestion-item {
@@ -713,7 +715,7 @@
     'Boston, MA','Nashville, TN','Detroit, MI','Portland, OR','Memphis, TN',
     'Oklahoma City, OK','Las Vegas, NV','Louisville, KY','Baltimore, MD','Milwaukee, WI',
     'Albuquerque, NM','Tucson, AZ','Fresno, CA','Sacramento, CA','Kansas City, MO',
-    'Mesa, AZ','Atlanta, GA','Omaha, NE','Colorado Springs, CO','Raleigh, NC',
+    'Mesa, AZ','Atlanta, GA','Omaha, NE','Colorado Springs, CO',
     'Miami, FL','Tampa, FL','Orlando, FL','Virginia Beach, VA','Long Beach, CA',
     'Oakland, CA','Minneapolis, MN','Tulsa, OK','Arlington, TX','New Orleans, LA',
     'Wichita, KS','Cleveland, OH','Bakersfield, CA','Aurora, CO','Anaheim, CA',
@@ -830,7 +832,42 @@
       return;
     }
 
-    const matches = KNOWN_CITIES.filter(city => normalize(city).includes(value)).slice(0, 8);
+    /*
+     * Rank city results by how a person actually searches:
+     *   1. City starts with what they typed ("ra" -> Raleigh)
+     *   2. A word in the city starts with it ("springs" -> Colorado Springs)
+     *   3. For 3+ characters, allow a later substring ("fran" -> San Francisco)
+     *
+     * We also de-duplicate defensively so the same city can never be shown twice,
+     * even if it is accidentally added to KNOWN_CITIES more than once later.
+     */
+    const uniqueCities = [...new Map(
+      KNOWN_CITIES.map(city => [normalize(city), city])
+    ).values()];
+
+    const ranked = uniqueCities.map(city => {
+      const full = normalize(city);
+      const cityName = normalize(city.split(',')[0]);
+      const words = cityName.split(/\s+/).filter(Boolean);
+      let score = null;
+
+      if (cityName === value) score = 0;
+      else if (cityName.startsWith(value)) score = 1;
+      else if (words.some(word => word.startsWith(value))) score = 2;
+      else if (full.startsWith(value)) score = 3;
+      else if (value.length >= 3 && cityName.includes(value)) score = 4;
+      else if (value.length >= 4 && full.includes(value)) score = 5;
+
+      return { city, cityName, score };
+    }).filter(item => item.score !== null);
+
+    ranked.sort((a, b) =>
+      a.score - b.score ||
+      a.cityName.localeCompare(b.cityName) ||
+      a.city.localeCompare(b.city)
+    );
+
+    const matches = ranked.slice(0, 6).map(item => item.city);
 
     if (matches.length === 0) {
       box.style.display = 'none';
