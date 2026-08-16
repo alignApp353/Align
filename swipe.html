@@ -84,6 +84,18 @@
     padding: 12px 28px; font-size: 14px; font-weight: 500;
     font-family: 'DM Sans', sans-serif; cursor: pointer;
   }
+  .state-actions {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    margin-top: 8px;
+  }
+  .state-actions .btn-retry, .state-actions .btn-reload { margin-top: 0; }
+  .btn-preferences {
+    background: transparent; color: var(--brand);
+    border: 1.5px solid var(--brand); border-radius: 100px;
+    padding: 11px 24px; font-size: 14px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-preferences:hover { background: var(--brand-light); transform: translateY(-1px); }
 
   /* SWIPE AREA */
   .swipe-area {
@@ -278,7 +290,10 @@
   <div class="error-icon">😕</div>
   <div class="error-title">Couldn't load jobs</div>
   <div class="error-sub" id="error-msg">Something went wrong fetching jobs. Check your internet connection and try again.</div>
-  <button class="btn-retry" onclick="loadJobs()">Try again</button>
+  <div class="state-actions">
+    <button class="btn-retry" onclick="loadJobs()">Try again</button>
+    <button class="btn-preferences" onclick="goToPreferences()">Set preferences again</button>
+  </div>
 </div>
 
 <!-- SWIPE AREA -->
@@ -296,7 +311,10 @@
   <div class="empty-icon">🎉</div>
   <div class="empty-title">You've seen them all!</div>
   <div class="empty-sub">You went through all your matches. Load a fresh batch or update your preferences.</div>
-  <button class="btn-reload" onclick="loadJobs()">Load more jobs</button>
+  <div class="state-actions">
+    <button class="btn-reload" onclick="loadJobs()">Load more jobs</button>
+    <button class="btn-preferences" onclick="goToPreferences()">Set preferences again</button>
+  </div>
 </div>
 
 <!-- TOAST -->
@@ -469,6 +487,10 @@
       document.getElementById('error-msg').textContent = err.message || 'Failed to load jobs.';
       showScreen('error');
     }
+  }
+
+  function goToPreferences() {
+    window.location.href = 'preferences.html';
   }
 
   function showScreen(name) {
