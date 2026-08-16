@@ -1420,12 +1420,22 @@ async function initAccountPage(){
 
   const { data: profile, error } = await sb
     .from('profiles')
-    .select('has_password, role, full_name, resume_file_path, resume_data, preferences')
+    .select('is_admin, has_password, role, full_name, resume_file_path, resume_data, preferences')
     .eq('id', currentUserId)
     .maybeSingle();
 
   if(error && error.code !== 'PGRST116'){
     console.error('Failed to load profile:', error);
+  }
+
+  // ADMIN ROUTING MUST HAPPEN BEFORE ANY CANDIDATE/EMPLOYER UI IS RENDERED.
+  // Admin accounts share the same Supabase Auth session on alygnn.com, so
+  // without this guard an admin with no candidate role falls through to the
+  // seeker account page. Keep admin completely separate and send it back to
+  // the protected Trust & Safety workspace instead.
+  if(profile?.is_admin === true){
+    window.location.replace('employer-verification-admin.html');
+    return;
   }
 
   // Supabase already knows how someone authenticated via user.identities —
