@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Alygnn — Edit Resume</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
   --brand:#5D7FA3;--sage:#8CB69B;--bg:#05080D;--card:rgba(18,24,36,.94);
@@ -69,13 +66,67 @@ button,input,textarea{font:inherit}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:420px){.title{font-size:32px}.two{grid-template-columns:1fr}.full{grid-column:auto}}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style id="candidate-portal-theme">
+
+:root{
+  --brand:#5D7FA3;--brand-dark:#35679A;--sage:#8CB69B;--bg:#F5F8F8;--card:#FFFFFF;
+  --text:#172333;--muted:#66788A;--border:#DCE5EB;--mint:#359762;--rose:#B95D5D
+}
+html,body{background:var(--bg)!important;color:var(--text)!important}
+body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparent 27%),var(--bg)!important}
+.app{max-width:560px!important;padding:0 18px calc(34px + env(safe-area-inset-bottom))!important}
+.topbar{
+  position:sticky!important;top:0;z-index:40;margin:0 -18px;
+  min-height:86px;display:grid!important;grid-template-columns:46px 1fr 46px;align-items:center!important;
+  padding:calc(12px + env(safe-area-inset-top)) 18px 12px!important;
+  background:rgba(245,248,248,.96)!important;border-bottom:1px solid var(--border);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)
+}
+.header-spacer{width:42px;height:42px}
+.back{
+  width:42px;height:42px;padding:0!important;border:1px solid var(--border)!important;border-radius:50%!important;
+  background:#fff!important;color:var(--text)!important;display:grid;place-items:center;font-size:19px;box-shadow:0 7px 20px rgba(23,35,51,.045)
+}
+.logo{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:31px!important;font-weight:400!important;letter-spacing:0!important;color:var(--brand)!important}
+.logo span{color:var(--sage)}
+.step-label{margin-top:26px!important;color:var(--brand-dark)!important;font-size:11px!important;font-weight:900!important;letter-spacing:.4px}
+.progress{height:8px!important;background:#E3EAF0!important}
+.progress-fill{background:var(--brand-dark)!important}
+.eyebrow{margin-top:30px!important;color:var(--brand-dark)!important;font-size:11px!important;letter-spacing:1.25px!important}
+.title{font-size:32px!important;line-height:1.08!important;letter-spacing:-.7px!important;color:var(--text)!important}
+.subtitle{font-size:14px!important;line-height:1.6!important;color:var(--muted)!important}
+.card{
+  background:#fff!important;border:1px solid var(--border)!important;border-radius:24px!important;
+  box-shadow:0 14px 38px rgba(23,35,51,.05)!important
+}
+.label{color:#596B7E!important;font-size:10px!important;letter-spacing:.8px!important}
+.input,.textarea{
+  background:#FBFCFD!important;border:1px solid var(--border)!important;color:var(--text)!important;border-radius:17px!important
+}
+.input::placeholder,.textarea::placeholder{color:#94A1AD!important}
+.input:focus,.textarea:focus{border-color:var(--brand)!important;box-shadow:0 0 0 3px rgba(93,127,163,.10)!important}
+.section-card,.summary-row{background:#FAFCFD!important;border:1px solid var(--border)!important;border-radius:19px!important}
+.add-btn{border-color:rgba(53,103,154,.45)!important;background:#EDF4F9!important;color:var(--brand-dark)!important}
+.skill-chip{background:#EAF2F8!important;border-color:#D3E2EE!important;color:var(--brand-dark)!important}
+.skill-chip button{color:var(--brand-dark)!important}
+.message.error{background:#FDEEEE!important;color:var(--rose)!important;border-color:#F2CACA!important}
+.message.success{background:#E8F4EC!important;color:var(--mint)!important;border-color:#CAE7D5!important}
+.secondary{background:#fff!important;color:var(--text)!important;border-color:var(--border)!important}
+.primary{background:var(--brand-dark)!important;color:#fff!important}
+.actions{padding-bottom:10px}
+
+</style>
 </head>
 <body>
 <div class="app">
-  <div class="topbar">
-    <button class="back" onclick="goBack()">← Back</button>
-    <div class="logo">Alygnn.</div>
-  </div>
+  <header class="topbar">
+    <button class="back" type="button" aria-label="Go back" onclick="goBack()">←</button>
+    <div class="logo">Alygnn<span>.</span></div>
+    <div class="header-spacer"></div>
+  </header>
 
   <div class="step-label" id="stepLabel">Step 1 of 6</div>
   <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
