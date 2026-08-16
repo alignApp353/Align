@@ -1,7 +1,70 @@
 <!DOCTYPE html>
-<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Alygnn Settings</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800;900&display=swap" rel="stylesheet"><style>
+<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Alygnn Settings</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>
 :root{--brand:#5D7FA3;--bg:#05080D;--card-bg:rgba(18,24,36,.94);--text:#FFFFFF;--border:rgba(255,255,255,.12);--text-muted:#A7B0BC;--danger:#D79A9A;--success:#6FBF8F;}body.light{--bg:#F6F8F7;--card-bg:#FFFFFF;--text:#1A2530;--border:#DDE3E8;--text-muted:#4A5968;}*{box-sizing:border-box;font-family:'DM Sans',Arial,sans-serif!important;}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,rgba(93,127,163,.25),transparent 35%),var(--bg);color:var(--text)}.screen{max-width:520px;margin:auto;padding:32px 22px 100px}.back{color:var(--brand);font-weight:900;margin-bottom:24px;cursor:pointer}.title{font-size:38px;font-weight:900}.subtitle{color:var(--text-muted);margin-top:8px;line-height:1.5}.card{margin-top:20px;background:var(--card-bg);border:1px solid var(--border);border-radius:28px;padding:22px}.card-title{font-size:22px;font-weight:900;margin-bottom:14px}.option,.theme-btn,.action-btn{width:100%;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:20px;padding:18px;margin-top:12px;color:var(--text);font-size:17px;font-weight:900;display:flex;justify-content:space-between;align-items:center;cursor:pointer}.option span{color:var(--text-muted)}.active,.action-btn.primary{border-color:var(--brand);background:rgba(93,127,163,.18)}.action-btn.primary{background:var(--brand);color:white;justify-content:center}.input{width:100%;padding:17px;border-radius:18px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);font-size:16px;margin-top:12px}.input:focus{outline:none;border-color:var(--brand)}.message{display:none;margin-top:14px;font-size:15px;font-weight:800;line-height:1.4}.message.error{color:var(--danger)}.message.success{color:var(--success)}.logout{text-align:center;color:var(--danger);font-size:20px;font-weight:900;margin-top:34px;cursor:pointer}
-</style></head><body><div class="screen"><div class="back" onclick="window.location.href='app-account.html'">← Back to Profile</div><div class="title">Settings</div><div class="subtitle">Manage your Alygnn account and personalize your experience.</div><div id="message" class="message"></div><div class="card"><div class="card-title">Appearance</div><button data-theme="system" class="theme-btn" onclick="Alygnn.setTheme('system')">System Default <span>Recommended</span></button><button data-theme="dark" class="theme-btn" onclick="Alygnn.setTheme('dark')">Dark Mode <span>›</span></button><button data-theme="light" class="theme-btn" onclick="Alygnn.setTheme('light')">Light Mode <span>›</span></button></div><div class="card"><div class="card-title">Change Password</div><input id="newPassword" class="input" type="password" placeholder="New password"><input id="confirmPassword" class="input" type="password" placeholder="Confirm password"><button id="passwordBtn" class="action-btn primary" onclick="changePassword()">Update Password</button></div><div class="card"><div class="card-title">Account</div><div class="option" onclick="alert('Email preferences coming soon')">Email Preferences <span>›</span></div><div class="option" onclick="alert('Privacy settings coming soon')">Privacy <span>›</span></div></div><div class="card"><div class="card-title">Notifications</div><div class="option">Job Alerts <span>On</span></div><div class="option">Application Updates <span>On</span></div></div><div class="card"><div class="card-title">Support</div><div class="option" onclick="alert('Help center coming soon')">Help & Support <span>›</span></div><div class="option" onclick="alert('Alygnn Version 1.0')">About Alygnn <span>›</span></div></div><div class="logout" onclick="Alygnn.logoutUser()">Log Out</div></div><script src="app-alygnn-core.js"></script><script>
+</style><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style id="candidate-portal-theme">
+
+:root{
+  --brand:#5D7FA3;--brand-dark:#35679A;--sage:#8CB69B;--bg:#F5F8F8;--card-bg:#FFFFFF;
+  --text:#172333;--border:#DCE5EB;--text-muted:#66788A;--danger:#B95D5D;--success:#359762
+}
+body.light{
+  --bg:#F5F8F8;--card-bg:#FFFFFF;--text:#172333;--border:#DCE5EB;--text-muted:#66788A
+}
+html,body{background:var(--bg)!important;color:var(--text)!important}
+body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparent 27%),var(--bg)!important}
+.settings-header{
+  position:sticky;top:0;z-index:40;min-height:86px;display:grid;grid-template-columns:46px 1fr 46px;align-items:center;
+  padding:calc(12px + env(safe-area-inset-top)) 18px 12px;background:rgba(245,248,248,.96);
+  border-bottom:1px solid var(--border);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)
+}
+.header-back{
+  width:42px;height:42px;border:1px solid var(--border);border-radius:50%;background:#fff;color:var(--text);
+  display:grid;place-items:center;font-size:19px;box-shadow:0 7px 20px rgba(23,35,51,.045)
+}
+.header-spacer{width:42px;height:42px}
+.settings-logo{
+  text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:31px;color:var(--brand)
+}
+.settings-logo span{color:var(--sage)}
+.screen{max-width:560px!important;padding:28px 18px 42px!important}
+.screen>.back{display:none!important}
+.eyebrow{color:var(--brand-dark);font-size:11px;font-weight:900;letter-spacing:1.35px;text-transform:uppercase}
+.title{margin-top:10px;font-size:34px!important;letter-spacing:-.7px;color:var(--text)}
+.subtitle{font-size:14px;color:var(--text-muted)!important}
+.card{
+  background:#fff!important;border:1px solid var(--border)!important;border-radius:24px!important;padding:20px!important;
+  box-shadow:0 14px 38px rgba(23,35,51,.05)
+}
+.card-title{font-size:18px!important}
+.option,.theme-btn,.action-btn{
+  background:#FAFCFD!important;border:1px solid var(--border)!important;border-radius:17px!important;
+  padding:16px!important;color:var(--text)!important;font-size:14px!important
+}
+.option span,.theme-btn span{color:var(--text-muted)!important}
+.theme-btn.active,.action-btn.primary{
+  border-color:#BED2E2!important;background:#EAF2F8!important;color:var(--brand-dark)!important
+}
+.action-btn.primary{background:var(--brand-dark)!important;color:#fff!important}
+.input{
+  background:#FBFCFD!important;border:1px solid var(--border)!important;color:var(--text)!important;
+  border-radius:17px!important;font-size:14px!important
+}
+.logout{color:var(--danger)!important;font-size:15px!important}
+.message.error{color:var(--danger)!important}
+.message.success{color:var(--success)!important}
+
+</style>
+</head><body>
+<header class="settings-header">
+  <button class="header-back" type="button" aria-label="Back to profile" onclick="window.location.href='app-account.html'">←</button>
+  <div class="settings-logo">Alygnn<span>.</span></div>
+  <div class="header-spacer"></div>
+</header>
+<div class="screen">
+<div class="eyebrow">Candidate Workspace</div><div class="back" onclick="window.location.href='app-account.html'">← Back to Profile</div><div class="title">Settings</div><div class="subtitle">Manage your Alygnn account and personalize your experience.</div><div id="message" class="message"></div><div class="card"><div class="card-title">Appearance</div><button data-theme="system" class="theme-btn" onclick="Alygnn.setTheme('system')">System Default <span>Recommended</span></button><button data-theme="dark" class="theme-btn" onclick="Alygnn.setTheme('dark')">Dark Mode <span>›</span></button><button data-theme="light" class="theme-btn" onclick="Alygnn.setTheme('light')">Light Mode <span>›</span></button></div><div class="card"><div class="card-title">Change Password</div><input id="newPassword" class="input" type="password" placeholder="New password"><input id="confirmPassword" class="input" type="password" placeholder="Confirm password"><button id="passwordBtn" class="action-btn primary" onclick="changePassword()">Update Password</button></div><div class="card"><div class="card-title">Account</div><div class="option" onclick="alert('Email preferences coming soon')">Email Preferences <span>›</span></div><div class="option" onclick="alert('Privacy settings coming soon')">Privacy <span>›</span></div></div><div class="card"><div class="card-title">Notifications</div><div class="option">Job Alerts <span>On</span></div><div class="option">Application Updates <span>On</span></div></div><div class="card"><div class="card-title">Support</div><div class="option" onclick="alert('Help center coming soon')">Help & Support <span>›</span></div><div class="option" onclick="alert('Alygnn Version 1.0')">About Alygnn <span>›</span></div></div><div class="logout" onclick="Alygnn.logoutUser()">Log Out</div></div><script src="app-alygnn-core.js"></script><script>
 Alygnn.initTheme();Alygnn.requireSession();
 async function changePassword(){const p=document.getElementById("newPassword").value;const c=document.getElementById("confirmPassword").value;const btn=document.getElementById("passwordBtn");if(!p||!c){Alygnn.showMessage("message","Please fill out both password fields.","error");return;}if(p.length<8){Alygnn.showMessage("message","Password must be at least 8 characters.","error");return;}if(p!==c){Alygnn.showMessage("message","Passwords do not match.","error");return;}Alygnn.setButtonLoading(btn,true,"Updating...","Update Password");const {error}=await Alygnn.sb.auth.updateUser({password:p});if(error){Alygnn.showMessage("message",error.message,"error");Alygnn.setButtonLoading(btn,false,"Updating...","Update Password");return;}document.getElementById("newPassword").value="";document.getElementById("confirmPassword").value="";Alygnn.showMessage("message","Password updated successfully.","success");Alygnn.setButtonLoading(btn,false,"Updating...","Update Password");}
 </script></body></html>
