@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout — Alygnn</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--card:#FCFCFA;
+    --text:#1A2530;--muted:#4A5968;--border:#DDE3E8;--mint:#6FBF8F;
+    --danger:#B45A5A;--white:#fff;
+  }
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  nav{height:68px;padding:0 5%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(246,248,247,.94);backdrop-filter:blur(12px)}
+  .logo{font-family:'DM Serif Display',serif;font-size:23px;color:var(--brand);text-decoration:none}.logo span{color:var(--sage)}
+  .nav-right{display:flex;align-items:center;gap:18px}.nav-link{font-size:14px;color:var(--muted);text-decoration:none}.nav-link:hover{color:var(--text)}
+  .dashboard-btn{border:0;border-radius:999px;background:var(--brand);color:white;padding:10px 20px;font:500 14px 'DM Sans',sans-serif;cursor:pointer}
+  #auth-loading{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;font-size:14px;color:var(--muted)}
+  body.ready #auth-loading{display:none}
+  main{max-width:1080px;margin:0 auto;padding:58px 5% 80px}
+  .back{display:inline-flex;align-items:center;gap:7px;color:var(--muted);text-decoration:none;font-size:13px;margin-bottom:24px}.back:hover{color:var(--text)}
+  .heading{margin-bottom:34px}.eyebrow{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1.1px;color:var(--brand);margin-bottom:8px}
+  h1{font-family:'DM Serif Display',serif;font-size:clamp(34px,4vw,46px);letter-spacing:-1px}.heading p{margin-top:10px;color:var(--muted);font-size:15px;line-height:1.6}
+  .checkout-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:start}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;box-shadow:0 10px 35px rgba(26,37,48,.04)}
+  .panel-title{font-size:16px;font-weight:600;margin-bottom:18px}.small-title{font-size:13px;color:var(--muted);margin-bottom:10px}
+  .plan-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:26px}
+  .plan-option{border:1px solid var(--border);border-radius:15px;background:white;padding:17px;cursor:pointer;text-align:left;transition:.2s}
+  .plan-option:hover{border-color:var(--brand)}.plan-option.active{border:2px solid var(--brand);padding:16px;background:#F8FBFD}
+  .plan-option .name{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}.plan-option .price{font-family:'DM Serif Display',serif;font-size:25px;margin-top:5px}.plan-option .price span{font-family:'DM Sans',sans-serif;font-size:12px;color:var(--muted);font-weight:400}
+  .account-card{display:flex;gap:12px;align-items:center;border:1px solid var(--border);background:white;border-radius:14px;padding:15px;margin-bottom:26px}.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#E9F0F7;color:var(--brand);font-weight:700}.acct-main{font-size:13px;font-weight:600}.acct-sub{font-size:12px;color:var(--muted);margin-top:2px;word-break:break-word}
+  .secure-box{border:1px solid var(--border);border-radius:16px;background:white;padding:20px}.secure-row{display:flex;gap:12px;align-items:flex-start}.lock{width:34px;height:34px;border-radius:10px;background:#EDF6F0;display:grid;place-items:center;color:#4F9568;font-size:16px;flex:none}.secure-title{font-size:14px;font-weight:600}.secure-copy{font-size:12px;line-height:1.55;color:var(--muted);margin-top:3px}
+  .checkout-btn{width:100%;margin-top:18px;border:0;border-radius:999px;background:var(--brand);color:white;padding:14px 18px;font:600 14px 'DM Sans',sans-serif;cursor:pointer;transition:.2s}.checkout-btn:hover{opacity:.9}.checkout-btn:disabled{opacity:.55;cursor:not-allowed}
+  .message{display:none;margin-top:14px;padding:12px 14px;border-radius:12px;font-size:12px;line-height:1.5}.message.error{display:block;background:#FFF1F1;color:#8A4545;border:1px solid #F0CECE}.message.info{display:block;background:#EEF4F9;color:#466580;border:1px solid #D6E3EE}
+  .fineprint{font-size:11px;color:var(--muted);line-height:1.6;text-align:center;margin-top:12px}
+  .summary{position:sticky;top:92px}.summary-top{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--border)}.summary-name{font-size:15px;font-weight:600}.pill{font-size:11px;padding:5px 9px;border-radius:999px;background:#EDF6F0;color:#4F9568}
+  .summary-price{font-family:'DM Serif Display',serif;font-size:36px;margin:18px 0 3px}.summary-price span{font:400 13px 'DM Sans',sans-serif;color:var(--muted)}
+  .summary-sub{font-size:12px;color:var(--muted);margin-bottom:20px}.features{list-style:none}.features li{padding:9px 0 9px 22px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);position:relative}.features li:first-child{border-top:0}.features li::before{content:'✓';position:absolute;left:0;color:var(--sage);font-weight:700}
+  .total{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}.total-row{display:flex;justify-content:space-between;gap:15px;font-size:13px;margin:8px 0}.total-row.muted{color:var(--muted);font-size:12px}.total-row.final{font-weight:700;font-size:15px;margin-top:14px}
+  .trust{margin-top:16px;display:flex;gap:8px;align-items:center;justify-content:center;font-size:11px;color:var(--muted)}
+  @media(max-width:800px){.checkout-grid{grid-template-columns:1fr}.summary{position:static}.nav-link{display:none}.plan-options{grid-template-columns:1fr}main{padding-top:35px}.panel{padding:22px}}
+</style>
+</head>
+<body>
+<div id="auth-loading">Checking your employer account…</div>
+<nav>
+  <a href="employers.html" class="logo">Alygnn<span>.</span></a>
+  <div class="nav-right">
+    <a class="nav-link" href="pricing.html">Pricing</a>
+    <a class="nav-link" href="employer-account.html">My account</a>
+    <button class="dashboard-btn" onclick="location.href='employer-dashboard.html'">Dashboard</button>
+  </div>
+</nav>
+
+<main>
+  <a class="back" href="pricing.html">← Back to pricing</a>
+  <div class="heading">
+    <div class="eyebrow">Employer checkout</div>
+    <h1>Choose your hiring plan.</h1>
+    <p>Your subscription unlocks Alygnn's employer hiring tools immediately after payment is confirmed.</p>
+  </div>
+
+  <div class="checkout-grid">
+    <section class="panel">
+      <div class="panel-title">1. Confirm your plan</div>
+      <div class="plan-options">
+        <button type="button" class="plan-option" id="business-option" onclick="setPlan('business')">
+          <div class="name">Business</div>
+          <div class="price">$299 <span>/ month</span></div>
+        </button>
+        <button type="button" class="plan-option" id="enterprise-option" onclick="setPlan('enterprise')">
+          <div class="name">Enterprise</div>
+          <div class="price">$599 <span>/ month</span></div>
+        </button>
+      </div>
+
+      <div class="panel-title">2. Employer account</div>
+      <div class="account-card">
+        <div class="avatar" id="account-avatar">A</div>
+        <div>
+          <div class="acct-main">Signed in to Alygnn</div>
+          <div class="acct-sub" id="account-email">Loading…</div>
+        </div>
+      </div>
+
+      <div class="panel-title">3. Payment</div>
+      <div class="secure-box">
+        <div class="secure-row">
+          <div class="lock">🔒</div>
+          <div>
+            <div class="secure-title">Secure payment checkout</div>
+            <div class="secure-copy">Alygnn should never store raw card numbers in Supabase. This button is ready to hand the signed-in employer to your secure payment endpoint, where the payment provider completes the transaction.</div>
+          </div>
+        </div>
+        <button class="checkout-btn" id="checkout-btn" onclick="startCheckout()">Continue to secure payment — $299</button>
+        <div class="message" id="message"></div>
+        <div class="fineprint">By continuing, you agree to Alygnn's Terms and authorize the selected monthly subscription. Cancel according to your subscription terms.</div>
+      </div>
+    </section>
+
+    <aside class="panel summary">
+      <div class="summary-top">
+        <div class="summary-name" id="summary-name">Business</div>
+        <div class="pill">Monthly</div>
+      </div>
+      <div class="summary-price" id="summary-price">$299 <span>/ month</span></div>
+      <div class="summary-sub" id="summary-sub">10 active job postings</div>
+      <ul class="features" id="summary-features"></ul>
+      <div class="total">
+        <div class="total-row"><span>Plan subtotal</span><span id="subtotal">$299.00</span></div>
+        <div class="total-row muted"><span>Tax</span><span>Calculated at checkout</span></div>
+        <div class="total-row final"><span>Due today</span><span id="due-total">$299.00 + tax</span></div>
+      </div>
+      <div class="trust">🔒 Secure checkout · Subscription billed monthly</div>
+    </aside>
+  </div>
+</main>
+
+<script>
+  const SUPABASE_URL = 'https://auth.alygnn.com';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Your server/Edge Function should create the real checkout session and return { url }.
+  // Keep secret payment-provider keys on the server only — never in this HTML file.
+  const CHECKOUT_ENDPOINT = '/api/create-checkout-session';
+
+  const PLANS = {
+    business: {
+      name:'Business', price:299, postings:'10 active job postings',
+      features:['500 applicant profiles','Advanced AI matching','Candidate filtering','Applicant management','Hiring analytics','Featured listings']
+    },
+    enterprise: {
+      name:'Enterprise', price:599, postings:'30 active job postings',
+      features:['2,000 applicant profiles','Advanced AI matching','Advanced candidate filtering','Featured listings','Advanced analytics','Team access','Priority support']
+    }
+  };
+
+  let selectedPlan = 'business';
+  let session = null;
+
+  function money(n){ return '$' + Number(n).toFixed(2); }
+  function showMessage(text,type='error'){
+    const el=document.getElementById('message');
+    el.textContent=text; el.className='message '+type;
+  }
+  function clearMessage(){ const el=document.getElementById('message'); el.className='message'; el.textContent=''; }
+
+  function setPlan(plan){
+    if(!PLANS[plan]) plan='business';
+    selectedPlan=plan;
+    const p=PLANS[plan];
+    document.getElementById('business-option').classList.toggle('active',plan==='business');
+    document.getElementById('enterprise-option').classList.toggle('active',plan==='enterprise');
+    document.getElementById('summary-name').textContent=p.name;
+    document.getElementById('summary-price').innerHTML=`$${p.price} <span>/ month</span>`;
+    document.getElementById('summary-sub').textContent=p.postings;
+    document.getElementById('summary-features').innerHTML=p.features.map(x=>`<li>${x}</li>`).join('');
+    document.getElementById('subtotal').textContent=money(p.price);
+    document.getElementById('due-total').textContent=money(p.price)+' + tax';
+    document.getElementById('checkout-btn').textContent=`Continue to secure payment — $${p.price}`;
+    const url=new URL(location.href); url.searchParams.set('plan',plan); history.replaceState({},'',url);
+    clearMessage();
+  }
+
+  async function init(){
+    const requested=(new URLSearchParams(location.search).get('plan')||'business').toLowerCase();
+    setPlan(PLANS[requested]?requested:'business');
+
+    const { data:{ session:activeSession }, error } = await sb.auth.getSession();
+    if(error || !activeSession){
+      try{localStorage.setItem('alygnn_pending_plan',selectedPlan)}catch(e){}
+      location.replace('login.html?role=employer');
+      return;
+    }
+    session=activeSession;
+
+    let role='';
+    try{
+      const { data:profile }=await sb.from('profiles').select('role').eq('id',session.user.id).maybeSingle();
+      role=String(profile?.role||'').toLowerCase();
+    }catch(e){}
+    role=String(role||session.user.user_metadata?.account_type||session.user.user_metadata?.role||session.user.app_metadata?.account_type||session.user.app_metadata?.role||'').toLowerCase();
+
+    if(role && role!=='employer'){
+      location.replace('employers.html');
+      return;
+    }
+
+    const email=session.user.email||'Employer account';
+    document.getElementById('account-email').textContent=email;
+    document.getElementById('account-avatar').textContent=(email[0]||'A').toUpperCase();
+    document.body.classList.add('ready');
+  }
+
+  async function startCheckout(){
+    if(!session){ location.replace('login.html?role=employer'); return; }
+    const button=document.getElementById('checkout-btn');
+    clearMessage();
+    button.disabled=true;
+    const original=button.textContent;
+    button.textContent='Opening secure checkout…';
+
+    try{
+      const token=session.access_token;
+      const response=await fetch(CHECKOUT_ENDPOINT,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({plan:selectedPlan,success_url:location.origin+'/employer-dashboard.html?payment=success',cancel_url:location.href})
+      });
+
+      let data={};
+      try{ data=await response.json(); }catch(e){}
+      if(!response.ok || !data.url){
+        throw new Error(data.error||'Payment checkout is not connected yet.');
+      }
+      location.href=data.url;
+    }catch(error){
+      console.error(error);
+      showMessage('The payment page is ready, but the secure checkout endpoint still needs to be connected. Use /api/create-checkout-session (or change CHECKOUT_ENDPOINT in this file) and have it return a checkout URL.','info');
+      button.disabled=false;
+      button.textContent=original;
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
