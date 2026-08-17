@@ -145,6 +145,7 @@
   .mini-footer a { color: var(--text-muted); text-decoration: none; }
   .mini-footer a:hover { color: var(--brand); }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -156,8 +157,8 @@
     <li><a href="index.html#how">How it works</a></li>
   </ul>
   <div class="nav-right">
-    <a class="nav-signin" href="login.html?role=employer">Sign in</a>
-    <button class="nav-cta" onclick="window.location.href='login.html?role=employer'">Post a job</button>
+    <a class="nav-signin" id="nav-auth-link" href="login.html?role=employer">Sign in</a>
+    <button class="nav-cta" id="nav-cta-btn" onclick="handlePostJob()">Post a job</button>
   </div>
 </nav>
 
@@ -187,7 +188,7 @@
         <li>Basic applicant dashboard</li>
         <li>No credit card required</li>
       </ul>
-      <button class="plan-cta" onclick="window.location.href='login.html?role=employer'">Start free</button>
+      <button class="plan-cta" onclick="choosePlan('free')">Start free</button>
     </div>
 
     <div class="plan-card popular">
@@ -203,7 +204,7 @@
         <li>Hiring analytics</li>
         <li>Featured listings</li>
       </ul>
-      <button class="plan-cta" onclick="window.location.href='login.html?role=employer'">Choose Business</button>
+      <button class="plan-cta" onclick="choosePlan('business')">Choose Business</button>
     </div>
 
     <div class="plan-card">
@@ -219,7 +220,7 @@
         <li>Team access</li>
         <li>Priority support</li>
       </ul>
-      <button class="plan-cta" onclick="window.location.href='login.html?role=employer'">Choose Enterprise</button>
+      <button class="plan-cta" onclick="choosePlan('enterprise')">Choose Enterprise</button>
     </div>
 
   </div>
@@ -274,6 +275,88 @@
 </div>
 
 
+
+<script>
+  const SUPABASE_URL = 'https://auth.alygnn.com';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let currentSession = null;
+  let currentRole = '';
+
+  async function initPricingAuth(){
+    try{
+      const { data: { session } } = await sb.auth.getSession();
+      currentSession = session || null;
+      if(!currentSession) return;
+
+      let profileRole = '';
+      try{
+        const { data: profile } = await sb
+          .from('profiles')
+          .select('role')
+          .eq('id', currentSession.user.id)
+          .maybeSingle();
+        profileRole = String(profile?.role || '').toLowerCase();
+      }catch(error){
+        console.warn('Unable to read profile role:', error);
+      }
+
+      currentRole = String(
+        profileRole ||
+        currentSession.user.user_metadata?.account_type ||
+        currentSession.user.user_metadata?.role ||
+        currentSession.user.app_metadata?.account_type ||
+        currentSession.user.app_metadata?.role ||
+        ''
+      ).toLowerCase();
+
+      if(currentRole === 'employer'){
+        const authLink = document.getElementById('nav-auth-link');
+        const ctaBtn = document.getElementById('nav-cta-btn');
+        authLink.textContent = 'My account';
+        authLink.href = 'employer-account.html';
+        ctaBtn.textContent = 'Dashboard';
+        ctaBtn.onclick = () => window.location.href = 'employer-dashboard.html';
+      }
+    }catch(error){
+      console.warn('Pricing auth check failed:', error);
+    }
+  }
+
+  function loginForPlan(plan){
+    try{ localStorage.setItem('alygnn_pending_plan', plan); }catch(e){}
+    window.location.href = 'login.html?role=employer';
+  }
+
+  function choosePlan(plan){
+    if(plan === 'free'){
+      if(currentSession && currentRole === 'employer'){
+        window.location.href = 'employer-dashboard.html';
+      }else{
+        loginForPlan('free');
+      }
+      return;
+    }
+
+    if(currentSession && currentRole === 'employer'){
+      window.location.href = 'payment.html?plan=' + encodeURIComponent(plan);
+    }else{
+      loginForPlan(plan);
+    }
+  }
+
+  function handlePostJob(){
+    if(currentSession && currentRole === 'employer'){
+      window.location.href = 'employer-dashboard.html';
+    }else{
+      window.location.href = 'login.html?role=employer';
+    }
+  }
+
+  initPricingAuth();
+</script>
 
 </body>
 </html>
