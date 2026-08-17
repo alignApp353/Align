@@ -32,38 +32,6 @@
   .btn-logout { font-size: 13px; color: var(--text-muted); background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 14px; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
   .btn-logout:hover { border-color: var(--rose); color: var(--rose); }
 
-  .notif-wrap { position: relative; }
-  .notif-bell {
-    position: relative; display: flex; align-items: center; justify-content: center;
-    width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
-    background: var(--card-bg); color: var(--text-muted); cursor: pointer;
-  }
-  .notif-bell:hover { color: var(--brand); border-color: var(--brand); }
-  .notif-bell svg { width: 18px; height: 18px; }
-  .notif-badge {
-    position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px;
-    background: var(--rose); color: white; font-size: 10px; font-weight: 700;
-    border-radius: 999px; display: flex; align-items: center; justify-content: center; line-height: 1;
-  }
-  .notif-dropdown {
-    position: absolute; top: calc(100% + 10px); right: 0; width: 340px; max-height: 420px;
-    overflow-y: auto; background: var(--card-bg); border: 1px solid var(--border);
-    border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.12); z-index: 50;
-  }
-  .notif-dropdown-header { font-size: 13px; font-weight: 600; color: var(--text); padding: 14px 16px 8px; }
-  .notif-empty { font-size: 13px; color: var(--text-muted); padding: 20px 16px; text-align: center; }
-  .notif-item { display: block; padding: 10px 16px; border-top: 1px solid var(--border); text-decoration: none; color: inherit; }
-  .notif-item:hover { background: var(--brand-light); }
-  .notif-item.unread { background: var(--brand-light); }
-  .notif-item-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
-  .notif-item-body { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
-  .notif-item-time { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
-  .notif-view-all {
-    display: block; text-align: center; font-size: 12px; color: var(--brand); font-weight: 600;
-    padding: 10px; border-top: 1px solid var(--border); text-decoration: none;
-  }
-  .notif-view-all:hover { opacity: .8; }
-
   .layout { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 64px); }
 
   .sidebar {
@@ -119,11 +87,6 @@
   .job-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .job-status.active { background: var(--mint); }
   .job-status.paused { background: var(--rose); }
-  .job-status.pending_review { background: #C9A227; }
-  .job-pending-badge {
-    display: inline-block; font-size: 11px; font-weight: 600; color: #8a6a10;
-    background: rgba(201,162,39,0.15); border-radius: 100px; padding: 2px 9px; margin-left: 8px;
-  }
   .job-info { flex: 1; }
   .job-title-text { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
   .job-meta { font-size: 12px; color: var(--text-muted); }
@@ -358,17 +321,6 @@
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
   <div class="nav-right">
-    <div class="notif-wrap" id="notif-wrap">
-      <button class="notif-bell" id="notif-bell" type="button" aria-label="Notifications">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <span class="notif-badge" id="notif-badge" style="display:none">0</span>
-      </button>
-      <div class="notif-dropdown" id="notif-dropdown" style="display:none">
-        <div class="notif-dropdown-header">Notifications</div>
-        <div id="notif-list"><div class="notif-empty">No notifications yet.</div></div>
-        <a href="notifications.html" class="notif-view-all">View all</a>
-      </div>
-    </div>
     <span class="nav-user" id="nav-user-name"></span>
     <button class="btn-logout" onclick="logout()">Sign out</button>
   </div>
@@ -380,8 +332,11 @@
     <button class="nav-item active" onclick="showPanel('jobs', this)">
       <span class="nav-icon">💼</span> My Jobs
     </button>
-    <button class="nav-item" onclick="showPanel('post', this)">
-      <span class="nav-icon">➕</span> Post a Job
+    <button class="nav-item" onclick="showPanel('interviews', this)">
+      <span class="nav-icon">📅</span> Interviews
+    </button>
+    <button class="nav-item" id="sidebar-post-job-btn" onclick="openPostJob()">
+      <span class="nav-icon">➕</span> <span id="sidebar-post-job-label">Post a Job</span>
     </button>
     <hr class="nav-divider">
     <a href="employer-account.html" class="nav-item">
@@ -399,7 +354,7 @@
       </div>
       <div class="section-header">
         <div class="section-title">Active listings</div>
-        <button class="btn-primary" onclick="showPanel('post', this)">+ Post new job</button>
+        <button class="btn-primary" id="post-new-job-btn" onclick="openPostJob()">+ Post new job</button>
       </div>
       <input type="text" class="form-input" id="jobs-search-input" placeholder="Search your posted jobs by title, location, or type…" autocomplete="off" oninput="renderJobs()" style="margin-bottom: 16px;">
       <div id="jobs-list">
@@ -427,6 +382,21 @@
           <div class="empty-icon">👥</div>
           <div class="empty-title">No candidates yet</div>
           Once job seekers apply to your listings, they'll appear here.
+        </div>
+      </div>
+    </div>
+
+    <!-- INTERVIEWS -->
+    <div class="panel" id="panel-interviews">
+      <div class="page-header">
+        <div class="page-title">Interviews</div>
+        <div class="page-sub">Interviews you've scheduled with candidates</div>
+      </div>
+      <div id="interviews-list">
+        <div class="empty-state" id="interviews-empty-state">
+          <div class="empty-icon">📅</div>
+          <div class="empty-title">No interviews scheduled yet</div>
+          Go to Candidates and click "Schedule interview" on a candidate to set one up.
         </div>
       </div>
     </div>
@@ -577,7 +547,7 @@
           <!-- STEP 5 — Requirements & Benefits -->
           <div class="wizard-step" id="wizard-step-5">
             <div class="wizard-title">Requirements & benefits</div>
-            <div class="wizard-sub">Select at least 1 requirement. Benefits are optional.</div>
+            <div class="wizard-sub">Select at least 3 requirements. Benefits are optional.</div>
 
             <!-- REQUIREMENTS: search to add from a fixed list -->
             <div class="form-group full">
@@ -588,7 +558,7 @@
                   oninput="filterResults('req')" onfocus="filterResults('req')" onblur="setTimeout(() => hideResults('req'), 150)">
                 <div class="chip-results" id="req-results"></div>
               </div>
-              <div class="chip-count-note" id="req-count-note">Select at least 1.</div>
+              <div class="chip-count-note" id="req-count-note">Select at least 3.</div>
               <input type="hidden" id="f-reqs">
             </div>
 
@@ -633,6 +603,10 @@
   <div class="modal-box" id="candidate-modal-box"></div>
 </div>
 
+<div class="modal-overlay" id="interview-modal-overlay" onclick="if (event.target === this) closeInterviewModal()">
+  <div class="modal-box" id="interview-modal-box"></div>
+</div>
+
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
@@ -647,6 +621,17 @@
   let currentProfile = null;
   let currentUser = null;
   let editingJobId = null;
+
+  // Billing is server-owned. The browser may READ this row, but paid access
+  // should only be changed by your payment webhook/service-role backend.
+  let billingReady = false;
+  let billingEntitlement = {
+    plan: 'free',
+    subscription_status: 'inactive',
+    current_period_end: null,
+    free_job_used: false
+  };
+
   let selectedGooglePlace = null;
   let locationAutocomplete = null;
 
@@ -771,9 +756,9 @@
     if (type === 'req') {
       const note = document.getElementById('req-count-note');
       const count = state.selected.size;
-      note.textContent = count >= 1
+      note.textContent = count >= 3
         ? `${count} selected`
-        : `Select at least 1 (${count} selected).`;
+        : `Select at least 3 (${count} selected).`;
     }
   }
 
@@ -1192,11 +1177,181 @@
 
     updateVerificationUI();
     await loadJobs();
-    loadPanelData(getPanelFromHash());
-    initNotifications();
+    await loadBillingEntitlement();
+    updatePostingAccessUI();
+
+    const initialPanel = getPanelFromHash();
+    if (initialPanel === 'post' && !editingJobId && !canCreateNewJob()) {
+      redirectToPricing('free-job-used');
+      return;
+    }
+    loadPanelData(initialPanel);
   }
 
-  const VALID_PANELS = ['jobs', 'candidates', 'post'];
+  // ---- Employer posting entitlement / paywall ----
+  // Free: exactly one job ever. Business: 10 active jobs. Enterprise: 30.
+  // The DB trigger in alygnn-job-paywall.sql is the real enforcement layer;
+  // these checks make the UI behave correctly before a post reaches Supabase.
+  async function loadBillingEntitlement() {
+    billingReady = false;
+
+    try {
+      const { data, error } = await sb
+        .from('employer_entitlements')
+        .select('plan, subscription_status, current_period_end, free_job_used')
+        .eq('employer_id', currentUser.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        billingEntitlement = {
+          plan: String(data.plan || 'free').toLowerCase(),
+          subscription_status: String(data.subscription_status || 'inactive').toLowerCase(),
+          current_period_end: data.current_period_end || null,
+          free_job_used: data.free_job_used === true
+        };
+      } else {
+        // Conservative fallback for a brand-new row: if this employer already
+        // has any job, their one-time free posting has necessarily been used.
+        billingEntitlement = {
+          plan: 'free',
+          subscription_status: 'inactive',
+          current_period_end: null,
+          free_job_used: jobs.length > 0
+        };
+      }
+    } catch (error) {
+      // If the migration has not been run yet, fail CLOSED instead of letting
+      // an employer keep creating free jobs. The SQL migration remains required
+      // because client-side JavaScript alone can always be bypassed.
+      console.error('Failed to load employer billing entitlement:', error);
+      billingEntitlement = {
+        plan: 'free',
+        subscription_status: 'inactive',
+        current_period_end: null,
+        free_job_used: jobs.length > 0
+      };
+    } finally {
+      billingReady = true;
+    }
+  }
+
+  function hasActivePaidPlan() {
+    const plan = String(billingEntitlement.plan || '').toLowerCase();
+    const status = String(billingEntitlement.subscription_status || '').toLowerCase();
+
+    if (!['business', 'enterprise'].includes(plan)) return false;
+    if (!['active', 'trialing'].includes(status)) return false;
+
+    if (billingEntitlement.current_period_end) {
+      const periodEnd = new Date(billingEntitlement.current_period_end).getTime();
+      if (!Number.isNaN(periodEnd) && periodEnd <= Date.now()) return false;
+    }
+
+    return true;
+  }
+
+  function activeJobCount() {
+    return jobs.filter(job => String(job.status || 'active').toLowerCase() === 'active').length;
+  }
+
+  function paidJobLimit() {
+    return String(billingEntitlement.plan || '').toLowerCase() === 'enterprise' ? 30 : 10;
+  }
+
+  function getPostingAccess() {
+    if (!billingReady) {
+      return { allowed: false, reason: 'billing-loading', label: 'Checking plan…' };
+    }
+
+    if (hasActivePaidPlan()) {
+      const limit = paidJobLimit();
+      const used = activeJobCount();
+      return used < limit
+        ? { allowed: true, reason: 'paid', label: '+ Post new job', used, limit }
+        : { allowed: false, reason: 'plan-limit', label: 'Plan limit reached', used, limit };
+    }
+
+    // `jobs.length > 0` is an intentional second safety check for employers
+    // created before the entitlement migration. Deleting a job does NOT reset
+    // the free trial because free_job_used stays true in the server table.
+    const freeUsed = billingEntitlement.free_job_used === true || jobs.length > 0;
+    return freeUsed
+      ? { allowed: false, reason: 'free-job-used', label: 'Choose a plan' }
+      : { allowed: true, reason: 'free-job-available', label: '+ Post free job' };
+  }
+
+  function canCreateNewJob() {
+    return getPostingAccess().allowed === true;
+  }
+
+  function redirectToPricing(reason = 'job-limit') {
+    const q = new URLSearchParams();
+    q.set('reason', reason);
+    window.location.href = 'pricing.html?' + q.toString();
+  }
+
+  function updatePostingAccessUI() {
+    const topButton = document.getElementById('post-new-job-btn');
+    const sidebarButton = document.getElementById('sidebar-post-job-btn');
+    const sidebarLabel = document.getElementById('sidebar-post-job-label');
+
+    if (!employerVerified) {
+      if (topButton) topButton.textContent = '+ Post new job';
+      if (sidebarLabel) sidebarLabel.textContent = 'Post a Job';
+      return;
+    }
+
+    if (!billingReady) return;
+
+    const access = getPostingAccess();
+
+    if (topButton) {
+      topButton.textContent = access.label;
+      topButton.title = access.reason === 'free-job-used'
+        ? 'Your one-time free job has been used. Choose a monthly plan to post another job.'
+        : access.reason === 'plan-limit'
+          ? `You have ${access.used} of ${access.limit} active jobs. Close a job or change plans.`
+          : '';
+    }
+
+    if (sidebarButton) {
+      sidebarButton.title = topButton?.title || '';
+    }
+
+    if (sidebarLabel) {
+      sidebarLabel.textContent = access.allowed
+        ? 'Post a Job'
+        : (access.reason === 'free-job-used' ? 'Choose a plan' : 'Posting limit');
+    }
+
+    if (typeof renderWizardStep === 'function') renderWizardStep();
+  }
+
+  function openPostJob() {
+    if (!employerVerified) {
+      window.location.href = 'employer-onboarding.html';
+      return;
+    }
+
+    if (!billingReady) {
+      showToast('Checking your posting plan…');
+      return;
+    }
+
+    const access = getPostingAccess();
+    if (!access.allowed) {
+      redirectToPricing(access.reason);
+      return;
+    }
+
+    // Clicking the main "Post a Job" action always starts a NEW listing.
+    if (editingJobId) cancelEdit();
+    showPanel('post');
+  }
+
+  const VALID_PANELS = ['jobs', 'candidates', 'interviews', 'post'];
 
   function getPanelFromHash() {
     const hash = (window.location.hash || '').replace('#', '');
@@ -1230,6 +1385,7 @@
   function loadPanelData(name) {
     if (name === 'post') { updatePreview(); resetWizardToStep1(); }
     if (name === 'candidates') loadCandidates();
+    if (name === 'interviews') loadInterviews();
   }
 
   // Every real panel switch changes the URL hash, which is a genuine
@@ -1239,6 +1395,18 @@
   // linked in — e.g. from a job's "Candidates" button back to My Jobs,
   // not all the way back to Account.
   function showPanel(name) {
+    if (name === 'post' && !employerVerified) {
+      window.location.href = 'employer-onboarding.html';
+      return;
+    }
+
+    // Editing an existing listing never consumes another posting slot.
+    // Creating a new listing must pass the billing gate.
+    if (name === 'post' && !editingJobId && billingReady && !canCreateNewJob()) {
+      redirectToPricing(getPostingAccess().reason);
+      return;
+    }
+
     if (window.location.hash === '#' + name) {
       // Already there (e.g. clicking the same nav item twice) — hashchange
       // won't fire on its own, so drive the update directly.
@@ -1251,6 +1419,12 @@
 
   function handleHashRoute() {
     const name = getPanelFromHash();
+
+    if (name === 'post' && currentUser && billingReady && !editingJobId && !canCreateNewJob()) {
+      redirectToPricing(getPostingAccess().reason);
+      return;
+    }
+
     applyPanelVisual(name);
     loadPanelData(name);
   }
@@ -1276,23 +1450,25 @@
         postBtn.classList.remove('locked');
         postBtn.disabled = false;
       }
+      updatePostingAccessUI();
       return;
     }
 
-    // Pending/unverified employers can still fill out and submit the job
-    // form — it just won't be visible to candidates yet. This banner is
-    // informational now, not a gate: postJob() decides the actual status.
+    const status = currentProfile?.verification_status || 'not_submitted';
+
     if (lockBox) {
       lockBox.style.display = 'block';
       lockBox.innerHTML = `
-        <strong>Business verification in progress</strong><br>
-        You can go ahead and post jobs — they'll be saved as pending and go live automatically as soon as your business is approved.
+        <strong>Business verification required</strong><br>
+        Current status: <strong>${escapeHtml(status)}</strong>. Your business must be approved by Alygnn before you can post jobs.
+        <br><br>
+        <a href="employer-onboarding.html" style="color:#5D7FA3; font-weight:500;">Complete business verification →</a>
       `;
     }
 
     if (postBtn) {
-      postBtn.classList.remove('locked');
-      postBtn.disabled = false;
+      postBtn.classList.add('locked');
+      postBtn.disabled = true;
     }
 
     // Keep the wizard's own Continue/Post button (step 5) in sync with
@@ -1322,13 +1498,15 @@
 
     const continueBtn = document.getElementById('wizard-continue-btn');
     if (currentWizardStep === TOTAL_WIZARD_STEPS) {
-      continueBtn.textContent = editingJobId
-        ? 'Save changes →'
-        : (employerVerified ? 'Post job →' : 'Save job (pending approval) →');
-      continueBtn.classList.remove('locked');
+      continueBtn.textContent = editingJobId ? 'Save changes →' : 'Post job →';
+      const postingAllowed = editingJobId || (!billingReady ? false : canCreateNewJob());
+      const locked = !employerVerified || !postingAllowed;
+      continueBtn.classList.toggle('locked', locked);
+      continueBtn.disabled = locked;
     } else {
       continueBtn.textContent = 'Continue';
       continueBtn.classList.remove('locked');
+      continueBtn.disabled = false;
     }
   }
 
@@ -1489,6 +1667,7 @@
     jobs = data || [];
     await loadAppliedCounts();
     renderJobs();
+    if (billingReady) updatePostingAccessUI();
   }
 
   // The "Applied" number shown per job is computed live from the
@@ -1587,6 +1766,7 @@
 
     candidatesLoaded = true;
     renderCandidates();
+    loadInterviews();
   }
 
   // Which job's candidates are currently shown — always exactly one job.
@@ -1669,6 +1849,11 @@
         ? `<span class="tag status-rejected">Passed</span>`
         : `<span class="tag">New applicant</span>`;
 
+    const interview = getInterviewForApplication(c.applicationId);
+    const interviewBadge = interview
+      ? `<div class="candidate-headline" style="color:var(--brand); font-weight:500;">📅 Interview: ${escapeHtml(formatInterviewDate(interview.scheduledAt))}</div>`
+      : '';
+
     return `
       <div class="candidate-card" data-application-id="${c.applicationId}">
         <div class="candidate-top">
@@ -1679,6 +1864,7 @@
           </div>
         </div>
         ${summarySnippet ? `<div class="candidate-headline">${escapeHtml(summarySnippet)}</div>` : ''}
+        ${interviewBadge}
         <div class="candidate-tags">
           ${statusTag}
           ${skillTags}
@@ -1690,6 +1876,9 @@
           <button class="btn-accept" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'accepted')">Accept</button>
           <button class="btn-pass" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'rejected')">Pass</button>
         </div>
+        <button type="button" class="btn-ai" style="width:100%; justify-content:center; margin-top:8px; padding:9px;" onclick="openInterviewModal('${c.applicationId}', '${c.job ? c.job.id : ''}', '${c.profile.id}', '${escapeJsString(name)}', '${escapeJsString(jobTitle)}');">
+          📅 ${interview ? 'Reschedule interview' : 'Schedule interview'}
+        </button>
       </div>
     `;
   }
@@ -1793,7 +1982,330 @@
         <button class="btn-accept" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'accepted'); closeCandidateModal();">Accept</button>
         <button class="btn-pass" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'rejected'); closeCandidateModal();">Pass</button>
       </div>
+      <button type="button" class="btn-ai" style="width:100%; justify-content:center; margin-top:8px; padding:10px;" onclick="closeCandidateModal(); openInterviewModal('${c.applicationId}', '${c.job ? c.job.id : ''}', '${profile.id}', '${escapeJsString(name)}', '${escapeJsString(jobTitle)}');">
+        📅 ${getInterviewForApplication(c.applicationId) ? 'Reschedule interview' : 'Schedule interview'}
+      </button>
     `;
+  }
+
+  // ---- Interviews ----
+  // Stored in a dedicated `interviews` table, one row per application
+  // (unique constraint on application_id so scheduling twice just
+  // updates the existing interview instead of creating duplicates).
+  // RLS: employers can only read/write interviews where employer_id
+  // matches their own auth.uid() — same pattern as applications/jobs.
+  let interviews = [];
+
+  function escapeJsString(value) {
+    return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  }
+
+  function getInterviewForApplication(applicationId) {
+    return interviews.find(iv => iv.applicationId === applicationId) || null;
+  }
+
+  function formatInterviewDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleString(undefined, {
+      weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+    });
+  }
+
+  // Converts an ISO timestamp into the value a <input type="datetime-local">
+  // expects (local time, no timezone suffix), so editing an existing
+  // interview shows the correct pre-filled date/time instead of blank.
+  function toDatetimeLocalValue(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  async function loadInterviews() {
+    if (!currentUser) return;
+
+    const { data, error } = await sb
+      .from('interviews')
+      .select('id, application_id, job_id, candidate_id, scheduled_at, location_or_link, video_link, notes')
+      .eq('employer_id', currentUser.id)
+      .order('scheduled_at', { ascending: true });
+
+    if (error) {
+      console.error('Failed to load interviews:', error);
+      interviews = [];
+      renderInterviewsPanel();
+      return;
+    }
+
+    const rows = data || [];
+    let profileMap = {};
+
+    if (rows.length > 0) {
+      const candidateIds = [...new Set(rows.map(r => r.candidate_id))];
+      const { data: profilesData, error: profilesError } = await sb
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', candidateIds);
+
+      if (profilesError) console.error('Failed to load candidate names for interviews:', profilesError);
+      (profilesData || []).forEach(p => { profileMap[p.id] = p; });
+    }
+
+    const jobMap = {};
+    jobs.forEach(j => { jobMap[j.id] = j; });
+
+    interviews = rows.map(r => ({
+      id: r.id,
+      applicationId: r.application_id,
+      jobId: r.job_id,
+      candidateId: r.candidate_id,
+      scheduledAt: r.scheduled_at,
+      locationOrLink: r.location_or_link,
+      videoLink: r.video_link,
+      notes: r.notes,
+      candidateName: profileMap[r.candidate_id]?.full_name || 'Candidate',
+      jobTitle: jobMap[r.job_id]?.title || 'a job'
+    }));
+
+    renderInterviewsPanel();
+    // Refresh candidate cards too, so the "Schedule interview" /
+    // "Reschedule interview" badges stay accurate if that panel is
+    // already on screen.
+    if (candidatesLoaded) renderCandidates();
+  }
+
+  function renderInterviewsPanel() {
+    const listEl = document.getElementById('interviews-list');
+    if (!listEl) return;
+
+    if (interviews.length === 0) {
+      listEl.innerHTML = `
+        <div class="empty-state" id="interviews-empty-state">
+          <div class="empty-icon">📅</div>
+          <div class="empty-title">No interviews scheduled yet</div>
+          Go to Candidates and click "Schedule interview" on a candidate to set one up.
+        </div>`;
+      return;
+    }
+
+    listEl.innerHTML = interviews.map(iv => {
+      const metaParts = [
+        formatInterviewDate(iv.scheduledAt),
+        iv.locationOrLink || null
+      ].filter(Boolean).join(' · ');
+
+      const videoLinkHtml = iv.videoLink
+        ? `<div class="job-meta" style="margin-top:2px;"><a href="${escapeHtml(iv.videoLink)}" target="_blank" rel="noopener" style="color:var(--brand);">${escapeHtml(iv.videoLink)}</a></div>`
+        : '';
+
+      return `
+      <div class="job-row">
+        <div class="job-status active"></div>
+        <div class="job-info">
+          <div class="job-title-text">${escapeHtml(iv.candidateName)} — ${escapeHtml(iv.jobTitle)}</div>
+          <div class="job-meta">${escapeHtml(metaParts)}</div>
+          ${videoLinkHtml}
+          ${iv.notes ? `<div class="job-meta" style="margin-top:4px;">${escapeHtml(iv.notes)}</div>` : ''}
+        </div>
+        <div class="job-actions">
+          <button class="btn-view" onclick="openInterviewModal('${iv.applicationId}', '${iv.jobId}', '${iv.candidateId}', '${escapeJsString(iv.candidateName)}', '${escapeJsString(iv.jobTitle)}')">Edit</button>
+          <button class="btn-danger" onclick="cancelInterview('${iv.id}')">Cancel</button>
+        </div>
+      </div>
+    `;
+    }).join('');
+  }
+
+  function openInterviewModal(applicationId, jobId, candidateId, candidateName, jobTitle) {
+    const existing = getInterviewForApplication(applicationId);
+
+    const scheduledAtLocal = existing ? toDatetimeLocalValue(existing.scheduledAt) : '';
+    const locationVal = existing ? (existing.locationOrLink || '') : '';
+    const videoLinkVal = existing ? (existing.videoLink || '') : '';
+    const notesVal = existing ? (existing.notes || '') : '';
+
+    document.getElementById('interview-modal-box').innerHTML = `
+      <button type="button" class="modal-close" onclick="closeInterviewModal()" aria-label="Close">✕</button>
+      <div class="modal-top">
+        <div class="modal-avatar">${escapeHtml(getInitials(candidateName))}</div>
+        <div>
+          <div class="modal-name">${existing ? 'Edit interview' : 'Schedule interview'}</div>
+          <div class="modal-role">${escapeHtml(candidateName)} — ${escapeHtml(jobTitle)}</div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:16px;">
+        <label class="form-label">Date & time</label>
+        <input type="datetime-local" class="form-input" id="iv-datetime" value="${escapeHtml(scheduledAtLocal)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location <span style="text-transform:none; font-weight:400;">(optional if remote)</span></label>
+        <div class="chip-search-wrap">
+          <input type="text" class="form-input" id="iv-location" placeholder="Start typing a city, like Raleigh, NC" autocomplete="off"
+            value="${escapeHtml(locationVal)}"
+            oninput="renderIvLocationSuggestions();"
+            onfocus="renderIvLocationSuggestions();"
+            onblur="setTimeout(hideIvLocationSuggestions, 150)">
+          <div class="chip-results" id="iv-location-suggestions"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Video link <span style="text-transform:none; font-weight:400;">(optional)</span></label>
+        <input type="text" class="form-input" id="iv-video-link" placeholder="e.g. Zoom, Google Meet, or Teams link" value="${escapeHtml(videoLinkVal)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes <span style="text-transform:none; font-weight:400;">(optional)</span></label>
+        <textarea class="form-input" id="iv-notes" placeholder="Anything to remember for this interview...">${escapeHtml(notesVal)}</textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-accept" onclick="saveInterview('${applicationId}', '${jobId}', '${candidateId}')">${existing ? 'Save changes' : 'Schedule'}</button>
+        ${existing
+          ? `<button class="btn-pass" onclick="cancelInterview('${existing.id}'); closeInterviewModal();">Cancel interview</button>`
+          : `<button class="btn-pass" onclick="closeInterviewModal()">Cancel</button>`}
+      </div>
+    `;
+
+    document.getElementById('interview-modal-overlay').classList.add('show');
+  }
+
+  // City suggestions for the interview location field — reuses the same
+  // KNOWN_CITIES list the Post a Job location step uses, but with its own
+  // element IDs (iv-location / iv-location-suggestions) since this modal's
+  // HTML is regenerated fresh each time it opens.
+  function renderIvLocationSuggestions() {
+    const input = document.getElementById('iv-location');
+    const box = document.getElementById('iv-location-suggestions');
+    if (!input || !box) return;
+
+    const query = input.value.trim().toLowerCase();
+    const matches = (query === ''
+      ? KNOWN_CITIES
+      : KNOWN_CITIES.filter(c => c.toLowerCase().includes(query))
+    ).slice(0, MAX_RESULTS_SHOWN);
+
+    if (matches.length === 0) {
+      box.classList.remove('show');
+      box.innerHTML = '';
+      return;
+    }
+
+    box.innerHTML = matches.map(city => {
+      const escaped = city.replace(/'/g, "\\'");
+      return `<div class="chip-result-row" onmousedown="event.preventDefault(); selectIvLocationSuggestion('${escaped}')">${escapeHtml(city)}</div>`;
+    }).join('');
+    box.classList.add('show');
+  }
+
+  function selectIvLocationSuggestion(city) {
+    const input = document.getElementById('iv-location');
+    if (input) input.value = city;
+    hideIvLocationSuggestions();
+  }
+
+  function hideIvLocationSuggestions() {
+    const box = document.getElementById('iv-location-suggestions');
+    if (box) box.classList.remove('show');
+  }
+
+
+  function closeInterviewModal() {
+    document.getElementById('interview-modal-overlay').classList.remove('show');
+  }
+
+  async function saveInterview(applicationId, jobId, candidateId) {
+    const datetimeVal = document.getElementById('iv-datetime').value;
+    const locationVal = document.getElementById('iv-location').value.trim();
+    const videoLinkVal = document.getElementById('iv-video-link').value.trim();
+    const notesVal = document.getElementById('iv-notes').value.trim();
+
+    if (!datetimeVal) {
+      showToast('Pick a date and time for the interview.');
+      return;
+    }
+
+    const scheduledAtIso = new Date(datetimeVal).toISOString();
+
+    const { error } = await sb
+      .from('interviews')
+      .upsert({
+        application_id: applicationId,
+        job_id: jobId,
+        candidate_id: candidateId,
+        employer_id: currentUser.id,
+        scheduled_at: scheduledAtIso,
+        location_or_link: locationVal || null,
+        video_link: videoLinkVal || null,
+        notes: notesVal || null
+      }, { onConflict: 'application_id' });
+
+    if (error) {
+      console.error('Failed to save interview:', error);
+      showToast('Could not save the interview. Try again.');
+      return;
+    }
+
+    showToast('Interview saved.');
+    closeInterviewModal();
+    await loadInterviews();
+
+    // Best-effort — a failed email shouldn't undo the interview that
+    // already saved successfully, so this is fire-and-forget with just a
+    // console warning (and a follow-up toast) if it doesn't go through.
+    notifyCandidateOfInterview({
+      candidateId,
+      jobId,
+      scheduledAtIso,
+      locationVal,
+      videoLinkVal,
+      notesVal
+    });
+  }
+
+  async function notifyCandidateOfInterview({ candidateId, jobId, scheduledAtIso, locationVal, videoLinkVal, notesVal }) {
+    const job = jobs.find(j => j.id === jobId);
+    const jobTitle = job ? job.title : 'the role';
+    const companyName = currentProfile?.company_name || document.getElementById('nav-user-name').textContent || '';
+
+    try {
+      const { data, error: emailError } = await sb.functions.invoke('send-interview-email', {
+        body: {
+          candidate_id: candidateId,
+          job_title: jobTitle,
+          company_name: companyName,
+          formatted_datetime: formatInterviewDate(scheduledAtIso) + ' (employer\'s local time)',
+          location: locationVal || null,
+          video_link: videoLinkVal || null,
+          notes: notesVal || null
+        }
+      });
+
+      if (emailError || !data?.success) {
+        console.error('Failed to send interview email:', emailError || data);
+        showToast('Interview saved, but the notification email did not send.');
+      }
+    } catch (err) {
+      console.error('notifyCandidateOfInterview error:', err);
+      showToast('Interview saved, but the notification email did not send.');
+    }
+  }
+
+  async function cancelInterview(interviewId) {
+    const { error } = await sb
+      .from('interviews')
+      .delete()
+      .eq('id', interviewId);
+
+    if (error) {
+      console.error('Failed to cancel interview:', error);
+      showToast('Could not cancel the interview. Try again.');
+      return;
+    }
+
+    showToast('Interview cancelled.');
+    await loadInterviews();
   }
 
   // Resumes live in a private bucket — a plain link won't carry the
@@ -1894,12 +2406,11 @@
   }
 
   function renderJobRow(job) {
-    const isPending = job.status === 'pending_review';
     return `
       <div class="job-row">
-        <div class="job-status ${isPending ? 'pending_review' : 'active'}"></div>
+        <div class="job-status active"></div>
         <div class="job-info">
-          <div class="job-title-text">${escapeHtml(job.title)}${isPending ? '<span class="job-pending-badge">Pending approval</span>' : ''}</div>
+          <div class="job-title-text">${escapeHtml(job.title)}</div>
           <div class="job-meta">${escapeHtml(job.job_type || '')} · ${escapeHtml(formatWorkStyleLabel(job.work_style))}${job.salary ? ' · ' + escapeHtml(job.salary) : ''}${job.location ? ' · ' + escapeHtml(job.location) : ''}</div>
         </div>
         <div class="job-stats">
@@ -2197,8 +2708,8 @@
       .map(r => normalizeText(r))
       .filter(Boolean);
 
-    if (requirements.length < 1) {
-      return 'Select at least 1 requirement.';
+    if (requirements.length < 3) {
+      return 'Select at least 3 requirements.';
     }
 
     return '';
@@ -2269,6 +2780,22 @@
   // correctly.
 
   async function postJob() {
+    if (!employerVerified) {
+      window.location.href = 'employer-onboarding.html';
+      return;
+    }
+
+    // Editing does not use another posting. Creating a new listing does.
+    if (!editingJobId) {
+      if (!billingReady) await loadBillingEntitlement();
+
+      const access = getPostingAccess();
+      if (!access.allowed) {
+        redirectToPricing(access.reason);
+        return;
+      }
+    }
+
     const job = collectJobForm();
 
     const validationError = validateJob(job);
@@ -2296,32 +2823,44 @@
       showToast('Job updated successfully!');
       cancelEdit(false);
     } else {
-      // Unverified/pending employers can still create jobs — they're just
-      // saved as pending_review and hidden from the candidate-facing feed
-      // until the business is approved, at which point they go live
-      // automatically (see the notify_employer_approved trigger in
-      // setup-notifications.sql, which flips these to 'active').
       const { error } = await sb
         .from('jobs')
         .insert({
           employer_id: currentUser.id,
           ...job,
-          status: employerVerified ? 'active' : 'pending_review'
+          status: 'active'
         });
 
       if (error) {
         console.error('Failed to post job:', error);
-        showToast('Could not post job. Check Supabase jobs table.');
+
+        const message = String(error.message || '').toLowerCase();
+        const isBillingBlock =
+          message.includes('free job') ||
+          message.includes('free posting') ||
+          message.includes('subscription') ||
+          message.includes('business or enterprise') ||
+          message.includes('active job limit') ||
+          message.includes('posting limit');
+
+        if (isBillingBlock) {
+          showToast('Choose a plan to post another job.');
+          await loadBillingEntitlement();
+          updatePostingAccessUI();
+          setTimeout(() => redirectToPricing('job-limit'), 700);
+        } else {
+          showToast('Could not post job. Please try again.');
+        }
         return;
       }
 
-      showToast(employerVerified
-        ? '🎉 Job posted successfully!'
-        : 'Job saved — it\'ll go live automatically once your business is approved.');
+      showToast('🎉 Job posted successfully!');
       clearJobForm();
     }
 
     await loadJobs();
+    await loadBillingEntitlement();
+    updatePostingAccessUI();
     setTimeout(() => showPanel('jobs'), 500);
   }
 
@@ -2370,98 +2909,9 @@
 
     if (editingJobId === jobId) cancelEdit();
     await loadJobs();
+    await loadBillingEntitlement();
+    updatePostingAccessUI();
     showToast('Job deleted.');
-  }
-
-  // ---- Notifications ----
-
-  function timeAgo(iso) {
-    const diffMs = Date.now() - new Date(iso).getTime();
-    const mins = Math.floor(diffMs / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    if (days < 7) return `${days}d ago`;
-    return new Date(iso).toLocaleDateString();
-  }
-
-  async function fetchNotifications() {
-    const { data, error } = await sb
-      .from('notifications')
-      .select('id, type, title, body, link, read_at, created_at')
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (error) {
-      console.error('Failed to load notifications:', error);
-      return [];
-    }
-    return data || [];
-  }
-
-  function renderNotifDropdown(items) {
-    const badge = document.getElementById('notif-badge');
-    const list = document.getElementById('notif-list');
-    const unreadCount = items.filter(n => !n.read_at).length;
-
-    if (unreadCount > 0) {
-      badge.style.display = 'flex';
-      badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
-    } else {
-      badge.style.display = 'none';
-    }
-
-    if (items.length === 0) {
-      list.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
-      return;
-    }
-
-    list.innerHTML = items.slice(0, 6).map(n => `
-      <a class="notif-item ${n.read_at ? '' : 'unread'}" href="${n.link ? escapeHtml(n.link) : '#'}" onclick="markNotificationRead('${n.id}')">
-        <div class="notif-item-title">${escapeHtml(n.title)}</div>
-        ${n.body ? `<div class="notif-item-body">${escapeHtml(n.body)}</div>` : ''}
-        <div class="notif-item-time">${timeAgo(n.created_at)}</div>
-      </a>
-    `).join('');
-  }
-
-  async function markNotificationRead(id) {
-    await sb.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', id);
-  }
-
-  async function refreshNotifications() {
-    const items = await fetchNotifications();
-    renderNotifDropdown(items);
-  }
-
-  function initNotifications() {
-    refreshNotifications();
-
-    const bell = document.getElementById('notif-bell');
-    const dropdown = document.getElementById('notif-dropdown');
-
-    bell.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = dropdown.style.display !== 'none';
-      dropdown.style.display = isOpen ? 'none' : 'block';
-      if (!isOpen) refreshNotifications();
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!document.getElementById('notif-wrap').contains(e.target)) {
-        dropdown.style.display = 'none';
-      }
-    });
-
-    // Live updates: new applications should light up the bell without a refresh.
-    sb.channel('notifications-' + currentUser.id)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'notifications',
-        filter: `recipient_id=eq.${currentUser.id}`
-      }, () => refreshNotifications())
-      .subscribe();
   }
 
   async function logout() {
