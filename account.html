@@ -525,11 +525,6 @@ select.form-input{
   color:#456b93;
   background:rgba(93,127,163,.10);
 }
-.job-row-status.status-interview{
-  border-color:#C8A35A;
-  color:#8A6725;
-  background:rgba(200,163,90,.12);
-}
 .job-row-status.status-hired,
 .job-row-status.status-accepted{
   border-color:var(--sage);
@@ -1006,8 +1001,14 @@ function showToast(msg, actionFn){
 // here too only if other code on this page still calls them.
 
 // Keep the candidate-facing application wording in one place.
-// Employer dashboard statuses currently use:
-// applied -> reviewed -> interview -> hired / rejected.
+// Employer dashboard statuses currently use: applied -> accepted / rejected
+// (set via the Accept/Pass buttons on employer-dashboard.html). "reviewed"
+// and "hired" are kept here for any older data that used them, even though
+// nothing in the current app sets them. There's no more "interview" status —
+// that was tied to the Interviews scheduling feature, which was removed;
+// any old application row still carrying that value now just reads as
+// "Under review" instead of showing a status for a feature that no longer
+// exists.
 function applicationStatusMeta(rawStatus){
   const status = String(rawStatus || 'applied').trim().toLowerCase();
 
@@ -1024,11 +1025,7 @@ function applicationStatusMeta(rawStatus){
     return { key:'accepted', label:'Accepted' };
   }
 
-  if(status.includes('interview')){
-    return { key:'interview', label:'Interview' };
-  }
-
-  if(status === 'reviewed' || status === 'under_review' || status === 'under review'){
+  if(status === 'reviewed' || status === 'under_review' || status === 'under review' || status.includes('interview')){
     return { key:'reviewed', label:'Under review' };
   }
 
@@ -1542,8 +1539,8 @@ async function initAccountPage(){
 }
 
 // Safe fallback: whenever the candidate comes back to this tab/window,
-// refresh the list from Supabase so reviewed/interview/hired/rejected
-// changes are reflected immediately.
+// refresh the list from Supabase so reviewed/hired/rejected changes are
+// reflected immediately.
 window.addEventListener('focus', () => {
   if(currentUserId) loadAppliedJobs();
 });
