@@ -170,6 +170,14 @@
   .pill.remote { background: rgba(111,191,143,0.1); color: #2e7a52; border-color: rgba(111,191,143,0.3); }
   .pill.salary { background: var(--brand-light); color: var(--brand); border-color: rgba(93,127,163,0.2); }
 
+  .match-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(111,191,143,0.15); color: #3a9463;
+    font-size: 12px; font-weight: 500; padding: 4px 12px;
+    border-radius: 100px; margin-bottom: 12px;
+  }
+  .match-badge.pending { background: var(--border); color: var(--text-muted); }
+
   .card-desc {
     font-size: 13px; color: var(--text-muted); line-height: 1.65; margin-bottom: 16px;
     display: -webkit-box;
@@ -335,6 +343,14 @@
   // Tracks which job ids have already had their view counted this session,
   // so re-rendering the same top card (e.g. after undo) doesn't double-count.
   const viewedJobIds = new Set();
+
+  // AI match scores (candidate <-> job fit), keyed by job id. Populated
+  // lazily as cards come into view — see ensureScoresFor(). Cached
+  // server-side in job_matches, so this only ever hits the network for
+  // pairs that haven't been scored before (or went stale after a resume
+  // or job edit — see the invalidation triggers in setup-job-matches.sql).
+  const matchScores = {};
+  const scoreRequestInFlight = new Set();
 
   let isDragging = false;
   let startX = 0;
@@ -547,6 +563,15 @@
 
     const description = job.description || 'No description available.';
 
+    // Only shown to logged-in candidates — scoring needs their saved
+    // resume_data, which guests/pre-login sessions don't have yet.
+    const cachedMatch = matchScores[job.id];
+    const matchBadgeHTML = currentUserId
+      ? (cachedMatch
+          ? `<div class="match-badge" data-job-id="${job.id}">✦ ${cachedMatch.score}% match</div>`
+          : `<div class="match-badge pending" data-job-id="${job.id}">Calculating match…</div>`)
+      : '';
+
     card.innerHTML = `
       <div class="stamp stamp-apply">APPLY ✓</div>
       <div class="stamp stamp-skip">SKIP ✕</div>
@@ -557,6 +582,7 @@
           <div class="company-name">${escapeHtml(job.company || '')}</div>
         </div>
       </div>
+      ${matchBadgeHTML}
       <div class="card-pills">${pillsHTML}</div>
       <div class="card-desc">${escapeHtml(description)}</div>
       ${highlightsHTML}
@@ -589,6 +615,75 @@
     updateStats();
     setupTopCard();
     trackViewForTopCard();
+
+    // Keep match scores ready a few cards ahead of what's currently
+    // visible, so by the time someone swipes to a card its score has
+    // usually already resolved instead of showing "Calculating…".
+    const lookahead = jobs.slice(currentIndex, currentIndex + 6).map(j => j.id);
+    ensureScoresFor(lookahead);
+  }
+
+  // Fetches AI match scores for the given job ids, cache-first. Reads
+  // job_matches directly (cheap, no Edge Function call) for anything
+  // already scored in a previous visit; only calls the score-job-match
+  // Edge Function for pairs that have genuinely never been scored.
+  async function ensureScoresFor(jobIds) {
+    if (!currentUserId) return; // no resume_data to score against pre-login
+
+    const need = jobIds.filter(id => !(id in matchScores) && !scoreRequestInFlight.has(id));
+    if (!need.length) return;
+
+    need.forEach(id => scoreRequestInFlight.add(id));
+
+    try {
+      const { data: cachedRows, error: cacheError } = await sb
+        .from('job_matches')
+        .select('job_id, score, reason')
+        .eq('candidate_id', currentUserId)
+        .in('job_id', need);
+
+      if (cacheError) console.warn('Could not read cached match scores:', cacheError);
+
+      (cachedRows || []).forEach(row => {
+        matchScores[row.job_id] = { score: row.score, reason: row.reason };
+      });
+
+      const stillMissing = need.filter(id => !(id in matchScores));
+
+      if (stillMissing.length) {
+        const { data, error } = await sb.functions.invoke('score-job-match', {
+          body: { candidateId: currentUserId, jobIds: stillMissing },
+        });
+
+        if (error) {
+          console.warn('score-job-match failed:', error);
+        } else {
+          (data?.scores || []).forEach(s => {
+            matchScores[s.job_id] = { score: s.score, reason: s.reason };
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Could not compute match scores:', err);
+    } finally {
+      need.forEach(id => scoreRequestInFlight.delete(id));
+      patchRenderedBadges(need);
+    }
+  }
+
+  // Updates any currently-rendered cards' badges in place once their
+  // score resolves, without a full re-render (which would restart the
+  // card's drag/animation state).
+  function patchRenderedBadges(jobIds) {
+    jobIds.forEach(id => {
+      const el = document.querySelector(`.match-badge[data-job-id="${CSS.escape(id)}"]`);
+      if (!el) return;
+      const match = matchScores[id];
+      if (match) {
+        el.textContent = `✦ ${match.score}% match`;
+        el.classList.remove('pending');
+      }
+    });
   }
 
   // Counts a "view" the first time a job actually reaches the top of the
