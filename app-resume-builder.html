@@ -68,6 +68,111 @@ button,input,textarea{font:inherit}
 .primary:disabled{opacity:.6;cursor:not-allowed}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:420px){.title{font-size:32px}.two{grid-template-columns:1fr}.full{grid-column:auto}}
+
+/* Final resume preview */
+.resume-preview-wrap{
+  margin-top:20px;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:24px;
+  background:rgba(255,255,255,.025);
+}
+.resume-preview-note{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+}
+.preview-pill{
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(111,191,143,.12);
+  color:var(--mint);
+  font-size:10px;
+  font-weight:900;
+}
+.resume-paper{
+  background:#fff;
+  color:#172333;
+  border-radius:15px;
+  padding:24px 20px;
+  box-shadow:0 16px 44px rgba(0,0,0,.25);
+}
+.resume-paper-head{
+  padding-bottom:12px;
+  border-bottom:1px solid #DCE5EB;
+}
+.resume-paper-name{
+  font-size:27px;
+  line-height:1.05;
+  font-weight:900;
+}
+.resume-paper-contact{
+  margin-top:6px;
+  color:#66788A;
+  font-size:10px;
+  line-height:1.5;
+}
+.resume-paper-section{margin-top:16px}
+.resume-paper-title{
+  color:#35679A;
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  margin-bottom:7px;
+}
+.resume-paper-copy{
+  color:#35475A;
+  font-size:11px;
+  line-height:1.55;
+  white-space:pre-wrap;
+}
+.resume-paper-item{margin-top:9px}
+.resume-paper-item:first-child{margin-top:0}
+.resume-paper-item-title{
+  font-size:12px;
+  font-weight:900;
+  line-height:1.35;
+}
+.resume-paper-item-meta{
+  margin-top:2px;
+  color:#66788A;
+  font-size:10px;
+  line-height:1.4;
+}
+.resume-paper-item-copy{
+  margin-top:4px;
+  color:#43566A;
+  font-size:10px;
+  line-height:1.5;
+  white-space:pre-wrap;
+}
+.resume-paper-skills{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+.resume-paper-skill{
+  padding:5px 7px;
+  border-radius:999px;
+  background:#EEF3F6;
+  color:#43566A;
+  font-size:9px;
+  font-weight:800;
+}
+.review-edit-copy{
+  margin-top:12px;
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.45;
+}
+
 </style>
 </head>
 <body>
@@ -136,10 +241,19 @@ button,input,textarea{font:inherit}
   </section>
 
   <section class="screen" data-step="6">
-    <div class="eyebrow">Review</div>
-    <div class="title">Your resume is ready to save</div>
-    <div class="subtitle">Review the information below. You can edit it later.</div>
-    <div class="card"><div id="reviewSummary" class="summary"></div></div>
+    <div class="eyebrow">Preview</div>
+    <div class="title">See exactly what employers will see</div>
+    <div class="subtitle">This is your Alygnn resume layout. Review it before saving.</div>
+
+    <div class="resume-preview-wrap">
+      <div class="resume-preview-note">
+        <span>Live resume preview</span>
+        <span class="preview-pill">Ready to review</span>
+      </div>
+      <article id="resumePreviewPaper" class="resume-paper"></article>
+    </div>
+
+    <div class="review-edit-copy">Need to change something? Tap Back to edit any section before saving.</div>
   </section>
 
   <div class="actions">
@@ -304,19 +418,64 @@ function collectResume(){
 }
 function renderReview(){
   const r=collectResume();
-  const fullName=[r.personal.first_name,r.personal.last_name].filter(Boolean).join(' ');
+  const fullName=[r.personal.first_name,r.personal.last_name].filter(Boolean).join(' ')||'Your Name';
   const location=[r.personal.city,r.personal.state].filter(Boolean).join(', ');
-  const rows=[
-    ['Name',fullName||'Not set'],
-    ['Contact',[r.personal.email,r.personal.phone,location].filter(Boolean).join(' • ')||'Not set'],
-    ['Summary',r.summary||'Not set'],
-    ['Experience',r.experience.map(x=>`${x.title}${x.company?' at '+x.company:''}`).join('\n')||'None added'],
-    ['Education',r.education.map(x=>`${x.degree}${x.school?' — '+x.school:''}`).join('\n')||'None added'],
-    ['Skills',r.skills.join(', ')||'None added']
-  ];
-  document.getElementById('reviewSummary').innerHTML=rows.map(([key,value])=>
-    `<div class="summary-row"><div class="summary-key">${key}</div><div class="summary-value">${escapeHtml(value)}</div></div>`
-  ).join('');
+  const contact=[location,r.personal.email,r.personal.phone].filter(Boolean).join(' · ');
+
+  const experienceHtml=r.experience.length
+    ?r.experience.map(item=>{
+      const role=[item.title,item.company].filter(Boolean).join(' · ');
+      const meta=[[item.start,item.end].filter(Boolean).join(' – '),item.location].filter(Boolean).join(' · ');
+      return `<div class="resume-paper-item">
+        <div class="resume-paper-item-title">${escapeHtml(role||'Experience')}</div>
+        ${meta?`<div class="resume-paper-item-meta">${escapeHtml(meta)}</div>`:''}
+        ${item.description?`<div class="resume-paper-item-copy">${escapeHtml(item.description)}</div>`:''}
+      </div>`;
+    }).join('')
+    :'<div class="resume-paper-copy">No work experience added.</div>';
+
+  const educationHtml=r.education.length
+    ?r.education.map(item=>{
+      const title=[item.degree,item.school].filter(Boolean).join(' · ');
+      const meta=[[item.start,item.end].filter(Boolean).join(' – '),item.location].filter(Boolean).join(' · ');
+      return `<div class="resume-paper-item">
+        <div class="resume-paper-item-title">${escapeHtml(title||'Education')}</div>
+        ${meta?`<div class="resume-paper-item-meta">${escapeHtml(meta)}</div>`:''}
+      </div>`;
+    }).join('')
+    :'<div class="resume-paper-copy">No education added.</div>';
+
+  const skillsHtml=r.skills.length
+    ?`<div class="resume-paper-skills">${r.skills.map(skill=>`<span class="resume-paper-skill">${escapeHtml(skill)}</span>`).join('')}</div>`
+    :'<div class="resume-paper-copy">No skills added.</div>';
+
+  document.getElementById('resumePreviewPaper').innerHTML=`
+    <header class="resume-paper-head">
+      <div class="resume-paper-name">${escapeHtml(fullName)}</div>
+      <div class="resume-paper-contact">${escapeHtml(contact||'Contact information')}</div>
+    </header>
+
+    ${r.summary?`
+      <section class="resume-paper-section">
+        <div class="resume-paper-title">Professional Summary</div>
+        <div class="resume-paper-copy">${escapeHtml(r.summary)}</div>
+      </section>`:''}
+
+    <section class="resume-paper-section">
+      <div class="resume-paper-title">Experience</div>
+      ${experienceHtml}
+    </section>
+
+    <section class="resume-paper-section">
+      <div class="resume-paper-title">Education</div>
+      ${educationHtml}
+    </section>
+
+    <section class="resume-paper-section">
+      <div class="resume-paper-title">Skills</div>
+      ${skillsHtml}
+    </section>
+  `;
 }
 async function saveResume(){
   clearMessage();
