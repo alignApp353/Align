@@ -217,7 +217,7 @@
   <a class="logo" href="employers.html">Alygnn<span>.</span><span class="logo-tag">for Employers</span></a>
   <ul class="nav-links">
     <li><a href="#how">How it works</a></li>
-    <li><a href="login.html?role=employer" id="nav-pricing-link">Pricing</a></li>
+    <li><a href="pricing.html" id="nav-pricing-link">Pricing</a></li>
     <li><a href="#faq">FAQ</a></li>
   </ul>
   <div class="nav-right">
@@ -231,7 +231,7 @@
 </nav>
 <div class="mobile-menu" id="mobile-menu">
   <a href="#how">How it works</a>
-  <a href="login.html?role=employer" id="mobile-pricing-link">Pricing</a>
+  <a href="pricing.html" id="mobile-pricing-link">Pricing</a>
   <a href="#faq">FAQ</a>
 </div>
 <script>
@@ -344,47 +344,6 @@
   </div>
 </section>
 
-<!-- PRICING -->
-<section class="section" id="pricing" style="display:none;">
-  <p class="section-label">Pricing</p>
-  <h2>Simple pricing,<br>built to scale with you.</h2>
-  <p class="section-sub">No hidden fees. Cancel anytime. Start with a 15-day free trial.</p>
-  <div class="pricing-grid">
-    <div class="price-card featured">
-      <span class="price-tag">15-day free trial</span>
-      <div class="price-tier">Employers</div>
-      <div class="price-amount">$299 <span>/ month</span></div>
-      <p class="price-desc">Free for your first 15 days. Everything you need to find and hire qualified candidates faster.</p>
-      <ul class="price-features">
-        <li>Unlimited job postings</li>
-        <li>AI-ranked candidates</li>
-        <li>Employer dashboard</li>
-        <li>Priority support</li>
-      </ul>
-      <div id="pricing-cta"></div>
-    </div>
-    <div class="price-card">
-      <div class="price-tier">Enterprise</div>
-      <div class="price-amount">Contact sales</div>
-      <p class="price-desc">Custom volume, integrations, and dedicated support for larger teams.</p>
-      <ul class="price-features">
-        <li>Unlimited seats</li>
-        <li>Dedicated account manager</li>
-        <li>Custom integrations</li>
-        <li>SLA & onboarding support</li>
-      </ul>
-      <button class="btn-ghost" onclick="window.location.href='contact.html'">Contact sales</button>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="pricing-locked" style="text-align:center;">
-  <p class="section-label">Pricing</p>
-  <h2>Ready to get started?</h2>
-  <p class="section-sub" style="margin: 16px auto 32px;">Create an employer account to view our pricing and start your free trial.</p>
-  <button class="btn-primary" onclick="window.location.href='login.html?role=employer'">Create employer account →</button>
-</section>
-
 <!-- TESTIMONIAL -->
 <section class="section" style="background: white;">
   <p class="section-label">The promise</p>
@@ -477,9 +436,6 @@
     'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG'
   );
 
-  const pricingSection = document.getElementById('pricing');
-  const lockedSection  = document.getElementById('pricing-locked');
-  const ctaWrap        = document.getElementById('pricing-cta');
   const navAuthLink    = document.getElementById('nav-auth-link');
   const navCtaBtn      = document.getElementById('nav-cta-btn');
   const heroCta        = document.getElementById('hero-cta-btn');
@@ -507,41 +463,13 @@
   const role = String(profile?.role || session?.user?.user_metadata?.role || '').toLowerCase();
   const isEmployerSession = !!session && role === 'employer';
 
-  if (!isEmployerSession) {
-    lockedSection.style.display = 'block';
-    return;
-  }
+  if (!isEmployerSession) return;
 
   // Logged-in employer: swap nav to account links
   if (navAuthLink) { navAuthLink.textContent = 'My account'; navAuthLink.href = 'employer-account.html'; }
   if (navCtaBtn)   { navCtaBtn.textContent = 'Dashboard'; navCtaBtn.onclick = () => window.location.href = 'employer-dashboard.html'; }
   if (heroCta)     { heroCta.textContent = 'Go to dashboard'; heroCta.onclick = () => window.location.href = 'employer-dashboard.html'; }
   if (bottomCta)   { bottomCta.textContent = 'Go to dashboard'; bottomCta.onclick = () => window.location.href = 'employer-dashboard.html'; }
-
-  // Show pricing
-  pricingSection.style.display = 'block';
-  lockedSection.style.display  = 'none';
-
-  // Now that the real pricing section is actually visible on this page,
-  // the nav "Pricing" links should scroll to it instead of sending an
-  // already-logged-in employer back to the login page.
-  const navPricingLink = document.getElementById('nav-pricing-link');
-  const mobilePricingLink = document.getElementById('mobile-pricing-link');
-  if (navPricingLink) navPricingLink.href = '#pricing';
-  if (mobilePricingLink) mobilePricingLink.href = '#pricing';
-
-  const isVerified = !!(profile?.company_name && profile.company_name.trim().length > 0);
-
-  if (isVerified) {
-    ctaWrap.innerHTML = `<button class="btn-white" onclick="window.location.href='employer-dashboard.html'">Start free trial</button>`;
-  } else {
-    ctaWrap.innerHTML = `
-      <button class="btn-white" style="opacity:0.45; cursor:not-allowed;" disabled>Start free trial</button>
-      <p style="margin-top:12px; font-size:13px; color:rgba(255,255,255,0.75); text-align:center;">
-        Complete your <a href="employer-account.html" style="color:white; text-decoration:underline;">company profile</a> to unlock this.
-      </p>
-    `;
-  }
 })();
 </script>
 </body>
