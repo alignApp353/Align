@@ -119,6 +119,11 @@
   .job-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .job-status.active { background: var(--mint); }
   .job-status.paused { background: var(--rose); }
+  .job-status.pending_review { background: #C9A227; }
+  .job-pending-badge {
+    display: inline-block; font-size: 11px; font-weight: 600; color: #8a6a10;
+    background: rgba(201,162,39,0.15); border-radius: 100px; padding: 2px 9px; margin-left: 8px;
+  }
   .job-info { flex: 1; }
   .job-title-text { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
   .job-meta { font-size: 12px; color: var(--text-muted); }
@@ -1236,11 +1241,6 @@
   // linked in — e.g. from a job's "Candidates" button back to My Jobs,
   // not all the way back to Account.
   function showPanel(name) {
-    if (name === 'post' && !employerVerified) {
-      window.location.href = 'employer-onboarding.html';
-      return;
-    }
-
     if (window.location.hash === '#' + name) {
       // Already there (e.g. clicking the same nav item twice) — hashchange
       // won't fire on its own, so drive the update directly.
@@ -1281,21 +1281,20 @@
       return;
     }
 
-    const status = currentProfile?.verification_status || 'not_submitted';
-
+    // Pending/unverified employers can still fill out and submit the job
+    // form — it just won't be visible to candidates yet. This banner is
+    // informational now, not a gate: postJob() decides the actual status.
     if (lockBox) {
       lockBox.style.display = 'block';
       lockBox.innerHTML = `
-        <strong>Business verification required</strong><br>
-        Current status: <strong>${escapeHtml(status)}</strong>. Your business must be approved by Alygnn before you can post jobs.
-        <br><br>
-        <a href="employer-onboarding.html" style="color:#5D7FA3; font-weight:500;">Complete business verification →</a>
+        <strong>Business verification in progress</strong><br>
+        You can go ahead and post jobs — they'll be saved as pending and go live automatically as soon as your business is approved.
       `;
     }
 
     if (postBtn) {
-      postBtn.classList.add('locked');
-      postBtn.disabled = true;
+      postBtn.classList.remove('locked');
+      postBtn.disabled = false;
     }
 
     // Keep the wizard's own Continue/Post button (step 5) in sync with
@@ -1325,8 +1324,10 @@
 
     const continueBtn = document.getElementById('wizard-continue-btn');
     if (currentWizardStep === TOTAL_WIZARD_STEPS) {
-      continueBtn.textContent = editingJobId ? 'Save changes →' : 'Post job →';
-      continueBtn.classList.toggle('locked', !employerVerified);
+      continueBtn.textContent = editingJobId
+        ? 'Save changes →'
+        : (employerVerified ? 'Post job →' : 'Save job (pending approval) →');
+      continueBtn.classList.remove('locked');
     } else {
       continueBtn.textContent = 'Continue';
       continueBtn.classList.remove('locked');
@@ -1895,11 +1896,12 @@
   }
 
   function renderJobRow(job) {
+    const isPending = job.status === 'pending_review';
     return `
       <div class="job-row">
-        <div class="job-status active"></div>
+        <div class="job-status ${isPending ? 'pending_review' : 'active'}"></div>
         <div class="job-info">
-          <div class="job-title-text">${escapeHtml(job.title)}</div>
+          <div class="job-title-text">${escapeHtml(job.title)}${isPending ? '<span class="job-pending-badge">Pending approval</span>' : ''}</div>
           <div class="job-meta">${escapeHtml(job.job_type || '')} · ${escapeHtml(formatWorkStyleLabel(job.work_style))}${job.salary ? ' · ' + escapeHtml(job.salary) : ''}${job.location ? ' · ' + escapeHtml(job.location) : ''}</div>
         </div>
         <div class="job-stats">
@@ -2269,11 +2271,6 @@
   // correctly.
 
   async function postJob() {
-    if (!employerVerified) {
-      window.location.href = 'employer-onboarding.html';
-      return;
-    }
-
     const job = collectJobForm();
 
     const validationError = validateJob(job);
@@ -2301,12 +2298,17 @@
       showToast('Job updated successfully!');
       cancelEdit(false);
     } else {
+      // Unverified/pending employers can still create jobs — they're just
+      // saved as pending_review and hidden from the candidate-facing feed
+      // until the business is approved, at which point they go live
+      // automatically (see the notify_employer_approved trigger in
+      // setup-notifications.sql, which flips these to 'active').
       const { error } = await sb
         .from('jobs')
         .insert({
           employer_id: currentUser.id,
           ...job,
-          status: 'active'
+          status: employerVerified ? 'active' : 'pending_review'
         });
 
       if (error) {
@@ -2315,7 +2317,9 @@
         return;
       }
 
-      showToast('🎉 Job posted successfully!');
+      showToast(employerVerified
+        ? '🎉 Job posted successfully!'
+        : 'Job saved — it\'ll go live automatically once your business is approved.');
       clearJobForm();
     }
 
