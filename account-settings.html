@@ -95,7 +95,7 @@
 
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
-  <a href="account.html" class="back-link">← Back to account</a>
+  <a href="account.html" class="back-link" id="back-link">← Back to account</a>
 </nav>
 
 <div class="page">
@@ -204,10 +204,16 @@
 
     const { data: profile } = await sb
       .from('profiles')
-      .select('has_password')
+      .select('has_password, role')
       .eq('id', currentUserId)
       .single();
     userHasPassword = !!profile?.has_password;
+
+    // Point Back at the right hub directly instead of always going through
+    // account.html (seeker) and relying on it to redirect employers onward —
+    // that round trip is what caused the seeker page to flash first.
+    const role = String(profile?.role || session.user.user_metadata?.role || '').toLowerCase();
+    document.getElementById('back-link').href = role === 'employer' ? 'employer-account.html' : 'account.html';
 
     const providers = session.user.identities?.map(i => i.provider) || [];
     const hasGoogle = providers.includes('google');
