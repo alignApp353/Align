@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notifications | Alygnn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --brand:#5D7FA3; --brand-light:#EAF0F5; --sage:#8CB69B; --mint:#6FBF8F; --rose:#D79A9A;
+    --bg:#F6F8F7; --card-bg:#FFFFFF; --border:#E4E8E6; --text:#26302B; --text-muted:#7A8A82;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'DM Sans', sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+  nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 32px; border-bottom:1px solid var(--border); background:var(--card-bg);
+  }
+  .logo{ font-family:'DM Serif Display', serif; font-size:22px; color:var(--brand); text-decoration:none; }
+  .nav-back{ font-size:13px; color:var(--text-muted); text-decoration:none; }
+  .nav-back:hover{ color:var(--brand); }
+
+  main{ max-width:680px; margin:0 auto; padding:40px 24px 80px; }
+  h1{ font-family:'DM Serif Display', serif; font-size:30px; margin-bottom:6px; }
+  .sub{ font-size:14px; color:var(--text-muted); margin-bottom:28px; }
+
+  .filter-row{ display:flex; gap:8px; margin-bottom:20px; }
+  .filter-btn{
+    font-size:13px; padding:7px 14px; border-radius:999px; border:1px solid var(--border);
+    background:var(--card-bg); color:var(--text-muted); cursor:pointer; font-family:inherit;
+  }
+  .filter-btn.active{ background:var(--brand); color:white; border-color:var(--brand); }
+
+  .notif-card{
+    display:block; background:var(--card-bg); border:1px solid var(--border); border-radius:14px;
+    padding:16px 18px; margin-bottom:10px; text-decoration:none; color:inherit; transition:border-color .15s;
+  }
+  .notif-card:hover{ border-color:var(--brand); }
+  .notif-card.unread{ background:var(--brand-light); }
+  .notif-title{ font-size:14px; font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--brand); flex-shrink:0; }
+  .notif-body{ font-size:13px; color:var(--text-muted); line-height:1.5; margin-bottom:6px; }
+  .notif-time{ font-size:11px; color:var(--text-muted); }
+
+  .empty-state{
+    text-align:center; padding:60px 20px; color:var(--text-muted); font-size:14px;
+    border:1px dashed var(--border); border-radius:14px;
+  }
+  #loading{ text-align:center; padding:60px 0; color:var(--text-muted); font-size:14px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">Alygnn<span>.</span></a>
+  <a href="#" class="nav-back" id="back-link">← Back</a>
+</nav>
+
+<main>
+  <h1>Notifications</h1>
+  <p class="sub">Updates on your applications and account activity.</p>
+
+  <div class="filter-row">
+    <button class="filter-btn active" id="filter-all" onclick="setFilter('all')">All</button>
+    <button class="filter-btn" id="filter-unread" onclick="setFilter('unread')">Unread</button>
+  </div>
+
+  <div id="loading">Loading…</div>
+  <div id="notif-list" style="display:none"></div>
+</main>
+
+<script>
+  const SUPABASE_URL = 'https://auth.alygnn.com';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let allNotifications = [];
+  let currentFilter = 'all';
+  let currentRole = 'seeker';
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+  }
+
+  function timeAgo(iso) {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(iso).toLocaleDateString();
+  }
+
+  function setFilter(filter) {
+    currentFilter = filter;
+    document.getElementById('filter-all').classList.toggle('active', filter === 'all');
+    document.getElementById('filter-unread').classList.toggle('active', filter === 'unread');
+    render();
+  }
+
+  function render() {
+    const list = document.getElementById('notif-list');
+    const items = currentFilter === 'unread' ? allNotifications.filter(n => !n.read_at) : allNotifications;
+
+    if (items.length === 0) {
+      list.innerHTML = `<div class="empty-state">${currentFilter === 'unread' ? "You're all caught up." : "No notifications yet. We'll let you know when there's activity on your account."}</div>`;
+      return;
+    }
+
+    list.innerHTML = items.map(n => `
+      <a class="notif-card ${n.read_at ? '' : 'unread'}" href="${n.link ? escapeHtml(n.link) : '#'}" onclick="markRead('${n.id}')">
+        <div class="notif-title">${!n.read_at ? '<span class="dot"></span>' : ''}${escapeHtml(n.title)}</div>
+        ${n.body ? `<div class="notif-body">${escapeHtml(n.body)}</div>` : ''}
+        <div class="notif-time">${timeAgo(n.created_at)}</div>
+      </a>
+    `).join('');
+  }
+
+  async function markRead(id) {
+    const n = allNotifications.find(x => x.id === id);
+    if (n) n.read_at = n.read_at || new Date().toISOString();
+    await sb.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', id);
+  }
+
+  async function init() {
+    const { data: userData, error: userError } = await sb.auth.getUser();
+    if (userError || !userData?.user) {
+      window.location.replace('login.html');
+      return;
+    }
+
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('role')
+      .eq('id', userData.user.id)
+      .maybeSingle();
+
+    currentRole = String(profile?.role || userData.user.user_metadata?.role || 'seeker').toLowerCase();
+    document.getElementById('back-link').href = currentRole === 'employer' ? 'employer-account.html' : 'account.html';
+
+    const { data, error } = await sb
+      .from('notifications')
+      .select('id, type, title, body, link, read_at, created_at')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.error('Failed to load notifications:', error);
+      document.getElementById('loading').textContent = 'Could not load notifications right now.';
+      return;
+    }
+
+    allNotifications = data || [];
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('notif-list').style.display = 'block';
+    render();
+  }
+
+  init();
+</script>
+
+</body>
+</html>
