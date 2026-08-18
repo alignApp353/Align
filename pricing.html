@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pricing — Alygnn</title>
-<meta name="description" content="Start with one free job on Alygnn, then choose a monthly hiring plan with AI matching, candidate filtering, analytics, and more.">
+<meta name="description" content="Start with one free job on Alygnn, then pay $129 for a single posting or choose a monthly hiring plan.">
 <link rel="canonical" href="https://alygnn.com/pricing.html">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
@@ -68,6 +68,12 @@
   .pricing-intro strong { display: block; font-size: 15px; color: var(--text); margin-bottom: 6px; }
   .pricing-intro p { font-size: 13px; color: var(--text-muted); }
 
+  /* ---- Pricing mode toggle ---- */
+  .toggle-wrap { display:flex; justify-content:center; margin:-22px auto 48px; padding:0 6%; }
+  .toggle { display:inline-flex; gap:4px; padding:5px; border:1px solid var(--border); border-radius:999px; background:white; }
+  .toggle button { border:0; background:transparent; color:var(--text-muted); padding:10px 22px; border-radius:999px; font:500 13px 'DM Sans',sans-serif; cursor:pointer; }
+  .toggle button.active { background:var(--brand); color:white; }
+
   /* ---- Sections ---- */
   section.view { max-width: 1180px; margin: 0 auto; padding: 0 6% 90px; }
   section.view:not(.active) { display: none; }
@@ -108,6 +114,28 @@
   .plan-cta:hover { border-color: var(--brand); color: var(--brand); }
   .plan-card.popular .plan-cta { background: var(--brand); color: white; border-color: var(--brand); }
   .plan-card.popular .plan-cta:hover { opacity: 0.88; }
+
+  /* ---- Pay per job ---- */
+  .payg-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; max-width:900px; margin:0 auto; }
+  .payg-card, .comparison-card { background:var(--card-bg); border:1px solid var(--border); border-radius:20px; padding:30px; }
+  .payg-card { border-color:rgba(93,127,163,.45); }
+  .payg-kicker { font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--brand); font-weight:700; margin-bottom:10px; }
+  .payg-price { font-family:'DM Serif Display',serif; font-size:46px; line-height:1; margin-bottom:8px; }
+  .payg-price span { font:400 13px 'DM Sans',sans-serif; color:var(--text-muted); }
+  .payg-title { font-size:19px; font-weight:700; margin-bottom:8px; }
+  .payg-copy { font-size:13px; color:var(--text-muted); line-height:1.6; margin-bottom:20px; }
+  .payg-list { list-style:none; margin:18px 0 24px; }
+  .payg-list li { position:relative; padding:9px 0 9px 22px; border-top:1px solid var(--border); font-size:13px; color:var(--text-muted); }
+  .payg-list li:first-child { border-top:0; }
+  .payg-list li::before { content:'✓'; position:absolute; left:0; color:var(--sage); font-weight:700; }
+  .comparison-card h2 { font-family:'DM Serif Display',serif; font-size:27px; margin-bottom:8px; }
+  .comparison-card > p { font-size:13px; color:var(--text-muted); line-height:1.6; margin-bottom:18px; }
+  .compare-row { display:grid; grid-template-columns:1fr auto auto; gap:16px; align-items:center; padding:13px 0; border-top:1px solid var(--border); font-size:13px; }
+  .compare-row strong { color:var(--text); }
+  .compare-row .payg-total { color:var(--text-muted); }
+  .compare-row .monthly-win { color:var(--brand); font-weight:700; }
+  .compare-note { margin-top:18px; border-radius:14px; padding:14px 16px; background:rgba(93,127,163,.08); color:var(--brand); font-size:12px; line-height:1.5; font-weight:500; }
+  @media (max-width:760px){ .payg-grid{grid-template-columns:1fr;} .compare-row{grid-template-columns:1fr auto;} .compare-row .monthly-win{grid-column:1/-1;} }
 
   /* ---- Add-on packs ---- */
   .addons-section { max-width: 1180px; margin: 0 auto; padding: 0 6% 90px; border-top: 1px solid var(--border); padding-top: 70px; }
@@ -165,12 +193,19 @@
 <section class="hero">
   <div class="hero-badge"><span class="badge-dot"></span> Pricing for employers</div>
   <h1>Hire on <em>your</em> terms.</h1>
-  <p class="hero-sub">Start with one job free. When you're ready to keep hiring, choose a monthly plan built to help you find, match, and manage candidates in one place.</p>
+  <p class="hero-sub">Start with one job free. Then pay for a single posting when you hire occasionally, or save with a monthly plan when you're hiring more often.</p>
 </section>
 
 <div class="pricing-intro">
-  <strong>Simple monthly pricing for serious hiring.</strong>
-  <p>Your first job is a one-time free trial. After that, choose the plan that fits your hiring volume.</p>
+  <strong>Choose the way you hire.</strong>
+  <p>Your first job is free. After that, buy one job for $129 or choose a monthly plan for the best value at higher volume.</p>
+</div>
+
+<div class="toggle-wrap">
+  <div class="toggle" role="tablist" aria-label="Pricing type">
+    <button id="tab-monthly" class="active" type="button" onclick="switchView('monthly')">Monthly plans</button>
+    <button id="tab-payg" type="button" onclick="switchView('payg')">Pay per job</button>
+  </div>
 </div>
 
 <!-- MONTHLY PLANS -->
@@ -188,7 +223,7 @@
         <li>Basic applicant dashboard</li>
         <li>No credit card required</li>
       </ul>
-      <button class="plan-cta" onclick="choosePlan('free')">Start free</button>
+      <button class="plan-cta" id="free-plan-btn" onclick="choosePlan('free')">Start free</button>
     </div>
 
     <div class="plan-card popular">
@@ -226,11 +261,42 @@
   </div>
 </section>
 
+<!-- PAY PER JOB -->
+<section class="view" id="view-payg">
+  <div class="payg-grid">
+    <div class="payg-card">
+      <div class="payg-kicker">Occasional hiring</div>
+      <div class="payg-title">Single job posting</div>
+      <div class="payg-price">$129 <span>one time</span></div>
+      <div class="payg-copy">Buy exactly one additional posting without starting a subscription. The posting credit is used when you publish the job and is not restored if you later delete it.</div>
+      <ul class="payg-list">
+        <li>1 paid job posting</li>
+        <li>AI candidate matching</li>
+        <li>Applicant dashboard</li>
+        <li>No monthly commitment</li>
+      </ul>
+      <button class="plan-cta" onclick="choosePlan('single_job')">Buy one job — $129</button>
+    </div>
+
+    <div class="comparison-card">
+      <h2>Hiring more than twice?</h2>
+      <p>Pay-per-job stays flexible, but Business is intentionally the better deal once your hiring volume grows.</p>
+      <div class="compare-row"><strong>1 job</strong><span class="payg-total">$129</span><span></span></div>
+      <div class="compare-row"><strong>2 jobs</strong><span class="payg-total">$258</span><span></span></div>
+      <div class="compare-row"><strong>3 jobs</strong><span class="payg-total">$387</span><span class="monthly-win">Business: $299</span></div>
+      <div class="compare-row"><strong>5 jobs</strong><span class="payg-total">$645</span><span class="monthly-win">Business: $299</span></div>
+      <div class="compare-row"><strong>10 jobs</strong><span class="payg-total">$1,290</span><span class="monthly-win">Business: $299</span></div>
+      <div class="compare-note">At 3+ jobs, the $299 Business plan costs less than buying postings individually — and includes up to 10 active jobs.</div>
+      <button class="plan-cta" style="margin-top:18px;background:var(--brand);color:white;border-color:var(--brand);" onclick="choosePlan('business')">Choose Business — $299/month</button>
+    </div>
+  </div>
+</section>
+
 <!-- ADD-ON PACKS -->
 <div class="addons-section">
   <div class="addons-header">
     <h2>Need more candidate access?</h2>
-    <p>Add more applicant profile access to your current monthly plan without changing tiers.</p>
+    <p>Monthly-plan employers can add more applicant profile access without changing tiers.</p>
   </div>
   <div class="addons-grid">
     <div class="addon-card">
@@ -255,19 +321,21 @@
 <div class="path-section">
   <div class="path-header">
     <h2>Grow into the plan that fits</h2>
-    <p>Start with one free job, then move into a monthly plan as your hiring grows.</p>
+    <p>Start free, use pay-per-job when hiring occasionally, then switch to monthly when volume makes it the better deal.</p>
   </div>
   <div class="path-flow">
     <div class="path-node"><div class="num">STEP 1</div><div class="name">Free trial</div></div>
     <span class="path-arrow">→</span>
-    <div class="path-node"><div class="num">STEP 2</div><div class="name">Business</div></div>
+    <div class="path-node"><div class="num">STEP 2</div><div class="name">$129 single job</div></div>
     <span class="path-arrow">→</span>
-    <div class="path-node"><div class="num">STEP 3</div><div class="name">Enterprise</div></div>
+    <div class="path-node"><div class="num">STEP 3</div><div class="name">Business</div></div>
+    <span class="path-arrow">→</span>
+    <div class="path-node"><div class="num">STEP 4</div><div class="name">Enterprise</div></div>
   </div>
 </div>
 
 <div class="footnote">
-  The free job posting is a one-time trial per employer account. Monthly plans count <em>active</em> job postings — when a role is filled or closed, you can open another one in its place. Additional job postings require an active monthly plan.
+  The free job posting is a one-time trial per employer account. A $129 single-job purchase provides one additional posting credit. Monthly plans count <em>active</em> job postings — when a role is filled or closed, you can open another one in its place.
 </div>
 
 <div class="mini-footer">
@@ -284,6 +352,7 @@
 
   let currentSession = null;
   let currentRole = '';
+  let freeJobUsed = false;
 
   async function initPricingAuth(){
     try{
@@ -313,6 +382,24 @@
       ).toLowerCase();
 
       if(currentRole === 'employer'){
+        try{
+          const { data: entitlement } = await sb
+            .from('employer_entitlements')
+            .select('free_job_used')
+            .eq('employer_id', currentSession.user.id)
+            .maybeSingle();
+          freeJobUsed = entitlement?.free_job_used === true;
+        }catch(error){
+          console.warn('Unable to read free-job status:', error);
+        }
+
+        const freeBtn = document.getElementById('free-plan-btn');
+        if(freeBtn && freeJobUsed){
+          freeBtn.textContent = 'Free trial used';
+          freeBtn.disabled = true;
+          freeBtn.style.opacity = '.55';
+          freeBtn.style.cursor = 'not-allowed';
+        }
         const authLink = document.getElementById('nav-auth-link');
         const ctaBtn = document.getElementById('nav-cta-btn');
         authLink.textContent = 'My account';
@@ -333,7 +420,8 @@
   function choosePlan(plan){
     if(plan === 'free'){
       if(currentSession && currentRole === 'employer'){
-        window.location.href = 'employer-dashboard.html';
+        if(freeJobUsed) return;
+        window.location.href = 'employer-dashboard.html#post';
       }else{
         loginForPlan('free');
       }
@@ -347,6 +435,19 @@
     }
   }
 
+  function switchView(view){
+    const monthly = view !== 'payg';
+    document.getElementById('tab-monthly').classList.toggle('active', monthly);
+    document.getElementById('tab-payg').classList.toggle('active', !monthly);
+    document.getElementById('view-monthly').classList.toggle('active', monthly);
+    document.getElementById('view-payg').classList.toggle('active', !monthly);
+
+    const url = new URL(location.href);
+    if(monthly) url.searchParams.delete('mode');
+    else url.searchParams.set('mode','payg');
+    history.replaceState({},'',url);
+  }
+
   function handlePostJob(){
     if(currentSession && currentRole === 'employer'){
       window.location.href = 'employer-dashboard.html';
@@ -355,6 +456,7 @@
     }
   }
 
+  if(new URLSearchParams(location.search).get('mode') === 'payg') switchView('payg');
   initPricingAuth();
 </script>
 
