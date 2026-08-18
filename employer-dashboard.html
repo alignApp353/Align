@@ -1191,8 +1191,8 @@
 
   // ---- Employer posting entitlement / paywall ----
   // Free: exactly one job ever.
-  // Pay per job: each successful $129 purchase adds one paid_job_credit.
-  // Business: 10 active jobs. Enterprise: 30.
+  // Pay per job: each successful $90 purchase adds one paid_job_credit.
+  // Business: 3 active jobs. Enterprise: 5.
   // The DB trigger in alygnn-pay-per-job-upgrade.sql is the real enforcement
   // layer; these checks make the UI behave correctly before a post reaches Supabase.
   async function loadBillingEntitlement() {
@@ -1263,7 +1263,7 @@
   }
 
   function paidJobLimit() {
-    return String(billingEntitlement.plan || '').toLowerCase() === 'enterprise' ? 30 : 10;
+    return String(billingEntitlement.plan || '').toLowerCase() === 'enterprise' ? 5 : 3;
   }
 
   function getPostingAccess() {
@@ -1288,7 +1288,7 @@
       return { allowed: true, reason: 'free-job-available', label: '+ Post free job' };
     }
 
-    // After the free posting is used, a $129 purchase grants exactly one
+    // After the free posting is used, a $90 purchase grants exactly one
     // posting credit. The database trigger consumes one credit on INSERT.
     const credits = Math.max(0, Number(billingEntitlement.paid_job_credits || 0));
     if (credits > 0) {
@@ -1331,7 +1331,7 @@
     if (topButton) {
       topButton.textContent = access.label;
       topButton.title = access.reason === 'free-job-used'
-        ? 'Your one-time free job has been used. Buy one job for $129 or choose a monthly plan.'
+        ? 'Your one-time free job has been used. Buy one job for $90 or choose a monthly plan.'
         : access.reason === 'plan-limit'
           ? `You have ${access.used} of ${access.limit} active jobs. Close a job or change plans.`
           : access.reason === 'paid-credit'
