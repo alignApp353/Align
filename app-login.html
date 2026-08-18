@@ -156,16 +156,10 @@ function onboardingDestination(profile,user){
 }
 
 async function candidateDestination(user){
-  const {data:profile,error}=await sb
-    .from('profiles')
-    .select('*')
-    .eq('id',user.id)
-    .maybeSingle();
-  if(error){
-    console.warn('Candidate onboarding lookup failed:',error);
-    return 'app-home.html';
-  }
-  return onboardingDestination(profile,user);
+  // Dashboard-first flow: every authenticated candidate lands on app-account.
+  // The dashboard reads persisted Supabase data and locks only the job actions
+  // that should still be unavailable.
+  return 'app-account.html';
 }
 
 async function redirectIfLoggedIn(){
