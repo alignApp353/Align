@@ -94,20 +94,137 @@ input::placeholder{color:#98A2AD}
 <script>
 const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const ACCOUNT_TYPE='candidate';
-const TARGET_PAGE='app-account.html';
+
 function showMessage(text,type){const m=document.getElementById('message');m.textContent=text;m.className='message '+type}
 function setLoading(b,l,lt,nt){b.disabled=l;b.textContent=l?lt:nt}
-function friendlyError(error){const raw=String(error?.message||'').toLowerCase();if(raw.includes('invalid login credentials')||raw.includes('invalid credentials'))return'Incorrect email or password. Please try again.';if(raw.includes('email not confirmed')||raw.includes('confirm your email'))return'Please verify your email before signing in.';if(raw.includes('fetch')||raw.includes('network')||raw.includes('failed to fetch'))return'Unable to connect. Please check your internet connection.';if(raw.includes('too many requests')||raw.includes('rate limit'))return'Too many attempts. Please wait a few minutes and try again.';return error?.message||'Unable to sign in. Please try again.'}
-async function redirectIfLoggedIn(){const params=new URLSearchParams(location.search);if(params.has('logout'))return;const {data}=await sb.auth.getSession();if(data.session)location.replace(TARGET_PAGE)}
-async function signIn(){const email=document.getElementById('email').value.trim().toLowerCase();const password=document.getElementById('password').value;const button=document.getElementById('sign-in-btn');if(!email){showMessage('Please enter your email address.','error');return}if(!password){showMessage('Please enter your password.','error');return}setLoading(button,true,'Signing in…','Sign in');const {error}=await sb.auth.signInWithPassword({email,password});if(error){showMessage(friendlyError(error),'error');setLoading(button,false,'Signing in…','Sign in');return}localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);showMessage('Welcome back. Redirecting…','success');setTimeout(()=>location.replace(TARGET_PAGE),450)}
-async function googleLogin(){const button=document.getElementById('google-btn');setLoading(button,true,'Opening Google…','Continue with Google');localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);const redirectPage=ACCOUNT_TYPE==='employer'?'app-employer-dashboard.html':'app-account.html';const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://alygnn.com/'+redirectPage}});if(error){showMessage(friendlyError(error),'error');setLoading(button,false,'Opening Google…','Continue with Google')}}
+function friendlyError(error){
+  const raw=String(error?.message||'').toLowerCase();
+  if(raw.includes('invalid login credentials')||raw.includes('invalid credentials'))return'Incorrect email or password. Please try again.';
+  if(raw.includes('email not confirmed')||raw.includes('confirm your email'))return'Please verify your email before signing in.';
+  if(raw.includes('fetch')||raw.includes('network')||raw.includes('failed to fetch'))return'Unable to connect. Please check your internet connection.';
+  if(raw.includes('too many requests')||raw.includes('rate limit'))return'Too many attempts. Please wait a few minutes and try again.';
+  return error?.message||'Unable to sign in. Please try again.';
+}
+
+function parseProfileObject(value){
+  if(!value)return {};
+  if(typeof value==='object'&&!Array.isArray(value))return value;
+  if(typeof value==='string'){
+    try{
+      const parsed=JSON.parse(value);
+      return parsed&&typeof parsed==='object'?parsed:{};
+    }catch(_){return {}}
+  }
+  return {};
+}
+function hasCandidateResume(profile){
+  const data=parseProfileObject(profile?.resume_data);
+  return Boolean(
+    profile?.resume_file_path||
+    profile?.resume_url||
+    profile?.resume_text||
+    Object.keys(data).length
+  );
+}
+function candidateResumePreviewReviewed(profile){
+  const data=parseProfileObject(profile?.resume_data);
+  const onboarding=parseProfileObject(data._alygnn_onboarding);
+  return onboarding.preview_reviewed===true;
+}
+function candidatePreferencesComplete(profile,user){
+  const p=parseProfileObject(profile?.preferences);
+  const meta=user?.user_metadata||{};
+  const hasRole=Boolean(String(p.query||'').trim());
+  const hasLocation=Boolean(String(p.location||p.city||p.state||p.country||'').trim());
+  const types=Array.isArray(p.jobTypes)?p.jobTypes:[];
+  const hasType=Boolean(types.length||String(p.jobType||'').trim());
+  return Boolean(
+    p.preferences_complete||
+    profile?.preferences_complete||
+    meta.preferences_complete||
+    (hasRole&&hasLocation&&hasType)
+  );
+}
+function onboardingDestination(profile,user){
+  if(!hasCandidateResume(profile))return 'app-align-upload.html';
+
+  const preferencesComplete=candidatePreferencesComplete(profile,user);
+  if(preferencesComplete)return 'app-account.html';
+
+  if(!candidateResumePreviewReviewed(profile))return 'app-resume-preview.html';
+  return 'app-preferences.html';
+}
+
+async function candidateDestination(user){
+  const {data:profile,error}=await sb
+    .from('profiles')
+    .select('*')
+    .eq('id',user.id)
+    .maybeSingle();
+  if(error){
+    console.warn('Candidate onboarding lookup failed:',error);
+    return 'app-home.html';
+  }
+  return onboardingDestination(profile,user);
+}
+
+async function redirectIfLoggedIn(){
+  const params=new URLSearchParams(location.search);
+  if(params.has('logout'))return;
+  const {data,error}=await sb.auth.getSession();
+  if(error||!data.session)return;
+  const destination=await candidateDestination(data.session.user);
+  location.replace(destination);
+}
+
+async function signIn(){
+  const email=document.getElementById('email').value.trim().toLowerCase();
+  const password=document.getElementById('password').value;
+  const button=document.getElementById('sign-in-btn');
+  if(!email){showMessage('Please enter your email address.','error');return}
+  if(!password){showMessage('Please enter your password.','error');return}
+  setLoading(button,true,'Signing in…','Sign in');
+
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
+  if(error){
+    showMessage(friendlyError(error),'error');
+    setLoading(button,false,'Signing in…','Sign in');
+    return;
+  }
+
+  localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
+  showMessage('Welcome back. Opening your workspace…','success');
+
+  const destination=await candidateDestination(data.user);
+  setTimeout(()=>location.replace(destination),300);
+}
+
+async function googleLogin(){
+  const button=document.getElementById('google-btn');
+  setLoading(button,true,'Opening Google…','Continue with Google');
+  localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
+  const {error}=await sb.auth.signInWithOAuth({
+    provider:'google',
+    options:{redirectTo:'https://alygnn.com/app-home.html'}
+  });
+  if(error){
+    showMessage(friendlyError(error),'error');
+    setLoading(button,false,'Opening Google…','Continue with Google');
+  }
+}
+
 document.getElementById('back-btn').addEventListener('click',()=>location.href='index.html');
-document.getElementById('show-btn').addEventListener('click',e=>{const i=document.getElementById('password');const s=i.type==='text';i.type=s?'password':'text';e.currentTarget.textContent=s?'Show':'Hide'});
+document.getElementById('show-btn').addEventListener('click',e=>{
+  const i=document.getElementById('password');
+  const s=i.type==='text';
+  i.type=s?'password':'text';
+  e.currentTarget.textContent=s?'Show':'Hide';
+});
 document.getElementById('forgot-btn').addEventListener('click',()=>location.href='app-forgot-password.html');
 document.getElementById('sign-in-btn').addEventListener('click',signIn);
 document.getElementById('google-btn').addEventListener('click',googleLogin);
 document.getElementById('apple-btn').addEventListener('click',()=>showMessage('Apple sign-in is not connected yet.','error'));
-document.getElementById('switch-btn').addEventListener('click',()=>location.href=ACCOUNT_TYPE==='employer'?'app-login.html':'app-employer-login.html');
+document.getElementById('switch-btn').addEventListener('click',()=>location.href='app-employer-login.html');
 document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')signIn()});
 redirectIfLoggedIn();
 </script>
