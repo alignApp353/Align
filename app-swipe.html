@@ -1354,11 +1354,13 @@ async function enforceCandidateOnboarding(user){
     profile?.resume_file_path||
     profile?.resume_url||
     profile?.resume_text||
-    Object.keys(resumeData).length
+    resumeData?.personal||
+    (Array.isArray(resumeData?.experience)&&resumeData.experience.length)||
+    (Array.isArray(resumeData?.skills)&&resumeData.skills.length)
   );
 
   if(!hasResume){
-    window.location.replace('app-align-upload.html');
+    window.location.replace('app-account.html?setup=required');
     return false;
   }
 
@@ -1380,16 +1382,7 @@ async function enforceCandidateOnboarding(user){
   );
 
   if(!preferencesComplete){
-    const onboarding=
-      resumeData?._alygnn_onboarding && typeof resumeData._alygnn_onboarding==='object'
-        ?resumeData._alygnn_onboarding
-        :{};
-
-    window.location.replace(
-      onboarding.preview_reviewed===true
-        ?'app-preferences.html'
-        :'app-resume-preview.html'
-    );
+    window.location.replace('app-account.html?setup=required');
     return false;
   }
 
