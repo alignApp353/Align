@@ -441,6 +441,16 @@ input::placeholder{
 
 }
 
+
+.verification-panel{display:none;margin-top:24px;padding:22px;border:1px solid var(--border);border-radius:18px;background:rgba(255,255,255,.95)}
+.verification-panel.show{display:block}
+.verification-panel h2{font-size:22px;line-height:1.2;margin-bottom:8px}
+.verification-panel p{color:var(--muted);font-size:13px;line-height:1.55;margin-bottom:16px}
+.verification-panel strong{color:var(--text)}
+.verification-code{text-align:center;font-size:22px;font-weight:900;letter-spacing:5px}
+.secondary-action{width:100%;min-height:50px;margin-top:10px;border:1px solid var(--border);border-radius:17px;background:#fff;color:var(--accent-dark);font-size:14px;font-weight:900;cursor:pointer}
+.signup-fields-hidden{display:none!important}
+
 </style>
 </head>
 
@@ -513,6 +523,7 @@ Anyone can create an employer account with a valid email address. Company verifi
 
 
 <section class="form">
+<div id="signup-fields">
 
 
 <div class="field">
@@ -796,6 +807,31 @@ Already have an employer account?
 Sign in
 </a>
 
+
+</div>
+
+<div id="verification-panel" class="verification-panel">
+  <h2>Check your email</h2>
+  <p>
+    We sent a verification code to <strong id="verification-email"></strong>.
+    Enter the code below to confirm your email and continue in the Alygnn app.
+    There is no website confirmation link for app signups.
+  </p>
+
+  <div class="input-wrap">
+    <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M4 12h16"></path>
+      <path d="M8 8v8M12 8v8M16 8v8"></path>
+    </svg>
+    <input id="verification-code" class="verification-code" type="text"
+           inputmode="numeric" autocomplete="one-time-code"
+           placeholder="Code" maxlength="8">
+  </div>
+
+  <button class="primary" id="verify-email-btn" type="button">Verify email</button>
+  <button class="secondary-action" id="resend-code-btn" type="button">Resend code</button>
+
+  <div id="verification-message" class="message" aria-live="polite"></div>
 </div>
 
 
@@ -1001,6 +1037,82 @@ function friendlyError(
 
 
 
+
+let pendingEmployerEmail='';
+
+function showVerificationMessage(text,type){
+  const message=document.getElementById('verification-message');
+  message.textContent=text;
+  message.className='message '+type;
+}
+
+async function verifyEmployerEmailCode(){
+  const token=document.getElementById('verification-code').value.replace(/\s+/g,'').trim();
+  const button=document.getElementById('verify-email-btn');
+
+  if(!pendingEmployerEmail){
+    return showVerificationMessage('Please create your account again.','error');
+  }
+
+  if(token.length<6){
+    return showVerificationMessage('Enter the verification code from your email.','error');
+  }
+
+  setLoading(button,true,'Verifying…','Verify email');
+
+  const {data,error}=await sb.auth.verifyOtp({
+    email:pendingEmployerEmail,
+    token,
+    type:'email'
+  });
+
+  setLoading(button,false,'Verifying…','Verify email');
+
+  if(error){
+    return showVerificationMessage(
+      'That code is invalid or expired. Check the email and try again.',
+      'error'
+    );
+  }
+
+  showVerificationMessage(
+    'Email confirmed. Continuing to company setup…',
+    'success'
+  );
+
+  setTimeout(()=>{
+    location.href=data?.session
+      ?'app-employer-onboarding.html'
+      :'app-employer-login.html';
+  },650);
+}
+
+async function resendEmployerVerificationCode(){
+  const button=document.getElementById('resend-code-btn');
+
+  if(!pendingEmployerEmail){
+    return showVerificationMessage('Please create your account again.','error');
+  }
+
+  button.disabled=true;
+  button.textContent='Sending…';
+
+  const {error}=await sb.auth.resend({
+    type:'signup',
+    email:pendingEmployerEmail
+  });
+
+  button.disabled=false;
+  button.textContent='Resend code';
+
+  if(error){
+    return showVerificationMessage(error.message,'error');
+  }
+
+  showVerificationMessage('A new verification code was sent.','success');
+}
+
+
 /* ==================================================
    CREATE ACCOUNT
 ================================================== */
@@ -1190,9 +1302,6 @@ async function createEmployerAccount(){
 
         options:{
 
-          emailRedirectTo:
-            'https://alygnn.com/app-employer-login.html',
-
           data:{
 
             full_name:
@@ -1214,7 +1323,10 @@ async function createEmployerAccount(){
               emailCheck.domain,
 
             accepted_terms:
-              true
+              true,
+
+            EmailFlow:
+              'app'
 
           }
 
@@ -1282,25 +1394,13 @@ async function createEmployerAccount(){
 
     }else{
 
-      showMessage(
-        'Account created. Check your email to verify your address, then sign in to continue.',
-        'success'
-      );
+      pendingEmployerEmail=
+        emailCheck.email;
 
-
-      button.textContent=
-        'Check your email';
-
-
-      setTimeout(
-        ()=>{
-
-          location.href=
-            'app-employer-login.html';
-
-        },
-        2800
-      );
+      document.getElementById('signup-fields').classList.add('signup-fields-hidden');
+      document.getElementById('verification-panel').classList.add('show');
+      document.getElementById('verification-email').textContent=pendingEmployerEmail;
+      document.getElementById('verification-code').focus();
 
     }
 
@@ -1404,6 +1504,27 @@ document
     'click',
     createEmployerAccount
   );
+
+
+
+document.getElementById('verify-email-btn').addEventListener(
+  'click',
+  verifyEmployerEmailCode
+);
+
+document.getElementById('resend-code-btn').addEventListener(
+  'click',
+  resendEmployerVerificationCode
+);
+
+document.getElementById('verification-code').addEventListener(
+  'keydown',
+  event=>{
+    if(event.key==='Enter'){
+      verifyEmployerEmailCode();
+    }
+  }
+);
 
 
 document
