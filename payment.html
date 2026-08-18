@@ -63,7 +63,7 @@
   <div class="heading">
     <div class="eyebrow">Employer checkout</div>
     <h1>Choose how you want to hire.</h1>
-    <p>Buy a single job posting or choose a monthly plan. Access is unlocked only after secure payment is confirmed.</p>
+    <p>Buy one additional job posting or choose a monthly plan. Access is unlocked only after secure payment is confirmed.</p>
   </div>
 
   <div class="checkout-grid">
@@ -71,16 +71,16 @@
       <div class="panel-title">1. Confirm your plan</div>
       <div class="plan-options">
         <button type="button" class="plan-option" id="single-job-option" onclick="setPlan('single_job')">
-          <div class="name">Single Job</div>
-          <div class="price">$129 <span>one time</span></div>
+          <div class="name">Additional Job</div>
+          <div class="price">$90 <span>one time</span></div>
         </button>
         <button type="button" class="plan-option" id="business-option" onclick="setPlan('business')">
           <div class="name">Business</div>
-          <div class="price">$299 <span>/ month</span></div>
+          <div class="price">$149 <span>/ month</span></div>
         </button>
         <button type="button" class="plan-option" id="enterprise-option" onclick="setPlan('enterprise')">
           <div class="name">Enterprise</div>
-          <div class="price">$599 <span>/ month</span></div>
+          <div class="price">$249 <span>/ month</span></div>
         </button>
       </div>
 
@@ -102,7 +102,7 @@
             <div class="secure-copy">Alygnn should never store raw card numbers in Supabase. This button is ready to hand the signed-in employer to your secure payment endpoint, where the payment provider completes the transaction.</div>
           </div>
         </div>
-        <button class="checkout-btn" id="checkout-btn" onclick="startCheckout()">Continue to secure payment — $299</button>
+        <button class="checkout-btn" id="checkout-btn" onclick="startCheckout()">Continue to secure payment — $149</button>
         <div class="message" id="message"></div>
         <div class="fineprint" id="fineprint">By continuing, you agree to Alygnn's Terms and authorize the selected monthly subscription. Cancel according to your subscription terms.</div>
       </div>
@@ -113,13 +113,13 @@
         <div class="summary-name" id="summary-name">Business</div>
         <div class="pill" id="summary-billing">Monthly</div>
       </div>
-      <div class="summary-price" id="summary-price">$299 <span>/ month</span></div>
-      <div class="summary-sub" id="summary-sub">10 active job postings</div>
+      <div class="summary-price" id="summary-price">$149 <span>/ month</span></div>
+      <div class="summary-sub" id="summary-sub">3 active job postings</div>
       <ul class="features" id="summary-features"></ul>
       <div class="total">
-        <div class="total-row"><span>Plan subtotal</span><span id="subtotal">$299.00</span></div>
+        <div class="total-row"><span>Plan subtotal</span><span id="subtotal">$149.00</span></div>
         <div class="total-row muted"><span>Tax</span><span>Calculated at checkout</span></div>
-        <div class="total-row final"><span>Due today</span><span id="due-total">$299.00 + tax</span></div>
+        <div class="total-row final"><span>Due today</span><span id="due-total">$149.00 + tax</span></div>
       </div>
       <div class="trust" id="trust-copy">🔒 Secure checkout · Subscription billed monthly</div>
     </aside>
@@ -138,16 +138,16 @@
 
   const PLANS = {
     single_job: {
-      name:'Single Job', price:129, suffix:'one time', billing:'One-time', kind:'one_time', postings:'1 paid job posting credit',
+      name:'Additional Job', price:90, suffix:'one time', billing:'One-time', kind:'one_time', postings:'1 paid job posting credit',
       features:['1 additional job posting','AI candidate matching','Applicant dashboard','No monthly commitment']
     },
     business: {
-      name:'Business', price:299, suffix:'/ month', billing:'Monthly', kind:'subscription', postings:'10 active job postings',
-      features:['500 applicant profiles','Advanced AI matching','Candidate filtering','Applicant management','Hiring analytics','Featured listings']
+      name:'Business', price:149, suffix:'/ month', billing:'Monthly', kind:'subscription', postings:'3 active job postings',
+      features:['Review up to 500 applicant profiles','Advanced AI matching','Candidate filtering','Applicant management','Hiring analytics','Featured listings']
     },
     enterprise: {
-      name:'Enterprise', price:599, suffix:'/ month', billing:'Monthly', kind:'subscription', postings:'30 active job postings',
-      features:['2,000 applicant profiles','Advanced AI matching','Advanced candidate filtering','Featured listings','Advanced analytics','Team access','Priority support']
+      name:'Enterprise', price:249, suffix:'/ month', billing:'Monthly', kind:'subscription', postings:'5 active job postings',
+      features:['Review up to 2,000 applicant profiles','Advanced AI matching','Advanced candidate filtering','Featured listings','Advanced analytics','Team access','Priority support']
     }
   };
 
@@ -180,7 +180,7 @@
       ? '🔒 Secure checkout · One-time payment'
       : '🔒 Secure checkout · Subscription billed monthly';
     document.getElementById('fineprint').textContent = p.kind === 'one_time'
-      ? "By continuing, you agree to Alygnn's Terms and authorize this one-time $129 job-posting purchase."
+      ? "By continuing, you agree to Alygnn's Terms and authorize this one-time $90 job-posting purchase."
       : "By continuing, you agree to Alygnn's Terms and authorize the selected monthly subscription. Cancel according to your subscription terms.";
     const url=new URL(location.href); url.searchParams.set('plan',plan); history.replaceState({},'',url);
     clearMessage();
@@ -240,7 +240,7 @@
       location.href=data.url;
     }catch(error){
       console.error(error);
-      showMessage('The payment page is ready, but the secure checkout endpoint still needs to be connected. Use /api/create-checkout-session (or change CHECKOUT_ENDPOINT in this file) and have it create either a one-time $129 payment for single_job or a monthly subscription for Business/Enterprise, then return a checkout URL.','info');
+      showMessage('The payment page is ready, but the secure checkout endpoint still needs to be connected. Use /api/create-checkout-session (or change CHECKOUT_ENDPOINT in this file) and have it create either a one-time $90 payment for single_job or a $149/month Business or $249/month Enterprise subscription, then return a checkout URL.','info');
       button.disabled=false;
       button.textContent=original;
     }
