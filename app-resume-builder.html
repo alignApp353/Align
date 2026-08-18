@@ -490,6 +490,9 @@ async function saveResume(){
       currentSession=data.session;
     }
     const resumeData=collectResume();
+    resumeData._alygnn_onboarding={
+      preview_reviewed:false
+    };
     const user=currentSession.user;
     const {error}=await sb.from('profiles').upsert({
       id:user.id,
@@ -500,7 +503,7 @@ async function saveResume(){
     },{onConflict:'id'});
     if(error)throw error;
     showMessage('Your Alygnn resume was saved successfully.','success');
-    setTimeout(()=>window.location.href='app-account.html',700);
+    setTimeout(()=>window.location.href='app-resume-preview.html?source=builder',550);
   }catch(error){
     console.error(error);
     showMessage(error.message||'Your resume could not be saved.');
