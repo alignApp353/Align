@@ -470,7 +470,7 @@ function goBack(){
     currentStep--;
     renderStep();
   }else{
-    window.location.href='app-account.html';
+    window.location.href=onboardingMode?'app-resume-preview.html':'app-account.html';
   }
 }
 function renderSummary(){
@@ -502,10 +502,8 @@ async function savePreferences(){
     }
     const preferences=collectPreferences();
     const user=currentSession.user;
-    const fullName=user.user_metadata?.full_name||user.user_metadata?.name||'';
     const {error}=await sb.from('profiles').upsert({
       id:user.id,
-      full_name:fullName,
       preferences,
       updated_at:new Date().toISOString()
     },{onConflict:'id'});
@@ -560,7 +558,7 @@ async function initialize(){
   currentSession=data.session;
   const {data:profile,error:profileError}=await sb
     .from('profiles')
-    .select('preferences')
+    .select('*')
     .eq('id',currentSession.user.id)
     .maybeSingle();
   if(profileError){
@@ -568,6 +566,53 @@ async function initialize(){
     showMessage('We could not load your saved preferences, but you can still enter them again.');
     return;
   }
+  const resumeData=
+    profile?.resume_data && typeof profile.resume_data==='object'
+      ?profile.resume_data
+      :{};
+
+  const hasResume=Boolean(
+    profile?.resume_file_path ||
+    profile?.resume_url ||
+    profile?.resume_text ||
+    Object.keys(resumeData).length
+  );
+
+  if(!hasResume){
+    window.location.replace('app-align-upload.html');
+    return;
+  }
+
+  const saved=
+    profile?.preferences && typeof profile.preferences==='object'
+      ?profile.preferences
+      :{};
+
+  const savedTypes=Array.isArray(saved.jobTypes)?saved.jobTypes:[];
+  const preferencesAlreadyComplete=Boolean(
+    saved.preferences_complete ||
+    profile?.preferences_complete ||
+    (
+      String(saved.query||'').trim() &&
+      String(saved.location||saved.city||saved.state||saved.country||'').trim() &&
+      (savedTypes.length||String(saved.jobType||'').trim())
+    )
+  );
+
+  const resumeOnboarding=
+    resumeData?._alygnn_onboarding && typeof resumeData._alygnn_onboarding==='object'
+      ?resumeData._alygnn_onboarding
+      :{};
+
+  const previewReviewed=resumeOnboarding.preview_reviewed===true;
+
+  if(!preferencesAlreadyComplete&&!previewReviewed){
+    window.location.replace('app-resume-preview.html');
+    return;
+  }
+
+  onboardingMode=!preferencesAlreadyComplete;
+
   if(profile?.preferences)prefill(profile.preferences);
 }
 initialize();
