@@ -95,21 +95,6 @@
     margin-bottom: 40px;
   }
 
-  .existing-resume-banner {
-    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-    background: var(--mint-light); border: 1px solid var(--mint);
-    border-radius: 16px; padding: 18px 22px; margin-bottom: 28px;
-  }
-  .existing-resume-text { display: flex; flex-direction: column; gap: 3px; }
-  .existing-resume-text strong { font-size: 14px; color: var(--text); font-weight: 500; }
-  .existing-resume-text span { font-size: 13px; color: var(--text-muted); }
-  .existing-resume-btn {
-    flex-shrink: 0; min-height: 42px; padding: 0 20px; border-radius: 100px;
-    border: none; background: var(--brand); color: #fff;
-    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer;
-  }
-  .existing-resume-btn:hover { opacity: 0.9; }
-
   .drop-zone {
     background: var(--card-bg);
     border: 2px dashed var(--border);
@@ -157,25 +142,6 @@
   .drop-formats {
     margin-top: 20px; font-size: 12px; color: var(--text-muted);
   }
-
-  /* "No resume yet" link — lives OUTSIDE .drop-zone so it doesn't
-     sit under the absolutely-positioned file input and trigger
-     the file picker instead of navigating. */
-  .no-resume-link {
-    display: block;
-    text-align: center;
-    margin-top: 24px;
-    font-size: 14px;
-    color: var(--text-muted);
-  }
-  .no-resume-link a {
-    color: var(--brand);
-    font-weight: 500;
-    text-decoration: underline;
-    cursor: pointer;
-    transition: color 0.2s;
-  }
-  .no-resume-link a:hover { color: var(--sage); }
 
   .uploading-state { display: none; }
   .upload-progress {
@@ -335,20 +301,6 @@
   }
   .info-item span { font-size: 14px; font-weight: 500; color: var(--text); }
 
-  .entries-section { margin-bottom: 20px; }
-  .entries-label {
-    font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
-    color: var(--text-muted); margin-bottom: 10px; display: block;
-  }
-  .entry-line {
-    font-size: 13px; color: var(--text);
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .entry-line:last-child { border-bottom: none; }
-  .entry-line .entry-sub { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
-  .entries-empty { font-size: 12px; color: var(--text-muted); font-style: italic; }
-
   .skills-section { margin-bottom: 20px; }
   .skills-label {
     font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
@@ -454,14 +406,6 @@
     <h1>Drop your<br>resume, let<br><em>AI</em> do the rest.</h1>
     <p class="upload-sub">We'll read your skills, experience, and salary history — then match you with jobs that actually fit.</p>
 
-    <div class="existing-resume-banner" id="existing-resume-banner" style="display:none;">
-      <div class="existing-resume-text">
-        <strong>You already have a resume on Alygnn.</strong>
-        <span>You can view it, or upload/build a new one below to replace it.</span>
-      </div>
-      <button type="button" class="existing-resume-btn" id="view-existing-resume-btn">View resume</button>
-    </div>
-
     <div class="drop-zone" id="drop-zone">
       <input type="file" id="file-input" accept=".pdf,.doc,.docx" />
       <div class="drop-icon">
@@ -475,10 +419,6 @@
       <div class="drop-sub">Drop your file anywhere in this box<br>or click to browse your computer</div>
       <div class="drop-btn">Choose file</div>
       <div class="drop-formats">PDF, DOC, or DOCX · Max 10MB</div>
-    </div>
-
-    <div class="no-resume-link">
-      Don't have a resume yet? <a onclick="window.location.href='resume-builder.html'">Let's create one →</a>
     </div>
 
     <div class="tips">
@@ -594,23 +534,21 @@
 
             <div class="info-grid">
               <div class="info-item">
+                <label>Experience</label>
+                <span>—</span>
+              </div>
+              <div class="info-item">
+                <label>Education</label>
+                <span>—</span>
+              </div>
+              <div class="info-item">
                 <label>Location</label>
-                <span id="info-location">—</span>
+                <span>—</span>
               </div>
               <div class="info-item">
                 <label>Email</label>
-                <span id="info-email">—</span>
+                <span>—</span>
               </div>
-            </div>
-
-            <div class="entries-section">
-              <span class="entries-label">Experience detected</span>
-              <div id="experience-entries"><div class="entries-empty">No work experience detected.</div></div>
-            </div>
-
-            <div class="entries-section">
-              <span class="entries-label">Education detected</span>
-              <div id="education-entries"><div class="entries-empty">No education detected.</div></div>
             </div>
 
             <div class="skills-section">
@@ -620,11 +558,8 @@
               </div>
             </div>
 
-            <div class="edit-note" id="edit-note">
-              These details will be used to match you with jobs. You can review and edit everything anytime from your account page.
-            </div>
-            <div class="edit-note" id="parse-error-note" style="display:none; background: rgba(215,154,154,0.12); border-color: rgba(215,154,154,0.35); color: #8a4040; margin-top: 10px;">
-              We couldn't read your resume automatically this time — the fields above are blank rather than genuinely empty. You can still continue and fill in your profile details manually from your account page, or try re-uploading.
+            <div class="edit-note">
+              These details will be used to match you with jobs. You can update them anytime in your profile settings.
             </div>
           </div>
         </div>
@@ -657,46 +592,6 @@
   const progressTitle = document.getElementById('progress-title');
   const progressSub = document.getElementById('progress-sub');
 
-  // If someone lands here (any entry point — nav, footer link, bookmark,
-  // back button) while already having a resume on file, tell them plainly
-  // instead of just dropping them into "upload a resume" as if they were
-  // starting from scratch. The upload flow below stays fully usable, since
-  // replacing an existing resume is a legitimate thing to want to do.
-  (async () => {
-    try {
-      const { data: { session } } = await sb.auth.getSession();
-      if (!session) return;
-
-      const { data: profile } = await sb
-        .from('profiles')
-        .select('resume_file_path, resume_data')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      const hasResume = !!(profile?.resume_file_path || profile?.resume_data);
-      if (!hasResume) return;
-
-      const banner = document.getElementById('existing-resume-banner');
-      const viewBtn = document.getElementById('view-existing-resume-btn');
-      if (!banner || !viewBtn) return;
-
-      banner.style.display = 'flex';
-      viewBtn.addEventListener('click', () => {
-        // Prefer resume_data — resume-builder.html's view mode reads it
-        // directly and works regardless of whether a file also exists in
-        // Storage. If only a file exists (no resume_data), open that
-        // instead via a signed URL.
-        if (profile.resume_data) {
-          window.location.href = 'resume-builder.html?view=1';
-          return;
-        }
-        window.location.href = 'account.html';
-      });
-    } catch (error) {
-      console.error('Could not check for an existing resume:', error);
-    }
-  })();
-
   dropZone.addEventListener('dragover', function(e) {
     e.preventDefault();
     dropZone.classList.add('drag-over');
@@ -717,13 +612,135 @@
 
   let currentFile = null;
 
-  function handleFile(file) {
+  // Pre-auth onboarding draft.
+  // sessionStorage alone is not enough because email confirmation can
+  // open a new tab. localStorage + IndexedDB survive that handoff.
+  const PENDING_RESUME_DB = 'alygnn-pending-onboarding-v1';
+  const PENDING_RESUME_STORE = 'files';
+  const PENDING_RESUME_ID = 'candidate-resume';
+  const PENDING_RESUME_DATA_KEY = 'alygnn_pending_resume_data_v1';
+
+  function openPendingResumeDb() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) {
+        reject(new Error('This browser cannot temporarily save the resume file.'));
+        return;
+      }
+
+      const request = indexedDB.open(PENDING_RESUME_DB, 1);
+
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(PENDING_RESUME_STORE)) {
+          db.createObjectStore(PENDING_RESUME_STORE, { keyPath: 'id' });
+        }
+      };
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('Unable to open temporary resume storage.'));
+    });
+  }
+
+  async function savePendingResumeFile(file) {
+    if (!file) return;
+
+    const db = await openPendingResumeDb();
+
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(PENDING_RESUME_STORE, 'readwrite');
+      tx.objectStore(PENDING_RESUME_STORE).put({
+        id: PENDING_RESUME_ID,
+        blob: file,
+        name: file.name || 'resume',
+        type: file.type || '',
+        size: file.size || 0,
+        lastModified: file.lastModified || Date.now()
+      });
+
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error || new Error('Unable to temporarily save your resume.'));
+      tx.onabort = () => reject(tx.error || new Error('Temporary resume save was cancelled.'));
+    });
+
+    db.close();
+  }
+
+  async function clearPendingResumeFile() {
+    try {
+      const db = await openPendingResumeDb();
+
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(PENDING_RESUME_STORE, 'readwrite');
+        tx.objectStore(PENDING_RESUME_STORE).delete(PENDING_RESUME_ID);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+
+      db.close();
+    } catch (error) {
+      console.warn('Could not clear temporary resume file:', error);
+    }
+  }
+
+  function savePendingResumeData(data) {
+    if (!data || typeof data !== 'object') return;
+    const json = JSON.stringify(data);
+    localStorage.setItem(PENDING_RESUME_DATA_KEY, json);
+
+    // Keep the old key temporarily so older pages in the flow still work.
+    sessionStorage.setItem('resumeData', json);
+  }
+
+  function markPendingResumeReviewed() {
+    let data = {};
+
+    try {
+      data = JSON.parse(
+        localStorage.getItem(PENDING_RESUME_DATA_KEY) ||
+        sessionStorage.getItem('resumeData') ||
+        '{}'
+      );
+    } catch (_) {
+      data = {};
+    }
+
+    const onboarding =
+      data._alygnn_onboarding &&
+      typeof data._alygnn_onboarding === 'object'
+        ? data._alygnn_onboarding
+        : {};
+
+    data._alygnn_onboarding = {
+      ...onboarding,
+      preview_reviewed: true,
+      preview_reviewed_at: new Date().toISOString()
+    };
+
+    savePendingResumeData(data);
+  }
+
+  async function handleFile(file) {
     currentFile = file;
     document.getElementById('preview-filename').textContent = file.name;
     document.getElementById('preview-size').textContent = formatSize(file.size);
     uploadScreen.style.display = 'none';
     uploadingScreen.style.display = 'block';
     uploadingScreen.style.animation = 'fadeUp 0.4s ease both';
+
+    // Save the real file before the user leaves this page. This is the
+    // piece that was previously lost when they went Preferences -> Create account.
+    try {
+      await savePendingResumeFile(file);
+    } catch (error) {
+      console.error('Temporary resume save failed:', error);
+      setProgress(
+        100,
+        'We could not hold your resume',
+        'Please try uploading it again before continuing.'
+      );
+      return;
+    }
+
     readAndParseResume(file);
   }
 
@@ -802,53 +819,17 @@
     return { type: 'text', content: text.substring(0, 4000) };
   }
 
-  function escapeHtml(value) {
-    return String(value || '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
-  }
-
-  function formatDateRange(startYear, endYear) {
-    if (startYear && endYear) return `${startYear} – ${endYear}`;
-    return startYear || endYear || '';
-  }
-
-  // Renders the itemized experience[] / education[] arrays the parser now
-  // returns — one line per job or degree — instead of the old single
-  // aggregate "X years" / "degree string" summary. This is purely a
-  // preview on this confirm screen; the full itemized data is what
-  // actually gets saved to profiles.resume_data via saveResumeIfLoggedIn,
-  // which is what lets account.html populate its Experience/Education
-  // sections automatically.
-  function renderExperienceEntries(experience) {
-    const container = document.getElementById('experience-entries');
-    if (!Array.isArray(experience) || experience.length === 0) {
-      container.innerHTML = '<div class="entries-empty">No work experience detected.</div>';
-      return;
+  function formatEducation(edu) {
+    if (!edu) return '—';
+    if (typeof edu === 'string') return edu;
+    if (typeof edu === 'object') {
+      const parts = [];
+      if (edu.degree) parts.push(edu.degree);
+      if (edu.field) parts.push(edu.field);
+      if (edu.school) parts.push(edu.school);
+      return parts.length > 0 ? parts.join(', ') : '—';
     }
-    container.innerHTML = experience.map(entry => `
-      <div class="entry-line">
-        <div>${escapeHtml(entry.title || 'Untitled role')}${entry.company ? ' — ' + escapeHtml(entry.company) : ''}</div>
-        ${(entry.startYear || entry.endYear) ? `<div class="entry-sub">${escapeHtml(formatDateRange(entry.startYear, entry.endYear))}</div>` : ''}
-      </div>
-    `).join('');
-  }
-
-  function renderEducationEntries(education) {
-    const container = document.getElementById('education-entries');
-    if (!Array.isArray(education) || education.length === 0) {
-      container.innerHTML = '<div class="entries-empty">No education detected.</div>';
-      return;
-    }
-    container.innerHTML = education.map(entry => `
-      <div class="entry-line">
-        <div>${escapeHtml(entry.degree || 'Degree')}${entry.school ? ' — ' + escapeHtml(entry.school) : ''}</div>
-        ${(entry.startYear || entry.endYear) ? `<div class="entry-sub">${escapeHtml(formatDateRange(entry.startYear, entry.endYear))}</div>` : ''}
-      </div>
-    `).join('');
+    return '—';
   }
 
   function showConfirm(data) {
@@ -858,8 +839,6 @@
 
     if (currentFile) renderPDFPreview(currentFile);
 
-    document.getElementById('parse-error-note').style.display = data ? 'none' : 'block';
-
     if (data) {
       const name = data.name || 'Your Name';
       const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
@@ -867,38 +846,35 @@
       document.getElementById('extracted-name').textContent = name;
       document.getElementById('extracted-role').textContent = data.title || 'Professional';
 
-      document.getElementById('info-location').textContent = data.location || '—';
-      document.getElementById('info-email').textContent = data.email || '—';
-
-      renderExperienceEntries(data.experience);
-      renderEducationEntries(data.education);
+      const infoItems = document.querySelectorAll('.info-item span');
+      if (infoItems[0]) {
+  if (data.experience_years) {
+    const yrs = Math.floor(data.experience_years);
+    const mos = Math.round((data.experience_years - yrs) * 12);
+    if (yrs === 0) infoItems[0].textContent = mos + ' months';
+    else if (mos === 0) infoItems[0].textContent = yrs + (yrs === 1 ? ' year' : ' years');
+    else infoItems[0].textContent = yrs + (yrs === 1 ? ' year' : ' years') + ', ' + mos + ' months';
+  } else {
+    infoItems[0].textContent = '—';
+  }
+}
+      if (infoItems[1]) infoItems[1].textContent = formatEducation(data.education);
+      if (infoItems[2]) infoItems[2].textContent = data.location || '—';
+      if (infoItems[3]) infoItems[3].textContent = data.email || '—';
 
       if (data.skills && data.skills.length > 0) {
         const skillsWrap = document.querySelector('.skills-wrap');
-        skillsWrap.innerHTML = data.skills.slice(0, 8).map(s => '<span class="skill-tag">' + escapeHtml(s) + '</span>').join('');
+        skillsWrap.innerHTML = data.skills.slice(0, 8).map(s => '<span class="skill-tag">' + s + '</span>').join('');
       }
-      sessionStorage.setItem('resumeData', JSON.stringify(data));
+      savePendingResumeData(data);
+      saveResumeIfLoggedIn(data);
     }
-
-    // FIX: this used to live inside the `if (data)` block above, which meant
-    // that whenever AI parsing failed (server error, timeout, bad response)
-    // the actual file upload + resume_file_path save were skipped entirely —
-    // even though the person saw a "Done!" confirmation screen and had no
-    // reason to think anything went wrong. The file itself matters even
-    // without parsed data, so this now runs either way; saveResumeIfLoggedIn
-    // already handles data being null.
-    saveResumeIfLoggedIn(data);
   }
 
   // If the person already has an account, persist their resume to
   // that account's row in the database — both the parsed data AND
   // the actual file itself, so it can be viewed later from the
   // account page instead of being thrown away after parsing.
-  //
-  // `data` now already contains itemized `experience` and `education`
-  // arrays in exactly the shape account.html's Profile Details section
-  // reads from resume_data, so no reshaping is needed here — saving it
-  // as-is is what makes those sections populate on first load.
   async function saveResumeIfLoggedIn(data) {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
@@ -920,12 +896,37 @@
       }
     }
 
+    const resumeData =
+      data && typeof data === 'object'
+        ? data
+        : {};
+
+    const onboarding =
+      resumeData._alygnn_onboarding &&
+      typeof resumeData._alygnn_onboarding === 'object'
+        ? resumeData._alygnn_onboarding
+        : {};
+
+    resumeData._alygnn_onboarding = {
+      ...onboarding,
+      preview_reviewed: false
+    };
+
     const { error } = await sb.from('profiles').upsert({
       id: session.user.id,
-      resume_data: data,
+      resume_data: resumeData,
       resume_file_path: resumeFilePath,
-    });
-    if (error) console.error('Failed to save resume', error);
+      resume_source: 'upload',
+    }, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Failed to save resume', error);
+      return;
+    }
+
+    localStorage.removeItem(PENDING_RESUME_DATA_KEY);
+    sessionStorage.removeItem('resumeData');
+    await clearPendingResumeFile();
   }
 
   function reupload() {
@@ -940,8 +941,17 @@
     document.getElementById('pdf-canvas').style.display = 'none';
   }
 
-  function goToPreferences() {
-    window.location.href = 'preferences.html';
+  async function goToPreferences() {
+    try {
+      if (currentFile) {
+        await savePendingResumeFile(currentFile);
+      }
+      markPendingResumeReviewed();
+      window.location.href = 'preferences.html';
+    } catch (error) {
+      console.error('Could not preserve pending resume:', error);
+      alert('We could not temporarily save your resume. Please try uploading it again.');
+    }
   }
 </script>
 </body>
