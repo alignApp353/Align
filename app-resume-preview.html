@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F5F8F8">
+<title>Resume Preview | Alygnn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
+:root{--brand:#5D7FA3;--brand-dark:#35679A;--sage:#8CB69B;--bg:#F5F8F8;--card:#fff;--text:#172333;--muted:#66788A;--border:#DCE5EB;--soft:#EFF4F7;--green:#359762;--shadow:0 14px 38px rgba(23,35,51,.055)}
+html,body{width:100%;min-height:100%}
+body{min-height:100vh;background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparent 27%),var(--bg);color:var(--text);padding-bottom:calc(105px + env(safe-area-inset-bottom))}
+button{font:inherit;cursor:pointer}
+[hidden]{display:none!important}
+.header{position:sticky;top:0;z-index:40;min-height:84px;padding:calc(12px + env(safe-area-inset-top)) 18px 12px;display:grid;grid-template-columns:46px 1fr 46px;align-items:center;background:rgba(245,248,248,.96);border-bottom:1px solid var(--border);backdrop-filter:blur(18px)}
+.back{width:42px;height:42px;border:1px solid var(--border);border-radius:50%;background:#fff;color:var(--text);font-size:20px}
+.logo{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:30px;color:var(--brand)}
+.logo span{color:var(--sage)}
+.page{width:100%;max-width:600px;margin:auto;padding:22px 16px 34px}
+.step{font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--brand-dark)}
+.progress{height:7px;margin-top:10px;border-radius:999px;background:#E4EBF0;overflow:hidden}
+.progress>div{height:100%;width:66.666%;border-radius:999px;background:var(--brand-dark)}
+h1{margin-top:24px;font-size:30px;line-height:1.08;letter-spacing:-.7px;font-weight:900}
+.sub{margin-top:10px;color:var(--muted);font-size:14px;line-height:1.55}
+.status{margin-top:18px;padding:14px 16px;border:1px solid #CFE3D6;border-radius:18px;background:#ECF7F0;color:#246E45;font-size:13px;font-weight:800}
+.preview-shell{margin-top:20px;border:1px solid var(--border);border-radius:26px;background:var(--card);box-shadow:var(--shadow);overflow:hidden}
+.preview-head{padding:15px 17px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.preview-title{font-size:13px;font-weight:900}
+.preview-badge{padding:6px 9px;border-radius:999px;background:#EAF2F8;color:var(--brand-dark);font-size:10px;font-weight:900}
+.file-frame{width:100%;height:min(67vh,720px);min-height:520px;border:0;background:#fff}
+.file-fallback{padding:44px 24px;text-align:center}
+.file-icon{width:70px;height:70px;margin:0 auto;border-radius:22px;background:#EAF2F8;color:var(--brand-dark);display:grid;place-items:center;font-size:28px;font-weight:900}
+.file-name{margin-top:16px;font-weight:900;font-size:17px;word-break:break-word}
+.file-copy{margin:8px auto 0;max-width:360px;color:var(--muted);font-size:13px;line-height:1.55}
+.open-file{margin-top:18px;min-height:48px;padding:0 18px;border:1px solid var(--border);border-radius:15px;background:#fff;color:var(--brand-dark);font-weight:900}
+.resume-paper{padding:34px 30px 42px;background:#fff;color:#172333}
+.paper-name{font-size:28px;font-weight:900;letter-spacing:-.6px}
+.paper-contact{margin-top:5px;color:#627285;font-size:11px;line-height:1.5}
+.paper-rule{height:2px;margin:15px 0 20px;background:#315D89}
+.paper-section{margin-top:20px}
+.paper-section:first-of-type{margin-top:0}
+.paper-title{font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#315D89}
+.paper-copy{margin-top:7px;font-size:12px;line-height:1.6;white-space:pre-wrap}
+.paper-item{margin-top:10px}
+.paper-item strong{display:block;font-size:13px}
+.paper-meta{margin-top:2px;color:#627285;font-size:11px}
+.skills{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+.skill{padding:6px 9px;border-radius:999px;background:#EFF4F7;font-size:10px;font-weight:800}
+.error{margin-top:18px;padding:14px 16px;border-radius:16px;background:#FDEEEE;color:#9F4E4E;font-size:13px;font-weight:800}
+.footer{position:fixed;left:0;right:0;bottom:0;z-index:45;background:rgba(255,255,255,.97);border-top:1px solid var(--border);backdrop-filter:blur(18px);padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+.footer-inner{max-width:600px;margin:auto;display:grid;grid-template-columns:.8fr 1.2fr;gap:10px}
+.secondary,.primary{min-height:54px;border-radius:17px;font-weight:900}
+.secondary{border:1px solid var(--border);background:#fff;color:var(--text)}
+.primary{border:0;background:var(--brand-dark);color:#fff}
+.loading{min-height:55vh;display:grid;place-items:center;text-align:center;color:var(--muted);font-weight:800}
+.spinner{width:34px;height:34px;margin:0 auto 12px;border:3px solid #E1E8ED;border-top-color:var(--brand-dark);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:520px){.resume-paper{padding:27px 22px 34px}.file-frame{min-height:480px}}
+</style>
+</head>
+<body>
+<header class="header">
+  <button class="back" id="backBtn" type="button" aria-label="Edit resume">←</button>
+  <div class="logo">Alygnn<span>.</span></div>
+  <div></div>
+</header>
+
+<main class="page">
+  <div class="step">Candidate setup · Step 2 of 3</div>
+  <div class="progress"><div></div></div>
+  <h1>Review your resume.</h1>
+  <p class="sub">Make sure everything looks right. Your resume is what Alygnn will connect to your applications.</p>
+
+  <div class="loading" id="loading">
+    <div><div class="spinner"></div><div>Loading your resume…</div></div>
+  </div>
+
+  <div id="content" hidden>
+    <div class="status">✓ Resume saved to your Alygnn profile</div>
+
+    <section class="preview-shell">
+      <div class="preview-head">
+        <div class="preview-title">Resume preview</div>
+        <div class="preview-badge" id="sourceBadge">Ready</div>
+      </div>
+      <div id="previewBody"></div>
+    </section>
+    <div class="error" id="message" hidden></div>
+  </div>
+</main>
+
+<footer class="footer" id="footer" hidden>
+  <div class="footer-inner">
+    <button class="secondary" id="editBtn" type="button">Edit Resume</button>
+    <button class="primary" id="continueBtn" type="button">Continue to Preferences</button>
+  </div>
+</footer>
+
+<script>
+const sb=supabase.createClient(
+  'https://auth.alygnn.com',
+  'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+  {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
+);
+
+let user=null;
+let profile=null;
+let signedUrl='';
+const $=id=>document.getElementById(id);
+
+function parseObject(value){
+  if(!value)return {};
+  if(typeof value==='object'&&!Array.isArray(value))return value;
+  if(typeof value==='string'){
+    try{
+      const parsed=JSON.parse(value);
+      return parsed&&typeof parsed==='object'?parsed:{};
+    }catch(_){return {}}
+  }
+  return {};
+}
+function esc(value){
+  return String(value??'').replace(/[&<>"']/g,c=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  })[c]);
+}
+function showError(text){
+  $('message').textContent=text;
+  $('message').hidden=false;
+}
+function hasResume(){
+  return Boolean(
+    profile?.resume_file_path||
+    profile?.resume_url||
+    profile?.resume_text||
+    Object.keys(parseObject(profile?.resume_data)).length
+  );
+}
+function currentSource(){
+  return String(profile?.resume_source||(
+    Object.keys(parseObject(profile?.resume_data)).length?'builder':'upload'
+  )).toLowerCase();
+}
+function renderBuilderResume(){
+  const data=parseObject(profile?.resume_data);
+  const p=parseObject(data.personal);
+  const fullName=[
+    p.first_name,
+    p.last_name
+  ].filter(Boolean).join(' ').trim()||profile?.full_name||user?.email?.split('@')[0]||'Alygnn Candidate';
+
+  const contact=[
+    [p.city,p.state].filter(Boolean).join(', '),
+    p.email||user?.email,
+    p.phone
+  ].filter(Boolean).join(' · ');
+
+  const experience=Array.isArray(data.experience)?data.experience:[];
+  const education=Array.isArray(data.education)?data.education:[];
+  const skills=Array.isArray(data.skills)?data.skills:[];
+
+  const experienceHtml=experience.length
+    ?experience.map(item=>{
+      const title=item.title||item.job_title||'Experience';
+      const company=item.company||'';
+      const meta=[company,item.location,item.start_date&&item.end_date?item.start_date+' – '+item.end_date:item.start_date||item.end_date].filter(Boolean).join(' · ');
+      const details=item.description||item.details||'';
+      return `<div class="paper-item"><strong>${esc(title)}</strong><div class="paper-meta">${esc(meta)}</div>${details?`<div class="paper-copy">${esc(details)}</div>`:''}</div>`;
+    }).join('')
+    :'<div class="paper-copy">No work experience added.</div>';
+
+  const educationHtml=education.length
+    ?education.map(item=>{
+      const school=item.school||item.school_name||item.institution||'Education';
+      const degree=[item.degree,item.field].filter(Boolean).join(' · ');
+      const meta=[degree,item.graduation_date||item.end_date].filter(Boolean).join(' · ');
+      return `<div class="paper-item"><strong>${esc(school)}</strong><div class="paper-meta">${esc(meta)}</div></div>`;
+    }).join('')
+    :'<div class="paper-copy">No education added.</div>';
+
+  const skillsHtml=skills.length
+    ?`<div class="skills">${skills.map(skill=>`<span class="skill">${esc(skill)}</span>`).join('')}</div>`
+    :'<div class="paper-copy">No skills added.</div>';
+
+  $('previewBody').innerHTML=`
+    <article class="resume-paper">
+      <div class="paper-name">${esc(fullName)}</div>
+      <div class="paper-contact">${esc(contact)}</div>
+      <div class="paper-rule"></div>
+
+      ${data.summary?`<section class="paper-section"><div class="paper-title">Professional Summary</div><div class="paper-copy">${esc(data.summary)}</div></section>`:''}
+
+      <section class="paper-section"><div class="paper-title">Experience</div>${experienceHtml}</section>
+      <section class="paper-section"><div class="paper-title">Education</div>${educationHtml}</section>
+      <section class="paper-section"><div class="paper-title">Skills</div>${skillsHtml}</section>
+    </article>
+  `;
+}
+
+async function renderUploadedResume(){
+  const path=profile?.resume_file_path;
+  if(!path){
+    showError('The uploaded resume file could not be found.');
+    return;
+  }
+
+  const {data,error}=await sb.storage.from('resumes').createSignedUrl(path,900);
+  if(error||!data?.signedUrl){
+    showError(error?.message||'Unable to open your uploaded resume.');
+    return;
+  }
+
+  signedUrl=data.signedUrl;
+  const ext=String(path).split('.').pop().toLowerCase();
+  const fileLabel=path.split('/').pop();
+
+  if(ext==='pdf'){
+    $('previewBody').innerHTML=`<iframe class="file-frame" title="Resume preview" src="${esc(signedUrl)}"></iframe>`;
+  }else{
+    $('previewBody').innerHTML=`
+      <div class="file-fallback">
+        <div class="file-icon">▤</div>
+        <div class="file-name">${esc(fileLabel)}</div>
+        <div class="file-copy">Your resume is saved. Word files may open in the device viewer instead of displaying directly inside Alygnn.</div>
+        <button class="open-file" id="openFileBtn" type="button">Open Resume</button>
+      </div>
+    `;
+    $('openFileBtn').onclick=()=>window.location.href=signedUrl;
+  }
+}
+
+function editResume(){
+  window.location.href=currentSource()==='builder'
+    ?'app-resume-builder.html'
+    :'app-align-upload.html';
+}
+
+async function initialize(){
+  const {data,error}=await sb.auth.getSession();
+  if(error||!data.session){
+    window.location.replace('app-login.html');
+    return;
+  }
+
+  user=data.session.user;
+
+  const {data:profileData,error:profileError}=await sb
+    .from('profiles')
+    .select('*')
+    .eq('id',user.id)
+    .maybeSingle();
+
+  if(profileError){
+    console.error(profileError);
+    window.location.replace('app-home.html');
+    return;
+  }
+
+  profile=profileData;
+
+  if(!hasResume()){
+    window.location.replace('app-align-upload.html');
+    return;
+  }
+
+  $('sourceBadge').textContent=currentSource()==='builder'?'Built with Alygnn':'Uploaded resume';
+
+  if(currentSource()==='builder'){
+    renderBuilderResume();
+  }else{
+    await renderUploadedResume();
+  }
+
+  $('loading').hidden=true;
+  $('content').hidden=false;
+  $('footer').hidden=false;
+}
+
+async function continueToPreferences(){
+  const button=$('continueBtn');
+  button.disabled=true;
+  button.textContent='Saving…';
+
+  try{
+    const resumeData=parseObject(profile?.resume_data);
+    const onboarding=parseObject(resumeData._alygnn_onboarding);
+
+    resumeData._alygnn_onboarding={
+      ...onboarding,
+      preview_reviewed:true,
+      preview_reviewed_at:new Date().toISOString()
+    };
+
+    const {error}=await sb
+      .from('profiles')
+      .update({
+        resume_data:resumeData,
+        updated_at:new Date().toISOString()
+      })
+      .eq('id',user.id);
+
+    if(error)throw error;
+
+    profile.resume_data=resumeData;
+    window.location.href='app-preferences.html';
+  }catch(error){
+    console.error(error);
+    showError(error?.message||'We could not save your resume review. Please try again.');
+    button.disabled=false;
+    button.textContent='Continue to Preferences';
+  }
+}
+
+$('backBtn').onclick=editResume;
+$('editBtn').onclick=editResume;
+$('continueBtn').onclick=continueToPreferences;
+
+initialize();
+</script>
+</body>
+</html>
