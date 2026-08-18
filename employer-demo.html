@@ -7,323 +7,773 @@
 <title>Alygnn — Employer Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --brand: #5D7FA3; --sage: #8CB69B; --bg: #F0F3F2;
-    --card-bg: #FCFCFA; --text: #1A2530; --border: #DDE3E8;
-    --mint: #6FBF8F; --rose: #D79A9A; --text-muted: #4A5968;
-    --brand-light: rgba(93,127,163,0.08);
-    --mint-light: rgba(111,191,143,0.1);
-  }
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brand:#5D7FA3;
+  --sage:#8CB69B;
+  --bg:#F0F3F2;
+  --card-bg:#FCFCFA;
+  --text:#1A2530;
+  --border:#DDE3E8;
+  --mint:#6FBF8F;
+  --rose:#D79A9A;
+  --text-muted:#4A5968;
+  --brand-light:rgba(93,127,163,.08);
+  --mint-light:rgba(111,191,143,.10);
+}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+}
 
-  nav {
-    background: rgba(246,248,247,0.95); backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 5%; display: flex; align-items: center;
-    justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100;
-  }
-  .logo { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--brand); letter-spacing: -0.5px; text-decoration: none; }
-  .logo span { color: var(--sage); }
-  .nav-right { display: flex; align-items: center; gap: 16px; }
-  .nav-user { font-size: 13px; color: var(--text-muted); }
-  .btn-logout { font-size: 13px; color: var(--text-muted); background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 14px; cursor: pointer; transition: all 0.2s; }
-  .btn-logout:hover { border-color: var(--rose); color: var(--rose); }
+/* Header matches the live employer dashboard */
+nav{
+  height:64px;
+  padding:0 5%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  position:sticky;
+  top:0;
+  z-index:100;
+  background:rgba(246,248,247,.95);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.logo{
+  font-family:'DM Serif Display',serif;
+  font-size:22px;
+  color:var(--brand);
+  letter-spacing:-.5px;
+  text-decoration:none;
+}
+.logo span{color:var(--sage)}
+.nav-right{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.demo-pill{
+  font-size:12px;
+  color:var(--text-muted);
+  background:var(--brand-light);
+  padding:5px 12px;
+  border-radius:100px;
+}
+.btn-logout{
+  font-family:'DM Sans',sans-serif;
+  font-size:13px;
+  color:var(--text-muted);
+  background:none;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:7px 14px;
+  cursor:pointer;
+  text-decoration:none;
+  transition:.2s;
+}
+.btn-logout:hover{
+  border-color:var(--brand);
+  color:var(--brand);
+}
 
-  .layout { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 64px); }
+.layout{
+  display:grid;
+  grid-template-columns:240px 1fr;
+  min-height:calc(100vh - 64px);
+}
+.sidebar{
+  height:calc(100vh - 64px);
+  overflow:auto;
+  position:sticky;
+  top:64px;
+  padding:32px 20px;
+  background:var(--card-bg);
+  border-right:1px solid var(--border);
+}
+.sidebar-label{
+  padding:0 8px;
+  margin-bottom:10px;
+  font-size:10px;
+  font-weight:500;
+  color:var(--text-muted);
+  letter-spacing:2px;
+  text-transform:uppercase;
+}
+.nav-item{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  margin-bottom:2px;
+  border:0;
+  border-radius:10px;
+  background:none;
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;
+  color:var(--text-muted);
+  text-align:left;
+  cursor:pointer;
+  text-decoration:none;
+  transition:.2s;
+}
+.nav-item:hover{
+  color:var(--text);
+  background:var(--brand-light);
+}
+.nav-item.active{
+  color:var(--brand);
+  background:var(--brand-light);
+  font-weight:500;
+}
+.nav-icon{
+  width:20px;
+  text-align:center;
+  font-size:16px;
+}
+.nav-divider{
+  border:0;
+  border-top:1px solid var(--border);
+  margin:12px 0;
+}
 
-  .sidebar {
-    background: var(--card-bg); border-right: 1px solid var(--border);
-    padding: 32px 20px; position: sticky; top: 64px;
-    height: calc(100vh - 64px); overflow-y: auto;
-  }
-  .sidebar-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); font-weight: 500; margin-bottom: 10px; padding: 0 8px; }
-  .nav-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 12px; border-radius: 10px;
-    cursor: pointer; transition: all 0.2s;
-    font-size: 14px; color: var(--text-muted); margin-bottom: 2px;
-    border: none; background: none; width: 100%; text-align: left;
-    font-family: 'DM Sans', sans-serif;
-  }
-  .nav-item:hover { background: var(--brand-light); color: var(--text); }
-  .nav-item.active { background: var(--brand-light); color: var(--brand); font-weight: 500; }
-  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
-  .nav-badge { margin-left: auto; background: var(--brand); color: white; font-size: 10px; padding: 2px 7px; border-radius: 100px; }
+.main{padding:40px 5%}
+.panel{display:none;animation:fadeUp .3s ease both}
+.panel.active{display:block}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
 
-  .main { padding: 40px 5%; }
+.page-header{margin-bottom:32px}
+.page-title{
+  font-family:'DM Serif Display',serif;
+  font-size:32px;
+  letter-spacing:-.5px;
+  margin-bottom:6px;
+}
+.page-sub{
+  font-size:14px;
+  color:var(--text-muted);
+}
+.section-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:16px;
+}
+.section-title{
+  font-size:16px;
+  font-weight:500;
+}
+.btn-primary{
+  border:0;
+  border-radius:100px;
+  padding:10px 22px;
+  background:var(--brand);
+  color:#fff;
+  font-family:'DM Sans',sans-serif;
+  font-size:13px;
+  font-weight:500;
+  cursor:pointer;
+  transition:.2s;
+}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px)}
 
-  /* PANELS */
-  .panel { display: none; animation: fadeUp 0.4s ease both; }
-  .panel.active { display: block; }
+.form-input{
+  width:100%;
+  padding:12px 16px;
+  border:1.5px solid var(--border);
+  border-radius:12px;
+  background:#fff;
+  color:var(--text);
+  outline:none;
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;
+  transition:border-color .2s;
+}
+.form-input:focus{border-color:var(--brand)}
+.form-input::placeholder{color:#AAB4BC}
 
-  .page-header { margin-bottom: 32px; }
-  .page-title { font-family: 'DM Serif Display', serif; font-size: 32px; color: var(--text); letter-spacing: -0.5px; margin-bottom: 6px; }
-  .page-sub { font-size: 14px; color: var(--text-muted); }
+.job-row{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:18px 20px;
+  margin-bottom:10px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card-bg);
+  transition:box-shadow .2s;
+}
+.job-row:hover{box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.job-status{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  flex-shrink:0;
+}
+.job-status.active{background:var(--mint)}
+.job-status.paused{background:var(--rose)}
+.job-info{flex:1;min-width:0}
+.job-title-text{
+  margin-bottom:3px;
+  font-size:15px;
+  font-weight:500;
+}
+.job-meta{
+  font-size:12px;
+  color:var(--text-muted);
+  line-height:1.45;
+}
+.job-stats{
+  display:flex;
+  gap:20px;
+  text-align:center;
+}
+.js-val{font-size:16px;font-weight:500}
+.js-label{
+  font-size:10px;
+  color:var(--text-muted);
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+.job-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.btn-view,.btn-danger{
+  border:0;
+  border-radius:8px;
+  padding:7px 14px;
+  font-family:'DM Sans',sans-serif;
+  font-size:12px;
+  cursor:pointer;
+}
+.btn-view{
+  color:var(--brand);
+  background:var(--brand-light);
+}
+.btn-danger{
+  color:#A05858;
+  background:rgba(215,154,154,.15);
+}
+.btn-view:hover,.btn-danger:hover{opacity:.8}
 
-  /* STATS ROW */
-  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
-  .stat-card {
-    background: var(--card-bg); border: 1px solid var(--border);
-    border-radius: 16px; padding: 20px 24px;
-  }
-  .stat-val { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--text); letter-spacing: -1px; line-height: 1; margin-bottom: 4px; }
-  .stat-label { font-size: 12px; color: var(--text-muted); }
+.empty-state{
+  padding:42px 20px;
+  text-align:center;
+  border:1px dashed var(--border);
+  border-radius:16px;
+  background:rgba(252,252,250,.65);
+  color:var(--text-muted);
+  font-size:13px;
+}
+.empty-icon{font-size:28px;margin-bottom:10px}
+.empty-title{
+  margin-bottom:5px;
+  color:var(--text);
+  font-size:15px;
+  font-weight:500;
+}
 
-  /* JOBS LIST */
-  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-  .section-title { font-size: 16px; font-weight: 500; color: var(--text); }
-  .btn-primary {
-    background: var(--brand); color: white; border: none;
-    border-radius: 100px; padding: 10px 22px; font-size: 13px;
-    font-weight: 500; font-family: 'DM Sans', sans-serif;
-    cursor: pointer; transition: all 0.2s;
-  }
-  .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+.nav-back-link{
+  display:inline-block;
+  margin-bottom:14px;
+  color:var(--text-muted);
+  font-size:13px;
+  text-decoration:none;
+}
+.nav-back-link:hover{color:var(--brand)}
 
-  .job-row {
-    background: var(--card-bg); border: 1px solid var(--border);
-    border-radius: 14px; padding: 18px 20px;
-    display: flex; align-items: center; gap: 16px;
-    margin-bottom: 10px; transition: box-shadow 0.2s;
-  }
-  .job-row:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-  .job-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .job-status.active { background: var(--mint); }
-  .job-status.paused { background: var(--rose); }
-  .job-info { flex: 1; }
-  .job-title-text { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
-  .job-meta { font-size: 12px; color: var(--text-muted); }
-  .job-stats { display: flex; gap: 20px; text-align: center; }
-  .js-val { font-size: 16px; font-weight: 500; color: var(--text); }
-  .js-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-  .btn-view { font-size: 12px; color: var(--brand); background: var(--brand-light); border: none; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
-  .btn-view:hover { opacity: 0.8; }
+.candidates-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:16px;
+}
+.candidate-card{
+  padding:24px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:var(--card-bg);
+  transition:.2s;
+}
+.candidate-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 4px 20px rgba(0,0,0,.08);
+}
+.candidate-top{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:14px;
+}
+.candidate-avatar{
+  width:44px;
+  height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:var(--brand-light);
+  color:var(--brand);
+  font-family:'DM Serif Display',serif;
+  font-size:16px;
+}
+.candidate-name{
+  margin-bottom:2px;
+  font-size:15px;
+  font-weight:500;
+}
+.candidate-role{font-size:12px;color:var(--text-muted)}
+.candidate-headline{
+  margin-bottom:14px;
+  color:var(--text-muted);
+  font-size:13px;
+  line-height:1.5;
+}
+.candidate-tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:16px;
+}
+.tag{
+  padding:4px 10px;
+  border:1px solid var(--border);
+  border-radius:100px;
+  color:var(--text-muted);
+  font-size:11px;
+}
+.tag.match{
+  color:#2E7A52;
+  border-color:rgba(111,191,143,.3);
+  background:var(--mint-light);
+}
+.candidate-actions{
+  display:flex;
+  gap:8px;
+}
+.btn-candidate{
+  flex:1;
+  padding:9px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:#fff;
+  color:var(--text-muted);
+  font-family:'DM Sans',sans-serif;
+  font-size:12px;
+  cursor:pointer;
+}
+.btn-candidate.primary{
+  border-color:rgba(93,127,163,.22);
+  background:var(--brand-light);
+  color:var(--brand);
+}
+.btn-candidate:hover{opacity:.8}
 
-  /* CANDIDATES */
-  .candidates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-  .candidate-card {
-    background: var(--card-bg); border: 1px solid var(--border);
-    border-radius: 16px; padding: 24px; transition: all 0.2s;
-  }
-  .candidate-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
-  .candidate-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-  .candidate-avatar {
-    width: 44px; height: 44px; border-radius: 50%;
-    background: var(--brand-light); display: flex; align-items: center;
-    justify-content: center; font-size: 18px; flex-shrink: 0;
-    border: 1px solid var(--border);
-  }
-  .candidate-name { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
-  .candidate-role { font-size: 12px; color: var(--text-muted); }
-  .candidate-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-  .tag { font-size: 11px; padding: 3px 10px; border-radius: 100px; border: 1px solid var(--border); color: var(--text-muted); }
-  .tag.match { background: var(--mint-light); border-color: rgba(111,191,143,0.3); color: #2e7a52; }
-  .candidate-actions { display: flex; gap: 8px; }
-  .btn-accept { flex: 1; background: var(--mint); color: white; border: none; border-radius: 8px; padding: 9px; font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
-  .btn-accept:hover { opacity: 0.85; }
-  .btn-pass { flex: 1; background: white; color: var(--text-muted); border: 1px solid var(--border); border-radius: 8px; padding: 9px; font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
-  .btn-pass:hover { border-color: var(--rose); color: var(--rose); }
+/* Interview cards use same visual language as live dashboard */
+.interview-card{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:18px 20px;
+  margin-bottom:10px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card-bg);
+}
+.interview-date{
+  width:54px;
+  flex-shrink:0;
+  padding:8px 6px;
+  border-radius:12px;
+  background:var(--brand-light);
+  color:var(--brand);
+  text-align:center;
+}
+.interview-date strong{
+  display:block;
+  font-family:'DM Serif Display',serif;
+  font-size:20px;
+}
+.interview-date span{
+  display:block;
+  font-size:10px;
+  text-transform:uppercase;
+}
+.interview-info{flex:1}
+.interview-name{font-size:14px;font-weight:500;margin-bottom:3px}
+.interview-meta{font-size:12px;color:var(--text-muted)}
 
-  /* POST JOB FORM */
-  .form-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 36px; max-width: 640px; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-  .form-group.full { grid-column: 1 / -1; }
-  .form-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); font-weight: 500; }
-  .form-input {
-    background: white; border: 1.5px solid var(--border); border-radius: 12px;
-    padding: 12px 16px; font-size: 14px; font-family: 'DM Sans', sans-serif;
-    color: var(--text); outline: none; transition: border-color 0.2s; width: 100%;
-  }
-  .form-input:focus { border-color: var(--brand); }
-  .form-input::placeholder { color: #aab4bc; }
-  textarea.form-input { resize: vertical; min-height: 120px; }
-  select.form-input { cursor: pointer; }
-  .btn-post { background: var(--brand); color: white; border: none; border-radius: 12px; padding: 14px 32px; font-size: 15px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
-  .btn-post:hover { opacity: 0.88; transform: translateY(-1px); }
+/* Current 5-step posting flow */
+.wizard-wrap{max-width:640px;margin:0 auto}
+.wizard-progress-row{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+.wizard-step-label{
+  color:var(--brand);
+  font-size:13px;
+  font-weight:500;
+}
+.wizard-step-name{
+  color:var(--text-muted);
+  font-size:14px;
+}
+.wizard-progress-track{
+  height:6px;
+  margin-bottom:28px;
+  overflow:hidden;
+  border-radius:100px;
+  background:var(--border);
+}
+.wizard-progress-fill{
+  height:100%;
+  width:20%;
+  border-radius:100px;
+  background:var(--brand);
+  transition:width .25s;
+}
+.form-card{
+  padding:32px;
+  border:1px solid var(--border);
+  border-radius:20px;
+  background:var(--card-bg);
+}
+.wizard-step{display:none}
+.wizard-step.active{display:block}
+.wizard-title{
+  margin-bottom:6px;
+  font-family:'DM Serif Display',serif;
+  font-size:26px;
+  letter-spacing:-.5px;
+}
+.wizard-sub{
+  margin-bottom:22px;
+  color:var(--text-muted);
+  font-size:14px;
+  line-height:1.5;
+}
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+.form-group{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-bottom:16px;
+}
+.form-group.full{grid-column:1/-1}
+.form-label{
+  color:var(--text-muted);
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+textarea.form-input{
+  min-height:120px;
+  resize:vertical;
+}
+select.form-input{cursor:pointer}
+.pay-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.pay-amounts{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+}
+.requirement-options{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:16px;
+}
+.requirement-chip{
+  padding:7px 11px;
+  border:1px solid var(--border);
+  border-radius:100px;
+  background:#fff;
+  color:var(--text-muted);
+  font-family:'DM Sans',sans-serif;
+  font-size:12px;
+  cursor:pointer;
+}
+.requirement-chip.selected{
+  border-color:var(--brand);
+  background:var(--brand);
+  color:#fff;
+}
+.wizard-nav{
+  display:flex;
+  gap:12px;
+  margin-top:24px;
+}
+.btn-wizard-back,.btn-wizard-continue{
+  padding:14px;
+  border-radius:12px;
+  font-family:'DM Sans',sans-serif;
+  font-size:15px;
+  font-weight:500;
+  cursor:pointer;
+}
+.btn-wizard-back{
+  flex:1;
+  border:1.5px solid var(--border);
+  background:#fff;
+  color:var(--text);
+}
+.btn-wizard-continue{
+  flex:2;
+  border:0;
+  background:var(--brand);
+  color:#fff;
+}
 
-  /* TOAST */
-  .toast {
-    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px);
-    background: var(--text); color: white; padding: 10px 20px; border-radius: 100px;
-    font-size: 13px; font-weight: 500; transition: transform 0.3s ease; z-index: 200; white-space: nowrap;
-  }
-  .toast.show { transform: translateX(-50%) translateY(0); }
+.mini-footer{
+  padding:26px;
+  text-align:center;
+  color:var(--text-muted);
+  font-size:12px;
+}
+.mini-footer a{color:inherit;text-decoration:none}
+.mini-footer a:hover{color:var(--brand)}
 
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:32px;
+  z-index:300;
+  padding:10px 20px;
+  border-radius:100px;
+  background:var(--text);
+  color:#fff;
+  font-size:13px;
+  white-space:nowrap;
+  transform:translateX(-50%) translateY(80px);
+  transition:transform .3s ease;
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
 
-  @media (max-width: 860px) {
-    .layout { grid-template-columns: 1fr; }
-    .sidebar { display: none; }
-    .stats-row { grid-template-columns: 1fr 1fr; }
-    .form-grid { grid-template-columns: 1fr; }
-  }
+@media(max-width:1050px){
+  .job-row{align-items:flex-start;flex-wrap:wrap}
+  .job-info{min-width:55%}
+  .job-actions{width:100%;justify-content:flex-end}
+}
+@media(max-width:860px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .main{padding:28px 5%}
+  .job-stats{margin-left:24px}
+  .form-grid,.pay-row,.pay-amounts{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+  nav{padding:0 4%}
+  .demo-pill{display:none}
+  .page-title{font-size:28px}
+  .section-header{align-items:flex-start;flex-direction:column}
+  .job-stats{width:100%;margin-left:24px;justify-content:flex-start}
+  .job-actions{justify-content:flex-start;margin-left:24px}
+  .form-card{padding:24px 18px}
+}
 </style>
 </head>
+
 <body>
 
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
+
   <div class="nav-right">
-    <span class="nav-user" style="background:rgba(93,127,163,0.08);padding:4px 12px;border-radius:100px;">Demo · example data</span>
-    <a href="index.html" class="btn-logout" style="text-decoration:none;display:inline-block;">← Back to Alygnn</a>
+    <span class="demo-pill">Demo · example data</span>
+    <a href="index.html" class="btn-logout">← Back to Alygnn</a>
   </div>
 </nav>
 
 <div class="layout">
-  <!-- SIDEBAR -->
+
   <aside class="sidebar">
     <div class="sidebar-label">Employer</div>
-    <button class="nav-item active" onclick="showPanel('overview', this)">
-      <span class="nav-icon">📊</span> Overview
+
+    <button class="nav-item active" data-panel="jobs" onclick="showPanel('jobs',this)">
+      <span class="nav-icon">💼</span>
+      My Jobs
     </button>
-    <button class="nav-item" onclick="showPanel('jobs', this)">
-      <span class="nav-icon">💼</span> My Jobs
+
+    <button class="nav-item" data-panel="interviews" onclick="showPanel('interviews',this)">
+      <span class="nav-icon">📅</span>
+      Interviews
     </button>
-    <button class="nav-item" onclick="showPanel('candidates', this)">
-      <span class="nav-icon">👥</span> Candidates
-      <span class="nav-badge">4</span>
+
+    <button class="nav-item" data-panel="post" onclick="openPostJob(this)">
+      <span class="nav-icon">➕</span>
+      Post a Job
     </button>
-    <button class="nav-item" onclick="showPanel('post', this)">
-      <span class="nav-icon">➕</span> Post a Job
+
+    <hr class="nav-divider">
+
+    <button class="nav-item" onclick="showToast('This is example data. Create an employer account to open My account.')">
+      <span class="nav-icon">←</span>
+      My account
     </button>
   </aside>
 
-  <!-- MAIN -->
   <main class="main">
 
-    <!-- OVERVIEW -->
-    <div class="panel active" id="panel-overview">
-      <div class="page-header">
-        <div class="page-title">Dashboard</div>
-        <div class="page-sub">Here's how your listings are performing</div>
-      </div>
-      <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-val">3</div>
-          <div class="stat-label">Active jobs</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-val">47</div>
-          <div class="stat-label">Total views</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-val">12</div>
-          <div class="stat-label">Right swipes</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-val">4</div>
-          <div class="stat-label">New candidates</div>
-        </div>
-      </div>
-      <div class="section-header">
-        <div class="section-title">Recent activity</div>
-      </div>
-      <div class="job-row">
-        <div class="job-status active"></div>
-        <div class="job-info">
-          <div class="job-title-text">Frontend Developer</div>
-          <div class="job-meta">Full-time · Remote · Posted 2 days ago</div>
-        </div>
-        <div class="job-stats">
-          <div><div class="js-val">18</div><div class="js-label">Views</div></div>
-          <div><div class="js-val">5</div><div class="js-label">Swipes</div></div>
-        </div>
-        <button class="btn-view" onclick="showPanel('candidates', this)">View candidates</button>
-      </div>
-      <div class="job-row">
-        <div class="job-status active"></div>
-        <div class="job-info">
-          <div class="job-title-text">Product Manager</div>
-          <div class="job-meta">Full-time · Hybrid · Posted 5 days ago</div>
-        </div>
-        <div class="job-stats">
-          <div><div class="js-val">22</div><div class="js-label">Views</div></div>
-          <div><div class="js-val">4</div><div class="js-label">Swipes</div></div>
-        </div>
-        <button class="btn-view" onclick="showPanel('candidates', this)">View candidates</button>
-      </div>
-      <div class="job-row">
-        <div class="job-status paused"></div>
-        <div class="job-info">
-          <div class="job-title-text">UX Designer</div>
-          <div class="job-meta">Contract · On-site · Posted 1 week ago</div>
-        </div>
-        <div class="job-stats">
-          <div><div class="js-val">7</div><div class="js-label">Views</div></div>
-          <div><div class="js-val">3</div><div class="js-label">Swipes</div></div>
-        </div>
-        <button class="btn-view" onclick="showPanel('candidates', this)">View candidates</button>
-      </div>
-    </div>
-
-    <!-- MY JOBS -->
-    <div class="panel" id="panel-jobs">
+    <!-- MY JOBS: current employer dashboard landing page -->
+    <section class="panel active" id="panel-jobs">
       <div class="page-header">
         <div class="page-title">My Jobs</div>
         <div class="page-sub">Manage your job listings</div>
       </div>
+
       <div class="section-header">
         <div class="section-title">Active listings</div>
-        <button class="btn-primary" onclick="showPanel('post', this)">+ Post new job</button>
+        <button class="btn-primary" onclick="openPostJob()">+ Post new job</button>
       </div>
+
+      <input
+        type="text"
+        class="form-input"
+        id="jobs-search-input"
+        placeholder="Search your posted jobs by title, location, or type…"
+        autocomplete="off"
+        oninput="filterJobs()"
+        style="margin-bottom:16px"
+      >
+
       <div id="jobs-list">
-        <div class="job-row">
+
+        <div class="job-row" data-job-search="frontend developer full-time remote raleigh nc">
           <div class="job-status active"></div>
           <div class="job-info">
             <div class="job-title-text">Frontend Developer</div>
-            <div class="job-meta">Full-time · Remote · $90k–$120k · Posted 2 days ago</div>
+            <div class="job-meta">Full-time · Remote · $95,000 – $125,000 per year · Raleigh, NC</div>
           </div>
           <div class="job-stats">
-            <div><div class="js-val">18</div><div class="js-label">Views</div></div>
-            <div><div class="js-val">5</div><div class="js-label">Applied</div></div>
+            <div>
+              <div class="js-val">18</div>
+              <div class="js-label">Views</div>
+            </div>
+            <div>
+              <div class="js-val">5</div>
+              <div class="js-label">Applied</div>
+            </div>
           </div>
-          <button class="btn-view">Edit</button>
+          <div class="job-actions">
+            <button class="btn-view" onclick="openCandidates('Frontend Developer')">Candidates</button>
+            <button class="btn-view" onclick="showToast('Demo job preview opened.')">View</button>
+            <button class="btn-view" onclick="showToast('In the live dashboard, this opens the job editor.')">Edit</button>
+            <button class="btn-danger" onclick="showToast('Demo data cannot be deleted.')">Delete</button>
+          </div>
         </div>
-        <div class="job-row">
+
+        <div class="job-row" data-job-search="product manager full-time hybrid charlotte nc">
           <div class="job-status active"></div>
           <div class="job-info">
             <div class="job-title-text">Product Manager</div>
-            <div class="job-meta">Full-time · Hybrid · $110k–$140k · Posted 5 days ago</div>
+            <div class="job-meta">Full-time · Hybrid · $110,000 – $140,000 per year · Charlotte, NC</div>
           </div>
           <div class="job-stats">
-            <div><div class="js-val">22</div><div class="js-label">Views</div></div>
-            <div><div class="js-val">4</div><div class="js-label">Applied</div></div>
-          </div>
-          <button class="btn-view">Edit</button>
-        </div>
-        <div class="job-row">
-          <div class="job-status paused"></div>
-          <div class="job-info">
-            <div class="job-title-text">UX Designer</div>
-            <div class="job-meta">Contract · On-site · $70k–$90k · Posted 1 week ago · <span style="color:var(--rose)">Paused</span></div>
-          </div>
-          <div class="job-stats">
-            <div><div class="js-val">7</div><div class="js-label">Views</div></div>
-            <div><div class="js-val">3</div><div class="js-label">Applied</div></div>
-          </div>
-          <button class="btn-view">Edit</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- CANDIDATES -->
-    <div class="panel" id="panel-candidates">
-      <div class="page-header">
-        <div class="page-title">Candidates</div>
-        <div class="page-sub">Job seekers who swiped right on your listings</div>
-      </div>
-      <div class="candidates-grid">
-        <div class="candidate-card">
-          <div class="candidate-top">
-            <div class="candidate-avatar">👩</div>
             <div>
-              <div class="candidate-name">Sarah M.</div>
-              <div class="candidate-role">Applied to Frontend Developer</div>
+              <div class="js-val">22</div>
+              <div class="js-label">Views</div>
+            </div>
+            <div>
+              <div class="js-val">4</div>
+              <div class="js-label">Applied</div>
             </div>
           </div>
+          <div class="job-actions">
+            <button class="btn-view" onclick="openCandidates('Product Manager')">Candidates</button>
+            <button class="btn-view" onclick="showToast('Demo job preview opened.')">View</button>
+            <button class="btn-view" onclick="showToast('In the live dashboard, this opens the job editor.')">Edit</button>
+            <button class="btn-danger" onclick="showToast('Demo data cannot be deleted.')">Delete</button>
+          </div>
+        </div>
+
+        <div class="job-row" data-job-search="ux designer contract in person durham nc">
+          <div class="job-status active"></div>
+          <div class="job-info">
+            <div class="job-title-text">UX Designer</div>
+            <div class="job-meta">Contract · In person · $70,000 – $90,000 per year · Durham, NC</div>
+          </div>
+          <div class="job-stats">
+            <div>
+              <div class="js-val">7</div>
+              <div class="js-label">Views</div>
+            </div>
+            <div>
+              <div class="js-val">3</div>
+              <div class="js-label">Applied</div>
+            </div>
+          </div>
+          <div class="job-actions">
+            <button class="btn-view" onclick="openCandidates('UX Designer')">Candidates</button>
+            <button class="btn-view" onclick="showToast('Demo job preview opened.')">View</button>
+            <button class="btn-view" onclick="showToast('In the live dashboard, this opens the job editor.')">Edit</button>
+            <button class="btn-danger" onclick="showToast('Demo data cannot be deleted.')">Delete</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="empty-state" id="jobs-no-results" style="display:none">
+        <div class="empty-icon">🔎</div>
+        <div class="empty-title">No jobs match that search</div>
+        Try another title, location, or job type.
+      </div>
+    </section>
+
+    <!-- CANDIDATES: no longer a permanent sidebar item. -->
+    <section class="panel" id="panel-candidates">
+      <a href="#" class="nav-back-link" onclick="showPanel('jobs');return false;">← Back to My Jobs</a>
+
+      <div class="page-header">
+        <div class="page-title" id="candidate-page-title">Candidates</div>
+        <div class="page-sub" id="candidate-page-sub">Job seekers who applied to this listing</div>
+      </div>
+
+      <input
+        type="text"
+        class="form-input"
+        id="candidate-search-input"
+        placeholder="Search candidates by name, role, or skill…"
+        autocomplete="off"
+        oninput="filterCandidates()"
+        style="margin-bottom:16px"
+      >
+
+      <div class="candidates-grid" id="candidate-grid">
+
+        <div class="candidate-card" data-candidate-search="sarah m frontend developer react typescript remote">
+          <div class="candidate-top">
+            <div class="candidate-avatar">SM</div>
+            <div>
+              <div class="candidate-name">Sarah M.</div>
+              <div class="candidate-role">Frontend Developer · 92% match</div>
+            </div>
+          </div>
+          <div class="candidate-headline">Frontend engineer with 5 years of React and TypeScript experience.</div>
           <div class="candidate-tags">
             <span class="tag match">React</span>
             <span class="tag match">TypeScript</span>
@@ -331,37 +781,20 @@
             <span class="tag">Remote</span>
           </div>
           <div class="candidate-actions">
-            <button class="btn-accept" onclick="acceptCandidate(this)">✓ Accept</button>
-            <button class="btn-pass" onclick="passCandidate(this)">✕ Pass</button>
+            <button class="btn-candidate primary" onclick="showToast('Candidate profile preview opened.')">View candidate</button>
+            <button class="btn-candidate" onclick="showToast('Resume preview opened in the live dashboard.')">Resume</button>
           </div>
         </div>
-        <div class="candidate-card">
+
+        <div class="candidate-card" data-candidate-search="priya k frontend developer vue css remote">
           <div class="candidate-top">
-            <div class="candidate-avatar">👨</div>
-            <div>
-              <div class="candidate-name">James T.</div>
-              <div class="candidate-role">Applied to Product Manager</div>
-            </div>
-          </div>
-          <div class="candidate-tags">
-            <span class="tag match">Agile</span>
-            <span class="tag match">Roadmapping</span>
-            <span class="tag">7 yrs exp</span>
-            <span class="tag">Hybrid</span>
-          </div>
-          <div class="candidate-actions">
-            <button class="btn-accept" onclick="acceptCandidate(this)">✓ Accept</button>
-            <button class="btn-pass" onclick="passCandidate(this)">✕ Pass</button>
-          </div>
-        </div>
-        <div class="candidate-card">
-          <div class="candidate-top">
-            <div class="candidate-avatar">👩</div>
+            <div class="candidate-avatar">PK</div>
             <div>
               <div class="candidate-name">Priya K.</div>
-              <div class="candidate-role">Applied to Frontend Developer</div>
+              <div class="candidate-role">Frontend Developer · 86% match</div>
             </div>
           </div>
+          <div class="candidate-headline">UI-focused developer experienced with Vue, CSS systems, and responsive products.</div>
           <div class="candidate-tags">
             <span class="tag match">Vue.js</span>
             <span class="tag match">CSS</span>
@@ -369,171 +802,333 @@
             <span class="tag">Remote</span>
           </div>
           <div class="candidate-actions">
-            <button class="btn-accept" onclick="acceptCandidate(this)">✓ Accept</button>
-            <button class="btn-pass" onclick="passCandidate(this)">✕ Pass</button>
+            <button class="btn-candidate primary" onclick="showToast('Candidate profile preview opened.')">View candidate</button>
+            <button class="btn-candidate" onclick="showToast('Resume preview opened in the live dashboard.')">Resume</button>
           </div>
         </div>
-        <div class="candidate-card">
+
+        <div class="candidate-card" data-candidate-search="james t product manager agile roadmapping hybrid">
           <div class="candidate-top">
-            <div class="candidate-avatar">🧑</div>
+            <div class="candidate-avatar">JT</div>
             <div>
-              <div class="candidate-name">Alex R.</div>
-              <div class="candidate-role">Applied to UX Designer</div>
+              <div class="candidate-name">James T.</div>
+              <div class="candidate-role">Product Manager · 81% match</div>
             </div>
           </div>
+          <div class="candidate-headline">Product leader with experience owning roadmaps, launches, and cross-functional teams.</div>
           <div class="candidate-tags">
-            <span class="tag match">Figma</span>
-            <span class="tag match">User Research</span>
-            <span class="tag">4 yrs exp</span>
-            <span class="tag">On-site</span>
+            <span class="tag match">Agile</span>
+            <span class="tag match">Roadmapping</span>
+            <span class="tag">7 yrs exp</span>
+            <span class="tag">Hybrid</span>
           </div>
           <div class="candidate-actions">
-            <button class="btn-accept" onclick="acceptCandidate(this)">✓ Accept</button>
-            <button class="btn-pass" onclick="passCandidate(this)">✕ Pass</button>
+            <button class="btn-candidate primary" onclick="showToast('Candidate profile preview opened.')">View candidate</button>
+            <button class="btn-candidate" onclick="showToast('Resume preview opened in the live dashboard.')">Resume</button>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- POST JOB -->
-    <div class="panel" id="panel-post">
+      </div>
+
+      <div class="empty-state" id="candidate-no-results" style="display:none;grid-column:1/-1">
+        <div class="empty-icon">👥</div>
+        <div class="empty-title">No candidates match that search</div>
+        Try a different name or skill.
+      </div>
+    </section>
+
+    <!-- INTERVIEWS -->
+    <section class="panel" id="panel-interviews">
+      <div class="page-header">
+        <div class="page-title">Interviews</div>
+        <div class="page-sub">Interviews you've scheduled with candidates</div>
+      </div>
+
+      <div class="interview-card">
+        <div class="interview-date">
+          <strong>21</strong>
+          <span>Aug</span>
+        </div>
+        <div class="interview-info">
+          <div class="interview-name">Sarah M. · Frontend Developer</div>
+          <div class="interview-meta">10:30 AM · Video interview · Example data</div>
+        </div>
+        <button class="btn-view" onclick="showToast('Demo interview details opened.')">View</button>
+      </div>
+
+      <div class="interview-card">
+        <div class="interview-date">
+          <strong>22</strong>
+          <span>Aug</span>
+        </div>
+        <div class="interview-info">
+          <div class="interview-name">James T. · Product Manager</div>
+          <div class="interview-meta">2:00 PM · Phone interview · Example data</div>
+        </div>
+        <button class="btn-view" onclick="showToast('Demo interview details opened.')">View</button>
+      </div>
+    </section>
+
+    <!-- POST JOB: current 5-step wizard instead of the old one-page form -->
+    <section class="panel" id="panel-post">
       <div class="page-header">
         <div class="page-title">Post a Job</div>
         <div class="page-sub">Fill in the details and start finding candidates</div>
       </div>
-      <div class="form-card">
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">Job title</label>
-            <input type="text" class="form-input" id="f-title" placeholder="e.g. Senior Designer">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Company name</label>
-            <input type="text" class="form-input" id="f-company" placeholder="Your company">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Location</label>
-            <input type="text" class="form-input" id="f-location" placeholder="e.g. New York, NY">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Job type</label>
-            <select class="form-input" id="f-type">
-              <option>Full-time</option>
-              <option>Part-time</option>
-              <option>Contract</option>
-              <option>Internship</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Work style</label>
-            <select class="form-input" id="f-style">
-              <option>Remote</option>
-              <option>Hybrid</option>
-              <option>On-site</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Salary range</label>
-            <input type="text" class="form-input" id="f-salary" placeholder="e.g. $80k–$110k">
-          </div>
-          <div class="form-group full">
-            <label class="form-label">Job description</label>
-            <textarea class="form-input" id="f-desc" placeholder="Describe the role, responsibilities, and what you're looking for..."></textarea>
-          </div>
-          <div class="form-group full">
-            <label class="form-label">Requirements (one per line)</label>
-            <textarea class="form-input" id="f-reqs" placeholder="3+ years of experience&#10;Proficiency in React&#10;Strong communication skills" style="min-height:90px"></textarea>
-          </div>
+
+      <div class="wizard-wrap">
+        <div class="wizard-progress-row">
+          <span class="wizard-step-label" id="wizard-step-label">Step 1 of 5</span>
+          <span class="wizard-step-name" id="wizard-step-name">Basics</span>
         </div>
-        <button class="btn-post" onclick="postJob()">Post job →</button>
+
+        <div class="wizard-progress-track">
+          <div class="wizard-progress-fill" id="wizard-progress-fill"></div>
+        </div>
+
+        <div class="form-card">
+
+          <div class="wizard-step active" id="wizard-step-1">
+            <div class="wizard-title">What's the role?</div>
+            <div class="wizard-sub">Start with the job title and how it's classified.</div>
+
+            <div class="form-group">
+              <label class="form-label">Job title</label>
+              <input class="form-input" id="f-title" placeholder="e.g. Senior Designer">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Company name</label>
+              <input class="form-input" value="NexEra" readonly style="background:var(--bg);color:var(--text-muted)">
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Job type</label>
+                <select class="form-input">
+                  <option>Full-time</option>
+                  <option>Part-time</option>
+                  <option>Contract</option>
+                  <option>Internship</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Job location type</label>
+                <select class="form-input">
+                  <option>Remote</option>
+                  <option>Hybrid</option>
+                  <option>In person</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="wizard-step" id="wizard-step-2">
+            <div class="wizard-title">Where's this based?</div>
+            <div class="wizard-sub">This is what candidates will see and filter by.</div>
+
+            <div class="form-group">
+              <label class="form-label">Location</label>
+              <input class="form-input" placeholder="Start typing a city, like Raleigh, NC">
+            </div>
+          </div>
+
+          <div class="wizard-step" id="wizard-step-3">
+            <div class="wizard-title">What does this role pay?</div>
+            <div class="wizard-sub">Clear pay information helps candidates make better decisions.</div>
+
+            <div class="pay-row">
+              <select class="form-input">
+                <option>Range</option>
+                <option>Exact amount</option>
+                <option>Starting amount</option>
+                <option>Maximum amount</option>
+              </select>
+
+              <select class="form-input">
+                <option>Per year</option>
+                <option>Per hour</option>
+                <option>Per month</option>
+                <option>Per week</option>
+              </select>
+            </div>
+
+            <div class="pay-amounts">
+              <input class="form-input" type="number" placeholder="Minimum">
+              <input class="form-input" type="number" placeholder="Maximum">
+            </div>
+          </div>
+
+          <div class="wizard-step" id="wizard-step-4">
+            <div class="wizard-title">Describe the role</div>
+            <div class="wizard-sub">Let AI draft it from what you've entered so far, or write your own.</div>
+
+            <div class="form-group full">
+              <label class="form-label">Job description</label>
+              <textarea class="form-input" placeholder="Describe the role, responsibilities, and what you're looking for..."></textarea>
+            </div>
+          </div>
+
+          <div class="wizard-step" id="wizard-step-5">
+            <div class="wizard-title">Requirements & benefits</div>
+            <div class="wizard-sub">Select at least 1 requirement. Benefits are optional.</div>
+
+            <div class="form-group">
+              <label class="form-label">Requirements</label>
+
+              <div class="requirement-options">
+                <button class="requirement-chip selected" type="button" onclick="toggleChip(this)">1+ years of experience</button>
+                <button class="requirement-chip" type="button" onclick="toggleChip(this)">Bachelor's degree</button>
+                <button class="requirement-chip" type="button" onclick="toggleChip(this)">Customer service</button>
+                <button class="requirement-chip" type="button" onclick="toggleChip(this)">Spanish</button>
+              </div>
+
+              <input class="form-input" placeholder="Search requirements, e.g. Forklift, Spanish, CPR">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Benefits <span style="text-transform:none;font-weight:400">(optional)</span></label>
+              <input class="form-input" placeholder="Search benefits, e.g. Gym, 401k, PTO">
+            </div>
+          </div>
+
+          <div class="wizard-nav">
+            <button class="btn-wizard-back" id="wizard-back-btn" type="button" onclick="wizardBack()" style="display:none">Back</button>
+            <button class="btn-wizard-continue" id="wizard-continue-btn" type="button" onclick="wizardContinue()">Continue</button>
+          </div>
+
+        </div>
       </div>
-    </div>
+    </section>
 
   </main>
+</div>
+
+<div class="mini-footer">
+  <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-  // Demo dashboard — intentionally has no auth check and no Supabase client.
-  // All data on this page is hardcoded sample data; it never reads or
-  // displays anything from a real signed-in session.
+const WIZARD_NAMES=['Basics','Location','Pay','Description','Requirements'];
+let wizardStep=1;
+let toastTimer;
 
-  function showPanel(name, trigger) {
-    const targetPanel = document.getElementById('panel-' + name);
-    if (!targetPanel) return;
+function showPanel(name,trigger){
+  document.querySelectorAll('.panel').forEach(panel=>panel.classList.remove('active'));
+  document.querySelectorAll('.sidebar .nav-item').forEach(item=>item.classList.remove('active'));
 
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const panel=document.getElementById('panel-'+name);
+  if(panel) panel.classList.add('active');
 
-    targetPanel.classList.add('active');
+  let nav=trigger;
+  if(!nav){
+    nav=document.querySelector(`.sidebar .nav-item[data-panel="${name}"]`);
+  }
+  if(nav) nav.classList.add('active');
 
-    const navButton = trigger && trigger.classList && trigger.classList.contains('nav-item')
-      ? trigger
-      : document.querySelector(`.nav-item[onclick*="${name}"]`);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 
-    if (navButton) navButton.classList.add('active');
+function openPostJob(trigger){
+  wizardStep=1;
+  renderWizard();
+  showPanel('post',trigger || document.querySelector('[data-panel="post"]'));
+}
+
+function openCandidates(jobTitle){
+  document.getElementById('candidate-page-title').textContent=`Candidates · ${jobTitle}`;
+  document.getElementById('candidate-page-sub').textContent='Job seekers who applied to this listing';
+  document.getElementById('candidate-search-input').value='';
+  filterCandidates();
+  showPanel('candidates');
+}
+
+function filterJobs(){
+  const q=document.getElementById('jobs-search-input').value.trim().toLowerCase();
+  const rows=[...document.querySelectorAll('#jobs-list .job-row')];
+  let visible=0;
+
+  rows.forEach(row=>{
+    const show=!q || row.dataset.jobSearch.includes(q);
+    row.style.display=show?'flex':'none';
+    if(show) visible++;
+  });
+
+  document.getElementById('jobs-no-results').style.display=visible?'none':'block';
+}
+
+function filterCandidates(){
+  const q=document.getElementById('candidate-search-input').value.trim().toLowerCase();
+  const cards=[...document.querySelectorAll('#candidate-grid .candidate-card')];
+  let visible=0;
+
+  cards.forEach(card=>{
+    const show=!q || card.dataset.candidateSearch.includes(q);
+    card.style.display=show?'block':'none';
+    if(show) visible++;
+  });
+
+  document.getElementById('candidate-no-results').style.display=visible?'none':'block';
+}
+
+function renderWizard(){
+  for(let i=1;i<=5;i++){
+    document.getElementById('wizard-step-'+i).classList.toggle('active',i===wizardStep);
   }
 
-  function acceptCandidate(btn) {
-    const card = btn.closest('.candidate-card');
-    const name = card.querySelector('.candidate-name').textContent;
-    card.style.opacity = '0.5';
-    card.style.pointerEvents = 'none';
-    showToast('✓ ' + name + ' accepted!');
+  document.getElementById('wizard-step-label').textContent=`Step ${wizardStep} of 5`;
+  document.getElementById('wizard-step-name').textContent=WIZARD_NAMES[wizardStep-1];
+  document.getElementById('wizard-progress-fill').style.width=`${wizardStep*20}%`;
+
+  const back=document.getElementById('wizard-back-btn');
+  const next=document.getElementById('wizard-continue-btn');
+
+  back.style.display=wizardStep===1?'none':'block';
+  next.textContent=wizardStep===5?'Post job →':'Continue';
+}
+
+function wizardBack(){
+  wizardStep=Math.max(1,wizardStep-1);
+  renderWizard();
+}
+
+function wizardContinue(){
+  if(wizardStep===1){
+    const title=document.getElementById('f-title').value.trim();
+    if(!title){
+      showToast('Enter a job title to continue.');
+      return;
+    }
   }
 
-  function passCandidate(btn) {
-    const card = btn.closest('.candidate-card');
-    card.style.opacity = '0';
-    setTimeout(() => card.remove(), 300);
-    showToast('Passed');
+  if(wizardStep===5){
+    showToast('Demo only — create an employer account to publish a real job.');
+    setTimeout(()=>showPanel('jobs'),1200);
+    return;
   }
 
-  function postJob() {
-    const title = document.getElementById('f-title').value.trim();
-    const company = document.getElementById('f-company').value.trim();
-    if (!title || !company) { showToast('Please fill in job title and company'); return; }
+  wizardStep=Math.min(5,wizardStep+1);
+  renderWizard();
+}
 
-    const type = document.getElementById('f-type').value;
-    const style = document.getElementById('f-style').value;
-    const salary = document.getElementById('f-salary').value;
+function toggleChip(button){
+  button.classList.toggle('selected');
+}
 
-    // Add to jobs list
-    const jobsList = document.getElementById('jobs-list');
-    const row = document.createElement('div');
-    row.className = 'job-row';
-    row.innerHTML = `
-      <div class="job-status active"></div>
-      <div class="job-info">
-        <div class="job-title-text">${title}</div>
-        <div class="job-meta">${type} · ${style}${salary ? ' · ' + salary : ''} · Just posted</div>
-      </div>
-      <div class="job-stats">
-        <div><div class="js-val">0</div><div class="js-label">Views</div></div>
-        <div><div class="js-val">0</div><div class="js-label">Applied</div></div>
-      </div>
-      <button class="btn-view">Edit</button>
-    `;
-    jobsList.prepend(row);
+function showToast(message){
+  const toast=document.getElementById('toast');
+  toast.textContent=message;
+  toast.classList.add('show');
 
-    // Clear form
-    ['f-title','f-company','f-location','f-salary','f-desc','f-reqs'].forEach(id => {
-      document.getElementById(id).value = '';
-    });
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>toast.classList.remove('show'),2200);
+}
 
-    showToast('🎉 Job posted successfully!');
-    setTimeout(() => showPanel('jobs'), 1200);
-  }
-
-  let toastTimer;
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
-  }
+renderWizard();
 </script>
+
 </body>
 </html>
