@@ -168,37 +168,6 @@
     gap: 18px;
   }
 
-  /* View mode: read-only resume view reached from the Account page. Hides
-     the editable form and centers the preview with an Edit button. */
-  body.view-mode .form-column,
-  body.view-mode .page-heading,
-  body.view-mode .bottom-actions,
-  body.view-mode .mini-footer,
-  body.view-mode #clearBtn {
-    display: none !important;
-  }
-
-  #editResumeBtn {
-    display: none;
-  }
-
-  body.view-mode #editResumeBtn {
-    display: inline-block;
-  }
-
-  body.view-mode .builder-layout {
-    display: block;
-  }
-
-  body.view-mode .preview-column {
-    max-width: 700px;
-    margin: 40px auto 0;
-  }
-
-  body.view-mode .score-card {
-    display: none;
-  }
-
   .section-card {
     background: var(--card-bg);
     border: 1px solid var(--border);
@@ -634,6 +603,349 @@
     overflow: hidden;
   }
 
+  .template-picker{
+    margin: 0 0 14px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--card-bg);
+  }
+
+  .template-picker-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom:12px;
+  }
+
+  .template-picker-head strong{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+  }
+
+  .template-picker-head span{
+    display:block;
+    margin-top:3px;
+    color:var(--text-muted);
+    font-size:11px;
+    line-height:1.4;
+  }
+
+  .template-options{
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:8px;
+  }
+
+  .template-option{
+    position:relative;
+    min-width:0;
+    padding:8px;
+    border:1.5px solid var(--border);
+    border-radius:12px;
+    background:#fff;
+    color:var(--text);
+    font-family:'DM Sans',sans-serif;
+    cursor:pointer;
+    transition:border-color .18s,box-shadow .18s,transform .18s,background .18s;
+  }
+
+  .template-option:hover{
+    border-color:rgba(93,127,163,.55);
+    transform:translateY(-1px);
+  }
+
+  .template-option.active{
+    border-color:var(--brand);
+    background:rgba(93,127,163,.055);
+    box-shadow:0 0 0 2px rgba(93,127,163,.08);
+  }
+
+  .template-check{
+    position:absolute;
+    top:5px;
+    right:5px;
+    width:16px;
+    height:16px;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    border-radius:50%;
+    background:var(--brand);
+    color:#fff;
+    font-size:9px;
+    font-weight:700;
+  }
+
+  .template-option.active .template-check{display:flex}
+
+  .template-thumb{
+    height:68px;
+    margin-bottom:7px;
+    padding:8px 7px;
+    overflow:hidden;
+    border:1px solid #e5eaee;
+    border-radius:7px;
+    background:#fff;
+  }
+
+  .template-thumb-name{
+    width:62%;
+    height:5px;
+    margin-bottom:5px;
+    border-radius:10px;
+    background:#23313c;
+  }
+
+  .template-thumb-title{
+    width:42%;
+    height:3px;
+    margin-bottom:7px;
+    border-radius:10px;
+    background:var(--brand);
+  }
+
+  .template-thumb-line{
+    width:100%;
+    height:2px;
+    margin-bottom:4px;
+    border-radius:10px;
+    background:#dce2e7;
+  }
+
+  .template-thumb-line.short{width:72%}
+
+  .template-thumb.modern{
+    border-left:5px solid var(--brand);
+  }
+
+  .template-thumb.modern .template-thumb-name{
+    height:6px;
+    border-radius:2px;
+  }
+
+  .template-thumb.minimal .template-thumb-title{
+    background:#9ca6ae;
+  }
+
+  .template-thumb.minimal .template-thumb-name{
+    width:52%;
+    height:4px;
+    background:#1a2530;
+  }
+
+  .template-thumb.executive{
+    text-align:center;
+  }
+
+  .template-thumb.executive .template-thumb-name,
+  .template-thumb.executive .template-thumb-title{
+    margin-left:auto;
+    margin-right:auto;
+  }
+
+  .template-thumb.executive .template-thumb-title{
+    width:34%;
+  }
+
+  .template-option-label{
+    display:block;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:10.5px;
+    font-weight:600;
+    text-align:center;
+  }
+
+  /* ==========================================================
+     RESUME TEMPLATES
+     All templates stay one-column and ATS-friendly.
+  ========================================================== */
+
+  /* Classic — current Alygnn look */
+  .resume-paper.template-classic{
+    font-family:'DM Sans',sans-serif;
+  }
+
+  /* Modern — stronger left accent and sans-serif hierarchy */
+  .resume-paper.template-modern{
+    position:relative;
+    padding-left:52px;
+    font-family:'DM Sans',sans-serif;
+  }
+
+  .resume-paper.template-modern::before{
+    content:'';
+    position:absolute;
+    top:0;
+    bottom:0;
+    left:0;
+    width:10px;
+    background:var(--brand);
+  }
+
+  .resume-paper.template-modern .resume-header{
+    border-bottom:0;
+    padding-bottom:6px;
+    margin-bottom:25px;
+  }
+
+  .resume-paper.template-modern .resume-name{
+    font-family:'DM Sans',sans-serif;
+    font-size:29px;
+    font-weight:600;
+    letter-spacing:-.8px;
+  }
+
+  .resume-paper.template-modern .resume-title{
+    margin-top:7px;
+    color:#263746;
+    font-size:13px;
+    font-weight:600;
+  }
+
+  .resume-paper.template-modern .resume-contact{
+    margin-top:9px;
+    color:#64717c;
+  }
+
+  .resume-paper.template-modern .resume-section{
+    margin-top:20px;
+  }
+
+  .resume-paper.template-modern .resume-section-title{
+    border-bottom:0;
+    border-left:4px solid var(--brand);
+    padding:2px 0 2px 9px;
+    color:#263746;
+    letter-spacing:1.1px;
+  }
+
+  .resume-paper.template-modern .resume-skill{
+    border:0;
+    border-radius:5px;
+    background:rgba(93,127,163,.09);
+    color:#34495d;
+  }
+
+  /* Minimal — neutral, typography-first */
+  .resume-paper.template-minimal{
+    font-family:'DM Sans',sans-serif;
+    color:#171d22;
+  }
+
+  .resume-paper.template-minimal .resume-header{
+    border-bottom:1px solid #222;
+    padding-bottom:13px;
+    margin-bottom:20px;
+  }
+
+  .resume-paper.template-minimal .resume-name{
+    font-family:'DM Sans',sans-serif;
+    font-size:27px;
+    font-weight:600;
+    letter-spacing:-.6px;
+  }
+
+  .resume-paper.template-minimal .resume-title{
+    color:#313940;
+    font-size:12.5px;
+    font-weight:500;
+  }
+
+  .resume-paper.template-minimal .resume-contact{
+    color:#59626a;
+    font-size:10px;
+  }
+
+  .resume-paper.template-minimal .resume-section{
+    margin-top:18px;
+  }
+
+  .resume-paper.template-minimal .resume-section-title{
+    border:0;
+    padding:0;
+    margin-bottom:8px;
+    color:#171d22;
+    font-size:10px;
+    letter-spacing:1.7px;
+  }
+
+  .resume-paper.template-minimal .resume-summary,
+  .resume-paper.template-minimal .entry-description{
+    color:#303940;
+  }
+
+  .resume-paper.template-minimal .resume-skill{
+    padding:0 10px 0 0;
+    border:0;
+    border-radius:0;
+    background:none;
+    color:#303940;
+  }
+
+  .resume-paper.template-minimal .resume-skill:not(:last-child)::after{
+    content:' ·';
+  }
+
+  /* Executive — centered header, serif-forward */
+  .resume-paper.template-executive{
+    font-family:'DM Sans',sans-serif;
+  }
+
+  .resume-paper.template-executive .resume-header{
+    border-top:3px solid #243240;
+    border-bottom:1px solid #9ea8b0;
+    padding:18px 10px 16px;
+    margin-bottom:23px;
+    text-align:center;
+  }
+
+  .resume-paper.template-executive .resume-name{
+    font-family:'DM Serif Display',serif;
+    font-size:32px;
+    letter-spacing:.2px;
+  }
+
+  .resume-paper.template-executive .resume-title{
+    color:#384957;
+    font-size:12px;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+  }
+
+  .resume-paper.template-executive .resume-contact{
+    color:#67737d;
+  }
+
+  .resume-paper.template-executive .resume-section-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    border:0;
+    padding:0;
+    color:#243240;
+    text-align:center;
+    letter-spacing:1.6px;
+  }
+
+  .resume-paper.template-executive .resume-section-title::before,
+  .resume-paper.template-executive .resume-section-title::after{
+    content:'';
+    flex:1;
+    height:1px;
+    background:#cbd2d8;
+  }
+
+  .resume-paper.template-executive .resume-skill{
+    border-color:#c9d0d6;
+    background:#fff;
+    color:#36434e;
+  }
+
   .preview-toolbar {
     min-height: 58px;
     padding: 12px 15px;
@@ -905,7 +1217,603 @@
     color: #a45f5f;
   }
 
-  @media (max-width: 1000px) {
+  
+  /* ===== Visual template thumbnails ===== */
+  .template-thumb.thumb-navy{padding:0;background:#fff}
+  .thumb-navy .thumb-banner{height:24px;margin-bottom:7px;background:#263A50}
+  .thumb-navy .template-thumb-line{margin-left:8px;width:calc(100% - 16px)}
+  .thumb-navy .template-thumb-line.short{width:55%}
+
+  .template-thumb.thumb-teal{padding-top:6px;text-align:center}
+  .thumb-teal .thumb-topline{height:5px;margin:-6px -7px 8px;background:#2F7A72}
+  .thumb-teal .template-thumb-name,
+  .thumb-teal .template-thumb-title{margin-left:auto;margin-right:auto}
+  .thumb-teal .template-thumb-title{background:#2F7A72}
+
+  .template-thumb.thumb-green,
+  .template-thumb.thumb-editorial,
+  .template-thumb.thumb-lavender{
+    position:relative;display:flex;gap:6px;padding:0;
+  }
+  .thumb-sidebar{width:31%;height:100%;background:#4E7B52}
+  .thumb-editorial-left{width:28%;height:100%;background:#F1F0EA;border-right:1px solid #D7D7CF}
+  .thumb-lavender-bar{width:31%;height:100%;background:#D8C8E8}
+  .thumb-main-lines{flex:1;padding:8px 7px 5px 0}
+  .thumb-editorial .template-thumb-name{width:70%;background:#2A2A2A}
+  .thumb-editorial .template-thumb-title{width:46%;background:#888}
+  .thumb-lavender .template-thumb-name{background:#3B3344}
+
+  /* ===== SIX DISTINCT RESUME DESIGNS ===== */
+
+  /* Navy — bold full-width colored header. */
+  .resume-paper.template-navy{
+    padding:0 42px 48px;
+    font-family:'DM Sans',sans-serif;
+  }
+  .resume-paper.template-navy .resume-header{
+    margin:0 -42px 26px;
+    padding:30px 42px 24px;
+    border:0;
+    background:#263A50;
+    color:#fff;
+  }
+  .resume-paper.template-navy .resume-name{
+    color:#fff;
+    font-family:'DM Serif Display',serif;
+    font-size:34px;
+  }
+  .resume-paper.template-navy .resume-title{
+    color:#D9E8F6;
+    font-size:13px;
+    letter-spacing:.6px;
+    text-transform:uppercase;
+  }
+  .resume-paper.template-navy .resume-contact{color:#E9EFF5}
+  .resume-paper.template-navy .resume-section-title{
+    color:#263A50;
+    border-bottom:2px solid #263A50;
+  }
+  .resume-paper.template-navy .resume-skill{
+    background:#EEF2F5;
+    color:#263A50;
+  }
+
+  /* Teal Executive — color bar and centered premium header. */
+  .resume-paper.template-teal{
+    position:relative;
+    padding-top:52px;
+    font-family:'DM Sans',sans-serif;
+  }
+  .resume-paper.template-teal::before{
+    content:'';
+    position:absolute;
+    top:0;left:0;right:0;
+    height:16px;
+    background:#2F7A72;
+  }
+  .resume-paper.template-teal .resume-header{
+    text-align:center;
+    border:0;
+    padding-bottom:20px;
+    border-bottom:1px solid #B9C9C6;
+  }
+  .resume-paper.template-teal .resume-name{
+    font-family:'DM Serif Display',serif;
+    font-size:34px;
+    color:#203B38;
+  }
+  .resume-paper.template-teal .resume-title{
+    color:#2F7A72;
+    text-transform:uppercase;
+    letter-spacing:1.4px;
+  }
+  .resume-paper.template-teal .resume-contact{color:#657572}
+  .resume-paper.template-teal .resume-section-title{
+    border:0;
+    padding:0 0 5px;
+    color:#2F7A72;
+    font-size:10px;
+    letter-spacing:1.8px;
+  }
+  .resume-paper.template-teal .resume-section-title::after{
+    content:'';
+    display:block;
+    width:34px;height:2px;
+    margin-top:6px;
+    background:#2F7A72;
+  }
+  .resume-paper.template-teal .resume-skill{
+    border:1px solid #BED3CF;
+    background:#F6FAF9;
+    color:#2F675F;
+  }
+
+  /* Green Sidebar — true two-column layout. */
+  .resume-paper.template-green{
+    display:grid;
+    grid-template-columns:31% minmax(0,69%);
+    column-gap:28px;
+    align-content:start;
+    padding:0;
+    font-family:'DM Sans',sans-serif;
+  }
+  .resume-paper.template-green .resume-header{
+    grid-column:1/-1;
+    margin:0;
+    padding:29px 36px 24px;
+    border:0;
+    background:#4F7B54;
+    color:#fff;
+  }
+  .resume-paper.template-green .resume-name{
+    color:#fff;
+    font-family:'DM Serif Display',serif;
+    font-size:32px;
+  }
+  .resume-paper.template-green .resume-title{color:#E8F3E9}
+  .resume-paper.template-green .resume-contact{color:#F2F7F2}
+
+  .resume-paper.template-green #summaryPreviewSection{
+    grid-column:2;
+    grid-row:2;
+    margin:28px 34px 0 0;
+  }
+  .resume-paper.template-green .resume-section:nth-of-type(2){
+    grid-column:2;
+    grid-row:3/span 5;
+    margin:20px 34px 34px 0;
+  }
+  .resume-paper.template-green .resume-section:nth-of-type(3),
+  .resume-paper.template-green .resume-section:nth-of-type(4),
+  .resume-paper.template-green #awardsPreviewSection{
+    grid-column:1;
+    margin:0;
+    padding:22px 22px 0 28px;
+    background:#F1F5F0;
+  }
+  .resume-paper.template-green .resume-section:nth-of-type(3){grid-row:2;padding-top:29px}
+  .resume-paper.template-green .resume-section:nth-of-type(4){grid-row:3}
+  .resume-paper.template-green #awardsPreviewSection{grid-row:4;padding-bottom:30px}
+  .resume-paper.template-green .resume-section-title{border:0;color:#456B49}
+  .resume-paper.template-green #summaryPreviewSection .resume-section-title,
+  .resume-paper.template-green .resume-section:nth-of-type(2) .resume-section-title{
+    border-bottom:1px solid #D6DFD5;
+    color:#355C3A;
+  }
+  .resume-paper.template-green .resume-skill{
+    padding:3px 0;
+    border:0;border-radius:0;background:none;
+    color:#334D36;
+  }
+
+  /* Editorial — magazine-like left rail and serif typography. */
+  .resume-paper.template-editorial{
+    display:grid;
+    grid-template-columns:28% minmax(0,72%);
+    column-gap:30px;
+    align-content:start;
+    padding:36px;
+    font-family:Georgia,'Times New Roman',serif;
+  }
+  .resume-paper.template-editorial .resume-header{
+    grid-column:1/-1;
+    border:0;
+    padding-bottom:20px;
+    border-bottom:1px solid #B7B2A7;
+  }
+  .resume-paper.template-editorial .resume-name{
+    color:#2B2A27;
+    font-family:Georgia,'Times New Roman',serif;
+    font-size:32px;
+    text-transform:uppercase;
+    letter-spacing:1.1px;
+  }
+  .resume-paper.template-editorial .resume-title{
+    color:#746E64;
+    font-family:'DM Sans',sans-serif;
+    letter-spacing:1px;
+    text-transform:uppercase;
+  }
+  .resume-paper.template-editorial .resume-contact{font-family:'DM Sans',sans-serif}
+
+  .resume-paper.template-editorial #summaryPreviewSection{
+    grid-column:2;
+    grid-row:2;
+    margin-top:25px;
+  }
+  .resume-paper.template-editorial .resume-section:nth-of-type(2){
+    grid-column:2;
+    grid-row:3/span 4;
+    margin-top:19px;
+  }
+  .resume-paper.template-editorial .resume-section:nth-of-type(3),
+  .resume-paper.template-editorial .resume-section:nth-of-type(4),
+  .resume-paper.template-editorial #awardsPreviewSection{
+    grid-column:1;
+    margin:0;
+    padding:20px 15px;
+    background:#F2F0EA;
+  }
+  .resume-paper.template-editorial .resume-section:nth-of-type(3){grid-row:2;margin-top:25px}
+  .resume-paper.template-editorial .resume-section:nth-of-type(4){grid-row:3}
+  .resume-paper.template-editorial #awardsPreviewSection{grid-row:4}
+  .resume-paper.template-editorial .resume-section-title{
+    border:0;
+    color:#4D4A43;
+    font-family:'DM Sans',sans-serif;
+    font-size:9.5px;
+    letter-spacing:1.6px;
+  }
+  .resume-paper.template-editorial .resume-summary,
+  .resume-paper.template-editorial .entry-description{color:#383632}
+  .resume-paper.template-editorial .resume-skill{
+    padding:0;border:0;background:none;
+    color:#555148;
+    font-family:'DM Sans',sans-serif;
+  }
+
+  /* Lavender — soft modern sidebar. */
+  .resume-paper.template-lavender{
+    display:grid;
+    grid-template-columns:31% minmax(0,69%);
+    column-gap:28px;
+    align-content:start;
+    padding:0;
+    font-family:'DM Sans',sans-serif;
+  }
+  .resume-paper.template-lavender .resume-header{
+    grid-column:1/-1;
+    margin:0;
+    padding:29px 34px 23px;
+    border:0;
+    background:#F9F7FB;
+  }
+  .resume-paper.template-lavender .resume-name{
+    color:#3F3549;
+    font-family:'DM Serif Display',serif;
+    font-size:33px;
+  }
+  .resume-paper.template-lavender .resume-title{color:#7B5C8C}
+  .resume-paper.template-lavender #summaryPreviewSection{
+    grid-column:2;
+    grid-row:2;
+    margin:28px 34px 0 0;
+  }
+  .resume-paper.template-lavender .resume-section:nth-of-type(2){
+    grid-column:2;
+    grid-row:3/span 5;
+    margin:20px 34px 34px 0;
+  }
+  .resume-paper.template-lavender .resume-section:nth-of-type(3),
+  .resume-paper.template-lavender .resume-section:nth-of-type(4),
+  .resume-paper.template-lavender #awardsPreviewSection{
+    grid-column:1;
+    margin:0;
+    padding:22px 22px 0 28px;
+    background:#E9DDF1;
+  }
+  .resume-paper.template-lavender .resume-section:nth-of-type(3){grid-row:2;padding-top:29px}
+  .resume-paper.template-lavender .resume-section:nth-of-type(4){grid-row:3}
+  .resume-paper.template-lavender #awardsPreviewSection{grid-row:4;padding-bottom:30px}
+  .resume-paper.template-lavender .resume-section-title{border:0;color:#684A78}
+  .resume-paper.template-lavender #summaryPreviewSection .resume-section-title,
+  .resume-paper.template-lavender .resume-section:nth-of-type(2) .resume-section-title{
+    border-bottom:1px solid #E2D9E6;
+  }
+  .resume-paper.template-lavender .resume-skill{
+    border:1px solid rgba(104,74,120,.18);
+    background:rgba(255,255,255,.48);
+    color:#5B4566;
+  }
+
+
+  /* ===== Additional template thumbnails ===== */
+
+  .template-thumb.thumb-bluebar,
+  .template-thumb.thumb-gold,
+  .template-thumb.thumb-compact,
+  .template-thumb.thumb-corporate{
+    position:relative;
+    overflow:hidden;
+  }
+
+  .template-thumb.thumb-bluebar{
+    display:flex;
+    gap:6px;
+    padding:0;
+  }
+  .thumb-blue-column{
+    width:27%;
+    height:100%;
+    background:#3D6F9F;
+  }
+
+  .template-thumb.thumb-gold{
+    padding-top:0;
+  }
+  .thumb-gold-head{
+    height:18px;
+    margin:0 -7px 7px;
+    background:#252525;
+    border-bottom:3px solid #C4A15C;
+  }
+  .thumb-gold .template-thumb-title{
+    background:#C4A15C;
+  }
+
+  .template-thumb.thumb-compact{
+    padding:7px;
+  }
+  .thumb-compact-row{
+    width:100%;
+    height:6px;
+    margin-bottom:5px;
+    border-top:2px solid #7B8792;
+    border-bottom:2px solid #D9DEE2;
+  }
+
+  .template-thumb.thumb-corporate{
+    padding-top:0;
+  }
+  .thumb-corp-top{
+    height:12px;
+    margin:0 -7px 7px;
+    background:#DCE7F0;
+    border-bottom:2px solid #416B8C;
+  }
+  .thumb-corporate .template-thumb-title{
+    background:#416B8C;
+  }
+
+  /* ============================================================
+     TEMPLATE 7 — BLUE COLUMN
+     ============================================================ */
+  .resume-paper.template-bluebar{
+    display:grid;
+    grid-template-columns:27% minmax(0,73%);
+    column-gap:30px;
+    align-content:start;
+    padding:0;
+    font-family:'DM Sans',sans-serif;
+  }
+
+  .resume-paper.template-bluebar .resume-header{
+    grid-column:1/-1;
+    margin:0;
+    padding:28px 34px 24px;
+    border:0;
+    background:#FFFFFF;
+    border-bottom:5px solid #3D6F9F;
+  }
+
+  .resume-paper.template-bluebar .resume-name{
+    font-family:'DM Serif Display',serif;
+    font-size:33px;
+    color:#203343;
+  }
+
+  .resume-paper.template-bluebar .resume-title{
+    color:#3D6F9F;
+  }
+
+  .resume-paper.template-bluebar #summaryPreviewSection{
+    grid-column:2;
+    grid-row:2;
+    margin:28px 34px 0 0;
+  }
+
+  .resume-paper.template-bluebar .resume-section:nth-of-type(2){
+    grid-column:2;
+    grid-row:3/span 5;
+    margin:20px 34px 34px 0;
+  }
+
+  .resume-paper.template-bluebar .resume-section:nth-of-type(3),
+  .resume-paper.template-bluebar .resume-section:nth-of-type(4),
+  .resume-paper.template-bluebar #awardsPreviewSection{
+    grid-column:1;
+    margin:0;
+    padding:22px 20px 0 26px;
+    background:#EAF1F7;
+  }
+
+  .resume-paper.template-bluebar .resume-section:nth-of-type(3){
+    grid-row:2;
+    padding-top:29px;
+  }
+  .resume-paper.template-bluebar .resume-section:nth-of-type(4){grid-row:3}
+  .resume-paper.template-bluebar #awardsPreviewSection{
+    grid-row:4;
+    padding-bottom:30px;
+  }
+
+  .resume-paper.template-bluebar .resume-section-title{
+    border:0;
+    color:#365F82;
+  }
+
+  .resume-paper.template-bluebar #summaryPreviewSection .resume-section-title,
+  .resume-paper.template-bluebar .resume-section:nth-of-type(2) .resume-section-title{
+    border-bottom:1px solid #CCD9E3;
+  }
+
+  .resume-paper.template-bluebar .resume-skill{
+    border:0;
+    background:#DCE8F1;
+    color:#315B7D;
+  }
+
+  /* ============================================================
+     TEMPLATE 8 — BLACK & GOLD
+     ============================================================ */
+  .resume-paper.template-gold{
+    position:relative;
+    padding-top:56px;
+    font-family:'DM Sans',sans-serif;
+    color:#252525;
+  }
+
+  .resume-paper.template-gold::before{
+    content:'';
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    height:18px;
+    background:#252525;
+    border-bottom:5px solid #C4A15C;
+  }
+
+  .resume-paper.template-gold .resume-header{
+    border:0;
+    padding-bottom:20px;
+    border-bottom:1px solid #CFC8BA;
+  }
+
+  .resume-paper.template-gold .resume-name{
+    color:#242424;
+    font-family:'DM Serif Display',serif;
+    font-size:35px;
+  }
+
+  .resume-paper.template-gold .resume-title{
+    color:#8B6B2F;
+    font-size:12px;
+    letter-spacing:1.1px;
+    text-transform:uppercase;
+  }
+
+  .resume-paper.template-gold .resume-section-title{
+    border-bottom:1px solid #C4A15C;
+    color:#332F27;
+    letter-spacing:1.5px;
+  }
+
+  .resume-paper.template-gold .entry-title{
+    color:#2B2925;
+  }
+
+  .resume-paper.template-gold .resume-skill{
+    border:1px solid #D7C7A2;
+    background:#FBF8F0;
+    color:#715728;
+  }
+
+  /* ============================================================
+     TEMPLATE 9 — COMPACT
+     ============================================================ */
+  .resume-paper.template-compact{
+    padding:34px 42px;
+    font-family:Arial,Helvetica,sans-serif;
+    color:#1F252A;
+  }
+
+  .resume-paper.template-compact .resume-header{
+    padding-bottom:12px;
+    margin-bottom:15px;
+    border-bottom:2px solid #6F7C86;
+  }
+
+  .resume-paper.template-compact .resume-name{
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:27px;
+    font-weight:700;
+    letter-spacing:-.4px;
+  }
+
+  .resume-paper.template-compact .resume-title{
+    margin-top:4px;
+    font-size:11px;
+    font-weight:700;
+    color:#4B5964;
+  }
+
+  .resume-paper.template-compact .resume-contact{
+    margin-top:5px;
+    font-size:9.5px;
+  }
+
+  .resume-paper.template-compact .resume-section{
+    margin-top:13px;
+  }
+
+  .resume-paper.template-compact .resume-section-title{
+    margin-bottom:6px;
+    padding-bottom:3px;
+    border-bottom:1px solid #AAB3BA;
+    color:#26323A;
+    font-size:9.5px;
+  }
+
+  .resume-paper.template-compact .resume-summary,
+  .resume-paper.template-compact .entry-description,
+  .resume-paper.template-compact .entry-subtitle,
+  .resume-paper.template-compact .entry-meta{
+    font-size:10.5px;
+    line-height:1.4;
+  }
+
+  .resume-paper.template-compact .resume-entry{
+    margin-bottom:10px;
+  }
+
+  .resume-paper.template-compact .resume-skill{
+    padding:2px 7px;
+    border-radius:3px;
+    background:#F1F3F4;
+    font-size:9px;
+  }
+
+  /* ============================================================
+     TEMPLATE 10 — CORPORATE
+     ============================================================ */
+  .resume-paper.template-corporate{
+    padding-top:0;
+    font-family:'DM Sans',sans-serif;
+  }
+
+  .resume-paper.template-corporate .resume-header{
+    margin:0 -42px 24px;
+    padding:28px 42px 22px;
+    background:#EAF0F5;
+    border-bottom:3px solid #416B8C;
+  }
+
+  .resume-paper.template-corporate .resume-name{
+    color:#274259;
+    font-family:'DM Sans',sans-serif;
+    font-size:31px;
+    font-weight:600;
+  }
+
+  .resume-paper.template-corporate .resume-title{
+    color:#416B8C;
+    font-weight:600;
+  }
+
+  .resume-paper.template-corporate .resume-section-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    border:0;
+    padding:0;
+    color:#365C79;
+  }
+
+  .resume-paper.template-corporate .resume-section-title::after{
+    content:'';
+    flex:1;
+    height:1px;
+    background:#C7D5E0;
+  }
+
+  .resume-paper.template-corporate .resume-skill{
+    background:#EEF3F7;
+    border-color:#D0DDE7;
+    color:#385D79;
+  }
+
+@media (max-width: 1000px) {
     .builder-layout {
       grid-template-columns: 1fr;
     }
@@ -958,6 +1866,10 @@
     .preview-toolbar {
       align-items: flex-start;
       flex-direction: column;
+    }
+
+    .template-options{
+      grid-template-columns:repeat(2,minmax(0,1fr));
     }
 
     .bottom-actions {
@@ -1106,41 +2018,20 @@
       margin: 0;
     }
   }
-
-  .mini-footer{ text-align:center; padding:24px 6% 40px; font-size:12px; color:var(--text-muted); }
-  .mini-footer a{ color:var(--text-muted); text-decoration:none; }
-  .mini-footer a:hover{ color:var(--brand); }
 </style>
 </head>
 
 <body>
-<script>
-  // Applied synchronously, before the rest of the page paints, so a
-  // ?view=1 visit never flashes the full editable form before collapsing
-  // into the read-only view. The async data load later only fills content
-  // and adjusts labels — it never toggles this class.
-  if (new URLSearchParams(window.location.search).get('view') === '1') {
-    document.body.classList.add('view-mode');
-  }
-</script>
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
 
-  <div class="nav-step" id="navStep">
+  <div class="nav-step">
     <span class="step-pill">Step 1 of 3</span>
     Build resume
   </div>
 
-  <a href="align-upload.html" class="nav-back" id="navBack">← Back</a>
+  <a href="align-upload.html" class="nav-back">← Back</a>
 </nav>
-<script>
-  if (document.body.classList.contains('view-mode')) {
-    document.getElementById('navStep').innerHTML = 'Your resume';
-    const navBack = document.getElementById('navBack');
-    navBack.href = 'account.html';
-    navBack.textContent = '← Back to account';
-  }
-</script>
 
 <main>
   <div class="page-heading">
@@ -1282,6 +2173,144 @@
         <div class="score-tips" id="scoreTips"></div>
       </div>
 
+      <div class="template-picker">
+        <div class="template-picker-head">
+          <div>
+            <strong>Choose a resume template</strong>
+            <span>Switch anytime — your information stays the same.</span>
+          </div>
+        </div>
+
+        <div class="template-options" id="templateOptions">
+          <button type="button" class="template-option active" data-template="classic" aria-pressed="true">
+            <span class="template-check">✓</span>
+            <div class="template-thumb classic">
+              <div class="template-thumb-name"></div>
+              <div class="template-thumb-title"></div>
+              <div class="template-thumb-line"></div>
+              <div class="template-thumb-line"></div>
+              <div class="template-thumb-line short"></div>
+            </div>
+            <span class="template-option-label">Classic</span>
+          </button>
+
+          <button type="button" class="template-option" data-template="navy" aria-pressed="false">
+            <span class="template-check">✓</span>
+            <div class="template-thumb thumb-navy">
+              <div class="thumb-banner"></div>
+              <div class="template-thumb-line"></div>
+              <div class="template-thumb-line short"></div>
+              <div class="template-thumb-line"></div>
+            </div>
+            <span class="template-option-label">Navy</span>
+          </button>
+
+          <button type="button" class="template-option" data-template="teal" aria-pressed="false">
+            <span class="template-check">✓</span>
+            <div class="template-thumb thumb-teal">
+              <div class="thumb-topline"></div>
+              <div class="template-thumb-name"></div>
+              <div class="template-thumb-title"></div>
+              <div class="template-thumb-line"></div>
+              <div class="template-thumb-line short"></div>
+            </div>
+            <span class="template-option-label">Teal Executive</span>
+          </button>
+
+          <button type="button" class="template-option" data-template="green" aria-pressed="false">
+            <span class="template-check">✓</span>
+            <div class="template-thumb thumb-green">
+              <div class="thumb-sidebar"></div>
+              <div class="thumb-main-lines">
+                <div class="template-thumb-name"></div>
+                <div class="template-thumb-line"></div>
+                <div class="template-thumb-line short"></div>
+                <div class="template-thumb-line"></div>
+              </div>
+            </div>
+            <span class="template-option-label">Green Sidebar</span>
+          </button>
+
+          <button type="button" class="template-option" data-template="editorial" aria-pressed="false">
+            <span class="template-check">✓</span>
+            <div class="template-thumb thumb-editorial">
+              <div class="thumb-editorial-left"></div>
+              <div class="thumb-main-lines">
+                <div class="template-thumb-name"></div>
+                <div class="template-thumb-title"></div>
+                <div class="template-thumb-line"></div>
+                <div class="template-thumb-line"></div>
+              </div>
+            </div>
+            <span class="template-option-label">Editorial</span>
+          </button>
+
+          <button type="button" class="template-option" data-template="lavender" aria-pressed="false">
+            <span class="template-check">✓</span>
+            <div class="template-thumb thumb-lavender">
+              <div class="thumb-lavender-bar"></div>
+              <div class="thumb-main-lines">
+                <div class="template-thumb-name"></div>
+                <div class="template-thumb-line"></div>
+                <div class="template-thumb-line short"></div>
+                <div class="template-thumb-line"></div>
+              </div>
+            </div>
+            <span class="template-option-label">Lavender</span>
+          </button>
+
+          <button type="button" class="template-option" data-template="bluebar" aria-pressed="false">
+            <span class="template-check">✓</span>
+            <div class="template-thumb thumb-bluebar">
+              <div class="thumb-blue-column"></div>
+              <div class="thumb-main-lines">
+                <div class="template-thumb-name"></div>
+                <div class="template-thumb-title"></div>
+                <div class="template-thumb-line"></div>
+                <div class="template-thumb-line short"></div>
+              </div>
+            </div>
+            <span class="template-option-label">Blue Column</span>
+          </button>
+
+          <button type="button" class="template-option" data-template="gold" aria-pressed="false">
+            <span class="template-check">✓</span>
+            <div class="template-thumb thumb-gold">
+              <div class="thumb-gold-head"></div>
+              <div class="template-thumb-name"></div>
+              <div class="template-thumb-line"></div>
+              <div class="template-thumb-line"></div>
+              <div class="template-thumb-line short"></div>
+            </div>
+            <span class="template-option-label">Black & Gold</span>
+          </button>
+
+          <button type="button" class="template-option" data-template="compact" aria-pressed="false">
+            <span class="template-check">✓</span>
+            <div class="template-thumb thumb-compact">
+              <div class="template-thumb-name"></div>
+              <div class="thumb-compact-row"></div>
+              <div class="template-thumb-line"></div>
+              <div class="template-thumb-line"></div>
+              <div class="template-thumb-line"></div>
+            </div>
+            <span class="template-option-label">Compact</span>
+          </button>
+
+          <button type="button" class="template-option" data-template="corporate" aria-pressed="false">
+            <span class="template-check">✓</span>
+            <div class="template-thumb thumb-corporate">
+              <div class="thumb-corp-top"></div>
+              <div class="template-thumb-name"></div>
+              <div class="template-thumb-title"></div>
+              <div class="template-thumb-line"></div>
+              <div class="template-thumb-line short"></div>
+            </div>
+            <span class="template-option-label">Corporate</span>
+          </button>
+        </div>
+      </div>
+
       <div class="preview-shell">
         <div class="preview-toolbar">
           <div>
@@ -1291,13 +2320,12 @@
 
           <div class="toolbar-actions">
             <button type="button" class="small-btn" id="clearBtn">Clear</button>
-            <a href="resume-builder.html" class="small-btn" id="editResumeBtn" style="text-decoration:none;">Edit</a>
             <button type="button" class="small-btn primary" id="downloadBtn">Download PDF</button>
           </div>
         </div>
 
         <div class="resume-paper-wrap">
-          <article class="resume-paper" id="resumePaper">
+          <article class="resume-paper template-classic" id="resumePaper" data-template="classic">
             <header class="resume-header">
               <div class="resume-name" id="previewName">Your Name</div>
               <div class="resume-title" id="previewTitle">Professional Title</div>
@@ -1352,10 +2380,6 @@
   </div>
 </main>
 
-<div class="mini-footer">
-  <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>
-</div>
-
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
@@ -1364,12 +2388,64 @@
 
   let STORAGE_KEY = null;
 
+  const TEMPLATE_NAMES = {
+    classic: 'Classic',
+    navy: 'Navy',
+    teal: 'Teal Executive',
+    green: 'Green Sidebar',
+    editorial: 'Editorial',
+    lavender: 'Lavender',
+    bluebar: 'Blue Column',
+    gold: 'Black & Gold',
+    compact: 'Compact',
+    corporate: 'Corporate'
+  };
+
+  const LEGACY_TEMPLATE_MAP = {
+    modern: 'navy',
+    minimal: 'editorial',
+    executive: 'teal'
+  };
+
   const state = {
     skills: [],
     experienceCount: 0,
     educationCount: 0,
-    awardCount: 0
+    awardCount: 0,
+    template: 'classic'
   };
+
+  function applyResumeTemplate(template, shouldSave = false) {
+    const migratedTemplate = LEGACY_TEMPLATE_MAP[template] || template;
+    const safeTemplate = Object.prototype.hasOwnProperty.call(TEMPLATE_NAMES, migratedTemplate)
+      ? migratedTemplate
+      : 'classic';
+
+    state.template = safeTemplate;
+
+    const paper = document.getElementById('resumePaper');
+    if (paper) {
+      [
+        ...Object.keys(TEMPLATE_NAMES),
+        ...Object.keys(LEGACY_TEMPLATE_MAP)
+      ].forEach(name => {
+        paper.classList.remove(`template-${name}`);
+      });
+      paper.classList.add(`template-${safeTemplate}`);
+      paper.dataset.template = safeTemplate;
+    }
+
+    document.querySelectorAll('.template-option[data-template]').forEach(button => {
+      const selected = button.dataset.template === safeTemplate;
+      button.classList.toggle('active', selected);
+      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+
+    if (shouldSave) {
+      autoSave();
+      setSaveStatus(`${TEMPLATE_NAMES[safeTemplate]} template selected.`, 'success');
+    }
+  }
 
   const fields = ['fullName', 'jobTitle', 'email', 'phone', 'location', 'summary'];
 
@@ -2450,6 +3526,7 @@
       experience: getExperiences(),
       education: getEducation(),
       awards: getAwards(),
+      template: state.template,
       source: 'resume-builder',
       updated_at: new Date().toISOString()
     };
@@ -2708,60 +3785,52 @@
     }
   }
 
-  // Populates every field, skill, and repeatable section from a data object
-  // shaped like getFormData()'s output. Used for both the local draft (a
-  // JSON string in localStorage) and resume_data fetched from Supabase, so
-  // the two loading paths can never drift apart or handle sections
-  // differently.
-  function populateForm(data) {
-    fields.forEach(field => {
-      const map = {
-        fullName: 'name',
-        jobTitle: 'title'
-      };
-      document.getElementById(field).value = data[map[field] || field] || '';
-    });
-
-    state.skills = Array.isArray(data.skills)
-      ? data.skills.filter(skill => SKILL_LIBRARY_SET.has(String(skill).toLowerCase())).slice(0, 12)
-      : [];
-    renderSkills();
-
-    if (Array.isArray(data.experience) && data.experience.length) {
-      data.experience.forEach(createExperienceItem);
-    } else {
-      createExperienceItem();
-    }
-
-    if (Array.isArray(data.education) && data.education.length) {
-      data.education.forEach(createEducationItem);
-    } else {
-      createEducationItem();
-    }
-
-    if (Array.isArray(data.awards) && data.awards.length) {
-      data.awards.forEach(createAwardItem);
-    }
-
-    updatePreview();
-  }
-
   function loadDraft() {
-    if (!STORAGE_KEY) {
-      createExperienceItem();
-      createEducationItem();
-      return;
-    }
+    if (!STORAGE_KEY) return;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
 
       if (!raw) {
+        applyResumeTemplate('classic', false);
         createExperienceItem();
         createEducationItem();
         return;
       }
 
-      populateForm(JSON.parse(raw));
+      const data = JSON.parse(raw);
+
+      applyResumeTemplate(data.template || 'classic', false);
+
+      fields.forEach(field => {
+        const map = {
+          fullName: 'name',
+          jobTitle: 'title'
+        };
+        document.getElementById(field).value = data[map[field] || field] || '';
+      });
+
+      state.skills = Array.isArray(data.skills)
+        ? data.skills.filter(skill => SKILL_LIBRARY_SET.has(String(skill).toLowerCase())).slice(0, 12)
+        : [];
+      renderSkills();
+
+      if (Array.isArray(data.experience) && data.experience.length) {
+        data.experience.forEach(createExperienceItem);
+      } else {
+        createExperienceItem();
+      }
+
+      if (Array.isArray(data.education) && data.education.length) {
+        data.education.forEach(createEducationItem);
+      } else {
+        createEducationItem();
+      }
+
+      if (Array.isArray(data.awards) && data.awards.length) {
+        data.awards.forEach(createAwardItem);
+      }
+
+      updatePreview();
       setSaveStatus('Your saved draft was restored.', 'success');
     } catch (error) {
       console.error('Could not load resume draft:', error);
@@ -2921,7 +3990,227 @@
     body { margin: 0; padding: 24px; }
     .resume-paper { margin: 0 auto; box-shadow: none !important; min-height: auto; max-width: 850px; }
     @media print { body { padding: 0; } }
-  </style>
+  
+  @media print {
+    .template-picker{display:none !important}
+
+    .resume-paper.template-modern{
+      padding-left:0.72in !important;
+    }
+
+    .resume-paper.template-modern::before{
+      width:0.12in !important;
+      background:#5D7FA3 !important;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+
+    .resume-paper.template-modern .resume-header{
+      border-bottom:0 !important;
+      padding-bottom:5pt !important;
+      margin-bottom:15pt !important;
+    }
+
+    .resume-paper.template-modern .resume-name{
+      font-family:'DM Sans',sans-serif !important;
+      font-size:24pt !important;
+      font-weight:600 !important;
+    }
+
+    .resume-paper.template-modern .resume-section-title{
+      border-bottom:0 !important;
+      border-left:3pt solid #5D7FA3 !important;
+      padding:1.5pt 0 1.5pt 7pt !important;
+    }
+
+    .resume-paper.template-minimal .resume-header{
+      border-bottom:1pt solid #222 !important;
+    }
+
+    .resume-paper.template-minimal .resume-name{
+      font-family:'DM Sans',sans-serif !important;
+      font-size:23pt !important;
+      font-weight:600 !important;
+    }
+
+    .resume-paper.template-minimal .resume-section-title{
+      border:0 !important;
+      padding:0 !important;
+      margin-bottom:7pt !important;
+      color:#171d22 !important;
+    }
+
+    .resume-paper.template-minimal .resume-skill{
+      padding:0 8pt 0 0 !important;
+      border:0 !important;
+      background:none !important;
+    }
+
+    .resume-paper.template-executive .resume-header{
+      border-top:2.5pt solid #243240 !important;
+      border-bottom:1pt solid #9ea8b0 !important;
+      padding:12pt 6pt 11pt !important;
+      text-align:center !important;
+    }
+
+    .resume-paper.template-executive .resume-name{
+      font-family:'DM Serif Display',serif !important;
+      font-size:26pt !important;
+    }
+
+    .resume-paper.template-executive .resume-title{
+      font-size:10.5pt !important;
+      letter-spacing:1pt !important;
+    }
+
+    .resume-paper.template-executive .resume-section-title{
+      border:0 !important;
+      padding:0 !important;
+      display:flex !important;
+    }
+  }
+
+
+  @media print {
+    .resume-paper.template-navy{
+      padding:0 0.55in 0.55in !important;
+    }
+    .resume-paper.template-navy .resume-header{
+      margin:0 -0.55in 20pt !important;
+      padding:22pt 0.55in 18pt !important;
+      background:#263A50 !important;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+    .resume-paper.template-navy .resume-name,
+    .resume-paper.template-navy .resume-title,
+    .resume-paper.template-navy .resume-contact{color:#fff !important}
+
+    .resume-paper.template-teal{padding-top:0.62in !important}
+    .resume-paper.template-teal::before{
+      height:0.14in !important;
+      background:#2F7A72 !important;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+
+    .resume-paper.template-green,
+    .resume-paper.template-editorial,
+    .resume-paper.template-lavender{
+      display:grid !important;
+      min-height:0 !important;
+    }
+
+    .resume-paper.template-green{
+      grid-template-columns:31% minmax(0,69%) !important;
+      column-gap:20pt !important;
+      padding:0 !important;
+    }
+    .resume-paper.template-green .resume-header{
+      padding:21pt 27pt 18pt !important;
+      background:#4F7B54 !important;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+    .resume-paper.template-green .resume-name,
+    .resume-paper.template-green .resume-title,
+    .resume-paper.template-green .resume-contact{color:#fff !important}
+    .resume-paper.template-green .resume-section:nth-of-type(3),
+    .resume-paper.template-green .resume-section:nth-of-type(4),
+    .resume-paper.template-green #awardsPreviewSection{
+      background:#F1F5F0 !important;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+
+    .resume-paper.template-editorial{
+      grid-template-columns:28% minmax(0,72%) !important;
+      column-gap:20pt !important;
+      padding:0.48in !important;
+    }
+    .resume-paper.template-editorial .resume-section:nth-of-type(3),
+    .resume-paper.template-editorial .resume-section:nth-of-type(4),
+    .resume-paper.template-editorial #awardsPreviewSection{
+      background:#F2F0EA !important;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+
+    .resume-paper.template-lavender{
+      grid-template-columns:31% minmax(0,69%) !important;
+      column-gap:20pt !important;
+      padding:0 !important;
+    }
+    .resume-paper.template-lavender .resume-header{
+      padding:21pt 26pt 17pt !important;
+      background:#F9F7FB !important;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+    .resume-paper.template-lavender .resume-section:nth-of-type(3),
+    .resume-paper.template-lavender .resume-section:nth-of-type(4),
+    .resume-paper.template-lavender #awardsPreviewSection{
+      background:#E9DDF1 !important;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+  }
+
+
+  @media print {
+    .resume-paper.template-bluebar{
+      display:grid !important;
+      grid-template-columns:27% minmax(0,73%) !important;
+      column-gap:20pt !important;
+      padding:0 !important;
+    }
+    .resume-paper.template-bluebar .resume-header{
+      padding:21pt 26pt 18pt !important;
+      border-bottom:4pt solid #3D6F9F !important;
+    }
+    .resume-paper.template-bluebar .resume-section:nth-of-type(3),
+    .resume-paper.template-bluebar .resume-section:nth-of-type(4),
+    .resume-paper.template-bluebar #awardsPreviewSection{
+      background:#EAF1F7 !important;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+
+    .resume-paper.template-gold{
+      padding-top:0.68in !important;
+    }
+    .resume-paper.template-gold::before{
+      height:0.18in !important;
+      background:#252525 !important;
+      border-bottom:4pt solid #C4A15C !important;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+
+    .resume-paper.template-compact{
+      padding:0.42in 0.5in !important;
+      font-family:Arial,Helvetica,sans-serif !important;
+    }
+    .resume-paper.template-compact .resume-name{
+      font-family:Arial,Helvetica,sans-serif !important;
+      font-size:22pt !important;
+      font-weight:700 !important;
+    }
+    .resume-paper.template-compact .resume-section{
+      margin-top:10pt !important;
+    }
+
+    .resume-paper.template-corporate .resume-header{
+      margin:0 -0.55in 19pt !important;
+      padding:21pt 0.55in 17pt !important;
+      background:#EAF0F5 !important;
+      border-bottom:3pt solid #416B8C !important;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+  }
+
+</style>
 </head>
 <body>
   ${resumePaper.outerHTML}
@@ -3051,6 +4340,8 @@
     state.experienceCount = 0;
     state.educationCount = 0;
     state.awardCount = 0;
+    state.template = 'classic';
+    applyResumeTemplate('classic', false);
 
     document.getElementById('experienceList').innerHTML = '';
     document.getElementById('educationList').innerHTML = '';
@@ -3153,6 +4444,12 @@
     }
   });
 
+  document.getElementById('templateOptions').addEventListener('click', event => {
+    const button = event.target.closest('.template-option[data-template]');
+    if (!button) return;
+    applyResumeTemplate(button.dataset.template, true);
+  });
+
   document.getElementById('downloadBtn').addEventListener('click', () => {
     if (!validateResume()) return;
     document.title = `${document.getElementById('fullName').value.trim()} Resume`;
@@ -3193,31 +4490,8 @@
       ? 'alygnn_resume_builder_draft:' + session.user.id
       : 'alygnn_resume_builder_draft_anon';
 
-    // resume_data in Supabase is the source of truth for resumes created
-    // in Alygnn (see saveToSupabase above). Load it first so the resume
-    // shows correctly even on a browser/device where no local draft
-    // exists. Fall back to the local draft only when there's no signed-in
-    // session or no saved resume_data yet.
-    let loadedFromServer = false;
-    if (session) {
-      try {
-        const { data: profile, error } = await sb
-          .from('profiles')
-          .select('resume_data')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        if (!error && profile?.resume_data) {
-          populateForm(profile.resume_data);
-          loadedFromServer = true;
-        }
-      } catch (error) {
-        console.warn('Could not load saved resume from your account:', error);
-      }
-    }
-
-    if (!loadedFromServer) loadDraft();
-
+    loadDraft();
+    applyResumeTemplate(state.template || 'classic', false);
     validateSummary();
     updatePreview();
     updateContinueState();
