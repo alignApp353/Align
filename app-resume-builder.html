@@ -191,6 +191,45 @@ body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparen
 .message.error{background:#FDEEEE;color:var(--rose);border-color:#F1CCCC}.message.success{background:#E8F4EC;color:#2F8354;border-color:#CDE4D5}
 .resume-preview-wrap{background:#F8FAFB;border-color:var(--border)}.resume-paper{box-shadow:0 12px 30px rgba(23,35,51,.10)}
 @media(max-width:420px){.title{font-size:29px}.two{grid-template-columns:1fr}.actions{grid-template-columns:1fr 1.25fr}}
+
+/* Simple city/state suggestions */
+.field-suggest{position:relative}
+.suggestion-list{
+  position:absolute;
+  left:0;right:0;top:calc(100% + 6px);
+  z-index:80;
+  display:none;
+  max-height:220px;
+  overflow:auto;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:0 14px 34px rgba(23,35,51,.13);
+}
+.suggestion-list.show{display:block}
+.suggestion-item{
+  width:100%;
+  min-height:46px;
+  padding:11px 13px;
+  border:0;
+  border-bottom:1px solid #EEF2F5;
+  background:#fff;
+  color:var(--text);
+  text-align:left;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+}
+.suggestion-item:last-child{border-bottom:0}
+.suggestion-item:active{background:#F1F6F9}
+.suggestion-muted{
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:700;
+}
+
 </style>
 
 </head>
@@ -201,7 +240,7 @@ body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparen
     <div class="logo">Alygnn.</div>
   </div>
 
-  <div class="step-label" id="stepLabel">Step 1 of 6</div>
+  <div class="step-label" id="stepLabel">Step 1 of 5</div>
   <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
   <div id="message" class="message"></div>
 
@@ -214,30 +253,29 @@ body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparen
       <div><label class="label" for="lastName">Last name</label><input id="lastName" class="input" placeholder="Fajardo"></div>
       <div class="full"><label class="label" for="email">Email</label><input id="email" class="input" type="email" placeholder="you@example.com"></div>
       <div class="full"><label class="label" for="phone">Phone</label><input id="phone" class="input" type="tel" placeholder="(919) 555-1234"></div>
-      <div><label class="label" for="city">City</label><input id="city" class="input" placeholder="Raleigh"></div>
-      <div><label class="label" for="state">State</label><input id="state" class="input" placeholder="NC"></div>
+      <div class="field-suggest">
+        <label class="label" for="city">City</label>
+        <input id="city" class="input" placeholder="Start typing a city" autocomplete="off" autocorrect="off" spellcheck="false">
+        <div id="citySuggestions" class="suggestion-list"></div>
+      </div>
+      <div class="field-suggest">
+        <label class="label" for="state">State</label>
+        <input id="state" class="input" maxlength="2" placeholder="NC" autocomplete="off" autocorrect="off" spellcheck="false">
+        <div id="stateSuggestions" class="suggestion-list"></div>
+      </div>
     </div>
   </section>
 
+
   <section class="screen" data-step="2">
-    <div class="eyebrow">Professional summary</div>
-    <div class="title">Tell employers who you are</div>
-    <div class="subtitle">Write two to four sentences about your experience, strengths, and goals.</div>
-    <div class="card">
-      <label class="label" for="summary">Summary</label>
-      <textarea id="summary" class="textarea" maxlength="700" placeholder="Motivated sales professional with experience building client relationships, exceeding goals, and training new team members..."></textarea>
-    </div>
+    <div class="eyebrow">Work experience</div>
+    <div class="title">Add Experience</div>
+    <div class="subtitle">Add your most recent job, internship, volunteer role, or project. Keep it simple — you can add more if needed.</div>
+    <div id="experienceList"></div>
+    <button class="add-btn" onclick="addExperience()">+ Add another experience</button>
   </section>
 
   <section class="screen" data-step="3">
-    <div class="eyebrow">Work experience</div>
-    <div class="title">Add your work history</div>
-    <div class="subtitle">Start with your most recent role. You can add multiple positions.</div>
-    <div id="experienceList"></div>
-    <button class="add-btn" onclick="addExperience()">+ Add work experience</button>
-  </section>
-
-  <section class="screen" data-step="4">
     <div class="eyebrow">Education</div>
     <div class="title">Add your education</div>
     <div class="subtitle">Include school, degree or program, and graduation year when applicable.</div>
@@ -245,21 +283,21 @@ body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparen
     <button class="add-btn" onclick="addEducation()">+ Add education</button>
   </section>
 
-  <section class="screen" data-step="5">
+  <section class="screen" data-step="4">
     <div class="eyebrow">Skills</div>
-    <div class="title">What are you good at?</div>
-    <div class="subtitle">Add skills employers can use to find and match with you.</div>
+    <div class="title">Add your skills</div>
+    <div class="subtitle">Add a few skills that describe what you can do.</div>
     <div class="card">
       <label class="label" for="skillInput">Add a skill</label>
       <div class="grid two">
-        <input id="skillInput" class="input" placeholder="e.g. Customer Service">
+        <input id="skillInput" class="input" placeholder="Type a skill">
         <button class="primary btn" type="button" onclick="addSkill()">Add Skill</button>
       </div>
       <div id="skillsWrap" class="skills-wrap"></div>
     </div>
   </section>
 
-  <section class="screen" data-step="6">
+  <section class="screen" data-step="5">
     <div class="eyebrow">Preview</div>
     <div class="title">See exactly what employers will see</div>
     <div class="subtitle">This is your Alygnn resume layout. Review it before saving.</div>
@@ -289,9 +327,184 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
 });
 
 let currentStep=1;
-const totalSteps=6;
+const totalSteps=5;
+
 let currentSession=null;
 let skills=[];
+
+/*
+  Built-in suggestions keep the resume builder fast and avoid requiring
+  a third-party maps account. City suggestions appear after 3 letters.
+  Choosing a city automatically fills the state. State suggestions appear
+  once 2 letters are typed.
+*/
+const US_STATES=[
+  ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],
+  ['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['FL','Florida'],['GA','Georgia'],
+  ['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],['IN','Indiana'],['IA','Iowa'],
+  ['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],['MD','Maryland'],
+  ['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],['MS','Mississippi'],['MO','Missouri'],
+  ['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],['NH','New Hampshire'],['NJ','New Jersey'],
+  ['NM','New Mexico'],['NY','New York'],['NC','North Carolina'],['ND','North Dakota'],['OH','Ohio'],
+  ['OK','Oklahoma'],['OR','Oregon'],['PA','Pennsylvania'],['RI','Rhode Island'],['SC','South Carolina'],
+  ['SD','South Dakota'],['TN','Tennessee'],['TX','Texas'],['UT','Utah'],['VT','Vermont'],
+  ['VA','Virginia'],['WA','Washington'],['WV','West Virginia'],['WI','Wisconsin'],['WY','Wyoming'],
+  ['DC','District of Columbia']
+];
+
+const US_CITIES=[
+  ['Raleigh','NC'],['Charlotte','NC'],['Durham','NC'],['Cary','NC'],['Chapel Hill','NC'],
+  ['Greensboro','NC'],['Winston-Salem','NC'],['Fayetteville','NC'],['Wilmington','NC'],
+  ['Asheville','NC'],['Concord','NC'],['Apex','NC'],['Wake Forest','NC'],['Garner','NC'],
+  ['Morrisville','NC'],['Holly Springs','NC'],['Knightdale','NC'],['Clayton','NC'],
+  ['New York','NY'],['Buffalo','NY'],['Rochester','NY'],['Albany','NY'],['Syracuse','NY'],
+  ['Los Angeles','CA'],['San Diego','CA'],['San Francisco','CA'],['San Jose','CA'],
+  ['Sacramento','CA'],['Fresno','CA'],['Oakland','CA'],['Long Beach','CA'],
+  ['Chicago','IL'],['Springfield','IL'],['Naperville','IL'],
+  ['Houston','TX'],['Dallas','TX'],['Austin','TX'],['San Antonio','TX'],['Fort Worth','TX'],
+  ['El Paso','TX'],['Arlington','TX'],['Plano','TX'],
+  ['Phoenix','AZ'],['Tucson','AZ'],['Mesa','AZ'],['Scottsdale','AZ'],
+  ['Philadelphia','PA'],['Pittsburgh','PA'],['Harrisburg','PA'],
+  ['Jacksonville','FL'],['Miami','FL'],['Tampa','FL'],['Orlando','FL'],['Tallahassee','FL'],
+  ['Fort Lauderdale','FL'],['St. Petersburg','FL'],
+  ['Columbus','OH'],['Cleveland','OH'],['Cincinnati','OH'],['Toledo','OH'],
+  ['Atlanta','GA'],['Savannah','GA'],['Augusta','GA'],
+  ['Boston','MA'],['Worcester','MA'],['Cambridge','MA'],
+  ['Seattle','WA'],['Spokane','WA'],['Tacoma','WA'],
+  ['Denver','CO'],['Colorado Springs','CO'],['Boulder','CO'],
+  ['Washington','DC'],['Baltimore','MD'],['Annapolis','MD'],
+  ['Nashville','TN'],['Memphis','TN'],['Knoxville','TN'],['Chattanooga','TN'],
+  ['Detroit','MI'],['Grand Rapids','MI'],['Ann Arbor','MI'],
+  ['Portland','OR'],['Salem','OR'],['Eugene','OR'],
+  ['Las Vegas','NV'],['Reno','NV'],['Carson City','NV'],
+  ['Louisville','KY'],['Lexington','KY'],
+  ['New Orleans','LA'],['Baton Rouge','LA'],
+  ['Indianapolis','IN'],['Fort Wayne','IN'],
+  ['Milwaukee','WI'],['Madison','WI'],
+  ['Minneapolis','MN'],['St. Paul','MN'],
+  ['Kansas City','MO'],['St. Louis','MO'],['Springfield','MO'],
+  ['Kansas City','KS'],['Wichita','KS'],['Topeka','KS'],
+  ['Oklahoma City','OK'],['Tulsa','OK'],
+  ['Omaha','NE'],['Lincoln','NE'],
+  ['Albuquerque','NM'],['Santa Fe','NM'],
+  ['Salt Lake City','UT'],['Provo','UT'],
+  ['Richmond','VA'],['Virginia Beach','VA'],['Norfolk','VA'],['Alexandria','VA'],
+  ['Charleston','SC'],['Columbia','SC'],['Greenville','SC'],['Myrtle Beach','SC'],
+  ['Birmingham','AL'],['Montgomery','AL'],['Mobile','AL'],
+  ['Jackson','MS'],['Gulfport','MS'],
+  ['Little Rock','AR'],['Fayetteville','AR'],
+  ['Des Moines','IA'],['Cedar Rapids','IA'],
+  ['Boise','ID'],['Idaho Falls','ID'],
+  ['Billings','MT'],['Missoula','MT'],['Helena','MT'],
+  ['Cheyenne','WY'],['Casper','WY'],
+  ['Sioux Falls','SD'],['Rapid City','SD'],
+  ['Fargo','ND'],['Bismarck','ND'],
+  ['Honolulu','HI'],['Anchorage','AK'],['Juneau','AK'],
+  ['Portland','ME'],['Augusta','ME'],
+  ['Manchester','NH'],['Concord','NH'],
+  ['Burlington','VT'],['Montpelier','VT'],
+  ['Providence','RI'],['Newport','RI'],
+  ['Hartford','CT'],['New Haven','CT'],['Stamford','CT'],
+  ['Newark','NJ'],['Jersey City','NJ'],['Trenton','NJ'],
+  ['Wilmington','DE'],['Dover','DE'],
+  ['Charleston','WV'],['Morgantown','WV']
+];
+
+function hideSuggestions(id){
+  const box=document.getElementById(id);
+  if(box){box.classList.remove('show');box.innerHTML='';}
+}
+
+function renderCitySuggestions(){
+  const input=document.getElementById('city');
+  const box=document.getElementById('citySuggestions');
+  const q=input.value.trim().toLowerCase();
+
+  if(q.length<3){
+    hideSuggestions('citySuggestions');
+    return;
+  }
+
+  const matches=US_CITIES
+    .filter(([city])=>city.toLowerCase().startsWith(q))
+    .slice(0,6);
+
+  if(!matches.length){
+    hideSuggestions('citySuggestions');
+    return;
+  }
+
+  box.innerHTML=matches.map(([city,state])=>`
+    <button type="button" class="suggestion-item" data-city="${escapeAttr(city)}" data-state="${escapeAttr(state)}">
+      ${escapeHtml(city)}, ${escapeHtml(state)}
+      <span class="suggestion-muted">Use this city and state</span>
+    </button>
+  `).join('');
+
+  box.querySelectorAll('.suggestion-item').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      input.value=btn.dataset.city;
+      document.getElementById('state').value=btn.dataset.state;
+      hideSuggestions('citySuggestions');
+      hideSuggestions('stateSuggestions');
+    });
+  });
+
+  box.classList.add('show');
+}
+
+function renderStateSuggestions(){
+  const input=document.getElementById('state');
+  const box=document.getElementById('stateSuggestions');
+  const q=input.value.trim().toLowerCase();
+
+  if(q.length<2){
+    hideSuggestions('stateSuggestions');
+    return;
+  }
+
+  const matches=US_STATES
+    .filter(([abbr,name])=>
+      abbr.toLowerCase().startsWith(q) ||
+      name.toLowerCase().startsWith(q)
+    )
+    .slice(0,6);
+
+  if(!matches.length){
+    hideSuggestions('stateSuggestions');
+    return;
+  }
+
+  box.innerHTML=matches.map(([abbr,name])=>`
+    <button type="button" class="suggestion-item" data-state="${escapeAttr(abbr)}">
+      ${escapeHtml(name)}
+      <span class="suggestion-muted">${escapeHtml(abbr)}</span>
+    </button>
+  `).join('');
+
+  box.querySelectorAll('.suggestion-item').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      input.value=btn.dataset.state;
+      hideSuggestions('stateSuggestions');
+    });
+  });
+
+  box.classList.add('show');
+}
+
+document.getElementById('city').addEventListener('input',renderCitySuggestions);
+document.getElementById('state').addEventListener('input',()=>{
+  const stateInput=document.getElementById('state');
+  stateInput.value=stateInput.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,2);
+  renderStateSuggestions();
+});
+
+document.addEventListener('click',event=>{
+  if(!event.target.closest('.field-suggest')){
+    hideSuggestions('citySuggestions');
+    hideSuggestions('stateSuggestions');
+  }
+});
 
 function showMessage(text,type='error'){
   const el=document.getElementById('message');
@@ -311,7 +524,7 @@ function renderStep(){
   document.getElementById('progressFill').style.width=((currentStep/totalSteps)*100)+'%';
   document.getElementById('primaryBtn').textContent=currentStep===totalSteps?'Save Resume':'Continue';
   document.getElementById('secondaryBtn').textContent=currentStep===1?'Resume Options':'Back';
-  if(currentStep===6)renderReview();
+  if(currentStep===5)renderReview();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function goBack(){
@@ -344,16 +557,10 @@ function validateStep(){
       return false;
     }
   }
-  if(currentStep===2&&!document.getElementById('summary').value.trim()){
-    showMessage('Add a professional summary before continuing.');
-    return false;
-  }
-  if(currentStep===3&&document.querySelectorAll('.experience-card').length===0){
-    showMessage('Add at least one work experience.');
-    return false;
-  }
-  if(currentStep===5&&skills.length===0){
-    showMessage('Add at least one skill.');
+  // Experience and education are optional so first-time job seekers can keep moving.
+  // Skills are the only resume-content step we require because Alygnn uses them for matching.
+  if(currentStep===4&&skills.length===0){
+    showMessage('Add at least one skill before continuing.');
     return false;
   }
   return true;
@@ -362,14 +569,14 @@ function addExperience(data={}){
   const wrap=document.createElement('div');
   wrap.className='section-card experience-card';
   wrap.innerHTML=`
-    <div class="section-head"><div class="section-title">Work Experience</div><button class="remove" type="button">Remove</button></div>
+    <div class="section-head"><div class="section-title">Experience</div><button class="remove" type="button">Remove</button></div>
     <div class="grid two">
-      <div class="full"><label class="label">Job title</label><input class="input exp-title" value="${escapeAttr(data.title||'')}" placeholder="Sales Representative"></div>
+      <div class="full"><label class="label">Job title</label><input class="input exp-title" value="${escapeAttr(data.title||'')}" placeholder="Job title"></div>
       <div class="full"><label class="label">Company</label><input class="input exp-company" value="${escapeAttr(data.company||'')}" placeholder="Company name"></div>
-      <div><label class="label">Start date</label><input class="input exp-start" value="${escapeAttr(data.start||'')}" placeholder="Jan 2024"></div>
-      <div><label class="label">End date</label><input class="input exp-end" value="${escapeAttr(data.end||'')}" placeholder="Present"></div>
-      <div class="full"><label class="label">Location</label><input class="input exp-location" value="${escapeAttr(data.location||'')}" placeholder="Raleigh, NC"></div>
-      <div class="full"><label class="label">Responsibilities and achievements</label><textarea class="textarea exp-description" placeholder="Describe what you did and what you accomplished...">${escapeHtml(data.description||'')}</textarea></div>
+      <div><label class="label">Start date</label><input class="input exp-start" value="${escapeAttr(data.start||'')}" placeholder="MM/YYYY"></div>
+      <div><label class="label">End date</label><input class="input exp-end" value="${escapeAttr(data.end||'')}" placeholder="Present or MM/YYYY"></div>
+      <div class="full"><label class="label">Location</label><input class="input exp-location" value="${escapeAttr(data.location||'')}" placeholder="City, ST"></div>
+      <div class="full"><label class="label">What did you do? <span style="font-weight:700;text-transform:none;letter-spacing:0">(optional)</span></label><textarea class="textarea exp-description" placeholder="A short sentence is enough">${escapeHtml(data.description||'')}</textarea></div>
     </div>`;
   wrap.querySelector('.remove').onclick=()=>wrap.remove();
   document.getElementById('experienceList').appendChild(wrap);
@@ -384,7 +591,7 @@ function addEducation(data={}){
       <div class="full"><label class="label">Degree or program</label><input class="input edu-degree" value="${escapeAttr(data.degree||'')}" placeholder="Business Administration"></div>
       <div><label class="label">Start year</label><input class="input edu-start" value="${escapeAttr(data.start||'')}" placeholder="2020"></div>
       <div><label class="label">End year</label><input class="input edu-end" value="${escapeAttr(data.end||'')}" placeholder="2024"></div>
-      <div class="full"><label class="label">Location</label><input class="input edu-location" value="${escapeAttr(data.location||'')}" placeholder="Raleigh, NC"></div>
+      <div class="full"><label class="label">Location</label><input class="input edu-location" value="${escapeAttr(data.location||'')}" placeholder="City, ST"></div>
     </div>`;
   wrap.querySelector('.remove').onclick=()=>wrap.remove();
   document.getElementById('educationList').appendChild(wrap);
@@ -416,7 +623,7 @@ function collectResume(){
       city:document.getElementById('city').value.trim(),
       state:document.getElementById('state').value.trim()
     },
-    summary:document.getElementById('summary').value.trim(),
+    summary:'',
     experience:[...document.querySelectorAll('.experience-card')].map(card=>({
       title:card.querySelector('.exp-title').value.trim(),
       company:card.querySelector('.exp-company').value.trim(),
@@ -474,11 +681,6 @@ function renderReview(){
       <div class="resume-paper-contact">${escapeHtml(contact||'Contact information')}</div>
     </header>
 
-    ${r.summary?`
-      <section class="resume-paper-section">
-        <div class="resume-paper-title">Professional Summary</div>
-        <div class="resume-paper-copy">${escapeHtml(r.summary)}</div>
-      </section>`:''}
 
     <section class="resume-paper-section">
       <div class="resume-paper-title">Experience</div>
@@ -539,7 +741,6 @@ function prefill(data){
   document.getElementById('phone').value=p.phone||'';
   document.getElementById('city').value=p.city||'';
   document.getElementById('state').value=p.state||'';
-  document.getElementById('summary').value=data.summary||'';
   document.getElementById('experienceList').innerHTML='';
   (data.experience||[]).forEach(addExperience);
   document.getElementById('educationList').innerHTML='';
