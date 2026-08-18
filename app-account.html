@@ -1007,6 +1007,51 @@ body[data-theme="dark"] .settings-choice.active{
 }
 </style>
 
+
+<style id="candidate-onboarding-dashboard-redesign">
+.onboarding-panel{margin-top:22px}
+.onboarding-card{padding:22px;border:1px solid var(--border);border-radius:28px;background:#fff;box-shadow:var(--shadow)}
+.onboarding-topline{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.onboarding-badge{padding:7px 9px;border-radius:999px;background:var(--brand-soft);color:var(--brand-dark);font-size:9px;font-weight:900;letter-spacing:.8px}
+.onboarding-count{color:var(--muted);font-size:10px;font-weight:800}
+.onboarding-card h2{margin-top:17px;font-size:29px;line-height:1.05;letter-spacing:-.7px;font-weight:900}
+.onboarding-copy{margin-top:10px;color:var(--muted);font-size:13px;line-height:1.6}
+.onboarding-progress{height:7px;margin-top:18px;border-radius:999px;background:#E8EEF2;overflow:hidden}
+.onboarding-progress span{display:block;width:0;height:100%;border-radius:999px;background:var(--brand-dark);transition:width .25s ease}
+.onboarding-steps{display:grid;gap:12px;margin-top:18px}
+.onboarding-step{display:grid;grid-template-columns:42px 1fr;gap:13px;padding:17px;border:1px solid var(--border);border-radius:21px;background:#FBFCFD}
+.onboarding-step.active{border-color:#BBD0E0;background:#F7FAFC}
+.onboarding-step.done{border-color:#CBE2D3;background:#F8FCF9}
+.onboarding-step.locked{opacity:.58;background:#F7F9FA}
+.step-number{width:36px;height:36px;display:grid;place-items:center;border-radius:12px;background:var(--brand-soft);color:var(--brand-dark);font-size:12px;font-weight:900}
+.onboarding-step.done .step-number{background:var(--sage-soft);color:#2F8957}
+.onboarding-step.locked .step-number{background:#EEF2F4;color:#84919D}
+.step-body{min-width:0}
+.step-kicker{color:var(--muted);font-size:8px;font-weight:900;letter-spacing:.8px}
+.step-title{margin-top:4px;font-size:16px;line-height:1.25;font-weight:900}
+.step-copy{margin-top:5px;color:var(--muted);font-size:10px;line-height:1.5}
+.step-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
+.step-btn{min-height:42px;padding:0 14px;border-radius:13px;font-size:10px;font-weight:900}
+.step-btn.primary{border:none;background:var(--brand-dark);color:#fff}
+.step-btn.secondary{border:1px solid var(--border);background:#fff;color:var(--brand-dark)}
+.step-btn:disabled{cursor:not-allowed;opacity:.45}
+.matches-lock{margin-top:14px;display:flex;align-items:center;gap:12px;padding:14px;border:1px dashed #CAD6DE;border-radius:18px;background:#F8FAFB}
+.matches-lock-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:12px;background:#E8EEF2;color:#81909E;font-family:'DM Serif Display',Georgia,serif!important;font-size:18px}
+.matches-lock strong{display:block;font-size:11px;font-weight:900}
+.matches-lock span{display:block;margin-top:3px;color:var(--muted);font-size:9px;line-height:1.4}
+.onboarding-message{margin-top:12px;padding:11px 12px;border-radius:14px;background:var(--rose-soft);color:var(--rose);font-size:10px;font-weight:800;line-height:1.45}
+.onboarding-message.success{background:var(--sage-soft);color:#2F8354}
+.nav-item.locked{opacity:.48}
+.nav-item.locked:after{content:'LOCKED';position:absolute;top:4px;right:8px;padding:2px 4px;border-radius:999px;background:#EEF2F4;color:#7C8996;font-size:5px;font-weight:900;letter-spacing:.5px}
+body[data-theme="dark"] .onboarding-card{background:#15202B}
+body[data-theme="dark"] .onboarding-step{background:#101A23}
+body[data-theme="dark"] .onboarding-step.active{background:#142431}
+body[data-theme="dark"] .onboarding-step.done{background:#13251D}
+body[data-theme="dark"] .step-btn.secondary{background:#15202B;color:#DCE8F2}
+body[data-theme="dark"] .matches-lock{background:#101A23}
+@media(max-width:390px){.onboarding-card{padding:18px}.onboarding-card h2{font-size:26px}.onboarding-step{grid-template-columns:38px 1fr;padding:15px}.step-actions{display:grid;grid-template-columns:1fr}.step-btn{width:100%}}
+</style>
+
 </head>
 
 <body>
@@ -1061,8 +1106,60 @@ body[data-theme="dark"] .settings-choice.active{
     Keep your profile ready so Alygnn can surface stronger job matches.
   </p>
 
+  <section class="onboarding-panel" id="onboarding-panel" hidden>
+    <div class="onboarding-card">
+      <div class="onboarding-topline">
+        <span class="onboarding-badge">2-STEP SETUP</span>
+        <span class="onboarding-count" id="onboarding-count">0 of 2 complete</span>
+      </div>
+
+      <h2>Set up your job search.</h2>
+      <p class="onboarding-copy">Add your resume and tell us what you are looking for. Once both steps are complete, Alygnn will unlock jobs matched to you.</p>
+
+      <div class="onboarding-progress"><span id="onboarding-progress-fill"></span></div>
+
+      <div class="onboarding-steps">
+        <div class="onboarding-step active" id="onboarding-resume-step">
+          <div class="step-number" id="onboarding-resume-number">1</div>
+          <div class="step-body">
+            <div class="step-kicker">STEP 1</div>
+            <div class="step-title" id="onboarding-resume-title">Add your resume</div>
+            <div class="step-copy" id="onboarding-resume-copy">Upload a resume you already have or create one with Alygnn.</div>
+            <div class="step-actions" id="onboarding-resume-actions">
+              <button class="step-btn primary" type="button" id="dashboard-upload-btn" onclick="chooseDashboardResume()">Upload Resume</button>
+              <button class="step-btn secondary" type="button" onclick="window.location.href='app-resume-builder.html'">Create Resume</button>
+            </div>
+            <input id="dashboard-resume-input" type="file" accept=".pdf,.doc,.docx" hidden>
+          </div>
+        </div>
+
+        <div class="onboarding-step locked" id="onboarding-preferences-step">
+          <div class="step-number" id="onboarding-preferences-number">2</div>
+          <div class="step-body">
+            <div class="step-kicker">STEP 2</div>
+            <div class="step-title" id="onboarding-preferences-title">Set your preferences</div>
+            <div class="step-copy" id="onboarding-preferences-copy">Choose your target roles, location, pay, job type, and work style.</div>
+            <div class="step-actions">
+              <button class="step-btn primary" id="dashboard-preferences-btn" type="button" onclick="openDashboardPreferences()" disabled>Set Preferences</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="matches-lock" id="matches-lock">
+        <div class="matches-lock-icon">A</div>
+        <div>
+          <strong>Job matches are locked</strong>
+          <span>Complete both setup steps to start seeing jobs selected for you.</span>
+        </div>
+      </div>
+
+      <div class="onboarding-message" id="onboarding-message" hidden></div>
+    </div>
+  </section>
+
   <!-- HERO -->
-  <section class="hero">
+  <section class="hero" id="profile-hero">
     <div class="hero-top">
       <div>
         <div class="hero-label">Your Alygnn profile</div>
@@ -1110,7 +1207,7 @@ body[data-theme="dark"] .settings-choice.active{
   </section>
 
   <!-- SNAPSHOT -->
-  <section class="section">
+  <section class="section" id="snapshot-section">
     <div class="section-head">
       <div class="section-title">Your snapshot</div>
     </div>
@@ -1147,7 +1244,7 @@ body[data-theme="dark"] .settings-choice.active{
   </section>
 
   <!-- PROFILE -->
-  <section class="section">
+  <section class="section" id="profile-section">
     <div class="section-head">
       <div class="section-title">Your profile</div>
     </div>
@@ -1232,7 +1329,7 @@ body[data-theme="dark"] .settings-choice.active{
   </section>
 
   <!-- ACCOUNT -->
-  <section class="section">
+  <section class="section" id="account-section">
     <div class="section-head">
       <div class="section-title">Account</div>
     </div>
@@ -1343,7 +1440,7 @@ body[data-theme="dark"] .settings-choice.active{
   <section class="settings-card">
     <div class="settings-card-title">Account</div>
 
-    <button class="settings-row" type="button" onclick="window.location.href='app-preferences.html'">
+    <button class="settings-row" type="button" onclick="openPreferencesFromSettings()">
       <span class="settings-row-copy">
         <strong>Job Preferences</strong>
         <small>Roles, pay, location, and work style</small>
@@ -1387,8 +1484,8 @@ body[data-theme="dark"] .settings-choice.active{
 
 <nav class="bottom-nav" aria-label="Candidate navigation">
   <button class="nav-item active" id="nav-profile" type="button" onclick="openProfileView()"><span class="nav-icon">◉</span><span>My Profile</span></button>
-  <button class="nav-item" type="button" onclick="window.location.href='app-swipe.html'"><span class="nav-icon">◇</span><span>Swipe</span></button>
-  <button class="nav-item" type="button" onclick="window.location.href='app-applied.html'"><span class="nav-icon">▣</span><span>My Jobs</span></button>
+  <button class="nav-item" id="nav-swipe" type="button" onclick="openCandidateDestination('app-swipe.html')"><span class="nav-icon">◇</span><span>Swipe</span></button>
+  <button class="nav-item" id="nav-jobs" type="button" onclick="openCandidateDestination('app-applied.html')"><span class="nav-icon">▣</span><span>My Jobs</span></button>
   <button class="nav-item" id="nav-settings" type="button" onclick="openSettingsView()"><span class="nav-icon">⚙</span><span>Settings</span></button>
 </nav>
 
@@ -1409,6 +1506,9 @@ const sb=supabase.createClient(
 );
 
 const $=id=>document.getElementById(id);
+
+let candidateOnboardingState={complete:true,hasResume:false,previewReviewed:false,preferencesComplete:false};
+let dashboardUploadBusy=false;
 
 
 function syncCandidateView(){
@@ -1658,6 +1758,226 @@ function setSetupDone(item,status,title,copy){
   copy.textContent=copy;
 }
 
+
+function showOnboardingMessage(message,type='error'){
+  const box=$('onboarding-message');
+  if(!box) return;
+  box.textContent=message;
+  box.className='onboarding-message';
+  if(type==='success') box.classList.add('success');
+  box.hidden=false;
+}
+
+function clearOnboardingMessage(){
+  const box=$('onboarding-message');
+  if(!box) return;
+  box.hidden=true;
+  box.textContent='';
+  box.className='onboarding-message';
+}
+
+function lockCandidateNavigation(locked){
+  ['nav-swipe','nav-jobs'].forEach(id=>{
+    const button=$(id);
+    if(!button) return;
+    button.classList.toggle('locked',locked);
+    button.setAttribute('aria-disabled',locked?'true':'false');
+  });
+}
+
+function openCandidateDestination(url){
+  if(candidateOnboardingState.complete){
+    window.location.href=url;
+    return;
+  }
+  openProfileView();
+  const panel=$('onboarding-panel');
+  if(panel){
+    panel.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  showOnboardingMessage('Complete your resume and job preferences to unlock job matches.');
+}
+
+function openPreferencesFromSettings(){
+  if(!candidateOnboardingState.hasResume){
+    openProfileView();
+    $('onboarding-panel')?.scrollIntoView({behavior:'smooth',block:'start'});
+    showOnboardingMessage('Add your resume first. Job preferences unlock after your resume is ready.');
+    return;
+  }
+  if(!candidateOnboardingState.previewReviewed){
+    window.location.href='app-resume-preview.html';
+    return;
+  }
+  window.location.href='app-preferences.html';
+}
+
+function openDashboardPreferences(){
+  if(!candidateOnboardingState.hasResume){
+    showOnboardingMessage('Add your resume before setting job preferences.');
+    return;
+  }
+  if(!candidateOnboardingState.previewReviewed){
+    window.location.href='app-resume-preview.html';
+    return;
+  }
+  window.location.href='app-preferences.html';
+}
+
+function chooseDashboardResume(){
+  if(dashboardUploadBusy) return;
+  clearOnboardingMessage();
+  $('dashboard-resume-input')?.click();
+}
+
+async function uploadDashboardResume(file){
+  if(!file || dashboardUploadBusy) return;
+
+  const extension=(file.name.split('.').pop()||'').toLowerCase();
+  if(!['pdf','doc','docx'].includes(extension)){
+    showOnboardingMessage('Choose a PDF, DOC, or DOCX resume.');
+    return;
+  }
+  if(file.size<=0 || file.size>10*1024*1024){
+    showOnboardingMessage(file.size<=0?'That file appears to be empty.':'Your resume must be 10MB or smaller.');
+    return;
+  }
+
+  dashboardUploadBusy=true;
+  const button=$('dashboard-upload-btn');
+  const original=button?.textContent || 'Upload Resume';
+  if(button){button.disabled=true;button.textContent='Uploading…';}
+  clearOnboardingMessage();
+
+  try{
+    const {data:{user},error:userError}=await sb.auth.getUser();
+    if(userError || !user) throw userError || new Error('Your session expired. Please sign in again.');
+
+    const {data:profile,error:profileError}=await sb
+      .from('profiles')
+      .select('resume_file_path,resume_data')
+      .eq('id',user.id)
+      .maybeSingle();
+    if(profileError) throw profileError;
+
+    const filePath=`${user.id}/resume-${Date.now()}.${extension}`;
+    const {error:uploadError}=await sb.storage
+      .from('resumes')
+      .upload(filePath,file,{cacheControl:'3600',upsert:false,contentType:file.type||undefined});
+    if(uploadError) throw uploadError;
+
+    const resumeData=parseObject(profile?.resume_data);
+    const onboarding=parseObject(resumeData._alygnn_onboarding);
+    resumeData._alygnn_onboarding={...onboarding,preview_reviewed:false};
+
+    const {error:saveError}=await sb.from('profiles').upsert({
+      id:user.id,
+      resume_file_path:filePath,
+      resume_source:'upload',
+      resume_data:resumeData,
+      updated_at:new Date().toISOString()
+    },{onConflict:'id'});
+
+    if(saveError){
+      await sb.storage.from('resumes').remove([filePath]).catch(()=>{});
+      throw saveError;
+    }
+
+    if(profile?.resume_file_path && profile.resume_file_path!==filePath){
+      await sb.storage.from('resumes').remove([profile.resume_file_path]).catch(()=>{});
+    }
+
+    showOnboardingMessage('Resume uploaded. Opening your preview…','success');
+    setTimeout(()=>window.location.href='app-resume-preview.html?source=upload',350);
+  }catch(error){
+    console.error('Dashboard resume upload failed:',error);
+    showOnboardingMessage(error?.message || 'We could not upload your resume. Please try again.');
+    dashboardUploadBusy=false;
+    if(button){button.disabled=false;button.textContent=original;}
+  }
+}
+
+function renderCandidateOnboardingGate({hasResume,previewReviewed,preferencesComplete}){
+  const complete=hasResume && preferencesComplete;
+  candidateOnboardingState={complete,hasResume,previewReviewed,preferencesComplete};
+
+  const panel=$('onboarding-panel');
+  const hero=$('profile-hero');
+  const snapshot=$('snapshot-section');
+  const profileSection=$('profile-section');
+  const setup=$('setup-section');
+
+  lockCandidateNavigation(!complete);
+
+  if(complete){
+    if(panel) panel.hidden=true;
+    if(hero) hero.hidden=false;
+    if(snapshot) snapshot.hidden=false;
+    if(profileSection) profileSection.hidden=false;
+    if(setup) setup.hidden=true;
+    return;
+  }
+
+  if(panel) panel.hidden=false;
+  if(hero) hero.hidden=true;
+  if(snapshot) snapshot.hidden=true;
+  if(profileSection) profileSection.hidden=true;
+  if(setup) setup.hidden=true;
+
+  $('lead').textContent='Complete your setup to unlock personalized job matches.';
+
+  const completedSteps=(hasResume?1:0)+(preferencesComplete?1:0);
+  $('onboarding-count').textContent=`${completedSteps} of 2 complete`;
+  $('onboarding-progress-fill').style.width=`${completedSteps*50}%`;
+
+  const resumeStep=$('onboarding-resume-step');
+  const prefStep=$('onboarding-preferences-step');
+  const prefButton=$('dashboard-preferences-btn');
+  const resumeActions=$('onboarding-resume-actions');
+
+  resumeStep.classList.remove('active','done','locked');
+  prefStep.classList.remove('active','done','locked');
+
+  if(!hasResume){
+    resumeStep.classList.add('active');
+    prefStep.classList.add('locked');
+    $('onboarding-resume-number').textContent='1';
+    $('onboarding-resume-title').textContent='Add your resume';
+    $('onboarding-resume-copy').textContent='Upload a resume you already have or create one with Alygnn.';
+    if(resumeActions){
+      resumeActions.innerHTML=`<button class="step-btn primary" type="button" id="dashboard-upload-btn" onclick="chooseDashboardResume()">Upload Resume</button><button class="step-btn secondary" type="button" onclick="window.location.href='app-resume-builder.html'">Create Resume</button>`;
+    }
+    $('onboarding-preferences-number').textContent='2';
+    $('onboarding-preferences-title').textContent='Set your preferences';
+    $('onboarding-preferences-copy').textContent='This unlocks after your resume is added and reviewed.';
+    prefButton.disabled=true;
+  }else if(!previewReviewed){
+    resumeStep.classList.add('active');
+    prefStep.classList.add('locked');
+    $('onboarding-resume-number').textContent='✓';
+    $('onboarding-resume-title').textContent='Resume added — review it';
+    $('onboarding-resume-copy').textContent='Review what employers will see before you continue.';
+    if(resumeActions){
+      resumeActions.innerHTML=`<button class="step-btn primary" type="button" onclick="window.location.href='app-resume-preview.html'">Review Resume</button><button class="step-btn secondary" type="button" onclick="window.location.href='app-align-upload.html'">Change Resume</button>`;
+    }
+    $('onboarding-preferences-copy').textContent='Review your resume first, then preferences will unlock.';
+    prefButton.disabled=true;
+  }else{
+    resumeStep.classList.add('done');
+    prefStep.classList.add('active');
+    $('onboarding-resume-number').textContent='✓';
+    $('onboarding-resume-title').textContent='Resume ready';
+    $('onboarding-resume-copy').textContent='Your resume is saved and ready for matching.';
+    if(resumeActions){
+      resumeActions.innerHTML=`<button class="step-btn secondary" type="button" onclick="window.location.href='app-resume-preview.html'">View Resume</button>`;
+    }
+    $('onboarding-preferences-number').textContent='2';
+    $('onboarding-preferences-title').textContent='Set your preferences';
+    $('onboarding-preferences-copy').textContent='Tell Alygnn which roles, location, pay, and work style you want.';
+    prefButton.disabled=false;
+  }
+}
+
 async function countApplications(userId){
   try{
     const result=await sb
@@ -1779,11 +2099,11 @@ async function loadCandidateWorkspace(){
     const hasResume=Boolean(
       profile?.resume_file_path ||
       profile?.resume_url ||
-      profile?.resume_data ||
       profile?.resume_text ||
-      resumeData.name ||
-      resumeData.skills ||
-      resumeData.experience
+      (personal && Object.values(personal).some(value=>safeString(value))) ||
+      (Array.isArray(resumeData.skills) && resumeData.skills.length) ||
+      (Array.isArray(resumeData.experience) && resumeData.experience.length) ||
+      (Array.isArray(resumeData.education) && resumeData.education.length)
     );
 
     const preferences=
@@ -1823,25 +2143,13 @@ async function loadCandidateWorkspace(){
     const resumePreviewReviewed=
       resumeOnboarding.preview_reviewed===true;
 
-    /*
-     * Mandatory candidate onboarding gate.
-     * Existing candidates with completed preferences are left alone.
-     * Incomplete candidates must follow:
-     * resume -> preview -> preferences -> candidate workspace.
-     */
-    if(!hasResume){
-      window.location.replace('app-align-upload.html');
-      return;
-    }
+    candidateOnboardingState={
+      complete:hasResume && preferencesComplete,
+      hasResume,
+      previewReviewed:resumePreviewReviewed,
+      preferencesComplete
+    };
 
-    if(!preferencesComplete){
-      if(!resumePreviewReviewed){
-        window.location.replace('app-resume-preview.html');
-      }else{
-        window.location.replace('app-preferences.html');
-      }
-      return;
-    }
 
     const hasProfileDetails=Boolean(
       name &&
@@ -1999,6 +2307,12 @@ async function loadCandidateWorkspace(){
       $('setup-section').hidden=true;
     }
 
+    renderCandidateOnboardingGate({
+      hasResume,
+      previewReviewed:resumePreviewReviewed,
+      preferencesComplete
+    });
+
   }catch(error){
     console.error(
       'Candidate workspace failed:',
@@ -2045,6 +2359,11 @@ async function logoutUser(){
 }
 
 document.body.dataset.theme=getCandidateTheme();
+$('dashboard-resume-input')?.addEventListener('change',event=>{
+  const file=event.target.files?.[0];
+  if(file) uploadDashboardResume(file);
+  event.target.value='';
+});
 syncCandidateView();
 loadCandidateWorkspace();
 </script>
