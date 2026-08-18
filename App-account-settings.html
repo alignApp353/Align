@@ -111,7 +111,80 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom))!important}
 </header>
 <div class="screen">
 <div class="eyebrow">Candidate Workspace</div><div class="back" onclick="window.location.href='app-account.html'">← Back to Profile</div><div class="title">Settings</div><div class="subtitle">Manage your Alygnn account and personalize your experience.</div><div id="message" class="message"></div><div class="card"><div class="card-title">Appearance</div><button data-theme="system" class="theme-btn" onclick="Alygnn.setTheme('system')">System Default <span>Recommended</span></button><button data-theme="dark" class="theme-btn" onclick="Alygnn.setTheme('dark')">Dark Mode <span>›</span></button><button data-theme="light" class="theme-btn" onclick="Alygnn.setTheme('light')">Light Mode <span>›</span></button></div><div class="card"><div class="card-title">Change Password</div><input id="newPassword" class="input" type="password" placeholder="New password"><input id="confirmPassword" class="input" type="password" placeholder="Confirm password"><button id="passwordBtn" class="action-btn primary" onclick="changePassword()">Update Password</button></div><div class="card"><div class="card-title">Account</div><div class="option" onclick="alert('Email preferences coming soon')">Email Preferences <span>›</span></div><div class="option" onclick="alert('Privacy settings coming soon')">Privacy <span>›</span></div></div><div class="card"><div class="card-title">Notifications</div><div class="option">Job Alerts <span>On</span></div><div class="option">Application Updates <span>On</span></div></div><div class="card"><div class="card-title">Support</div><div class="option" onclick="alert('Help center coming soon')">Help & Support <span>›</span></div><div class="option" onclick="alert('Alygnn Version 1.0')">About Alygnn <span>›</span></div></div><div class="logout" onclick="Alygnn.logoutUser()">Log Out</div></div><script src="app-alygnn-core.js"></script><script>
-Alygnn.initTheme();Alygnn.requireSession();
+Alygnn.initTheme();
+
+async function enforceCandidateOnboarding(){
+  const {data,error}=await Alygnn.sb.auth.getSession();
+  if(error||!data.session){
+    window.location.replace('app-login.html');
+    return false;
+  }
+
+  const user=data.session.user;
+  const {data:profile,error:profileError}=await Alygnn.sb
+    .from('profiles')
+    .select('*')
+    .eq('id',user.id)
+    .maybeSingle();
+
+  if(profileError){
+    console.error(profileError);
+    window.location.replace('app-home.html');
+    return false;
+  }
+
+  const resumeData=
+    profile?.resume_data && typeof profile.resume_data==='object'
+      ?profile.resume_data
+      :{};
+
+  const hasResume=Boolean(
+    profile?.resume_file_path||
+    profile?.resume_url||
+    profile?.resume_text||
+    Object.keys(resumeData).length
+  );
+
+  if(!hasResume){
+    window.location.replace('app-align-upload.html');
+    return false;
+  }
+
+  const p=
+    profile?.preferences && typeof profile.preferences==='object'
+      ?profile.preferences
+      :{};
+  const types=Array.isArray(p.jobTypes)?p.jobTypes:[];
+  const preferencesComplete=Boolean(
+    p.preferences_complete||
+    profile?.preferences_complete||
+    user.user_metadata?.preferences_complete||
+    (
+      String(p.query||'').trim()&&
+      String(p.location||p.city||p.state||p.country||'').trim()&&
+      (types.length||String(p.jobType||'').trim())
+    )
+  );
+
+  if(!preferencesComplete){
+    const onboarding=
+      resumeData?._alygnn_onboarding && typeof resumeData._alygnn_onboarding==='object'
+        ?resumeData._alygnn_onboarding
+        :{};
+
+    window.location.replace(
+      onboarding.preview_reviewed===true
+        ?'app-preferences.html'
+        :'app-resume-preview.html'
+    );
+    return false;
+  }
+
+  return true;
+}
+
+enforceCandidateOnboarding();
+
 async function changePassword(){const p=document.getElementById("newPassword").value;const c=document.getElementById("confirmPassword").value;const btn=document.getElementById("passwordBtn");if(!p||!c){Alygnn.showMessage("message","Please fill out both password fields.","error");return;}if(p.length<8){Alygnn.showMessage("message","Password must be at least 8 characters.","error");return;}if(p!==c){Alygnn.showMessage("message","Passwords do not match.","error");return;}Alygnn.setButtonLoading(btn,true,"Updating...","Update Password");const {error}=await Alygnn.sb.auth.updateUser({password:p});if(error){Alygnn.showMessage("message",error.message,"error");Alygnn.setButtonLoading(btn,false,"Updating...","Update Password");return;}document.getElementById("newPassword").value="";document.getElementById("confirmPassword").value="";Alygnn.showMessage("message","Password updated successfully.","success");Alygnn.setButtonLoading(btn,false,"Updating...","Update Password");}
 </script><nav class="bottom-nav" aria-label="Candidate navigation">
   <button class="nav-item" type="button" onclick="window.location.href='app-account.html'"><span class="nav-icon">◉</span><span>My Profile</span></button>
