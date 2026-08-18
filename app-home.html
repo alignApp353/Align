@@ -46,6 +46,55 @@ const sb=supabase.createClient(
   {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
 );
 
+function parseProfileObject(value){
+  if(!value)return {};
+  if(typeof value==='object'&&!Array.isArray(value))return value;
+  if(typeof value==='string'){
+    try{
+      const parsed=JSON.parse(value);
+      return parsed&&typeof parsed==='object'?parsed:{};
+    }catch(_){return {}}
+  }
+  return {};
+}
+function hasCandidateResume(profile){
+  const data=parseProfileObject(profile?.resume_data);
+  return Boolean(
+    profile?.resume_file_path||
+    profile?.resume_url||
+    profile?.resume_text||
+    Object.keys(data).length
+  );
+}
+function candidateResumePreviewReviewed(profile){
+  const data=parseProfileObject(profile?.resume_data);
+  const onboarding=parseProfileObject(data._alygnn_onboarding);
+  return onboarding.preview_reviewed===true;
+}
+function candidatePreferencesComplete(profile,user){
+  const p=parseProfileObject(profile?.preferences);
+  const meta=user?.user_metadata||{};
+  const hasRole=Boolean(String(p.query||'').trim());
+  const hasLocation=Boolean(String(p.location||p.city||p.state||p.country||'').trim());
+  const types=Array.isArray(p.jobTypes)?p.jobTypes:[];
+  const hasType=Boolean(types.length||String(p.jobType||'').trim());
+  return Boolean(
+    p.preferences_complete||
+    profile?.preferences_complete||
+    meta.preferences_complete||
+    (hasRole&&hasLocation&&hasType)
+  );
+}
+function onboardingDestination(profile,user){
+  if(!hasCandidateResume(profile))return 'app-align-upload.html';
+
+  const preferencesComplete=candidatePreferencesComplete(profile,user);
+  if(preferencesComplete)return 'app-account.html';
+
+  if(!candidateResumePreviewReviewed(profile))return 'app-resume-preview.html';
+  return 'app-preferences.html';
+}
+
 (async function routeApp(){
   try{
     const {data,error}=await sb.auth.getSession();
@@ -53,7 +102,21 @@ const sb=supabase.createClient(
       window.location.replace("app-login.html");
       return;
     }
-    window.location.replace("app-account.html");
+
+    const user=data.session.user;
+    const {data:profile,error:profileError}=await sb
+      .from('profiles')
+      .select('*')
+      .eq('id',user.id)
+      .maybeSingle();
+
+    if(profileError){
+      console.error(profileError);
+      window.location.replace("app-login.html");
+      return;
+    }
+
+    window.location.replace(onboardingDestination(profile,user));
   }catch(error){
     console.error(error);
     window.location.replace("app-login.html");
