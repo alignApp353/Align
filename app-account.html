@@ -1786,11 +1786,62 @@ async function loadCandidateWorkspace(){
       resumeData.experience
     );
 
+    const preferences=
+      parseObject(
+        profile?.preferences
+      );
+
+    const preferenceJobTypes=
+      Array.isArray(preferences.jobTypes)
+        ?preferences.jobTypes
+        :[];
+
     const preferencesComplete=Boolean(
-      meta.preferences_complete ||
+      preferences.preferences_complete ||
       profile?.preferences_complete ||
-      localStorage.getItem('alygnn_preferences_complete')==='true'
+      meta.preferences_complete ||
+      (
+        safeString(preferences.query) &&
+        safeString(
+          preferences.location ||
+          preferences.city ||
+          preferences.state ||
+          preferences.country
+        ) &&
+        (
+          preferenceJobTypes.length ||
+          safeString(preferences.jobType)
+        )
+      )
     );
+
+    const resumeOnboarding=
+      parseObject(
+        resumeData._alygnn_onboarding
+      );
+
+    const resumePreviewReviewed=
+      resumeOnboarding.preview_reviewed===true;
+
+    /*
+     * Mandatory candidate onboarding gate.
+     * Existing candidates with completed preferences are left alone.
+     * Incomplete candidates must follow:
+     * resume -> preview -> preferences -> candidate workspace.
+     */
+    if(!hasResume){
+      window.location.replace('app-align-upload.html');
+      return;
+    }
+
+    if(!preferencesComplete){
+      if(!resumePreviewReviewed){
+        window.location.replace('app-resume-preview.html');
+      }else{
+        window.location.replace('app-preferences.html');
+      }
+      return;
+    }
 
     const hasProfileDetails=Boolean(
       name &&
