@@ -106,6 +106,211 @@ nav{
   color:var(--brand);
 }
 
+
+.nav-actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.notification-btn{
+  position:relative;
+  width:40px;
+  height:40px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:#fff;
+  color:var(--text-muted);
+  cursor:pointer;
+  transition:border-color .2s,color .2s,transform .2s;
+}
+.notification-btn:hover{
+  border-color:var(--brand);
+  color:var(--brand);
+  transform:translateY(-1px);
+}
+.notification-btn svg{
+  width:19px;
+  height:19px;
+  stroke:currentColor;
+}
+.notification-badge{
+  position:absolute;
+  top:-4px;
+  right:-3px;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:2px solid var(--bg);
+  border-radius:999px;
+  background:#D85A5A;
+  color:#fff;
+  font-size:10px;
+  line-height:1;
+  font-weight:700;
+}
+.notification-badge[hidden]{display:none}
+
+.notification-overlay{
+  position:fixed;
+  inset:0;
+  z-index:500;
+  display:none;
+  align-items:flex-start;
+  justify-content:flex-end;
+  padding:78px 5% 24px;
+  background:rgba(26,37,48,.18);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+}
+.notification-overlay.open{display:flex}
+
+.notification-panel{
+  width:min(430px,100%);
+  max-height:min(70vh,620px);
+  overflow:auto;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:20px;
+  box-shadow:0 20px 70px rgba(26,37,48,.16);
+}
+
+.notification-head{
+  position:sticky;
+  top:0;
+  z-index:2;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  padding:20px 20px 16px;
+  background:#fff;
+  border-bottom:1px solid var(--border);
+}
+.notification-head h3{
+  font-family:'DM Serif Display',serif;
+  font-size:22px;
+  margin-bottom:3px;
+}
+.notification-head p{
+  color:var(--text-muted);
+  font-size:12px;
+}
+.notification-head-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.mark-read-btn{
+  border:0;
+  background:transparent;
+  color:var(--brand);
+  font-family:'DM Sans',sans-serif;
+  font-size:11px;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.notification-close{
+  width:30px;
+  height:30px;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:#fff;
+  color:var(--text-muted);
+  font-size:19px;
+  line-height:1;
+  cursor:pointer;
+}
+
+.notification-list{padding:6px 0}
+
+.notification-item{
+  width:100%;
+  display:grid;
+  grid-template-columns:38px 1fr auto;
+  gap:12px;
+  align-items:start;
+  padding:15px 18px;
+  border:0;
+  border-bottom:1px solid rgba(221,227,232,.72);
+  background:#fff;
+  text-align:left;
+  cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+}
+.notification-item:hover{background:rgba(93,127,163,.055)}
+.notification-item.unread{background:rgba(93,127,163,.075)}
+
+.notification-icon{
+  width:36px;
+  height:36px;
+  border-radius:11px;
+  display:grid;
+  place-items:center;
+  background:rgba(93,127,163,.10);
+  color:var(--brand);
+  font-size:16px;
+  font-weight:700;
+}
+.notification-icon.green{
+  background:rgba(111,191,143,.12);
+  color:#438661;
+}
+.notification-icon.amber{
+  background:rgba(212,165,90,.13);
+  color:#9B6B24;
+}
+.notification-icon.rose{
+  background:rgba(215,154,154,.15);
+  color:#A85E5E;
+}
+.notification-copy strong{
+  display:block;
+  color:var(--text);
+  font-size:13px;
+  font-weight:600;
+  margin-bottom:3px;
+}
+.notification-copy span{
+  display:block;
+  color:var(--text-muted);
+  font-size:12px;
+  line-height:1.45;
+}
+.notification-time{
+  padding-top:2px;
+  color:var(--text-muted);
+  font-size:10px;
+  white-space:nowrap;
+}
+.notification-empty{
+  padding:34px 22px;
+  text-align:center;
+  color:var(--text-muted);
+}
+.notification-empty-icon{
+  width:44px;
+  height:44px;
+  margin:0 auto 12px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:rgba(111,191,143,.12);
+  color:#438661;
+  font-size:20px;
+}
+.notification-empty strong{
+  display:block;
+  color:var(--text);
+  margin-bottom:5px;
+  font-size:14px;
+}
+
 .nav-links a:hover{
   color:var(--text);
 }
@@ -691,6 +896,15 @@ select.form-input{
   .page{
     padding-top:36px;
   }
+
+  .nav-actions{gap:8px}
+  .notification-btn{
+    width:36px;
+    height:36px;
+  }
+  .notification-overlay{
+    padding:68px 12px 12px;
+  }
 }
 
 .mini-footer{ text-align:center; padding:24px 6% 40px; font-size:12px; color:var(--text-muted); }
@@ -708,7 +922,24 @@ select.form-input{
     <a href="my-jobs.html">My jobs</a>
     <a href="swipe.html" id="nav-swipe-link" style="display:none;">Swipe</a>
   </div>
-  <button class="nav-signout" onclick="signOutFromNav()">Sign out</button>
+  <div class="nav-actions">
+    <button
+      class="notification-btn"
+      id="candidate-notification-btn"
+      type="button"
+      aria-label="Open notifications"
+      title="Notifications"
+      onclick="openCandidateNotifications()"
+    >
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M10 21h4" stroke-width="1.8" stroke-linecap="round"></path>
+      </svg>
+      <span class="notification-badge" id="candidate-notification-badge" hidden>0</span>
+    </button>
+
+    <button class="nav-signout" onclick="signOutFromNav()">Sign out</button>
+  </div>
 </nav>
 
 <div class="loading" id="loading">Loading your account...</div>
@@ -814,6 +1045,47 @@ select.form-input{
 
 <div class="toast" id="toast"></div>
 
+<div
+  class="notification-overlay"
+  id="candidate-notification-overlay"
+  aria-hidden="true"
+  onclick="candidateNotificationBackdrop(event)"
+>
+  <section class="notification-panel" role="dialog" aria-modal="true" aria-labelledby="candidate-notification-title">
+    <div class="notification-head">
+      <div>
+        <h3 id="candidate-notification-title">Notifications</h3>
+        <p id="candidate-notification-count-label">You’re all caught up</p>
+      </div>
+
+      <div class="notification-head-actions">
+        <button
+          class="mark-read-btn"
+          id="candidate-mark-read-btn"
+          type="button"
+          onclick="markAllCandidateNotificationsRead()"
+          hidden
+        >Mark all read</button>
+
+        <button
+          class="notification-close"
+          type="button"
+          aria-label="Close notifications"
+          onclick="closeCandidateNotifications()"
+        >×</button>
+      </div>
+    </div>
+
+    <div class="notification-list" id="candidate-notification-list">
+      <div class="notification-empty">
+        <div class="notification-empty-icon">✓</div>
+        <strong>You’re all caught up</strong>
+        <span>No new notifications right now.</span>
+      </div>
+    </div>
+  </section>
+</div>
+
 <script>
 const SUPABASE_URL = 'https://auth.alygnn.com';
 const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
@@ -826,6 +1098,277 @@ const PENDING_RESUME_STORE = 'files';
 const PENDING_RESUME_ID = 'candidate-resume';
 const PENDING_RESUME_DATA_KEY = 'alygnn_pending_resume_data_v1';
 const PENDING_PREFS_KEY = 'alygnn_pending_preferences_v1';
+
+const CANDIDATE_NOTIFICATION_READ_KEY = 'alygnn_candidate_notification_reads_v1';
+let candidateNotifications = [];
+
+function getCandidateNotificationReads(){
+  try{
+    const parsed = JSON.parse(
+      localStorage.getItem(CANDIDATE_NOTIFICATION_READ_KEY) || '[]'
+    );
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  }catch(_){
+    return new Set();
+  }
+}
+
+function saveCandidateNotificationReads(reads){
+  localStorage.setItem(
+    CANDIDATE_NOTIFICATION_READ_KEY,
+    JSON.stringify([...reads])
+  );
+}
+
+function candidateNotificationEscape(value){
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#039;'
+  })[char]);
+}
+
+function candidateStatusNotification(app, job){
+  const raw = String(app?.status || 'applied').trim().toLowerCase();
+  const title = job?.title || 'your application';
+  const company = job?.company || 'the employer';
+  const detailsUrl =
+    `job-details.html?job=${encodeURIComponent(app.job_id)}&app=${encodeURIComponent(app.id)}`;
+
+  if(raw === 'reviewed' || raw === 'under_review' || raw === 'under review'){
+    return {
+      id:`application-${app.id}-reviewed`,
+      icon:'✓',
+      iconClass:'',
+      title:'Your application was reviewed',
+      copy:`${company} reviewed your application for ${title}.`,
+      time:'Update',
+      action:detailsUrl
+    };
+  }
+
+  if(raw.includes('interview')){
+    return {
+      id:`application-${app.id}-interview`,
+      icon:'◷',
+      iconClass:'amber',
+      title:'Interview update',
+      copy:`${company} moved your ${title} application to the interview stage.`,
+      time:'New',
+      action:detailsUrl
+    };
+  }
+
+  if(raw === 'hired' || raw === 'hire' || raw === 'accepted'){
+    return {
+      id:`application-${app.id}-${raw}`,
+      icon:'✓',
+      iconClass:'green',
+      title:raw === 'accepted' ? 'Application accepted' : 'You were marked hired',
+      copy:`There’s a new positive update from ${company} for ${title}.`,
+      time:'New',
+      action:detailsUrl
+    };
+  }
+
+  if(raw === 'rejected' || raw === 'declined' || raw === 'not_selected'){
+    return {
+      id:`application-${app.id}-rejected`,
+      icon:'–',
+      iconClass:'rose',
+      title:'Application update',
+      copy:`${company} updated your ${title} application to “Not selected.”`,
+      time:'Update',
+      action:detailsUrl
+    };
+  }
+
+  return null;
+}
+
+async function loadCandidateNotifications(profile){
+  if(!currentUserId) return;
+
+  const items = [];
+  const hasResume = !!(profile?.resume_file_path || profile?.resume_data);
+  const hasPreferences = !!profile?.preferences;
+
+  try{
+    const { data: apps, error: appsError } = await sb
+      .from('applications')
+      .select('id, job_id, status, applied_at')
+      .eq('candidate_id', currentUserId)
+      .order('applied_at', { ascending:false });
+
+    if(appsError) throw appsError;
+
+    const jobIds = [...new Set(
+      (apps || []).map(app => app.job_id).filter(Boolean)
+    )];
+
+    let jobs = [];
+
+    if(jobIds.length){
+      const { data: jobsData, error: jobsError } = await sb
+        .from('jobs')
+        .select('id,title,company')
+        .in('id', jobIds);
+
+      if(jobsError) throw jobsError;
+      jobs = jobsData || [];
+    }
+
+    const jobMap = new Map(
+      jobs.map(job => [String(job.id), job])
+    );
+
+    (apps || []).forEach(app => {
+      const item = candidateStatusNotification(
+        app,
+        jobMap.get(String(app.job_id)) || null
+      );
+      if(item) items.push(item);
+    });
+  }catch(error){
+    console.warn('Could not load application notifications:', error);
+  }
+
+  if(!hasResume){
+    items.push({
+      id:'profile-resume-missing',
+      icon:'▤',
+      iconClass:'',
+      title:'Add your resume',
+      copy:'Upload a resume or build one with Alygnn to complete your candidate profile.',
+      time:'Profile',
+      action:'align-upload.html'
+    });
+  }
+
+  if(!hasPreferences){
+    items.push({
+      id:'profile-preferences-missing',
+      icon:'◎',
+      iconClass:'amber',
+      title:'Complete your job preferences',
+      copy:'Add your target role, salary, location, and work style so Alygnn can match you better.',
+      time:'Profile',
+      action:'preferences.html'
+    });
+  }
+
+  candidateNotifications = items;
+  renderCandidateNotifications();
+}
+
+function renderCandidateNotifications(){
+  const list = document.getElementById('candidate-notification-list');
+  const badge = document.getElementById('candidate-notification-badge');
+  const countLabel = document.getElementById('candidate-notification-count-label');
+  const markRead = document.getElementById('candidate-mark-read-btn');
+
+  if(!list || !badge || !countLabel || !markRead) return;
+
+  const reads = getCandidateNotificationReads();
+  const unread = candidateNotifications.filter(item => !reads.has(item.id));
+
+  badge.textContent = String(unread.length);
+  badge.hidden = unread.length === 0;
+
+  countLabel.textContent = unread.length
+    ? `${unread.length} unread notification${unread.length === 1 ? '' : 's'}`
+    : 'You’re all caught up';
+
+  markRead.hidden = unread.length === 0;
+
+  if(!candidateNotifications.length){
+    list.innerHTML = `
+      <div class="notification-empty">
+        <div class="notification-empty-icon">✓</div>
+        <strong>You’re all caught up</strong>
+        <span>No new application or profile notifications right now.</span>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = candidateNotifications.map(item => {
+    const isUnread = !reads.has(item.id);
+
+    return `
+      <button
+        type="button"
+        class="notification-item ${isUnread ? 'unread' : ''}"
+        onclick="openCandidateNotificationItem(
+          '${candidateNotificationEscape(item.id)}',
+          '${candidateNotificationEscape(item.action)}'
+        )"
+      >
+        <span class="notification-icon ${candidateNotificationEscape(item.iconClass)}">
+          ${candidateNotificationEscape(item.icon)}
+        </span>
+
+        <span class="notification-copy">
+          <strong>${candidateNotificationEscape(item.title)}</strong>
+          <span>${candidateNotificationEscape(item.copy)}</span>
+        </span>
+
+        <span class="notification-time">
+          ${candidateNotificationEscape(item.time)}
+        </span>
+      </button>
+    `;
+  }).join('');
+}
+
+function openCandidateNotifications(){
+  const overlay = document.getElementById('candidate-notification-overlay');
+  if(!overlay) return;
+
+  renderCandidateNotifications();
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+}
+
+function closeCandidateNotifications(){
+  const overlay = document.getElementById('candidate-notification-overlay');
+  if(!overlay) return;
+
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden','true');
+}
+
+function candidateNotificationBackdrop(event){
+  if(event.target === event.currentTarget){
+    closeCandidateNotifications();
+  }
+}
+
+function markAllCandidateNotificationsRead(){
+  const reads = getCandidateNotificationReads();
+  candidateNotifications.forEach(item => reads.add(item.id));
+  saveCandidateNotificationReads(reads);
+  renderCandidateNotifications();
+}
+
+function openCandidateNotificationItem(id, action){
+  const reads = getCandidateNotificationReads();
+  reads.add(id);
+  saveCandidateNotificationReads(reads);
+  renderCandidateNotifications();
+
+  if(action){
+    window.location.href = action;
+  }
+}
+
+document.addEventListener('keydown', event => {
+  if(event.key === 'Escape'){
+    closeCandidateNotifications();
+  }
+});
 
 function parsePendingJson(...values) {
   for (const value of values) {
@@ -1688,6 +2231,7 @@ async function initAccountPage(){
 
   await loadAppliedJobs();
   await loadSkippedJobs();
+  await loadCandidateNotifications(profile);
 
   showPage();
 }
