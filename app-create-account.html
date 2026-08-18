@@ -141,7 +141,21 @@ body{
     font-size:13px;
     line-height:1.6;
 }
-</style>}
+
+.verify-card{display:none;margin-top:8px;padding:22px;border:1px solid var(--border);border-radius:22px;background:var(--card-bg)}
+.verify-card.show{display:block}
+.verify-title{font-size:24px;font-weight:800;margin-bottom:8px}
+.verify-copy{color:var(--text-muted);font-size:14px;line-height:1.55;margin-bottom:18px}
+.verify-email{color:var(--text);font-weight:700}
+.verify-code{text-align:center;font-size:24px;letter-spacing:5px;font-weight:800}
+.secondary{background:transparent;color:var(--brand);border:1px solid var(--border)}
+.message{display:none;margin-top:14px;padding:12px 14px;border-radius:14px;font-size:13px;line-height:1.45;font-weight:700}
+.message.show{display:block}
+.message.error{color:#A53E3E;background:#FCEDED}
+.message.success{color:#18794E;background:#E8F6EE}
+.form-hidden{display:none!important}
+
+</style>
 </head>
 
 <body>
@@ -153,27 +167,38 @@ body{
         Create your account and start finding jobs.
     </div>
 
-    <input id="firstName" class="input" placeholder="First Name">
-    <input id="lastName" class="input" placeholder="Last Name">
-    <input id="email" class="input" type="email" placeholder="Email">
-    <input id="password" class="input" type="password" placeholder="Password">
+    <div id="signup-fields">
+        <input id="firstName" class="input" placeholder="First Name" autocomplete="given-name">
+        <input id="lastName" class="input" placeholder="Last Name" autocomplete="family-name">
+        <input id="email" class="input" type="email" placeholder="Email" autocomplete="email" inputmode="email">
+        <input id="password" class="input" type="password" placeholder="Password" autocomplete="new-password">
 
-    <button class="btn primary" onclick="signup()">
-        Create Account
-    </button>
+        <button id="create-account-btn" class="btn primary" onclick="signup()">Create Account</button>
 
-    <div class="divider">or</div>
+        <div class="divider">or</div>
 
-    <button class="btn google" onclick="googleSignup()">
-        Continue with Google
-    </button>
+        <button class="btn google" onclick="googleSignup()">Continue with Google</button>
 
-    <div class="link" onclick="location.href='app-login.html'">
-        Already have an account? Sign In
+        <div class="link" onclick="location.href='app-login.html'">Already have an account? Sign In</div>
+
+        <div class="small">By continuing, you agree to Alygnn's Terms and Privacy Policy.</div>
     </div>
 
-    <div class="small">
-        By continuing, you agree to Alygnn's Terms and Privacy Policy.
+    <div id="verify-card" class="verify-card">
+        <div class="verify-title">Check your email</div>
+        <div class="verify-copy">
+            We sent a verification code to <span id="verify-email" class="verify-email"></span>.
+            Enter the code here to confirm your email. The email does not send you to the Alygnn website.
+        </div>
+
+        <input id="verification-code" class="input verify-code" type="text"
+               inputmode="numeric" autocomplete="one-time-code"
+               placeholder="Code" maxlength="8">
+
+        <button id="verify-btn" class="btn primary" onclick="verifyEmailCode()">Verify email</button>
+        <button id="resend-btn" class="btn secondary" onclick="resendVerificationCode()">Resend code</button>
+
+        <div id="verify-message" class="message" aria-live="polite"></div>
     </div>
 
 </div>
@@ -188,38 +213,139 @@ const sb = supabase.createClient(
     SUPABASE_KEY
 );
 
-async function signup(){
+let pendingSignupEmail = "";
 
+function setVerifyMessage(text, type){
+    const box = document.getElementById("verify-message");
+    box.textContent = text;
+    box.className = "message show " + type;
+}
+
+function showVerificationStep(email){
+    pendingSignupEmail = String(email || "").trim().toLowerCase();
+    document.getElementById("signup-fields").classList.add("form-hidden");
+    document.getElementById("verify-card").classList.add("show");
+    document.getElementById("verify-email").textContent = pendingSignupEmail;
+    document.getElementById("verification-code").focus();
+}
+
+async function signup(){
     const firstName = document.getElementById("firstName").value.trim();
     const lastName = document.getElementById("lastName").value.trim();
-    const email = document.getElementById("email").value.trim();
+    const email = document.getElementById("email").value.trim().toLowerCase();
     const password = document.getElementById("password").value;
+    const button = document.getElementById("create-account-btn");
 
     if(!firstName || !lastName || !email || !password){
         alert("Please complete all fields.");
         return;
     }
 
-    const { error } = await sb.auth.signUp({
+    if(password.length < 8){
+        alert("Password must be at least 8 characters.");
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Creating Account...";
+
+    const { data, error } = await sb.auth.signUp({
         email,
         password,
         options:{
             data:{
                 first_name:firstName,
-                last_name:lastName
+                last_name:lastName,
+                EmailFlow:"app"
             }
         }
     });
+
+    button.disabled = false;
+    button.textContent = "Create Account";
 
     if(error){
         alert(error.message);
         return;
     }
 
-    alert("Account created successfully. Please check your email.");
+    if(data?.session){
+        window.location.href = "align-upload.html";
+        return;
+    }
 
-   window.location.href = "align-upload.html";
+    showVerificationStep(email);
 }
+
+async function verifyEmailCode(){
+    const token = document.getElementById("verification-code").value.replace(/\s+/g, "").trim();
+    const button = document.getElementById("verify-btn");
+
+    if(!pendingSignupEmail){
+        setVerifyMessage("Please create your account again.", "error");
+        return;
+    }
+
+    if(token.length < 6){
+        setVerifyMessage("Enter the verification code from your email.", "error");
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Verifying...";
+
+    const { data, error } = await sb.auth.verifyOtp({
+        email: pendingSignupEmail,
+        token,
+        type: "email"
+    });
+
+    button.disabled = false;
+    button.textContent = "Verify email";
+
+    if(error){
+        setVerifyMessage("That code is invalid or expired. Check the email and try again.", "error");
+        return;
+    }
+
+    setVerifyMessage("Email confirmed. Continuing...", "success");
+
+    setTimeout(() => {
+        window.location.href = data?.session ? "align-upload.html" : "app-login.html";
+    }, 600);
+}
+
+async function resendVerificationCode(){
+    if(!pendingSignupEmail){
+        setVerifyMessage("Please create your account again.", "error");
+        return;
+    }
+
+    const button = document.getElementById("resend-btn");
+    button.disabled = true;
+    button.textContent = "Sending...";
+
+    const { error } = await sb.auth.resend({
+        type: "signup",
+        email: pendingSignupEmail
+    });
+
+    button.disabled = false;
+    button.textContent = "Resend code";
+
+    if(error){
+        setVerifyMessage(error.message, "error");
+        return;
+    }
+
+    setVerifyMessage("A new verification code was sent.", "success");
+}
+
+document.addEventListener("keydown", event => {
+    if(event.key === "Enter" && document.getElementById("verify-card").classList.contains("show")){
+        verifyEmailCode();
+    }
+});
 
 async function googleSignup(){
 
