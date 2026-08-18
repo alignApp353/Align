@@ -298,7 +298,7 @@ body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparen
   <section class="screen" data-step="3">
     <div class="eyebrow">Education</div>
     <div class="title">Add your education</div>
-    <div class="subtitle">Include school, degree or program, and graduation year when applicable.</div>
+    <div class="subtitle">Start typing to find your school, degree or program, dates, and location.</div>
     <div id="educationList"></div>
     <button class="add-btn" onclick="addEducation()">+ Add education</button>
   </section>
@@ -310,8 +310,11 @@ body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparen
     <div class="card">
       <label class="label" for="skillInput">Add a skill</label>
       <div class="grid two">
-        <input id="skillInput" class="input" placeholder="Type a skill">
-        <button class="primary btn" type="button" onclick="addSkill()">Add Skill</button>
+        <div class="field-suggest full">
+          <input id="skillInput" class="input" placeholder="Type 2 letters to see skills" autocomplete="off" autocorrect="off" spellcheck="false">
+          <div id="skillSuggestions" class="suggestion-list"></div>
+        </div>
+        <button class="primary btn full" type="button" onclick="addSkill()">Add Skill</button>
       </div>
       <div id="skillsWrap" class="skills-wrap"></div>
     </div>
@@ -570,6 +573,286 @@ document.addEventListener('click',event=>{
   if(!event.target.closest('.field-suggest')){
     hideSuggestions('citySuggestions');
     hideSuggestions('stateSuggestions');
+    document.querySelectorAll('.dynamic-suggestions').forEach(box=>{
+      box.classList.remove('show');
+      box.innerHTML='';
+    });
+    hideSuggestions('skillSuggestions');
+  }
+});
+
+/* -------------------------------------------------------
+   Resume-builder smart suggestions
+   ------------------------------------------------------- */
+
+const SCHOOL_SUGGESTIONS=[
+  'North Carolina State University','University of North Carolina at Chapel Hill',
+  'University of North Carolina at Charlotte','University of North Carolina at Greensboro',
+  'University of North Carolina Wilmington','East Carolina University','Appalachian State University',
+  'North Carolina A&T State University','North Carolina Central University','Wake Technical Community College',
+  'Durham Technical Community College','Central Piedmont Community College','Duke University',
+  'Wake Forest University','Campbell University','Elon University','Meredith College','Shaw University',
+  'William Peace University','Fayetteville State University','Winston-Salem State University',
+  'Western Carolina University','University of North Carolina at Pembroke',
+  'Harvard University','Stanford University','Massachusetts Institute of Technology',
+  'Yale University','Princeton University','Columbia University','Cornell University',
+  'University of Pennsylvania','Brown University','Dartmouth College','New York University',
+  'University of California, Berkeley','University of California, Los Angeles',
+  'University of Southern California','University of California, San Diego',
+  'University of Michigan','Michigan State University','Ohio State University',
+  'Pennsylvania State University','University of Texas at Austin','Texas A&M University',
+  'University of Houston','University of Florida','Florida State University',
+  'University of Central Florida','University of Miami','Georgia Institute of Technology',
+  'University of Georgia','Emory University','Clemson University','University of South Carolina',
+  'Virginia Tech','University of Virginia','George Mason University','Howard University',
+  'Georgetown University','George Washington University','University of Maryland',
+  'Johns Hopkins University','Boston University','Northeastern University','Boston College',
+  'University of Massachusetts Amherst','Rutgers University','Temple University',
+  'University of Pittsburgh','Carnegie Mellon University','University of Illinois Urbana-Champaign',
+  'University of Chicago','Northwestern University','Indiana University Bloomington',
+  'Purdue University','University of Wisconsin-Madison','University of Minnesota',
+  'University of Iowa','Iowa State University','University of Missouri',
+  'Washington University in St. Louis','University of Kansas','University of Nebraska-Lincoln',
+  'University of Colorado Boulder','Colorado State University','University of Denver',
+  'Arizona State University','University of Arizona','University of Nevada, Las Vegas',
+  'University of Utah','Brigham Young University','University of Washington',
+  'Washington State University','University of Oregon','Oregon State University',
+  'San Diego State University','San Jose State University','California State University, Long Beach'
+];
+
+const DEGREE_SUGGESTIONS=[
+  'High School Diploma','GED','Associate of Arts','Associate of Science','Associate of Applied Science',
+  'Bachelor of Arts','Bachelor of Science','Bachelor of Business Administration',
+  'Bachelor of Fine Arts','Bachelor of Engineering','Bachelor of Education',
+  'Master of Arts','Master of Science','Master of Business Administration',
+  'Master of Education','Master of Public Administration','Master of Public Health',
+  'Doctor of Philosophy','Juris Doctor','Doctor of Medicine',
+  'Business Administration','Business Management','Marketing','Finance','Accounting',
+  'Economics','Entrepreneurship','Human Resources Management','Supply Chain Management',
+  'Management Information Systems','Computer Science','Information Technology',
+  'Cybersecurity','Software Engineering','Data Science','Data Analytics',
+  'Artificial Intelligence','Computer Engineering','Electrical Engineering',
+  'Mechanical Engineering','Civil Engineering','Industrial Engineering',
+  'Biology','Chemistry','Physics','Mathematics','Statistics',
+  'Nursing','Public Health','Health Administration','Psychology','Sociology',
+  'Criminal Justice','Political Science','Communications','Journalism',
+  'English','History','Education','Elementary Education','Special Education',
+  'Graphic Design','Fine Arts','Architecture','Construction Management',
+  'Hospitality Management','Culinary Arts','Sports Management','Exercise Science'
+];
+
+const SKILL_SUGGESTIONS=[
+  'Account Management','Accounting','Adaptability','Adobe Creative Suite','Advertising',
+  'Analytical Thinking','Appointment Setting','Attention to Detail','B2B Sales','Budgeting',
+  'Business Development','Business Strategy','Cash Handling','Cold Calling','Communication',
+  'Conflict Resolution','CRM','Customer Experience','Customer Relationship Management',
+  'Customer Service','Data Analysis','Data Entry','Digital Marketing','Excel','Financial Analysis',
+  'Forecasting','Google Workspace','Hiring','Inventory Management','Leadership','Lead Generation',
+  'Management','Market Research','Marketing','Microsoft Office','Negotiation','Networking',
+  'Operations','Organization','Payroll','Presentation Skills','Problem Solving','Project Management',
+  'Public Speaking','Recruiting','Relationship Building','Retail Sales','Sales','Sales Management',
+  'Scheduling','Social Media','Software Development','SQL','Strategic Planning','Team Building',
+  'Team Leadership','Time Management','Training','Upselling','Written Communication',
+  'JavaScript','HTML','CSS','Python','React','Node.js','Git','Technical Support',
+  'Troubleshooting','Process Improvement','Quality Assurance','Healthcare','Patient Care'
+];
+
+function formatMonthYear(value, allowPresent=false){
+  const raw=String(value||'').trim();
+
+  if(allowPresent && /^p/i.test(raw)){
+    return 'Present'.slice(0, raw.length);
+  }
+
+  const digits=raw.replace(/\D/g,'').slice(0,6);
+  if(!digits)return '';
+
+  if(digits.length===1)return digits;
+  if(digits.length===2)return digits;
+  return digits.slice(0,2)+'/'+digits.slice(2);
+}
+
+function validMonthYear(value, allowPresent=false){
+  const raw=String(value||'').trim();
+  if(!raw)return true;
+  if(allowPresent && /^present$/i.test(raw))return true;
+  const match=raw.match(/^(\d{2})\/(\d{4})$/);
+  if(!match)return false;
+  const month=Number(match[1]);
+  return month>=1&&month<=12;
+}
+
+function bindMonthYearInput(input, allowPresent=false){
+  if(!input||input.dataset.dateBound==='1')return;
+  input.dataset.dateBound='1';
+
+  input.addEventListener('input',()=>{
+    const cursor=input.selectionStart||0;
+    const before=input.value;
+    input.value=formatMonthYear(input.value,allowPresent);
+    if(input.value!==before){
+      try{input.setSelectionRange(input.value.length,input.value.length)}catch(_){}
+    }
+  });
+
+  input.addEventListener('blur',()=>{
+    const v=input.value.trim();
+    if(v&&!validMonthYear(v,allowPresent)){
+      input.setCustomValidity(allowPresent?'Use MM/YYYY or Present.':'Use MM/YYYY.');
+    }else{
+      input.setCustomValidity('');
+    }
+  });
+}
+
+function showDynamicSuggestions(input, items, minChars, formatter, onPick){
+  const holder=input.closest('.field-suggest');
+  const box=holder?.querySelector('.dynamic-suggestions');
+  if(!box)return;
+
+  const q=input.value.trim().toLowerCase();
+  if(q.length<minChars){
+    box.classList.remove('show');
+    box.innerHTML='';
+    return;
+  }
+
+  const matches=items
+    .filter(item=>String(item).toLowerCase().includes(q))
+    .sort((a,b)=>{
+      const aa=String(a).toLowerCase();
+      const bb=String(b).toLowerCase();
+      const aStart=aa.startsWith(q)?0:1;
+      const bStart=bb.startsWith(q)?0:1;
+      return aStart-bStart || aa.localeCompare(bb);
+    })
+    .slice(0,7);
+
+  if(!matches.length){
+    box.classList.remove('show');
+    box.innerHTML='';
+    return;
+  }
+
+  box.innerHTML=matches.map((item,index)=>
+    `<button type="button" class="suggestion-item" data-index="${index}">${formatter(item)}</button>`
+  ).join('');
+
+  box.querySelectorAll('.suggestion-item').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const item=matches[Number(btn.dataset.index)];
+      onPick(item);
+      box.classList.remove('show');
+      box.innerHTML='';
+    });
+  });
+
+  box.classList.add('show');
+}
+
+function wireLocationSuggestion(input){
+  if(!input||input.dataset.locationBound==='1')return;
+  input.dataset.locationBound='1';
+
+  input.addEventListener('input',()=>{
+    showDynamicSuggestions(
+      input,
+      US_CITIES,
+      3,
+      ([city,state])=>`${escapeHtml(city)}, ${escapeHtml(state)}<span class="suggestion-muted">Use this location</span>`,
+      ([city,state])=>{input.value=`${city}, ${state}`;}
+    );
+  });
+}
+
+function wireSchoolSuggestion(input){
+  if(!input||input.dataset.schoolBound==='1')return;
+  input.dataset.schoolBound='1';
+
+  input.addEventListener('input',()=>{
+    showDynamicSuggestions(
+      input,
+      SCHOOL_SUGGESTIONS,
+      3,
+      school=>`${escapeHtml(school)}<span class="suggestion-muted">Use this school</span>`,
+      school=>{input.value=school;}
+    );
+  });
+}
+
+function wireDegreeSuggestion(input){
+  if(!input||input.dataset.degreeBound==='1')return;
+  input.dataset.degreeBound='1';
+
+  input.addEventListener('input',()=>{
+    showDynamicSuggestions(
+      input,
+      DEGREE_SUGGESTIONS,
+      3,
+      degree=>`${escapeHtml(degree)}<span class="suggestion-muted">Use this degree or program</span>`,
+      degree=>{input.value=degree;}
+    );
+  });
+}
+
+function wireDynamicCard(card){
+  card.querySelectorAll('.month-year-input').forEach(input=>bindMonthYearInput(input,false));
+  card.querySelectorAll('.month-year-or-present').forEach(input=>bindMonthYearInput(input,true));
+  card.querySelectorAll('.location-suggest-input').forEach(wireLocationSuggestion);
+  card.querySelectorAll('.school-suggest-input').forEach(wireSchoolSuggestion);
+  card.querySelectorAll('.degree-suggest-input').forEach(wireDegreeSuggestion);
+}
+
+function renderSkillSuggestions(){
+  const input=document.getElementById('skillInput');
+  const box=document.getElementById('skillSuggestions');
+  const q=input.value.trim().toLowerCase();
+
+  if(q.length<2){
+    hideSuggestions('skillSuggestions');
+    return;
+  }
+
+  const matches=SKILL_SUGGESTIONS
+    .filter(skill=>skill.toLowerCase().includes(q))
+    .sort((a,b)=>{
+      const aa=a.toLowerCase(),bb=b.toLowerCase();
+      const aStart=aa.startsWith(q)?0:1;
+      const bStart=bb.startsWith(q)?0:1;
+      return aStart-bStart||aa.localeCompare(bb);
+    })
+    .slice(0,8);
+
+  if(!matches.length){
+    hideSuggestions('skillSuggestions');
+    return;
+  }
+
+  box.innerHTML=matches.map((skill,index)=>`
+    <button type="button" class="suggestion-item" data-index="${index}">
+      ${escapeHtml(skill)}
+      <span class="suggestion-muted">Add skill</span>
+    </button>
+  `).join('');
+
+  box.querySelectorAll('.suggestion-item').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const skill=matches[Number(btn.dataset.index)];
+      if(!skills.some(existing=>existing.toLowerCase()===skill.toLowerCase()))skills.push(skill);
+      input.value='';
+      hideSuggestions('skillSuggestions');
+      renderSkills();
+    });
+  });
+
+  box.classList.add('show');
+}
+
+document.getElementById('skillInput').addEventListener('input',renderSkillSuggestions);
+document.getElementById('skillInput').addEventListener('keydown',event=>{
+  if(event.key==='Enter'){
+    event.preventDefault();
+    addSkill();
   }
 });
 
@@ -624,6 +907,30 @@ function validateStep(){
       return false;
     }
   }
+  if(currentStep===2){
+    const invalid=[...document.querySelectorAll('.experience-card')].some(card=>{
+      const start=card.querySelector('.exp-start')?.value.trim()||'';
+      const end=card.querySelector('.exp-end')?.value.trim()||'';
+      return !validMonthYear(start,false)||!validMonthYear(end,true);
+    });
+    if(invalid){
+      showMessage('Use MM/YYYY for experience dates, or Present for an end date.');
+      return false;
+    }
+  }
+
+  if(currentStep===3){
+    const invalid=[...document.querySelectorAll('.education-card')].some(card=>{
+      const start=card.querySelector('.edu-start')?.value.trim()||'';
+      const end=card.querySelector('.edu-end')?.value.trim()||'';
+      return !validMonthYear(start,false)||!validMonthYear(end,true);
+    });
+    if(invalid){
+      showMessage('Use MM/YYYY for education dates, or Present for an end date.');
+      return false;
+    }
+  }
+
   // Experience and education are optional so first-time job seekers can keep moving.
   // Skills are the only resume-content step we require because Alygnn uses them for matching.
   if(currentStep===4&&skills.length===0){
@@ -640,12 +947,27 @@ function addExperience(data={}){
     <div class="grid two">
       <div class="full"><label class="label">Job title</label><input class="input exp-title" value="${escapeAttr(data.title||'')}" placeholder="Job title"></div>
       <div class="full"><label class="label">Company</label><input class="input exp-company" value="${escapeAttr(data.company||'')}" placeholder="Company name"></div>
-      <div><label class="label">Start date</label><input class="input exp-start" value="${escapeAttr(data.start||'')}" placeholder="MM/YYYY"></div>
-      <div><label class="label">End date</label><input class="input exp-end" value="${escapeAttr(data.end||'')}" placeholder="Present or MM/YYYY"></div>
-      <div class="full"><label class="label">Location</label><input class="input exp-location" value="${escapeAttr(data.location||'')}" placeholder="City, ST"></div>
+
+      <div>
+        <label class="label">Start date</label>
+        <input class="input exp-start month-year-input" inputmode="numeric" maxlength="7" value="${escapeAttr(data.start||'')}" placeholder="MM/YYYY" autocomplete="off">
+      </div>
+
+      <div>
+        <label class="label">End date</label>
+        <input class="input exp-end month-year-or-present" maxlength="7" value="${escapeAttr(data.end||'')}" placeholder="MM/YYYY or Present" autocomplete="off">
+      </div>
+
+      <div class="full field-suggest">
+        <label class="label">Location</label>
+        <input class="input exp-location location-suggest-input" value="${escapeAttr(data.location||'')}" placeholder="Type 3 letters, e.g. Ral" autocomplete="off" autocorrect="off" spellcheck="false">
+        <div class="suggestion-list dynamic-suggestions"></div>
+      </div>
+
       <div class="full"><label class="label">What did you do? <span style="font-weight:700;text-transform:none;letter-spacing:0">(optional)</span></label><textarea class="textarea exp-description" placeholder="A short sentence is enough">${escapeHtml(data.description||'')}</textarea></div>
     </div>`;
   wrap.querySelector('.remove').onclick=()=>wrap.remove();
+  wireDynamicCard(wrap);
   document.getElementById('experienceList').appendChild(wrap);
 }
 function addEducation(data={}){
@@ -654,13 +976,38 @@ function addEducation(data={}){
   wrap.innerHTML=`
     <div class="section-head"><div class="section-title">Education</div><button class="remove" type="button">Remove</button></div>
     <div class="grid two">
-      <div class="full"><label class="label">School</label><input class="input edu-school" value="${escapeAttr(data.school||'')}" placeholder="School or university"></div>
-      <div class="full"><label class="label">Degree or program</label><input class="input edu-degree" value="${escapeAttr(data.degree||'')}" placeholder="Business Administration"></div>
-      <div><label class="label">Start year</label><input class="input edu-start" value="${escapeAttr(data.start||'')}" placeholder="2020"></div>
-      <div><label class="label">End year</label><input class="input edu-end" value="${escapeAttr(data.end||'')}" placeholder="2024"></div>
-      <div class="full"><label class="label">Location</label><input class="input edu-location" value="${escapeAttr(data.location||'')}" placeholder="City, ST"></div>
+
+      <div class="full field-suggest">
+        <label class="label">School</label>
+        <input class="input edu-school school-suggest-input" value="${escapeAttr(data.school||'')}" placeholder="Type 3 letters to find a school" autocomplete="off" autocorrect="off" spellcheck="false">
+        <div class="suggestion-list dynamic-suggestions"></div>
+      </div>
+
+      <div class="full field-suggest">
+        <label class="label">Degree or program</label>
+        <input class="input edu-degree degree-suggest-input" value="${escapeAttr(data.degree||'')}" placeholder="Type 3 letters, e.g. Bus" autocomplete="off" autocorrect="off" spellcheck="false">
+        <div class="suggestion-list dynamic-suggestions"></div>
+      </div>
+
+      <div>
+        <label class="label">Start date</label>
+        <input class="input edu-start month-year-input" inputmode="numeric" maxlength="7" value="${escapeAttr(data.start||'')}" placeholder="MM/YYYY" autocomplete="off">
+      </div>
+
+      <div>
+        <label class="label">End date</label>
+        <input class="input edu-end month-year-or-present" maxlength="7" value="${escapeAttr(data.end||'')}" placeholder="MM/YYYY or Present" autocomplete="off">
+      </div>
+
+      <div class="full field-suggest">
+        <label class="label">Location</label>
+        <input class="input edu-location location-suggest-input" value="${escapeAttr(data.location||'')}" placeholder="Type 3 letters, e.g. Ral" autocomplete="off" autocorrect="off" spellcheck="false">
+        <div class="suggestion-list dynamic-suggestions"></div>
+      </div>
+
     </div>`;
   wrap.querySelector('.remove').onclick=()=>wrap.remove();
+  wireDynamicCard(wrap);
   document.getElementById('educationList').appendChild(wrap);
 }
 function addSkill(){
