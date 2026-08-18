@@ -98,25 +98,15 @@ function onboardingDestination(profile,user){
 (async function routeApp(){
   try{
     const {data,error}=await sb.auth.getSession();
+
     if(error||!data.session){
       window.location.replace("app-login.html");
       return;
     }
 
-    const user=data.session.user;
-    const {data:profile,error:profileError}=await sb
-      .from('profiles')
-      .select('*')
-      .eq('id',user.id)
-      .maybeSingle();
-
-    if(profileError){
-      console.error(profileError);
-      window.location.replace("app-login.html");
-      return;
-    }
-
-    window.location.replace(onboardingDestination(profile,user));
+    // Always open the dashboard. app-account.html reads the candidate's
+    // Supabase profile and restores the correct locked/unlocked state.
+    window.location.replace("app-account.html");
   }catch(error){
     console.error(error);
     window.location.replace("app-login.html");
