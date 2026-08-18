@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="pricing-locked">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -261,6 +261,10 @@
     }
   }
 
+
+  /* Pricing is private: do not reveal page content until employer auth is confirmed. */
+  html.pricing-locked body { visibility: hidden; }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -462,9 +466,14 @@
 
   async function initPricingAuth(){
     try{
-      const { data: { session } } = await sb.auth.getSession();
-      currentSession = session || null;
-      if(!currentSession) return;
+      const { data: { session }, error: sessionError } = await sb.auth.getSession();
+
+      if(sessionError || !session){
+        window.location.replace('login.html?role=employer');
+        return;
+      }
+
+      currentSession = session;
 
       let profileRole = '';
       try{
@@ -487,34 +496,47 @@
         ''
       ).toLowerCase();
 
-      if(currentRole === 'employer'){
-        try{
-          const { data: entitlement } = await sb
-            .from('employer_entitlements')
-            .select('free_job_used')
-            .eq('employer_id', currentSession.user.id)
-            .maybeSingle();
-          freeJobUsed = entitlement?.free_job_used === true;
-        }catch(error){
-          console.warn('Unable to read free-job status:', error);
-        }
+      // Employer pricing is private. A signed-in non-employer should not see it either.
+      if(currentRole !== 'employer'){
+        window.location.replace('employers.html');
+        return;
+      }
 
-        const freeBtn = document.getElementById('free-plan-btn');
-        if(freeBtn && freeJobUsed){
-          freeBtn.textContent = 'Free trial used';
-          freeBtn.disabled = true;
-          freeBtn.style.opacity = '.55';
-          freeBtn.style.cursor = 'not-allowed';
-        }
-        const authLink = document.getElementById('nav-auth-link');
-        const ctaBtn = document.getElementById('nav-cta-btn');
+      try{
+        const { data: entitlement } = await sb
+          .from('employer_entitlements')
+          .select('free_job_used')
+          .eq('employer_id', currentSession.user.id)
+          .maybeSingle();
+        freeJobUsed = entitlement?.free_job_used === true;
+      }catch(error){
+        console.warn('Unable to read free-job status:', error);
+      }
+
+      const freeBtn = document.getElementById('free-plan-btn');
+      if(freeBtn && freeJobUsed){
+        freeBtn.textContent = 'Free trial used';
+        freeBtn.disabled = true;
+        freeBtn.style.opacity = '.55';
+        freeBtn.style.cursor = 'not-allowed';
+      }
+
+      const authLink = document.getElementById('nav-auth-link');
+      const ctaBtn = document.getElementById('nav-cta-btn');
+      if(authLink){
         authLink.textContent = 'My account';
         authLink.href = 'employer-account.html';
+      }
+      if(ctaBtn){
         ctaBtn.textContent = 'Dashboard';
         ctaBtn.onclick = () => window.location.href = 'employer-dashboard.html';
       }
+
+      // Only reveal pricing after auth + employer role are confirmed.
+      document.documentElement.classList.remove('pricing-locked');
     }catch(error){
       console.warn('Pricing auth check failed:', error);
+      window.location.replace('login.html?role=employer');
     }
   }
 
