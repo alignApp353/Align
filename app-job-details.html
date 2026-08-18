@@ -1020,6 +1020,61 @@ document.getElementById('pass-btn').addEventListener('click',()=>{
 
 document.getElementById('apply-btn').addEventListener('click',applyToJob);
 
+
+async function enforceCandidateOnboarding(user){
+  const {data:profile,error}=await sb
+    .from('profiles')
+    .select('*')
+    .eq('id',user.id)
+    .maybeSingle();
+  if(error)throw error;
+
+  const resumeData=
+    profile?.resume_data && typeof profile.resume_data==='object'
+      ?profile.resume_data
+      :{};
+  const hasResume=Boolean(
+    profile?.resume_file_path||
+    profile?.resume_url||
+    profile?.resume_text||
+    Object.keys(resumeData).length
+  );
+  if(!hasResume){
+    window.location.replace('app-align-upload.html');
+    return false;
+  }
+
+  const p=
+    profile?.preferences && typeof profile.preferences==='object'
+      ?profile.preferences
+      :{};
+  const types=Array.isArray(p.jobTypes)?p.jobTypes:[];
+  const preferencesComplete=Boolean(
+    p.preferences_complete||
+    profile?.preferences_complete||
+    user.user_metadata?.preferences_complete||
+    (
+      String(p.query||'').trim()&&
+      String(p.location||p.city||p.state||p.country||'').trim()&&
+      (types.length||String(p.jobType||'').trim())
+    )
+  );
+  if(!preferencesComplete){
+    const onboarding=
+      resumeData?._alygnn_onboarding && typeof resumeData._alygnn_onboarding==='object'
+        ?resumeData._alygnn_onboarding
+        :{};
+
+    window.location.replace(
+      onboarding.preview_reviewed===true
+        ?'app-preferences.html'
+        :'app-resume-preview.html'
+    );
+    return false;
+  }
+  return true;
+}
+
 (async function initialize(){
   try{
     const {data,error}=await sb.auth.getSession();
@@ -1030,6 +1085,8 @@ document.getElementById('apply-btn').addEventListener('click',applyToJob);
     }
 
     session=data.session;
+
+    if(!await enforceCandidateOnboarding(session.user))return;
 
     const jobId=new URLSearchParams(window.location.search).get('id');
 
