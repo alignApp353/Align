@@ -332,9 +332,6 @@
     <button class="nav-item active" onclick="showPanel('jobs', this)">
       <span class="nav-icon">💼</span> My Jobs
     </button>
-    <button class="nav-item" onclick="showPanel('interviews', this)">
-      <span class="nav-icon">📅</span> Interviews
-    </button>
     <button class="nav-item" id="sidebar-post-job-btn" onclick="openPostJob()">
       <span class="nav-icon">➕</span> <span id="sidebar-post-job-label">Post a Job</span>
     </button>
@@ -382,21 +379,6 @@
           <div class="empty-icon">👥</div>
           <div class="empty-title">No candidates yet</div>
           Once job seekers apply to your listings, they'll appear here.
-        </div>
-      </div>
-    </div>
-
-    <!-- INTERVIEWS -->
-    <div class="panel" id="panel-interviews">
-      <div class="page-header">
-        <div class="page-title">Interviews</div>
-        <div class="page-sub">Interviews you've scheduled with candidates</div>
-      </div>
-      <div id="interviews-list">
-        <div class="empty-state" id="interviews-empty-state">
-          <div class="empty-icon">📅</div>
-          <div class="empty-title">No interviews scheduled yet</div>
-          Go to Candidates and click "Schedule interview" on a candidate to set one up.
         </div>
       </div>
     </div>
@@ -601,10 +583,6 @@
 
 <div class="modal-overlay" id="candidate-modal-overlay" onclick="if (event.target === this) closeCandidateModal()">
   <div class="modal-box" id="candidate-modal-box"></div>
-</div>
-
-<div class="modal-overlay" id="interview-modal-overlay" onclick="if (event.target === this) closeInterviewModal()">
-  <div class="modal-box" id="interview-modal-box"></div>
 </div>
 
 <script>
@@ -1374,7 +1352,7 @@
     showPanel('post');
   }
 
-  const VALID_PANELS = ['jobs', 'candidates', 'interviews', 'post'];
+  const VALID_PANELS = ['jobs', 'candidates', 'post'];
 
   function getPanelFromHash() {
     const hash = (window.location.hash || '').replace('#', '');
@@ -1408,7 +1386,6 @@
   function loadPanelData(name) {
     if (name === 'post') { updatePreview(); resetWizardToStep1(); }
     if (name === 'candidates') loadCandidates();
-    if (name === 'interviews') loadInterviews();
   }
 
   // Every real panel switch changes the URL hash, which is a genuine
@@ -1789,7 +1766,6 @@
 
     candidatesLoaded = true;
     renderCandidates();
-    loadInterviews();
   }
 
   // Which job's candidates are currently shown — always exactly one job.
@@ -1872,11 +1848,6 @@
         ? `<span class="tag status-rejected">Passed</span>`
         : `<span class="tag">New applicant</span>`;
 
-    const interview = getInterviewForApplication(c.applicationId);
-    const interviewBadge = interview
-      ? `<div class="candidate-headline" style="color:var(--brand); font-weight:500;">📅 Interview: ${escapeHtml(formatInterviewDate(interview.scheduledAt))}</div>`
-      : '';
-
     return `
       <div class="candidate-card" data-application-id="${c.applicationId}">
         <div class="candidate-top">
@@ -1887,7 +1858,6 @@
           </div>
         </div>
         ${summarySnippet ? `<div class="candidate-headline">${escapeHtml(summarySnippet)}</div>` : ''}
-        ${interviewBadge}
         <div class="candidate-tags">
           ${statusTag}
           ${skillTags}
@@ -1899,9 +1869,6 @@
           <button class="btn-accept" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'accepted')">Accept</button>
           <button class="btn-pass" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'rejected')">Pass</button>
         </div>
-        <button type="button" class="btn-ai" style="width:100%; justify-content:center; margin-top:8px; padding:9px;" onclick="openInterviewModal('${c.applicationId}', '${c.job ? c.job.id : ''}', '${c.profile.id}', '${escapeJsString(name)}', '${escapeJsString(jobTitle)}');">
-          📅 ${interview ? 'Reschedule interview' : 'Schedule interview'}
-        </button>
       </div>
     `;
   }
@@ -2005,330 +1972,7 @@
         <button class="btn-accept" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'accepted'); closeCandidateModal();">Accept</button>
         <button class="btn-pass" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'rejected'); closeCandidateModal();">Pass</button>
       </div>
-      <button type="button" class="btn-ai" style="width:100%; justify-content:center; margin-top:8px; padding:10px;" onclick="closeCandidateModal(); openInterviewModal('${c.applicationId}', '${c.job ? c.job.id : ''}', '${profile.id}', '${escapeJsString(name)}', '${escapeJsString(jobTitle)}');">
-        📅 ${getInterviewForApplication(c.applicationId) ? 'Reschedule interview' : 'Schedule interview'}
-      </button>
     `;
-  }
-
-  // ---- Interviews ----
-  // Stored in a dedicated `interviews` table, one row per application
-  // (unique constraint on application_id so scheduling twice just
-  // updates the existing interview instead of creating duplicates).
-  // RLS: employers can only read/write interviews where employer_id
-  // matches their own auth.uid() — same pattern as applications/jobs.
-  let interviews = [];
-
-  function escapeJsString(value) {
-    return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-  }
-
-  function getInterviewForApplication(applicationId) {
-    return interviews.find(iv => iv.applicationId === applicationId) || null;
-  }
-
-  function formatInterviewDate(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return '';
-    return d.toLocaleString(undefined, {
-      weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
-    });
-  }
-
-  // Converts an ISO timestamp into the value a <input type="datetime-local">
-  // expects (local time, no timezone suffix), so editing an existing
-  // interview shows the correct pre-filled date/time instead of blank.
-  function toDatetimeLocalValue(iso) {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return '';
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
-
-  async function loadInterviews() {
-    if (!currentUser) return;
-
-    const { data, error } = await sb
-      .from('interviews')
-      .select('id, application_id, job_id, candidate_id, scheduled_at, location_or_link, video_link, notes')
-      .eq('employer_id', currentUser.id)
-      .order('scheduled_at', { ascending: true });
-
-    if (error) {
-      console.error('Failed to load interviews:', error);
-      interviews = [];
-      renderInterviewsPanel();
-      return;
-    }
-
-    const rows = data || [];
-    let profileMap = {};
-
-    if (rows.length > 0) {
-      const candidateIds = [...new Set(rows.map(r => r.candidate_id))];
-      const { data: profilesData, error: profilesError } = await sb
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', candidateIds);
-
-      if (profilesError) console.error('Failed to load candidate names for interviews:', profilesError);
-      (profilesData || []).forEach(p => { profileMap[p.id] = p; });
-    }
-
-    const jobMap = {};
-    jobs.forEach(j => { jobMap[j.id] = j; });
-
-    interviews = rows.map(r => ({
-      id: r.id,
-      applicationId: r.application_id,
-      jobId: r.job_id,
-      candidateId: r.candidate_id,
-      scheduledAt: r.scheduled_at,
-      locationOrLink: r.location_or_link,
-      videoLink: r.video_link,
-      notes: r.notes,
-      candidateName: profileMap[r.candidate_id]?.full_name || 'Candidate',
-      jobTitle: jobMap[r.job_id]?.title || 'a job'
-    }));
-
-    renderInterviewsPanel();
-    // Refresh candidate cards too, so the "Schedule interview" /
-    // "Reschedule interview" badges stay accurate if that panel is
-    // already on screen.
-    if (candidatesLoaded) renderCandidates();
-  }
-
-  function renderInterviewsPanel() {
-    const listEl = document.getElementById('interviews-list');
-    if (!listEl) return;
-
-    if (interviews.length === 0) {
-      listEl.innerHTML = `
-        <div class="empty-state" id="interviews-empty-state">
-          <div class="empty-icon">📅</div>
-          <div class="empty-title">No interviews scheduled yet</div>
-          Go to Candidates and click "Schedule interview" on a candidate to set one up.
-        </div>`;
-      return;
-    }
-
-    listEl.innerHTML = interviews.map(iv => {
-      const metaParts = [
-        formatInterviewDate(iv.scheduledAt),
-        iv.locationOrLink || null
-      ].filter(Boolean).join(' · ');
-
-      const videoLinkHtml = iv.videoLink
-        ? `<div class="job-meta" style="margin-top:2px;"><a href="${escapeHtml(iv.videoLink)}" target="_blank" rel="noopener" style="color:var(--brand);">${escapeHtml(iv.videoLink)}</a></div>`
-        : '';
-
-      return `
-      <div class="job-row">
-        <div class="job-status active"></div>
-        <div class="job-info">
-          <div class="job-title-text">${escapeHtml(iv.candidateName)} — ${escapeHtml(iv.jobTitle)}</div>
-          <div class="job-meta">${escapeHtml(metaParts)}</div>
-          ${videoLinkHtml}
-          ${iv.notes ? `<div class="job-meta" style="margin-top:4px;">${escapeHtml(iv.notes)}</div>` : ''}
-        </div>
-        <div class="job-actions">
-          <button class="btn-view" onclick="openInterviewModal('${iv.applicationId}', '${iv.jobId}', '${iv.candidateId}', '${escapeJsString(iv.candidateName)}', '${escapeJsString(iv.jobTitle)}')">Edit</button>
-          <button class="btn-danger" onclick="cancelInterview('${iv.id}')">Cancel</button>
-        </div>
-      </div>
-    `;
-    }).join('');
-  }
-
-  function openInterviewModal(applicationId, jobId, candidateId, candidateName, jobTitle) {
-    const existing = getInterviewForApplication(applicationId);
-
-    const scheduledAtLocal = existing ? toDatetimeLocalValue(existing.scheduledAt) : '';
-    const locationVal = existing ? (existing.locationOrLink || '') : '';
-    const videoLinkVal = existing ? (existing.videoLink || '') : '';
-    const notesVal = existing ? (existing.notes || '') : '';
-
-    document.getElementById('interview-modal-box').innerHTML = `
-      <button type="button" class="modal-close" onclick="closeInterviewModal()" aria-label="Close">✕</button>
-      <div class="modal-top">
-        <div class="modal-avatar">${escapeHtml(getInitials(candidateName))}</div>
-        <div>
-          <div class="modal-name">${existing ? 'Edit interview' : 'Schedule interview'}</div>
-          <div class="modal-role">${escapeHtml(candidateName)} — ${escapeHtml(jobTitle)}</div>
-        </div>
-      </div>
-
-      <div class="form-group" style="margin-top:16px;">
-        <label class="form-label">Date & time</label>
-        <input type="datetime-local" class="form-input" id="iv-datetime" value="${escapeHtml(scheduledAtLocal)}">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Location <span style="text-transform:none; font-weight:400;">(optional if remote)</span></label>
-        <div class="chip-search-wrap">
-          <input type="text" class="form-input" id="iv-location" placeholder="Start typing a city, like Raleigh, NC" autocomplete="off"
-            value="${escapeHtml(locationVal)}"
-            oninput="renderIvLocationSuggestions();"
-            onfocus="renderIvLocationSuggestions();"
-            onblur="setTimeout(hideIvLocationSuggestions, 150)">
-          <div class="chip-results" id="iv-location-suggestions"></div>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Video link <span style="text-transform:none; font-weight:400;">(optional)</span></label>
-        <input type="text" class="form-input" id="iv-video-link" placeholder="e.g. Zoom, Google Meet, or Teams link" value="${escapeHtml(videoLinkVal)}">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Notes <span style="text-transform:none; font-weight:400;">(optional)</span></label>
-        <textarea class="form-input" id="iv-notes" placeholder="Anything to remember for this interview...">${escapeHtml(notesVal)}</textarea>
-      </div>
-
-      <div class="modal-actions">
-        <button class="btn-accept" onclick="saveInterview('${applicationId}', '${jobId}', '${candidateId}')">${existing ? 'Save changes' : 'Schedule'}</button>
-        ${existing
-          ? `<button class="btn-pass" onclick="cancelInterview('${existing.id}'); closeInterviewModal();">Cancel interview</button>`
-          : `<button class="btn-pass" onclick="closeInterviewModal()">Cancel</button>`}
-      </div>
-    `;
-
-    document.getElementById('interview-modal-overlay').classList.add('show');
-  }
-
-  // City suggestions for the interview location field — reuses the same
-  // KNOWN_CITIES list the Post a Job location step uses, but with its own
-  // element IDs (iv-location / iv-location-suggestions) since this modal's
-  // HTML is regenerated fresh each time it opens.
-  function renderIvLocationSuggestions() {
-    const input = document.getElementById('iv-location');
-    const box = document.getElementById('iv-location-suggestions');
-    if (!input || !box) return;
-
-    const query = input.value.trim().toLowerCase();
-    const matches = (query === ''
-      ? KNOWN_CITIES
-      : KNOWN_CITIES.filter(c => c.toLowerCase().includes(query))
-    ).slice(0, MAX_RESULTS_SHOWN);
-
-    if (matches.length === 0) {
-      box.classList.remove('show');
-      box.innerHTML = '';
-      return;
-    }
-
-    box.innerHTML = matches.map(city => {
-      const escaped = city.replace(/'/g, "\\'");
-      return `<div class="chip-result-row" onmousedown="event.preventDefault(); selectIvLocationSuggestion('${escaped}')">${escapeHtml(city)}</div>`;
-    }).join('');
-    box.classList.add('show');
-  }
-
-  function selectIvLocationSuggestion(city) {
-    const input = document.getElementById('iv-location');
-    if (input) input.value = city;
-    hideIvLocationSuggestions();
-  }
-
-  function hideIvLocationSuggestions() {
-    const box = document.getElementById('iv-location-suggestions');
-    if (box) box.classList.remove('show');
-  }
-
-
-  function closeInterviewModal() {
-    document.getElementById('interview-modal-overlay').classList.remove('show');
-  }
-
-  async function saveInterview(applicationId, jobId, candidateId) {
-    const datetimeVal = document.getElementById('iv-datetime').value;
-    const locationVal = document.getElementById('iv-location').value.trim();
-    const videoLinkVal = document.getElementById('iv-video-link').value.trim();
-    const notesVal = document.getElementById('iv-notes').value.trim();
-
-    if (!datetimeVal) {
-      showToast('Pick a date and time for the interview.');
-      return;
-    }
-
-    const scheduledAtIso = new Date(datetimeVal).toISOString();
-
-    const { error } = await sb
-      .from('interviews')
-      .upsert({
-        application_id: applicationId,
-        job_id: jobId,
-        candidate_id: candidateId,
-        employer_id: currentUser.id,
-        scheduled_at: scheduledAtIso,
-        location_or_link: locationVal || null,
-        video_link: videoLinkVal || null,
-        notes: notesVal || null
-      }, { onConflict: 'application_id' });
-
-    if (error) {
-      console.error('Failed to save interview:', error);
-      showToast('Could not save the interview. Try again.');
-      return;
-    }
-
-    showToast('Interview saved.');
-    closeInterviewModal();
-    await loadInterviews();
-
-    // Best-effort — a failed email shouldn't undo the interview that
-    // already saved successfully, so this is fire-and-forget with just a
-    // console warning (and a follow-up toast) if it doesn't go through.
-    notifyCandidateOfInterview({
-      candidateId,
-      jobId,
-      scheduledAtIso,
-      locationVal,
-      videoLinkVal,
-      notesVal
-    });
-  }
-
-  async function notifyCandidateOfInterview({ candidateId, jobId, scheduledAtIso, locationVal, videoLinkVal, notesVal }) {
-    const job = jobs.find(j => j.id === jobId);
-    const jobTitle = job ? job.title : 'the role';
-    const companyName = currentProfile?.company_name || document.getElementById('nav-user-name').textContent || '';
-
-    try {
-      const { data, error: emailError } = await sb.functions.invoke('send-interview-email', {
-        body: {
-          candidate_id: candidateId,
-          job_title: jobTitle,
-          company_name: companyName,
-          formatted_datetime: formatInterviewDate(scheduledAtIso) + ' (employer\'s local time)',
-          location: locationVal || null,
-          video_link: videoLinkVal || null,
-          notes: notesVal || null
-        }
-      });
-
-      if (emailError || !data?.success) {
-        console.error('Failed to send interview email:', emailError || data);
-        showToast('Interview saved, but the notification email did not send.');
-      }
-    } catch (err) {
-      console.error('notifyCandidateOfInterview error:', err);
-      showToast('Interview saved, but the notification email did not send.');
-    }
-  }
-
-  async function cancelInterview(interviewId) {
-    const { error } = await sb
-      .from('interviews')
-      .delete()
-      .eq('id', interviewId);
-
-    if (error) {
-      console.error('Failed to cancel interview:', error);
-      showToast('Could not cancel the interview. Try again.');
-      return;
-    }
-
-    showToast('Interview cancelled.');
-    await loadInterviews();
   }
 
   // Resumes live in a private bucket — a plain link won't carry the
