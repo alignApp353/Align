@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
 :root{
   --brand:#5D7FA3;
@@ -152,6 +152,26 @@ button{cursor:pointer}
   .location-grid .full{grid-column:auto}
 }
 </style>
+
+<style id="candidate-preferences-light-redesign">
+:root{--brand:#5D7FA3;--brand-dark:#35679A;--sage:#8CB69B;--bg:#F5F8F8;--card:#FFFFFF;--card-2:#F8FAFB;--text:#172333;--muted:#66788A;--border:#DCE5EB;--mint:#359762;--rose:#B95D5D;--shadow:0 12px 32px rgba(23,35,51,.05)}
+html,body{background:var(--bg)!important;color:var(--text)!important}
+body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparent 27%),var(--bg)!important}
+.app{max-width:560px;padding:calc(16px + env(safe-area-inset-top)) 18px calc(32px + env(safe-area-inset-bottom))}
+.topbar{display:grid;grid-template-columns:70px 1fr 70px;min-height:56px;align-items:center}.back{font-size:12px;color:var(--brand-dark);text-align:left}.logo{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:30px;font-weight:400;letter-spacing:0}
+.step-label{margin-top:20px;font-size:10px}.progress{height:7px;background:#E7EDF1}.progress-fill{background:var(--brand-dark)}
+.eyebrow{margin-top:28px;font-size:9px;color:var(--brand-dark)}.title{font-size:31px;letter-spacing:-.8px}.subtitle{margin-top:9px;font-size:13px;line-height:1.55}
+.card{margin-top:17px;background:#fff;border-color:var(--border);border-radius:22px;padding:18px;box-shadow:var(--shadow)}
+.field-label{font-size:9px}.input,.select{min-height:50px;background:#FAFCFD;color:var(--text);border-color:var(--border);border-radius:15px}.input::placeholder{color:#96A2AD}
+.option{background:#FAFCFD;color:var(--text);border-color:var(--border);border-radius:17px;padding:15px}.option.active{border-color:#AFCBDD;background:#EEF5F9}.option-title{font-size:13px}.option-sub{font-size:10px}.check{border-color:#C8D3DB}.option.active .check{background:var(--brand-dark);border-color:var(--brand-dark)}
+.salary-range{font-size:27px}.range-track{background:#E7EDF1}.range-fill{background:var(--brand-dark)}
+.chip{background:#FAFCFD;color:var(--text);border-color:var(--border);padding:9px 12px;font-size:10px}.chip.active{background:var(--brand-dark);border-color:var(--brand-dark);color:#fff}
+.summary-row{background:#FAFCFD;border-color:var(--border)}.summary-key{font-size:9px}.summary-value{font-size:12px}
+.actions{gap:9px;margin-top:20px}.btn{min-height:50px;border-radius:15px;font-size:11px}.btn-secondary{background:#fff}.btn-primary{background:var(--brand-dark)}
+.message.error{background:#FDEEEE;color:var(--rose);border-color:#F1CCCC}.message.success{background:#E8F4EC;color:#2F8354;border-color:#CDE4D5}
+@media(max-width:420px){.title{font-size:29px}.actions{grid-template-columns:1fr 1.25fr}}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -575,11 +595,13 @@ async function initialize(){
     profile?.resume_file_path ||
     profile?.resume_url ||
     profile?.resume_text ||
-    Object.keys(resumeData).length
+    resumeData?.personal ||
+    (Array.isArray(resumeData?.experience) && resumeData.experience.length) ||
+    (Array.isArray(resumeData?.skills) && resumeData.skills.length)
   );
 
   if(!hasResume){
-    window.location.replace('app-align-upload.html');
+    window.location.replace('app-account.html?setup=required');
     return;
   }
 
