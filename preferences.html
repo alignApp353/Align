@@ -342,7 +342,7 @@
       <span>Swipe</span>
     </div>
   </div>
-  <a href="align-upload.html" class="nav-back">← Back</a>
+  <a href="align-upload.html" class="nav-back" id="preferences-back-link">← Back</a>
 </nav>
 
 <div class="page">
@@ -1203,6 +1203,15 @@
     if (sessionError) {
       console.error('Failed to get session', sessionError);
       return;
+    }
+
+    const backLink = document.getElementById('preferences-back-link');
+
+    // If this is an existing logged-in candidate editing preferences,
+    // Back should return to their account — not restart resume onboarding.
+    if (session?.user && backLink) {
+      backLink.href = 'account.html';
+      backLink.setAttribute('aria-label', 'Back to account');
     }
 
     // New-user onboarding flow — use any preferences saved before login, otherwise defaults.
