@@ -1087,8 +1087,20 @@ body[data-theme="dark"] .matches-lock{background:#101A23}
 </style>
 
 
+<style id="candidate-activity-tweaks">
+#snapshot-section .quick-card[role="button"]{cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+#snapshot-section .quick-card[role="button"]:active{transform:scale(.985)}
+#snapshot-section .quick-card[role="button"]:focus-visible{outline:3px solid rgba(53,103,154,.20);outline-offset:2px}
+</style>
+
+
 <script src="app-candidate-theme.js"></script>
 <link rel="stylesheet" href="app-candidate-theme.css">
+
+<style id="completed-dashboard-flash-fix">
+body[data-profile-complete="true"] #profile-hero{display:none!important}
+</style>
+
 </head>
 
 <body>
@@ -1255,39 +1267,39 @@ body[data-theme="dark"] .matches-lock{background:#101A23}
     </div>
   </section>
 
-  <!-- SNAPSHOT -->
+  <!-- ACTIVITY -->
   <section class="section" id="snapshot-section">
     <div class="section-head">
-      <div class="section-title">Your snapshot</div>
+      <div class="section-title">Your activity</div>
     </div>
 
     <div class="quick-grid">
-      <article class="quick-card">
+      <article class="quick-card" onclick="window.location.href='app-applied.html'" role="button" tabindex="0">
+        <div class="quick-icon amber">◈</div>
+        <div class="quick-label">Applications</div>
+        <div class="quick-value" id="application-count">0</div>
+        <div class="quick-note" id="application-note">Applications connected to your profile.</div>
+      </article>
+
+      <article class="quick-card" onclick="window.location.href='app-swipe.html'" role="button" tabindex="0">
+        <div class="quick-icon green">◎</div>
+        <div class="quick-label">Job Matching</div>
+        <div class="quick-value" id="matching-value">On</div>
+        <div class="quick-note" id="matching-note">Alygnn is ready to match jobs to your preferences.</div>
+      </article>
+
+      <article class="quick-card" onclick="window.location.href='app-resume-preview.html'" role="button" tabindex="0">
         <div class="quick-icon" id="resume-icon">▤</div>
         <div class="quick-label">Resume</div>
         <div class="quick-value" id="resume-value">Checking</div>
         <div class="quick-note" id="resume-note">Reviewing your resume status.</div>
       </article>
 
-      <article class="quick-card">
+      <article class="quick-card" onclick="window.location.href='app-preferences.html?edit=1'" role="button" tabindex="0">
         <div class="quick-icon green" id="preference-icon">◎</div>
         <div class="quick-label">Preferences</div>
         <div class="quick-value" id="preference-value">Checking</div>
         <div class="quick-note" id="preference-note">Checking your job preferences.</div>
-      </article>
-
-      <article class="quick-card">
-        <div class="quick-icon amber">◈</div>
-        <div class="quick-label">Applied Jobs</div>
-        <div class="quick-value" id="application-count">0</div>
-        <div class="quick-note" id="application-note">Applications connected to your profile.</div>
-      </article>
-
-      <article class="quick-card">
-        <div class="quick-icon gray">✓</div>
-        <div class="quick-label">Profile</div>
-        <div class="quick-value" id="profile-value">Ready</div>
-        <div class="quick-note" id="profile-note">Your Alygnn identity and contact information.</div>
       </article>
     </div>
   </section>
@@ -1644,6 +1656,11 @@ function setCandidateTheme(theme){
 
 function refreshCandidateSettingsUI(){
   const theme=getCandidateTheme();
+
+  if(window.AlygnnCandidateTheme){
+    window.AlygnnCandidateTheme.apply(theme);
+  }
+
   document.body.dataset.theme=theme;
 
   document.querySelectorAll('[data-theme-option]')
@@ -1967,16 +1984,30 @@ function renderCandidateOnboardingGate({hasResume,previewReviewed,preferencesCom
   lockCandidateNavigation(!complete);
 
   if(complete){
+    document.body.dataset.profileComplete='true';
     if(panel) panel.hidden=true;
-    if(hero) hero.hidden=false;
+
+    // Once onboarding is complete, the large completion hero is no longer useful.
+    if(hero) hero.hidden=true;
+
     if(snapshot) snapshot.hidden=false;
     if(profileSection) profileSection.hidden=false;
     if(setup) setup.hidden=true;
+
+    const completeActions=$('complete-actions');
+    if(completeActions)completeActions.classList.add('show');
+
+    $('lead').textContent='Your profile is ready. Start reviewing jobs matched to your preferences.';
     return;
   }
 
+  document.body.dataset.profileComplete='false';
   if(panel) panel.hidden=false;
   if(hero) hero.hidden=true;
+
+  const completeActions=$('complete-actions');
+  if(completeActions)completeActions.classList.remove('show');
+
   if(snapshot) snapshot.hidden=true;
   if(profileSection) profileSection.hidden=true;
   if(setup) setup.hidden=true;
@@ -2304,7 +2335,7 @@ async function loadCandidateWorkspace(){
 
     if(hasResume){
       $('resume-value').textContent='Ready';
-      $('resume-note').textContent='Your resume is connected to Alygnn.';
+      $('resume-note').textContent='View or update the resume employers will see.';
       $('resume-icon').classList.add('green');
 
       setSetupDone(
@@ -2330,7 +2361,7 @@ async function loadCandidateWorkspace(){
 
     if(preferencesComplete){
       $('preference-value').textContent='Ready';
-      $('preference-note').textContent='Your match preferences are complete.';
+      $('preference-note').textContent='Edit industries, location, pay, or work style.';
 
       setSetupDone(
         $('preferences-setup'),
@@ -2356,18 +2387,22 @@ async function loadCandidateWorkspace(){
 
     $('application-note').textContent=
       applicationCount
-        ?`${applicationCount} job application${applicationCount===1?'':'s'} on Alygnn.`
-        :'Your applications will appear here as you swipe and apply.';
+        ?`${applicationCount} application${applicationCount===1?'':'s'} submitted through Alygnn.`
+        :'Applications you submit will appear here.';
 
-    $('profile-value').textContent=
-      hasProfileDetails
-        ?'Ready'
-        :'Finish';
+    if($('profile-value')){
+      $('profile-value').textContent=
+        hasProfileDetails
+          ?'Ready'
+          :'Finish';
+    }
 
-    $('profile-note').textContent=
-      hasProfileDetails
-        ?'Your identity and profile details are connected.'
-        :'Add your location or professional information.';
+    if($('profile-note')){
+      $('profile-note').textContent=
+        hasProfileDetails
+          ?'Your identity and profile details are connected.'
+          :'Add your location or professional information.';
+    }
 
     if(
       hasResume &&
@@ -2427,9 +2462,6 @@ async function logoutUser(){
   );
 }
 
-if(window.AlygnnCandidateTheme){
-  window.AlygnnCandidateTheme.apply(getCandidateTheme());
-}
 document.body.dataset.theme=getCandidateTheme();
 $('dashboard-resume-input')?.addEventListener('change',event=>{
   const file=event.target.files?.[0];
