@@ -788,6 +788,7 @@ const sb=supabase.createClient(
 let session=null;
 let job=null;
 let currentApplication=null;
+let currentPassed=false;
 let toastTimer=null;
 
 function escapeHtml(value){
@@ -1009,13 +1010,23 @@ function setApplicationActions(){
     secondary.textContent='My Jobs';
     primary.textContent='Withdraw Application';
     primary.classList.add('withdraw-mode');
-  }else{
-    secondary.textContent='Not for me';
-    primary.textContent='Apply now';
+    return;
   }
+
+  if(currentPassed){
+    secondary.textContent='Back to Passed';
+    primary.textContent='Apply now';
+    return;
+  }
+
+  secondary.textContent='Not for me';
+  primary.textContent='Apply now';
 }
 
 async function syncApplicationState(){
+  currentApplication=null;
+  currentPassed=false;
+
   try{
     const {data:existing,error}=await sb
       .from('applications')
@@ -1030,7 +1041,23 @@ async function syncApplicationState(){
     currentApplication=existing||null;
   }catch(error){
     console.warn('Could not check application status:',error);
-    currentApplication=null;
+  }
+
+  if(!currentApplication){
+    try{
+      const {data:passed,error}=await sb
+        .from('skipped_jobs')
+        .select('job_id')
+        .eq('candidate_id',session.user.id)
+        .eq('job_id',job.id)
+        .maybeSingle();
+
+      if(error)throw error;
+      currentPassed=Boolean(passed);
+    }catch(error){
+      console.warn('Could not check passed-job status:',error);
+      currentPassed=false;
+    }
   }
 
   setApplicationActions();
@@ -1075,6 +1102,21 @@ async function applyToJob(){
     if(error)throw error;
 
     currentApplication=created;
+
+    if(currentPassed){
+      const {error:removePassedError}=await sb
+        .from('skipped_jobs')
+        .delete()
+        .eq('candidate_id',session.user.id)
+        .eq('job_id',job.id);
+
+      if(removePassedError){
+        console.warn('Application submitted, but passed-job cleanup failed:',removePassedError);
+      }else{
+        currentPassed=false;
+      }
+    }
+
     setApplicationActions();
     showToast('Application submitted');
   }catch(error){
@@ -1168,6 +1210,14 @@ document.getElementById('back-btn').addEventListener('click',()=>{
     return;
   }
 
+  const fromPassed=
+    new URLSearchParams(window.location.search).get('from')==='passed';
+
+  if(fromPassed){
+    window.location.href='app-applied.html?tab=passed';
+    return;
+  }
+
   if(history.length>1)history.back();
   else window.location.href='app-swipe.html';
 });
@@ -1183,6 +1233,11 @@ document.getElementById('save-btn').addEventListener('click',event=>{
 document.getElementById('pass-btn').addEventListener('click',()=>{
   if(currentApplication){
     window.location.href='app-applied.html';
+    return;
+  }
+
+  if(currentPassed){
+    window.location.href='app-applied.html?tab=passed';
     return;
   }
 
