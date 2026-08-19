@@ -3450,16 +3450,76 @@ async function loadCandidateWorkspace(){
       .join(' ')
       .trim();
 
-    const name=
+    const signupName=
+      [
+        meta.first_name,
+        meta.last_name
+      ]
+      .map(value=>safeString(value))
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    const emailFallback=
+      titleFromEmail(email);
+
+    const profileName=
       safeString(
         profile?.full_name ||
-        profile?.name ||
+        profile?.name
+      );
+
+    const normalizePersonName=value=>
+      safeString(value)
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g,'');
+
+    const profileLooksLikeEmail=
+      Boolean(
+        profileName &&
+        normalizePersonName(profileName)===
+          normalizePersonName(emailFallback)
+      );
+
+    const name=
+      safeString(
+        (!profileLooksLikeEmail && profileName) ||
         meta.full_name ||
         meta.name ||
+        signupName ||
         resumeData.name ||
         resumeName ||
-        titleFromEmail(email)
+        emailFallback
       );
+
+    // Older profile creation logic could save the email username as the
+    // candidate's name. Repair that automatically when signup metadata
+    // contains the real first and last name.
+    if(
+      signupName &&
+      profileLooksLikeEmail
+    ){
+      try{
+        const {error:nameRepairError}=await sb
+          .from('profiles')
+          .update({
+            full_name:signupName
+          })
+          .eq('id',user.id);
+
+        if(nameRepairError){
+          console.warn(
+            'Could not repair candidate profile name:',
+            nameRepairError
+          );
+        }
+      }catch(nameRepairError){
+        console.warn(
+          'Candidate profile name repair unavailable:',
+          nameRepairError
+        );
+      }
+    }
 
     const location=
       safeString(
