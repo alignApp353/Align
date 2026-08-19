@@ -168,6 +168,48 @@ button{cursor:pointer}
 .suggestion-item:last-child{border-bottom:0}
 .suggestion-item:active{background:#F1F6F9}
 .suggestion-muted{display:block;margin-top:2px;color:var(--muted);font-size:10px;font-weight:700}
+
+.industry-search-wrap{
+  margin-top:22px;
+  padding-top:20px;
+  border-top:1px solid var(--border);
+}
+.industry-search-label{
+  color:var(--text);
+  font-size:14px;
+  font-weight:900;
+}
+.industry-search-copy{
+  margin:5px 0 12px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.45;
+}
+.industry-add-btn{
+  width:100%;
+  min-height:48px;
+  margin-top:10px;
+  border:1px dashed var(--brand);
+  border-radius:15px;
+  background:transparent;
+  color:var(--brand);
+  font-size:13px;
+  font-weight:900;
+}
+.chip.custom-industry{
+  position:relative;
+  padding-right:34px;
+}
+.chip.custom-industry::after{
+  content:'×';
+  position:absolute;
+  right:12px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:17px;
+  line-height:1;
+}
+
 </style>
 
 <style id="candidate-preferences-light-redesign">
@@ -205,43 +247,43 @@ body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparen
   <section class="screen active" data-step="1">
     <div class="eyebrow">Industries</div>
     <div class="title">Which industries interest you?</div>
-    <div class="subtitle">Choose as many as you want. Alygnn will use these to narrow your matches.</div>
+    <div class="subtitle">Choose the main industries that interest you. If yours is not listed, type it below.</div>
     <div class="card">
       <div class="chips" id="industryOptions">
         <button class="chip" data-value="Technology" onclick="toggleChip(this)">Technology</button>
-        <button class="chip" data-value="Healthcare & Medical" onclick="toggleChip(this)">Healthcare & Medical</button>
-        <button class="chip" data-value="Finance & Banking" onclick="toggleChip(this)">Finance & Banking</button>
-        <button class="chip" data-value="Accounting" onclick="toggleChip(this)">Accounting</button>
-        <button class="chip" data-value="Insurance" onclick="toggleChip(this)">Insurance</button>
+        <button class="chip" data-value="Healthcare" onclick="toggleChip(this)">Healthcare</button>
+        <button class="chip" data-value="Finance" onclick="toggleChip(this)">Finance</button>
         <button class="chip" data-value="Education" onclick="toggleChip(this)">Education</button>
-        <button class="chip" data-value="Government / Public Sector" onclick="toggleChip(this)">Government</button>
-        <button class="chip" data-value="Nonprofit" onclick="toggleChip(this)">Nonprofit</button>
-        <button class="chip" data-value="Telecommunications" onclick="toggleChip(this)">Telecommunications</button>
-        <button class="chip" data-value="Media & Entertainment" onclick="toggleChip(this)">Media & Entertainment</button>
-        <button class="chip" data-value="Marketing & Advertising" onclick="toggleChip(this)">Marketing & Advertising</button>
-        <button class="chip" data-value="Retail & E-commerce" onclick="toggleChip(this)">Retail & E-commerce</button>
-        <button class="chip" data-value="Hospitality & Tourism" onclick="toggleChip(this)">Hospitality & Tourism</button>
-        <button class="chip" data-value="Food & Beverage" onclick="toggleChip(this)">Food & Beverage</button>
+        <button class="chip" data-value="Government" onclick="toggleChip(this)">Government</button>
+        <button class="chip" data-value="Retail" onclick="toggleChip(this)">Retail</button>
+        <button class="chip" data-value="Hospitality" onclick="toggleChip(this)">Hospitality</button>
         <button class="chip" data-value="Real Estate" onclick="toggleChip(this)">Real Estate</button>
-        <button class="chip" data-value="Property Management" onclick="toggleChip(this)">Property Management</button>
         <button class="chip" data-value="Construction" onclick="toggleChip(this)">Construction</button>
-        <button class="chip" data-value="Architecture & Engineering" onclick="toggleChip(this)">Architecture & Engineering</button>
         <button class="chip" data-value="Manufacturing" onclick="toggleChip(this)">Manufacturing</button>
-        <button class="chip" data-value="Automotive" onclick="toggleChip(this)">Automotive</button>
         <button class="chip" data-value="Transportation & Logistics" onclick="toggleChip(this)">Transportation & Logistics</button>
-        <button class="chip" data-value="Warehousing & Distribution" onclick="toggleChip(this)">Warehousing & Distribution</button>
-        <button class="chip" data-value="Energy & Utilities" onclick="toggleChip(this)">Energy & Utilities</button>
-        <button class="chip" data-value="Clean Energy" onclick="toggleChip(this)">Clean Energy</button>
-        <button class="chip" data-value="Legal Services" onclick="toggleChip(this)">Legal Services</button>
-        <button class="chip" data-value="Consulting / Professional Services" onclick="toggleChip(this)">Consulting</button>
-        <button class="chip" data-value="Staffing & Recruiting" onclick="toggleChip(this)">Staffing & Recruiting</button>
-        <button class="chip" data-value="Pharmaceuticals & Biotechnology" onclick="toggleChip(this)">Pharma & Biotech</button>
-        <button class="chip" data-value="Aerospace & Defense" onclick="toggleChip(this)">Aerospace & Defense</button>
-        <button class="chip" data-value="Agriculture" onclick="toggleChip(this)">Agriculture</button>
-        <button class="chip" data-value="Consumer Goods" onclick="toggleChip(this)">Consumer Goods</button>
-        <button class="chip" data-value="Beauty & Wellness" onclick="toggleChip(this)">Beauty & Wellness</button>
-        <button class="chip" data-value="Sports & Fitness" onclick="toggleChip(this)">Sports & Fitness</button>
-        <button class="chip" data-value="Security" onclick="toggleChip(this)">Security</button>
+        <button class="chip" data-value="Marketing & Media" onclick="toggleChip(this)">Marketing & Media</button>
+      </div>
+
+      <div class="industry-search-wrap">
+        <div class="industry-search-label">Don't see your industry?</div>
+        <div class="industry-search-copy">Type 3 letters to search, or enter your own.</div>
+
+        <div class="field-suggest">
+          <input
+            id="industrySearch"
+            class="input"
+            type="text"
+            placeholder="e.g. Tel, Leg, Non"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+          >
+          <div id="industrySuggestions" class="suggestion-list"></div>
+        </div>
+
+        <button class="industry-add-btn" id="industryAddBtn" type="button" onclick="addCustomIndustry()">
+          + Add Industry
+        </button>
       </div>
     </div>
   </section>
@@ -471,6 +513,133 @@ function collectPreferences(){
   };
 }
 
+
+const INDUSTRY_SUGGESTIONS=[
+  'Accounting','Aerospace & Defense','Agriculture','Architecture & Engineering',
+  'Automotive','Beauty & Wellness','Biotechnology','Business Services',
+  'Clean Energy','Consumer Goods','Consulting','Cybersecurity',
+  'E-commerce','Energy & Utilities','Entertainment','Environmental Services',
+  'Food & Beverage','Human Resources','Insurance','Legal Services',
+  'Media','Nonprofit','Pharmaceuticals','Property Management',
+  'Public Safety','Security','Sports & Fitness','Staffing & Recruiting',
+  'Telecommunications','Travel & Tourism','Warehousing & Distribution'
+];
+
+function normalizeIndustry(value){
+  return String(value||'').trim().replace(/\s+/g,' ');
+}
+
+function selectedIndustryNames(){
+  return selectedValues('industryOptions','.chip.active')
+    .map(normalizeIndustry)
+    .filter(Boolean);
+}
+
+function hideIndustrySuggestions(){
+  const box=document.getElementById('industrySuggestions');
+  if(box){
+    box.classList.remove('show');
+    box.innerHTML='';
+  }
+}
+
+function renderIndustrySuggestions(){
+  const input=document.getElementById('industrySearch');
+  const box=document.getElementById('industrySuggestions');
+  const q=normalizeIndustry(input.value).toLowerCase();
+
+  if(q.length<3){
+    hideIndustrySuggestions();
+    return;
+  }
+
+  const already=new Set(selectedIndustryNames().map(v=>v.toLowerCase()));
+
+  const matches=INDUSTRY_SUGGESTIONS
+    .filter(industry=>
+      industry.toLowerCase().includes(q) &&
+      !already.has(industry.toLowerCase())
+    )
+    .sort((a,b)=>{
+      const aa=a.toLowerCase(),bb=b.toLowerCase();
+      const aStart=aa.startsWith(q)?0:1;
+      const bStart=bb.startsWith(q)?0:1;
+      return aStart-bStart||aa.localeCompare(bb);
+    })
+    .slice(0,7);
+
+  if(!matches.length){
+    hideIndustrySuggestions();
+    return;
+  }
+
+  box.innerHTML=matches.map((industry,index)=>`
+    <button type="button" class="suggestion-item" data-index="${index}">
+      ${industry}
+      <span class="suggestion-muted">Add this industry</span>
+    </button>
+  `).join('');
+
+  box.querySelectorAll('.suggestion-item').forEach(btn=>{
+    btn.onclick=()=>{
+      addIndustryChip(matches[Number(btn.dataset.index)]);
+      input.value='';
+      hideIndustrySuggestions();
+    };
+  });
+
+  box.classList.add('show');
+}
+
+function addIndustryChip(value,active=true){
+  const industry=normalizeIndustry(value);
+  if(!industry)return;
+
+  const existing=[...document.querySelectorAll('#industryOptions .chip')]
+    .find(el=>String(el.dataset.value||'').toLowerCase()===industry.toLowerCase());
+
+  if(existing){
+    if(active)existing.classList.add('active');
+    return;
+  }
+
+  const button=document.createElement('button');
+  button.type='button';
+  button.className='chip custom-industry'+(active?' active':'');
+  button.dataset.value=industry;
+  button.dataset.custom='1';
+  button.textContent=industry;
+  button.onclick=()=>{
+    // Custom choices can be removed with one tap.
+    button.remove();
+  };
+
+  document.getElementById('industryOptions').appendChild(button);
+}
+
+function addCustomIndustry(){
+  const input=document.getElementById('industrySearch');
+  const value=normalizeIndustry(input.value);
+
+  if(!value){
+    showMessage('Type an industry before adding it.');
+    return;
+  }
+
+  addIndustryChip(value,true);
+  input.value='';
+  hideIndustrySuggestions();
+  clearMessage();
+}
+
+document.getElementById('industrySearch').addEventListener('input',renderIndustrySuggestions);
+document.getElementById('industrySearch').addEventListener('keydown',event=>{
+  if(event.key==='Enter'){
+    event.preventDefault();
+    addCustomIndustry();
+  }
+});
+
 const JOB_TITLE_SUGGESTIONS=[
   'Account Executive','Account Manager','Accountant','Administrative Assistant',
   'Analyst','Assistant Manager','Business Analyst','Business Development Manager',
@@ -539,7 +708,10 @@ function renderRoleSuggestions(){
 document.getElementById('role').addEventListener('input',renderRoleSuggestions);
 
 document.addEventListener('click',event=>{
-  if(!event.target.closest('.field-suggest'))hideRoleSuggestions();
+  if(!event.target.closest('.field-suggest')){
+    hideRoleSuggestions();
+    hideIndustrySuggestions();
+  }
 });
 
 function validateStep(){
@@ -659,8 +831,15 @@ function prefill(saved){
     });
   }
   if(Array.isArray(saved.industries)){
-    document.querySelectorAll('#industryOptions .chip').forEach(el=>{
+    const builtIn=[...document.querySelectorAll('#industryOptions .chip')];
+
+    builtIn.forEach(el=>{
       el.classList.toggle('active',saved.industries.includes(el.dataset.value));
+    });
+
+    saved.industries.forEach(industry=>{
+      const exists=builtIn.some(el=>el.dataset.value===industry);
+      if(!exists)addIndustryChip(industry,true);
     });
   }
   updateSalary();
