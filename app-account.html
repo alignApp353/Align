@@ -1802,18 +1802,144 @@ function parseObject(value){
   return {};
 }
 
-function getGreeting(name){
-  const hour=new Date().getHours();
+let activeCandidateName='';
 
-  let part='Welcome back';
+const ALYGNN_TIME_MESSAGES={
+  late:[
+    "Late-night job hunt? Alygnn's still awake.",
+    "Still up? Your next move might be too.",
+    "Midnight motivation hits different.",
+    "Sleep can wait a minute. That next opportunity might not.",
+    "One more scroll. Make it a good one.",
+    "The job market doesn't have a bedtime.",
+    "Quiet hours. Loud ambitions."
+  ],
+  morning:[
+    "Coffee's optional — finding a better match isn't.",
+    "New day. New jobs. Same ambition.",
+    "Morning. Let's find something worth getting up for.",
+    "Your coffee can cool down. The job search can't.",
+    "Start the day with better options.",
+    "Fresh morning, fresh matches.",
+    "Before the inbox gets loud, make a move."
+  ],
+  afternoon:[
+    "Plenty of day left to make a move.",
+    "The day's not over. Neither is the search.",
+    "Afternoon slump? A better job might fix that.",
+    "Keep the momentum going.",
+    "A good opportunity beats another coffee break.",
+    "Still plenty of time to find something better.",
+    "Your next move could be one swipe away."
+  ],
+  evening:[
+    "Your next opportunity hasn't clocked out yet.",
+    "Clocked out? Your career doesn't have to.",
+    "The workday ended. The opportunities didn't.",
+    "One more good match before you call it a night?",
+    "Evening scroll, career edition.",
+    "Tomorrow-you might be glad you checked tonight.",
+    "The best part of the day might still be one swipe away."
+  ]
+};
 
-  if(hour<12){
-    part='Good morning';
-  }else if(hour<18){
-    part='Good afternoon';
-  }else{
-    part='Good evening';
+let lastMessageBucket='';
+let lastMessageText='';
+
+function pickTimeMessage(bucket,timeZone){
+  const pool=ALYGNN_TIME_MESSAGES[bucket]||ALYGNN_TIME_MESSAGES.afternoon;
+
+  // Keep one random line stable for the current page/daypart so the text
+  // doesn't change every minute while the dashboard is open.
+  if(lastMessageBucket===bucket && lastMessageText){
+    return lastMessageText;
   }
+
+  const storageKey=`alygnn_message_${timeZone}_${bucket}`;
+  let saved='';
+
+  try{
+    saved=sessionStorage.getItem(storageKey)||'';
+  }catch(_){}
+
+  if(saved && pool.includes(saved)){
+    lastMessageBucket=bucket;
+    lastMessageText=saved;
+    return saved;
+  }
+
+  const next=pool[Math.floor(Math.random()*pool.length)];
+
+  lastMessageBucket=bucket;
+  lastMessageText=next;
+
+  try{
+    sessionStorage.setItem(storageKey,next);
+  }catch(_){}
+
+  return next;
+}
+
+function getCandidateTimeContext(){
+  const now=new Date();
+
+  // Resolve the phone/device IANA time zone (for example America/New_York).
+  // This follows the user's device when they travel or change time zones.
+  let timeZone='UTC';
+
+  try{
+    timeZone=
+      Intl.DateTimeFormat()
+        .resolvedOptions()
+        .timeZone || 'UTC';
+  }catch(_){}
+
+  let hour=now.getHours();
+
+  try{
+    const hourPart=
+      new Intl.DateTimeFormat('en-US',{
+        timeZone,
+        hour:'2-digit',
+        hourCycle:'h23'
+      })
+      .formatToParts(now)
+      .find(part=>part.type==='hour');
+
+    if(hourPart){
+      const parsed=Number(hourPart.value);
+      if(Number.isFinite(parsed))hour=parsed;
+    }
+  }catch(_){}
+
+  let greeting='Welcome back';
+  let bucket='late';
+
+  if(hour>=5 && hour<12){
+    greeting='Good morning';
+    bucket='morning';
+  }else if(hour>=12 && hour<17){
+    greeting='Good afternoon';
+    bucket='afternoon';
+  }else if(hour>=17 && hour<21){
+    greeting='Good evening';
+    bucket='evening';
+  }else if(hour>=21){
+    greeting='Good evening';
+    bucket='evening';
+  }
+
+  return{
+    timeZone,
+    hour,
+    greeting,
+    bucket,
+    completeLead:pickTimeMessage(bucket,timeZone)
+  };
+}
+
+function getGreeting(name){
+  const context=getCandidateTimeContext();
 
   const firstName=
     safeString(name)
@@ -1821,8 +1947,24 @@ function getGreeting(name){
       .filter(Boolean)[0];
 
   return firstName
-    ?part+', '+firstName
-    :part;
+    ?context.greeting+', '+firstName
+    :context.greeting;
+}
+
+function refreshTimeBasedDashboardCopy(){
+  if(!$('greeting'))return;
+
+  $('greeting').textContent=
+    getGreeting(activeCandidateName);
+
+  if(
+    candidateOnboardingState &&
+    candidateOnboardingState.complete &&
+    $('lead')
+  ){
+    $('lead').textContent=
+      getCandidateTimeContext().completeLead;
+  }
 }
 
 function setSetupDone(item,status,title,copy){
@@ -1997,7 +2139,9 @@ function renderCandidateOnboardingGate({hasResume,previewReviewed,preferencesCom
     const completeActions=$('complete-actions');
     if(completeActions)completeActions.classList.add('show');
 
-    $('lead').textContent='Your profile is ready. Start reviewing jobs matched to your preferences.';
+    $('lead').textContent=
+      getCandidateTimeContext().completeLead;
+
     return;
   }
 
@@ -2276,6 +2420,8 @@ async function loadCandidateWorkspace(){
         user.id
       );
 
+    activeCandidateName=name;
+
     $('greeting').textContent=
       getGreeting(name);
 
@@ -2470,6 +2616,23 @@ $('dashboard-resume-input')?.addEventListener('change',event=>{
 });
 syncCandidateView();
 loadCandidateWorkspace();
+
+// Keep greetings accurate if the candidate leaves the app open,
+// crosses a daypart boundary, or the device time zone changes.
+window.addEventListener('pageshow',()=>{
+  refreshTimeBasedDashboardCopy();
+});
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){
+    refreshTimeBasedDashboardCopy();
+  }
+});
+
+setInterval(()=>{
+  refreshTimeBasedDashboardCopy();
+},60*1000);
+
 </script>
 
 </body>
