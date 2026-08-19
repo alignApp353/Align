@@ -2140,9 +2140,9 @@
               <input id="skillInput" type="text" placeholder="Search skills — e.g. Customer service" autocomplete="off" aria-autocomplete="list" aria-controls="skillSuggestions">
               <div class="skill-suggestions" id="skillSuggestions" role="listbox"></div>
             </div>
-            <div class="helper">Search and select 6–12 skills from Alygnn's skill library. Skills must be picked from the list.</div>
+            <div class="helper">Select at least 1 skill from Alygnn's skill library. You can add up to 12 skills.</div>
             <div class="field-error" id="skillError"></div>
-            <div class="skills-count" id="skillsCount">0 of 6 minimum skills selected</div>
+            <div class="skills-count" id="skillsCount">0 selected · choose 1 to continue</div>
           </div>
 
           <div class="skills-list" id="skillsList"></div>
@@ -3619,7 +3619,7 @@
     if (validExperience.length >= 1) score += 20; else tips.push('Add work experience (+20%)');
     if (validExperience.length >= 2) score += 5; else tips.push('Add another job experience (+5%)');
     if (validEducation.length >= 1) score += 10; else tips.push('Add education (+10%)');
-    if (data.skills.length >= 6) score += 15; else tips.push('Add at least 6 skills (+15%)');
+    if (data.skills.length >= 1) score += 15; else tips.push('Add at least 1 skill (+15%)');
 
     score = Math.min(score, 100);
 
@@ -3629,7 +3629,7 @@
     const completed = [];
     if (data.summary && data.summary.length >= 80) completed.push('Professional summary added');
     if (validExperience.length >= 1) completed.push('Work experience added');
-    if (data.skills.length >= 6) completed.push('Strong skills section');
+    if (data.skills.length >= 1) completed.push('Skills section added');
 
     const rows = [
       ...completed.slice(0, 2).map(text => `<div class="score-tip done">✓ ${escapeHtml(text)}</div>`),
@@ -3662,9 +3662,9 @@
     });
 
     if (count) {
-      const remaining = Math.max(0, 6 - state.skills.length);
+      const remaining = Math.max(0, 1 - state.skills.length);
       count.textContent = remaining
-        ? `${state.skills.length} selected · choose ${remaining} more to continue`
+        ? `${state.skills.length} selected · choose 1 to continue`
         : `${state.skills.length} selected · skills requirement complete`;
       count.classList.toggle('ready', remaining === 0);
     }
@@ -3923,7 +3923,7 @@
       }
     });
 
-    if (state.skills.length < 6) add('Select at least 6 skills from the skill library.', document.getElementById('skillInput'));
+    if (state.skills.length < 1) add('Select at least 1 skill from the skill library.', document.getElementById('skillInput'));
     if (state.skills.length > 12) add('Keep your skills list to 12 or fewer.', document.getElementById('skillInput'));
     const invalidSkill = state.skills.find(skill => !SKILL_LIBRARY_SET.has(skill.toLowerCase()));
     if (invalidSkill) add(`Replace “${invalidSkill}” with a skill from the Alygnn list.`, document.getElementById('skillInput'));
