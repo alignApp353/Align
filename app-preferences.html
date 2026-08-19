@@ -7,437 +7,738 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
 :root{
   --brand:#5D7FA3;
+  --brand-dark:#35679A;
   --sage:#8CB69B;
-  --bg:#05080D;
-  --card:#111827;
-  --card-2:#0F172A;
-  --text:#FFFFFF;
-  --muted:#A7B0BC;
-  --border:rgba(255,255,255,.12);
+  --bg:#F6F8F7;
+  --card:#FCFCFA;
+  --text:#172333;
+  --muted:#6B7E91;
+  --border:#DCE5EB;
   --mint:#6FBF8F;
-  --rose:#D79A9A;
-  --shadow:0 18px 50px rgba(0,0,0,.28);
+  --mint-soft:#EAF6EF;
+  --brand-soft:#EDF3F8;
+  --danger:#B95656;
+  --danger-soft:#FFF0F0;
+  --shadow:0 14px 38px rgba(26,44,66,.06);
 }
-*{box-sizing:border-box;font-family:'DM Sans',Arial,sans-serif!important}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
-body{
-  min-height:100vh;
-  background:
-    radial-gradient(circle at top,rgba(93,127,163,.30),transparent 34%),
-    linear-gradient(180deg,#05080D,#0A0F17);
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{
+  margin:0;
+  min-height:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family:'DM Sans',Arial,sans-serif;
 }
-button,input,select{font:inherit}
+body{padding-bottom:env(safe-area-inset-bottom)}
+button,input{font:inherit}
 button{cursor:pointer}
 .app{
   width:100%;
-  max-width:520px;
+  max-width:560px;
   min-height:100vh;
-  margin:auto;
-  padding:calc(18px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom));
+  margin:0 auto;
+  padding-bottom:calc(112px + env(safe-area-inset-bottom));
 }
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:100;
+  display:grid;
+  grid-template-columns:72px 1fr 72px;
+  align-items:center;
+  min-height:76px;
+  padding:calc(10px + env(safe-area-inset-top)) 18px 10px;
+  background:rgba(246,248,247,.94);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
 .back{
-  border:none;background:transparent;color:var(--brand);
-  font-weight:900;font-size:15px;padding:8px 0;
+  border:0;
+  background:transparent;
+  color:var(--brand-dark);
+  padding:10px 0;
+  text-align:left;
+  font-weight:900;
+  font-size:14px;
 }
-.logo{font-size:27px;font-weight:900;color:var(--brand);letter-spacing:-1px}
-.step-label{margin-top:26px;color:var(--muted);font-size:13px;font-weight:800}
-.progress{
-  margin-top:10px;height:8px;background:rgba(255,255,255,.08);
-  border-radius:999px;overflow:hidden;
+.logo{
+  text-align:center;
+  font-family:'DM Serif Display',serif;
+  color:var(--brand);
+  font-size:30px;
+  letter-spacing:-.7px;
+}
+.logo span{color:var(--sage)}
+.header-spacer{width:72px}
+.stage{
+  padding:18px 20px 12px;
+  background:rgba(246,248,247,.96);
+}
+.stage-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  font-size:10px;
+  font-weight:800;
+  color:var(--muted);
+}
+.stage-item{display:flex;align-items:center;gap:5px}
+.stage-dot{
+  width:21px;height:21px;border-radius:50%;
+  display:grid;place-items:center;
+  background:#E7EDF1;color:var(--muted);
+}
+.stage-dot.done{background:var(--mint);color:#fff}
+.stage-dot.active{background:var(--brand-dark);color:#fff}
+.stage-line{width:22px;height:1px;background:var(--border)}
+.progress-wrap{
+  margin-top:16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.progress-meta{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  flex:1;
+  font-size:11px;
+  font-weight:800;
+  color:var(--muted);
+}
+.progress-track{
+  height:5px;
+  flex:1;
+  overflow:hidden;
+  border-radius:999px;
+  background:#E7EDF1;
 }
 .progress-fill{
-  height:100%;width:14.28%;background:var(--brand);
-  border-radius:999px;transition:width .3s ease;
-}
-.screen{display:none;animation:fadeUp .28s ease}
-.screen.active{display:block}
-.eyebrow{
-  margin-top:34px;color:var(--brand);font-size:12px;
-  letter-spacing:1.8px;text-transform:uppercase;font-weight:900;
-}
-.title{margin-top:8px;font-size:36px;line-height:1.05;font-weight:900;letter-spacing:-1.3px}
-.subtitle{margin-top:12px;color:var(--muted);font-size:16px;line-height:1.55}
-.card{
-  margin-top:22px;background:rgba(18,24,36,.94);
-  border:1px solid var(--border);border-radius:26px;padding:20px;box-shadow:var(--shadow);
-}
-.field-label{
-  display:block;margin-bottom:8px;color:var(--muted);
-  font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:1px;
-}
-.input,.select{
-  width:100%;min-height:56px;border:1px solid var(--border);border-radius:18px;
-  background:rgba(255,255,255,.04);color:var(--text);padding:0 16px;outline:none;
-}
-.input:focus,.select:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,127,163,.14)}
-.input::placeholder{color:#727C89}
-.grid{display:grid;gap:12px}
-.option{
-  border:1px solid var(--border);background:rgba(255,255,255,.035);
-  color:var(--text);border-radius:20px;padding:17px;text-align:left;
-  transition:.18s ease;
-}
-.option:active{transform:scale(.985)}
-.option.active{border-color:var(--brand);background:rgba(93,127,163,.14)}
-.option-title{font-weight:900;font-size:16px}
-.option-sub{margin-top:5px;color:var(--muted);font-size:13px;line-height:1.4}
-.option-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.check{
-  width:24px;height:24px;border-radius:8px;border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;color:transparent;flex-shrink:0;
-}
-.option.active .check{background:var(--brand);border-color:var(--brand);color:white}
-.salary-card{text-align:center}
-.salary-range{
-  font-size:31px;font-weight:900;letter-spacing:-1px;margin-bottom:22px;
-}
-.range-wrap{position:relative;height:48px}
-.range-track{
-  position:absolute;left:0;right:0;top:22px;height:6px;background:rgba(255,255,255,.10);
+  width:0%;
+  height:100%;
   border-radius:999px;
+  background:var(--mint);
+  transition:width .25s ease;
 }
-.range-fill{
-  position:absolute;top:22px;height:6px;background:var(--brand);border-radius:999px;
+.intro{
+  padding:24px 22px 2px;
 }
-.range-wrap input[type=range]{
-  position:absolute;left:0;top:11px;width:100%;height:28px;
-  -webkit-appearance:none;appearance:none;background:transparent;pointer-events:none;
+.eyebrow{
+  color:var(--brand-dark);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:2px;
+  text-transform:uppercase;
 }
-.range-wrap input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;width:24px;height:24px;border-radius:50%;
-  background:white;border:4px solid var(--brand);pointer-events:auto;
+h1{
+  margin:8px 0 0;
+  font-size:34px;
+  line-height:1.05;
+  letter-spacing:-1.3px;
 }
-.range-wrap input[type=range]::-moz-range-thumb{
-  width:24px;height:24px;border-radius:50%;background:white;
-  border:4px solid var(--brand);pointer-events:auto;
+.intro p{
+  margin:10px 0 0;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.55;
 }
-.range-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-top:6px}
-.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
-.chip{
-  border:1px solid var(--border);background:rgba(255,255,255,.035);color:var(--text);
-  border-radius:999px;padding:10px 14px;font-size:13px;font-weight:800;
+.section{
+  padding:26px 22px 2px;
+  scroll-margin-top:150px;
 }
-.chip.active{background:var(--brand);border-color:var(--brand)}
-.location-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.location-grid .full{grid-column:1/-1}
-.message{
-  display:none;margin-top:16px;padding:13px 15px;border-radius:16px;
-  font-size:14px;font-weight:800;line-height:1.4;
+.section-head{margin-bottom:14px}
+.section-num{
+  color:var(--brand-dark);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1.6px;
+  text-transform:uppercase;
 }
-.message.error{display:block;background:rgba(215,154,154,.12);color:var(--rose);border:1px solid rgba(215,154,154,.3)}
-.message.success{display:block;background:rgba(111,191,143,.12);color:var(--mint);border:1px solid rgba(111,191,143,.3)}
-.actions{display:grid;grid-template-columns:1fr 1.4fr;gap:12px;margin-top:26px}
-.btn{
-  min-height:58px;border-radius:19px;font-size:16px;font-weight:900;
+.section-title{
+  margin-top:5px;
+  font-size:23px;
+  font-weight:900;
+  letter-spacing:-.5px;
 }
-.btn-secondary{border:1px solid var(--border);background:transparent;color:var(--text)}
-.btn-primary{border:none;background:var(--brand);color:white}
-.btn-primary:disabled{opacity:.6;cursor:not-allowed}
-.summary{display:grid;gap:12px}
-.summary-row{
-  padding:15px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid var(--border);
+.section-copy{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.5;
 }
-.summary-key{color:var(--muted);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.8px}
-.summary-value{margin-top:5px;font-size:15px;font-weight:800;line-height:1.45}
-.hidden{display:none!important}
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-@media(max-width:420px){
-  .title{font-size:32px}
-  .location-grid{grid-template-columns:1fr}
-  .location-grid .full{grid-column:auto}
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:22px;
+  padding:18px;
+  box-shadow:var(--shadow);
 }
-
-.field-suggest{position:relative}
-.suggestion-list{
-  position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:90;
-  display:none;max-height:230px;overflow:auto;background:#fff;
-  border:1px solid var(--border);border-radius:16px;
-  box-shadow:0 16px 38px rgba(23,35,51,.13)
-}
-.suggestion-list.show{display:block}
-.suggestion-item{
-  width:100%;min-height:48px;padding:12px 14px;border:0;
-  border-bottom:1px solid #EEF2F5;background:#fff;color:var(--text);
-  text-align:left;font-size:13px;font-weight:800;cursor:pointer
-}
-.suggestion-item:last-child{border-bottom:0}
-.suggestion-item:active{background:#F1F6F9}
-.suggestion-muted{display:block;margin-top:2px;color:var(--muted);font-size:10px;font-weight:700}
-
-.industry-search-wrap{
-  margin-top:22px;
-  padding-top:20px;
-  border-top:1px solid var(--border);
-}
-.industry-search-label{
-  color:var(--text);
-  font-size:14px;
+.field{position:relative}
+.label{
+  display:block;
+  margin-bottom:8px;
+  color:var(--muted);
+  font-size:10px;
+  letter-spacing:1.1px;
+  text-transform:uppercase;
   font-weight:900;
 }
-.industry-search-copy{
-  margin:5px 0 12px;
+.input{
+  width:100%;
+  min-height:54px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:0 15px;
+  background:#fff;
+  color:var(--text);
+  outline:none;
+  font-size:15px;
+}
+.input:focus{
+  border-color:var(--brand-dark);
+  box-shadow:0 0 0 3px rgba(53,103,154,.10);
+}
+.input::placeholder{color:#A3AFBA}
+.suggestions{
+  position:absolute;
+  top:calc(100% + 6px);
+  left:0;right:0;
+  z-index:80;
+  display:none;
+  max-height:230px;
+  overflow:auto;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:15px;
+  box-shadow:0 18px 42px rgba(23,35,51,.15);
+}
+.suggestions.show{display:block}
+.suggestion{
+  width:100%;
+  min-height:48px;
+  padding:11px 13px;
+  border:0;
+  border-bottom:1px solid #EEF2F5;
+  background:#fff;
+  color:var(--text);
+  text-align:left;
+  font-size:13px;
+  font-weight:800;
+}
+.suggestion:last-child{border-bottom:0}
+.suggestion:active{background:#F2F6F9}
+.suggestion small{
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:700;
+}
+.suggestion-empty{
+  padding:13px;
   color:var(--muted);
   font-size:12px;
   line-height:1.45;
+  font-weight:700;
 }
-.industry-add-btn{
+.field-error{
+  display:none;
+  margin-top:8px;
+  color:var(--danger);
+  font-size:11px;
+  font-weight:800;
+}
+.field-error.show{display:block}
+
+/* Salary */
+.salary-card{padding:20px}
+.salary-caption{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+}
+.salary-display{
+  margin-top:5px;
+  font-size:28px;
+  font-weight:900;
+  letter-spacing:-1px;
+}
+.salary-display span{color:var(--muted);font-weight:600}
+.range-wrap{
+  position:relative;
+  height:42px;
+  margin-top:21px;
+}
+.range-bg,
+.range-fill{
+  position:absolute;
+  left:0;right:0;
+  top:18px;
+  height:5px;
+  border-radius:999px;
+}
+.range-bg{background:#E4EBF0}
+.range-fill{background:var(--brand-dark);right:auto}
+.range-inputs{
+  position:absolute;
+  left:0;right:0;top:0;
+  height:42px;
+}
+.range-inputs input{
+  position:absolute;
+  left:0;
   width:100%;
-  min-height:48px;
-  margin-top:10px;
-  border:1px dashed var(--brand);
-  border-radius:15px;
+  height:42px;
+  margin:0;
   background:transparent;
-  color:var(--brand);
-  font-size:13px;
+  appearance:none;
+  -webkit-appearance:none;
+  pointer-events:none;
+}
+.range-inputs input::-webkit-slider-runnable-track{height:5px;background:transparent}
+.range-inputs input::-webkit-slider-thumb{
+  width:23px;height:23px;
+  margin-top:-9px;
+  border-radius:50%;
+  border:3px solid var(--brand-dark);
+  background:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,.12);
+  appearance:none;
+  -webkit-appearance:none;
+  pointer-events:auto;
+}
+.range-inputs input::-moz-range-track{height:5px;background:transparent}
+.range-inputs input::-moz-range-thumb{
+  width:18px;height:18px;
+  border-radius:50%;
+  border:3px solid var(--brand-dark);
+  background:#fff;
+  pointer-events:auto;
+}
+.range-labels{
+  display:flex;
+  justify-content:space-between;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:700;
+}
+.quick-chips{
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  padding:14px 0 2px;
+  scrollbar-width:none;
+}
+.quick-chips::-webkit-scrollbar{display:none}
+.quick-chip{
+  flex:0 0 auto;
+  min-height:36px;
+  padding:0 13px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:#fff;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+}
+.quick-chip.active{
+  border-color:var(--brand-dark);
+  background:var(--brand-soft);
+  color:var(--brand-dark);
+}
+
+/* Choice cards */
+.choice-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:9px;
+}
+.choice{
+  min-height:104px;
+  padding:13px 9px;
+  border:1px solid var(--border);
+  border-radius:17px;
+  background:#fff;
+  color:var(--text);
+  text-align:center;
+}
+.choice.active{
+  border-color:var(--brand-dark);
+  background:var(--brand-soft);
+}
+.choice-icon{font-size:22px}
+.choice-name{
+  margin-top:7px;
+  font-size:12px;
   font-weight:900;
 }
-.chip.custom-industry{
-  position:relative;
-  padding-right:34px;
-}
-.chip.custom-industry::after{
-  content:'×';
-  position:absolute;
-  right:12px;
-  top:50%;
-  transform:translateY(-50%);
-  font-size:17px;
-  line-height:1;
-}
-
-
-.suggestion-empty{
-  padding:14px;
+.choice-sub{
+  margin-top:3px;
   color:var(--muted);
+  font-size:9px;
+  line-height:1.35;
+}
+
+/* Benefits */
+.benefit-grid{display:grid;gap:9px}
+.benefit{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-height:66px;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#fff;
+  text-align:left;
+}
+.benefit.active{
+  border-color:var(--mint);
+  background:var(--mint-soft);
+}
+.check{
+  width:23px;height:23px;
+  flex:0 0 auto;
+  display:grid;place-items:center;
+  border:1px solid var(--border);
+  border-radius:7px;
+  color:transparent;
+  font-size:12px;
+  font-weight:900;
+}
+.benefit.active .check{
+  background:var(--mint);
+  border-color:var(--mint);
+  color:#fff;
+}
+.benefit-name{font-size:12px;font-weight:900}
+.benefit-copy{margin-top:2px;color:var(--muted);font-size:10px;line-height:1.35}
+
+/* Job type */
+.job-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+}
+.job-type{
+  min-height:64px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#fff;
+  color:var(--text);
+  font-size:12px;
+  font-weight:900;
+}
+.job-type.active{
+  border-color:var(--brand-dark);
+  background:var(--brand-soft);
+  color:var(--brand-dark);
+}
+
+/* Industry */
+.chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.ind-chip{
+  min-height:38px;
+  padding:0 14px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:#fff;
+  color:var(--text);
+  font-size:11px;
+  font-weight:800;
+}
+.ind-chip.active{
+  border-color:var(--brand-dark);
+  background:var(--brand-dark);
+  color:#fff;
+}
+.industry-search{
+  margin-top:16px;
+  padding-top:16px;
+  border-top:1px solid var(--border);
+}
+.industry-hint{
+  margin:0 0 10px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.45;
+}
+.selected-extra{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:11px;
+}
+.extra-chip{
+  min-height:34px;
+  padding:0 12px;
+  border:0;
+  border-radius:999px;
+  background:var(--brand-soft);
+  color:var(--brand-dark);
+  font-size:10px;
+  font-weight:900;
+}
+
+/* Bottom save */
+.message{
+  display:none;
+  margin:20px 22px 0;
+  padding:13px 14px;
+  border-radius:15px;
   font-size:12px;
   font-weight:800;
   line-height:1.45;
 }
-</style>
+.message.error{
+  display:block;
+  background:var(--danger-soft);
+  color:var(--danger);
+  border:1px solid #F2D0D0;
+}
+.message.success{
+  display:block;
+  background:var(--mint-soft);
+  color:#24754D;
+  border:1px solid #CFE8D9;
+}
+.bottom-save{
+  position:fixed;
+  left:0;right:0;bottom:0;
+  z-index:120;
+  max-width:560px;
+  margin:0 auto;
+  padding:12px 18px calc(12px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--border);
+  background:rgba(246,248,247,.96);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+.save-btn{
+  width:100%;
+  min-height:56px;
+  border:0;
+  border-radius:18px;
+  background:var(--brand-dark);
+  color:#fff;
+  font-size:15px;
+  font-weight:900;
+  box-shadow:0 12px 26px rgba(53,103,154,.18);
+}
+.save-btn:disabled{opacity:.6;cursor:not-allowed}
 
-<style id="candidate-preferences-light-redesign">
-:root{--brand:#5D7FA3;--brand-dark:#35679A;--sage:#8CB69B;--bg:#F5F8F8;--card:#FFFFFF;--card-2:#F8FAFB;--text:#172333;--muted:#66788A;--border:#DCE5EB;--mint:#359762;--rose:#B95D5D;--shadow:0 12px 32px rgba(23,35,51,.05)}
-html,body{background:var(--bg)!important;color:var(--text)!important}
-body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparent 27%),var(--bg)!important}
-.app{max-width:560px;padding:calc(16px + env(safe-area-inset-top)) 18px calc(32px + env(safe-area-inset-bottom))}
-.topbar{display:grid;grid-template-columns:70px 1fr 70px;min-height:56px;align-items:center}.back{font-size:12px;color:var(--brand-dark);text-align:left}.logo{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:30px;font-weight:400;letter-spacing:0}
-.step-label{margin-top:20px;font-size:10px}.progress{height:7px;background:#E7EDF1}.progress-fill{background:var(--brand-dark)}
-.eyebrow{margin-top:28px;font-size:9px;color:var(--brand-dark)}.title{font-size:31px;letter-spacing:-.8px}.subtitle{margin-top:9px;font-size:13px;line-height:1.55}
-.card{margin-top:17px;background:#fff;border-color:var(--border);border-radius:22px;padding:18px;box-shadow:var(--shadow)}
-.field-label{font-size:9px}.input,.select{min-height:50px;background:#FAFCFD;color:var(--text);border-color:var(--border);border-radius:15px}.input::placeholder{color:#96A2AD}
-.option{background:#FAFCFD;color:var(--text);border-color:var(--border);border-radius:17px;padding:15px}.option.active{border-color:#AFCBDD;background:#EEF5F9}.option-title{font-size:13px}.option-sub{font-size:10px}.check{border-color:#C8D3DB}.option.active .check{background:var(--brand-dark);border-color:var(--brand-dark)}
-.salary-range{font-size:27px}.range-track{background:#E7EDF1}.range-fill{background:var(--brand-dark)}
-.chip{background:#FAFCFD;color:var(--text);border-color:var(--border);padding:9px 12px;font-size:10px}.chip.active{background:var(--brand-dark);border-color:var(--brand-dark);color:#fff}
-.summary-row{background:#FAFCFD;border-color:var(--border)}.summary-key{font-size:9px}.summary-value{font-size:12px}
-.actions{gap:9px;margin-top:20px}.btn{min-height:50px;border-radius:15px;font-size:11px}.btn-secondary{background:#fff}.btn-primary{background:var(--brand-dark)}
-.message.error{background:#FDEEEE;color:var(--rose);border-color:#F1CCCC}.message.success{background:#E8F4EC;color:#2F8354;border-color:#CDE4D5}
-@media(max-width:420px){.title{font-size:29px}.actions{grid-template-columns:1fr 1.25fr}}
+@media(max-width:390px){
+  .choice-grid{grid-template-columns:1fr}
+  .choice{min-height:78px;text-align:left;display:grid;grid-template-columns:34px 1fr;align-items:center}
+  .choice-icon{grid-row:1/3}
+  .choice-name{margin-top:0}
+}
 </style>
-
 </head>
 <body>
 <div class="app">
-  <div class="topbar">
-    <button class="back" id="backBtn" onclick="goBack()">← Back</button>
-    <div class="logo">Alygnn.</div>
+  <header class="topbar">
+    <button class="back" type="button" onclick="goBack()">← Back</button>
+    <div class="logo">Alygnn<span>.</span></div>
+    <div class="header-spacer"></div>
+  </header>
+
+  <div class="stage">
+    <div class="stage-row">
+      <div class="stage-item"><span class="stage-dot done">✓</span><span>Resume</span></div>
+      <span class="stage-line"></span>
+      <div class="stage-item"><span class="stage-dot active">2</span><span>Preferences</span></div>
+      <span class="stage-line"></span>
+      <div class="stage-item"><span class="stage-dot">3</span><span>Matches</span></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span>Preferences filled</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
   </div>
 
-  <div class="step-label" id="stepLabel">Step 1 of 7</div>
-  <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+  <main>
+    <section class="intro">
+      <div class="eyebrow">Job preferences</div>
+      <h1>Set your criteria</h1>
+      <p>Tell Alygnn what matters to you. We’ll use these preferences to narrow your job matches.</p>
+    </section>
 
-  <div id="message" class="message"></div>
-
-  <section class="screen active" data-step="1">
-    <div class="eyebrow">Industries</div>
-    <div class="title">Which industries interest you?</div>
-    <div class="subtitle">Choose the main industries that interest you. If yours is not listed, type it below.</div>
-    <div class="card">
-      <div class="chips" id="industryOptions">
-        <button class="chip" data-value="Technology" onclick="toggleChip(this)">Technology</button>
-        <button class="chip" data-value="Healthcare" onclick="toggleChip(this)">Healthcare</button>
-        <button class="chip" data-value="Finance" onclick="toggleChip(this)">Finance</button>
-        <button class="chip" data-value="Education" onclick="toggleChip(this)">Education</button>
-        <button class="chip" data-value="Government" onclick="toggleChip(this)">Government</button>
-        <button class="chip" data-value="Retail" onclick="toggleChip(this)">Retail</button>
-        <button class="chip" data-value="Hospitality" onclick="toggleChip(this)">Hospitality</button>
-        <button class="chip" data-value="Real Estate" onclick="toggleChip(this)">Real Estate</button>
-        <button class="chip" data-value="Construction" onclick="toggleChip(this)">Construction</button>
-        <button class="chip" data-value="Manufacturing" onclick="toggleChip(this)">Manufacturing</button>
-        <button class="chip" data-value="Transportation & Logistics" onclick="toggleChip(this)">Transportation & Logistics</button>
-        <button class="chip" data-value="Marketing & Media" onclick="toggleChip(this)">Marketing & Media</button>
+    <section class="section" id="roleSection">
+      <div class="section-head">
+        <div class="section-num">01 — What you're looking for</div>
+        <div class="section-title">What job are you searching for?</div>
+        <div class="section-copy">Optional. Type 3 letters to see recognized job titles.</div>
       </div>
-
-      <div class="industry-search-wrap">
-        <div class="industry-search-label">Don't see your industry?</div>
-        <div class="industry-search-copy">Type 3 letters to search recognized industries.</div>
-
-        <div class="field-suggest">
-          <input
-            id="industrySearch"
-            class="input"
-            type="text"
-            placeholder="e.g. Tel, Leg, Non"
-            autocomplete="off"
-            autocorrect="off"
-            spellcheck="false"
-          >
-          <div id="industrySuggestions" class="suggestion-list"></div>
+      <div class="card">
+        <div class="field">
+          <label class="label" for="roleInput">Job title</label>
+          <input id="roleInput" class="input" placeholder="e.g. Mar, Dat, Nur" autocomplete="off" autocorrect="off" spellcheck="false">
+          <div id="roleSuggestions" class="suggestions"></div>
+          <div id="roleError" class="field-error">Choose a recognized job title from the suggestions.</div>
         </div>
+      </div>
+    </section>
 
-        <button class="industry-add-btn" id="industryAddBtn" type="button" onclick="addCustomIndustry()">
-          + Add Selected Industry
+    <section class="section" id="salarySection">
+      <div class="section-head">
+        <div class="section-num">02 — Compensation</div>
+        <div class="section-title">Salary range</div>
+        <div class="section-copy">Set the yearly pay range you want Alygnn to use when matching jobs.</div>
+      </div>
+      <div class="card salary-card">
+        <div class="salary-caption">I'm looking for</div>
+        <div class="salary-display"><span id="salaryMinDisplay">$10,000</span> <span>—</span> <span id="salaryMaxDisplay">$80,000</span></div>
+
+        <div class="range-wrap">
+          <div class="range-bg"></div>
+          <div class="range-fill" id="rangeFill"></div>
+          <div class="range-inputs">
+            <input type="range" id="salaryMin" min="10000" max="300000" step="5000" value="10000">
+            <input type="range" id="salaryMax" min="10000" max="300000" step="5000" value="80000">
+          </div>
+        </div>
+        <div class="range-labels"><span>$10k</span><span>$300k+</span></div>
+
+        <div class="quick-chips">
+          <button class="quick-chip" type="button" data-min="10000" data-max="40000">$10k–$40k</button>
+          <button class="quick-chip active" type="button" data-min="10000" data-max="80000">$10k–$80k</button>
+          <button class="quick-chip" type="button" data-min="40000" data-max="80000">$40k–$80k</button>
+          <button class="quick-chip" type="button" data-min="60000" data-max="120000">$60k–$120k</button>
+          <button class="quick-chip" type="button" data-min="80000" data-max="150000">$80k–$150k</button>
+          <button class="quick-chip" type="button" data-min="100000" data-max="200000">$100k–$200k</button>
+          <button class="quick-chip" type="button" data-min="150000" data-max="300000">$150k+</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="locationSection">
+      <div class="section-head">
+        <div class="section-num">03 — Location</div>
+        <div class="section-title">Where do you want to work?</div>
+        <div class="section-copy">Type 3 letters and choose a city or remote option.</div>
+      </div>
+      <div class="card">
+        <div class="field">
+          <label class="label" for="locationInput">City / location</label>
+          <input id="locationInput" class="input" placeholder="e.g. Ral, Cha, Rem" autocomplete="off" autocorrect="off" spellcheck="false">
+          <div id="locationSuggestions" class="suggestions"></div>
+          <div id="locationError" class="field-error">Choose a recognized location from the suggestions.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="workStyleSection">
+      <div class="section-head">
+        <div class="section-num">04 — Work style</div>
+        <div class="section-title">How do you want to work?</div>
+      </div>
+      <div class="choice-grid" id="workStyleOptions">
+        <button class="choice active" type="button" data-value="Remote">
+          <div class="choice-icon">⌂</div>
+          <div class="choice-name">Remote</div>
+          <div class="choice-sub">Work from anywhere</div>
+        </button>
+        <button class="choice" type="button" data-value="Hybrid">
+          <div class="choice-icon">↔</div>
+          <div class="choice-name">Hybrid</div>
+          <div class="choice-sub">Office + home</div>
+        </button>
+        <button class="choice" type="button" data-value="On-site">
+          <div class="choice-icon">▦</div>
+          <div class="choice-name">On-site</div>
+          <div class="choice-sub">At the workplace</div>
         </button>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="screen" data-step="2">
-    <div class="eyebrow">Role preference</div>
-    <div class="title">Do you have a specific role in mind?</div>
-    <div class="subtitle">Optional. Leave this blank if you want Alygnn to match you across the industries you selected.</div>
-    <div class="card">
-      <div class="field-suggest">
-        <label class="field-label" for="role">Specific job title <span style="text-transform:none;letter-spacing:0;font-weight:700">(optional)</span></label>
-        <input id="role" class="input" type="text" placeholder="Type 3 letters to see job titles" autocomplete="off" autocorrect="off" spellcheck="false">
-        <div id="roleSuggestions" class="suggestion-list"></div>
+    <section class="section" id="benefitsSection">
+      <div class="section-head">
+        <div class="section-num">05 — Benefits</div>
+        <div class="section-title">Benefits you care about</div>
+        <div class="section-copy">Optional. Select only the benefits that matter to you.</div>
       </div>
-    </div>
-  </section>
-
-  <section class="screen" data-step="3">
-    <div class="eyebrow">Compensation</div>
-    <div class="title">What salary range works for you?</div>
-    <div class="subtitle">Set a range so we can hide jobs that do not meet your expectations.</div>
-    <div class="card salary-card">
-      <div class="salary-range"><span id="minDisplay">$40,000</span> — <span id="maxDisplay">$80,000</span></div>
-      <div class="range-wrap">
-        <div class="range-track"></div>
-        <div class="range-fill" id="salaryFill"></div>
-        <input id="salaryMin" type="range" min="10000" max="300000" step="5000" value="40000">
-        <input id="salaryMax" type="range" min="10000" max="300000" step="5000" value="80000">
+      <div class="benefit-grid" id="benefitOptions">
+        <button class="benefit" type="button" data-value="Health Insurance"><span class="check">✓</span><span><span class="benefit-name">Health Insurance</span><span class="benefit-copy">Medical, dental, vision</span></span></button>
+        <button class="benefit" type="button" data-value="Competitive Pay + Bonuses"><span class="check">✓</span><span><span class="benefit-name">Competitive Pay + Bonuses</span><span class="benefit-copy">Bonus pay, commission, incentives</span></span></button>
+        <button class="benefit" type="button" data-value="Paid Time Off"><span class="check">✓</span><span><span class="benefit-name">Paid Time Off</span><span class="benefit-copy">Vacation, sick days, holidays</span></span></button>
+        <button class="benefit" type="button" data-value="Flexible Schedule / Remote Work"><span class="check">✓</span><span><span class="benefit-name">Flexible Schedule / Remote Work</span><span class="benefit-copy">Flexible hours or location</span></span></button>
+        <button class="benefit" type="button" data-value="Career Growth & Training"><span class="check">✓</span><span><span class="benefit-name">Career Growth & Training</span><span class="benefit-copy">Training, mentorship, promotions</span></span></button>
+        <button class="benefit" type="button" data-value="401(k) / Retirement Plan"><span class="check">✓</span><span><span class="benefit-name">401(k) / Retirement Plan</span><span class="benefit-copy">Retirement savings or match</span></span></button>
+        <button class="benefit" type="button" data-value="Education Assistance"><span class="check">✓</span><span><span class="benefit-name">Education Assistance</span><span class="benefit-copy">Tuition or certification support</span></span></button>
+        <button class="benefit" type="button" data-value="Wellness & Workplace Perks"><span class="check">✓</span><span><span class="benefit-name">Wellness & Workplace Perks</span><span class="benefit-copy">Gym, discounts, company perks</span></span></button>
       </div>
-      <div class="range-labels"><span>$10k</span><span>$300k+</span></div>
-    </div>
-  </section>
+    </section>
 
-  <section class="screen" data-step="4">
-    <div class="eyebrow">Location</div>
-    <div class="title">Where do you want to work?</div>
-    <div class="subtitle">You can select a city and still choose remote or hybrid later.</div>
-    <div class="card">
-      <div class="location-grid">
-        <div>
-          <label class="field-label" for="city">City</label>
-          <input id="city" class="input" type="text" placeholder="Raleigh">
+    <section class="section" id="jobTypeSection">
+      <div class="section-head">
+        <div class="section-num">06 — Job type</div>
+        <div class="section-title">What type of role?</div>
+        <div class="section-copy">Choose at least one.</div>
+      </div>
+      <div class="job-grid" id="jobTypeOptions">
+        <button class="job-type active" type="button" data-value="FULLTIME">Full-time</button>
+        <button class="job-type" type="button" data-value="PARTTIME">Part-time</button>
+        <button class="job-type" type="button" data-value="CONTRACTOR">Contract</button>
+        <button class="job-type" type="button" data-value="INTERN">Internship</button>
+      </div>
+    </section>
+
+    <section class="section" id="industrySection">
+      <div class="section-head">
+        <div class="section-num">07 — Industry</div>
+        <div class="section-title">Preferred industries</div>
+        <div class="section-copy">Choose common industries below, or search for another recognized industry.</div>
+      </div>
+      <div class="card">
+        <div class="chips" id="industryOptions">
+          <button class="ind-chip" type="button" data-value="Technology">Technology</button>
+          <button class="ind-chip" type="button" data-value="Healthcare">Healthcare</button>
+          <button class="ind-chip" type="button" data-value="Finance">Finance</button>
+          <button class="ind-chip" type="button" data-value="Education">Education</button>
+          <button class="ind-chip" type="button" data-value="Government">Government</button>
+          <button class="ind-chip" type="button" data-value="Retail">Retail</button>
+          <button class="ind-chip" type="button" data-value="Hospitality">Hospitality</button>
+          <button class="ind-chip" type="button" data-value="Real Estate">Real Estate</button>
+          <button class="ind-chip" type="button" data-value="Construction">Construction</button>
+          <button class="ind-chip" type="button" data-value="Manufacturing">Manufacturing</button>
+          <button class="ind-chip" type="button" data-value="Transportation & Logistics">Transportation & Logistics</button>
+          <button class="ind-chip" type="button" data-value="Marketing">Marketing</button>
         </div>
-        <div>
-          <label class="field-label" for="state">State</label>
-          <select id="state" class="select">
-            <option value="">Select state</option>
-            <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
-            <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
-            <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
-            <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
-            <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
-            <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
-            <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
-            <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
-            <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
-            <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
-            <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
-            <option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option>
-            <option>Wisconsin</option><option>Wyoming</option>
-          </select>
-        </div>
-        <div class="full">
-          <label class="field-label" for="country">Country</label>
-          <select id="country" class="select">
-            <option>United States</option>
-            <option>Canada</option>
-            <option>United Kingdom</option>
-            <option>Australia</option>
-            <option>Other</option>
-          </select>
+
+        <div class="industry-search">
+          <p class="industry-hint">Don't see your industry? Type 3 letters to search. Only recognized industries can be added.</p>
+          <div class="field">
+            <input id="industryInput" class="input" placeholder="e.g. Tel, Leg, Bio" autocomplete="off" autocorrect="off" spellcheck="false">
+            <div id="industrySuggestions" class="suggestions"></div>
+            <div id="industryError" class="field-error">Choose a recognized industry from the suggestions.</div>
+          </div>
+          <div class="selected-extra" id="extraIndustries"></div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="screen" data-step="5">
-    <div class="eyebrow">Work style</div>
-    <div class="title">How do you want to work?</div>
-    <div class="subtitle">Choose one preferred work setup.</div>
-    <div class="grid card" id="workStyleOptions">
-      <button class="option active" data-value="Remote" onclick="selectSingle(this,'workStyleOptions')">
-        <div class="option-row"><div><div class="option-title">Remote</div><div class="option-sub">Work from anywhere</div></div><div class="check">✓</div></div>
-      </button>
-      <button class="option" data-value="Hybrid" onclick="selectSingle(this,'workStyleOptions')">
-        <div class="option-row"><div><div class="option-title">Hybrid</div><div class="option-sub">A mix of office and home</div></div><div class="check">✓</div></div>
-      </button>
-      <button class="option" data-value="On-site" onclick="selectSingle(this,'workStyleOptions')">
-        <div class="option-row"><div><div class="option-title">On-site</div><div class="option-sub">Work at the employer location</div></div><div class="check">✓</div></div>
-      </button>
-    </div>
-  </section>
+    <div id="message" class="message"></div>
+  </main>
+</div>
 
-  <section class="screen" data-step="6">
-    <div class="eyebrow">Job type</div>
-    <div class="title">What kind of role do you want?</div>
-    <div class="subtitle">Select every option you are open to.</div>
-    <div class="grid card" id="jobTypeOptions">
-      <button class="option active" data-value="FULLTIME" onclick="toggleOption(this)">
-        <div class="option-row"><div class="option-title">Full-time</div><div class="check">✓</div></div>
-      </button>
-      <button class="option" data-value="PARTTIME" onclick="toggleOption(this)">
-        <div class="option-row"><div class="option-title">Part-time</div><div class="check">✓</div></div>
-      </button>
-      <button class="option" data-value="CONTRACTOR" onclick="toggleOption(this)">
-        <div class="option-row"><div class="option-title">Contract</div><div class="check">✓</div></div>
-      </button>
-      <button class="option" data-value="INTERN" onclick="toggleOption(this)">
-        <div class="option-row"><div class="option-title">Internship</div><div class="check">✓</div></div>
-      </button>
-    </div>
-  </section>
-
-  <section class="screen" data-step="7">
-    <div class="eyebrow">Benefits</div>
-    <div class="title">Which benefits matter most?</div>
-    <div class="subtitle">Select any benefits you want us to prioritize.</div>
-    <div class="grid card" id="benefitOptions">
-      <button class="option" data-value="Health Insurance" onclick="toggleOption(this)">
-        <div class="option-row"><div><div class="option-title">Health Insurance</div><div class="option-sub">Medical, dental, and vision</div></div><div class="check">✓</div></div>
-      </button>
-      <button class="option" data-value="Paid Time Off" onclick="toggleOption(this)">
-        <div class="option-row"><div><div class="option-title">Paid Time Off</div><div class="option-sub">Vacation, sick days, and holidays</div></div><div class="check">✓</div></div>
-      </button>
-      <button class="option" data-value="401(k) / Retirement Plan" onclick="toggleOption(this)">
-        <div class="option-row"><div><div class="option-title">401(k) / Retirement</div><div class="option-sub">Retirement savings or company match</div></div><div class="check">✓</div></div>
-      </button>
-      <button class="option" data-value="Career Growth & Training" onclick="toggleOption(this)">
-        <div class="option-row"><div><div class="option-title">Career Growth & Training</div><div class="option-sub">Mentorship, promotion, and development</div></div><div class="check">✓</div></div>
-      </button>
-      <button class="option" data-value="Flexible Schedule / Remote Work" onclick="toggleOption(this)">
-        <div class="option-row"><div><div class="option-title">Flexible Schedule</div><div class="option-sub">Flexible hours or remote options</div></div><div class="check">✓</div></div>
-      </button>
-      <button class="option" data-value="Competitive Pay + Bonuses" onclick="toggleOption(this)">
-        <div class="option-row"><div><div class="option-title">Pay + Bonuses</div><div class="option-sub">Commission, incentives, or bonus pay</div></div><div class="check">✓</div></div>
-      </button>
-    </div>
-    <div class="card">
-      <div class="summary" id="summary"></div>
-    </div>
-  </section>
-
-  <div class="actions">
-    <button class="btn btn-secondary" id="secondaryBtn" onclick="goBack()">Back</button>
-    <button class="btn btn-primary" id="primaryBtn" onclick="nextStep()">Continue</button>
-  </div>
+<div class="bottom-save">
+  <button id="saveBtn" class="save-btn" type="button">Save Preferences & Start Matching</button>
 </div>
 
 <script>
@@ -447,324 +748,15 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
   auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
 });
 
-let currentStep=1;
 let currentSession=null;
-const totalSteps=7;
+let profile=null;
+let onboardingMode=true;
+let selectedLocation='';
+let selectedRole='';
+const FLOOR=10000;
+const CEILING=300000;
 
-function showMessage(text,type='error'){
-  const el=document.getElementById('message');
-  el.textContent=text;
-  el.className='message '+type;
-}
-function clearMessage(){
-  const el=document.getElementById('message');
-  el.textContent='';
-  el.className='message';
-}
-function fmtSalary(value){
-  return value>=300000?'$300k+':'$'+Number(value).toLocaleString();
-}
-function updateSalary(){
-  const min=document.getElementById('salaryMin');
-  const max=document.getElementById('salaryMax');
-  let minVal=Number(min.value);
-  let maxVal=Number(max.value);
-  if(minVal>=maxVal-10000){minVal=maxVal-10000;min.value=minVal}
-  if(maxVal<=minVal+10000){maxVal=minVal+10000;max.value=maxVal}
-  document.getElementById('minDisplay').textContent=fmtSalary(minVal);
-  document.getElementById('maxDisplay').textContent=fmtSalary(maxVal);
-  const floor=10000,total=300000-floor;
-  const left=((minVal-floor)/total)*100;
-  const right=((maxVal-floor)/total)*100;
-  const fill=document.getElementById('salaryFill');
-  fill.style.left=left+'%';
-  fill.style.width=(right-left)+'%';
-}
-document.getElementById('salaryMin').addEventListener('input',updateSalary);
-document.getElementById('salaryMax').addEventListener('input',updateSalary);
-
-function selectSingle(el,containerId){
-  document.querySelectorAll('#'+containerId+' .option').forEach(item=>item.classList.remove('active'));
-  el.classList.add('active');
-}
-function toggleOption(el){el.classList.toggle('active')}
-function toggleChip(el){el.classList.toggle('active')}
-
-function selectedValue(containerId){
-  return document.querySelector('#'+containerId+' .active')?.dataset.value||'';
-}
-function selectedValues(containerId,selector='.active'){
-  return [...document.querySelectorAll('#'+containerId+' '+selector)]
-    .map(el=>el.dataset.value)
-    .filter(Boolean);
-}
-function collectPreferences(){
-  const role=document.getElementById('role').value.trim();
-  const city=document.getElementById('city').value.trim();
-  const state=document.getElementById('state').value;
-  const country=document.getElementById('country').value;
-  const jobTypes=selectedValues('jobTypeOptions','.option.active');
-  return{
-    query:role,
-    city,
-    state,
-    country,
-    location:[city,state].filter(Boolean).join(', '),
-    salary_min:Number(document.getElementById('salaryMin').value),
-    salary_max:Number(document.getElementById('salaryMax').value),
-    workStyle:selectedValue('workStyleOptions'),
-    jobType:jobTypes[0]||'',
-    jobTypes,
-    benefits:selectedValues('benefitOptions','.option.active'),
-    industries:selectedValues('industryOptions','.chip.active')
-      .map(canonicalIndustry)
-      .filter(Boolean),
-    preferences_complete:true
-  };
-}
-
-
-const INDUSTRY_SUGGESTIONS=[
-  'Accounting',
-  'Advertising',
-  'Aerospace & Defense',
-  'Agriculture',
-  'Architecture & Engineering',
-  'Automotive',
-  'Banking',
-  'Beauty & Wellness',
-  'Biotechnology',
-  'Business Services',
-  'Clean Energy',
-  'Communications',
-  'Construction',
-  'Consumer Goods',
-  'Consulting',
-  'Cybersecurity',
-  'E-commerce',
-  'Education',
-  'Energy & Utilities',
-  'Entertainment',
-  'Environmental Services',
-  'Finance',
-  'Food & Beverage',
-  'Government',
-  'Healthcare',
-  'Hospitality',
-  'Human Resources',
-  'Insurance',
-  'Legal Services',
-  'Manufacturing',
-  'Marketing',
-  'Media',
-  'Nonprofit',
-  'Pharmaceuticals',
-  'Property Management',
-  'Public Safety',
-  'Real Estate',
-  'Retail',
-  'Security',
-  'Sports & Fitness',
-  'Staffing & Recruiting',
-  'Technology',
-  'Telecommunications',
-  'Transportation & Logistics',
-  'Travel & Tourism',
-  'Warehousing & Distribution'
-];
-
-const INDUSTRY_ALIASES={
-  'tech':'Technology',
-  'it':'Technology',
-  'information technology':'Technology',
-  'software':'Technology',
-  'health':'Healthcare',
-  'medical':'Healthcare',
-  'health care':'Healthcare',
-  'bank':'Banking',
-  'financial services':'Finance',
-  'school':'Education',
-  'schools':'Education',
-  'government / public sector':'Government',
-  'public sector':'Government',
-  'restaurant':'Food & Beverage',
-  'restaurants':'Food & Beverage',
-  'hotel':'Hospitality',
-  'hotels':'Hospitality',
-  'logistics':'Transportation & Logistics',
-  'transportation':'Transportation & Logistics',
-  'warehouse':'Warehousing & Distribution',
-  'warehousing':'Warehousing & Distribution',
-  'telecom':'Telecommunications',
-  'staffing':'Staffing & Recruiting',
-  'recruiting':'Staffing & Recruiting',
-  'recruitment':'Staffing & Recruiting',
-  'realty':'Real Estate',
-  'property':'Property Management',
-  'law':'Legal Services',
-  'legal':'Legal Services',
-  'pharma':'Pharmaceuticals',
-  'biotech':'Biotechnology',
-  'ecommerce':'E-commerce',
-  'e commerce':'E-commerce',
-  'non profit':'Nonprofit'
-};
-
-function normalizeIndustry(value){
-  return String(value||'')
-    .trim()
-    .replace(/\s+/g,' ')
-    .replace(/[^\p{L}\p{N}&/+\-.,' ]/gu,'');
-}
-
-function canonicalIndustry(value){
-  const normalized=normalizeIndustry(value);
-  if(!normalized)return '';
-
-  const lower=normalized.toLowerCase();
-
-  const exact=INDUSTRY_SUGGESTIONS.find(
-    industry=>industry.toLowerCase()===lower
-  );
-  if(exact)return exact;
-
-  if(INDUSTRY_ALIASES[lower])return INDUSTRY_ALIASES[lower];
-
-  return '';
-}
-
-function isRecognizedIndustry(value){
-  return Boolean(canonicalIndustry(value));
-}
-
-function selectedIndustryNames(){
-  return selectedValues('industryOptions','.chip.active')
-    .map(normalizeIndustry)
-    .filter(Boolean);
-}
-
-function hideIndustrySuggestions(){
-  const box=document.getElementById('industrySuggestions');
-  if(box){
-    box.classList.remove('show');
-    box.innerHTML='';
-  }
-}
-
-function renderIndustrySuggestions(){
-  const input=document.getElementById('industrySearch');
-  const box=document.getElementById('industrySuggestions');
-  const q=normalizeIndustry(input.value).toLowerCase();
-
-  if(q.length<3){
-    hideIndustrySuggestions();
-    return;
-  }
-
-  const already=new Set(selectedIndustryNames().map(v=>v.toLowerCase()));
-
-  const matches=INDUSTRY_SUGGESTIONS
-    .filter(industry=>
-      industry.toLowerCase().includes(q) &&
-      !already.has(industry.toLowerCase())
-    )
-    .sort((a,b)=>{
-      const aa=a.toLowerCase(),bb=b.toLowerCase();
-      const aStart=aa.startsWith(q)?0:1;
-      const bStart=bb.startsWith(q)?0:1;
-      return aStart-bStart||aa.localeCompare(bb);
-    })
-    .slice(0,7);
-
-  if(!matches.length){
-    box.innerHTML=`
-      <div class="suggestion-empty">
-        No recognized industry found. Try a broader term.
-      </div>
-    `;
-    box.classList.add('show');
-    return;
-  }
-
-  box.innerHTML=matches.map((industry,index)=>`
-    <button type="button" class="suggestion-item" data-index="${index}">
-      ${industry}
-      <span class="suggestion-muted">Add this industry</span>
-    </button>
-  `).join('');
-
-  box.querySelectorAll('.suggestion-item').forEach(btn=>{
-    btn.onclick=()=>{
-      addIndustryChip(matches[Number(btn.dataset.index)]);
-      input.value='';
-      hideIndustrySuggestions();
-      clearMessage();
-    };
-  });
-
-  box.classList.add('show');
-}
-
-function addIndustryChip(value,active=true){
-  const industry=canonicalIndustry(value);
-  if(!industry)return false;
-
-  const existing=[...document.querySelectorAll('#industryOptions .chip')]
-    .find(el=>String(el.dataset.value||'').toLowerCase()===industry.toLowerCase());
-
-  if(existing){
-    if(active)existing.classList.add('active');
-    return true;
-  }
-
-  const button=document.createElement('button');
-  button.type='button';
-  button.className='chip custom-industry'+(active?' active':'');
-  button.dataset.value=industry;
-  button.dataset.custom='1';
-  button.textContent=industry;
-  button.onclick=()=>button.remove();
-
-  document.getElementById('industryOptions').appendChild(button);
-  return true;
-}
-
-function addCustomIndustry(){
-  const input=document.getElementById('industrySearch');
-  const raw=normalizeIndustry(input.value);
-  const industry=canonicalIndustry(raw);
-
-  if(!raw){
-    showMessage('Type at least 3 letters to search for an industry.');
-    return;
-  }
-
-  if(raw.length<3){
-    showMessage('Type at least 3 letters before choosing an industry.');
-    return;
-  }
-
-  if(!industry){
-    showMessage('Please choose a recognized industry from the suggestions.');
-    renderIndustrySuggestions();
-    return;
-  }
-
-  addIndustryChip(industry,true);
-  input.value='';
-  hideIndustrySuggestions();
-  clearMessage();
-}
-
-document.getElementById('industrySearch').addEventListener('input',renderIndustrySuggestions);
-document.getElementById('industrySearch').addEventListener('keydown',event=>{
-  if(event.key==='Enter'){
-    event.preventDefault();
-    addCustomIndustry();
-  }
-});
-
-const JOB_TITLE_SUGGESTIONS=[
+const JOB_TITLES=[
   'Account Executive','Account Manager','Accountant','Administrative Assistant',
   'Analyst','Assistant Manager','Business Analyst','Business Development Manager',
   'Business Development Representative','Case Manager','Client Success Manager',
@@ -782,215 +774,573 @@ const JOB_TITLE_SUGGESTIONS=[
   'Warehouse Associate','Warehouse Manager','Web Developer'
 ];
 
-function hideRoleSuggestions(){
-  const box=document.getElementById('roleSuggestions');
-  if(box){box.classList.remove('show');box.innerHTML='';}
+const INDUSTRIES=[
+  'Accounting','Advertising','Aerospace & Defense','Agriculture','Architecture & Engineering',
+  'Automotive','Banking','Beauty & Wellness','Biotechnology','Business Services','Clean Energy',
+  'Communications','Construction','Consumer Goods','Consulting','Cybersecurity','E-commerce',
+  'Education','Energy & Utilities','Entertainment','Environmental Services','Finance',
+  'Food & Beverage','Government','Healthcare','Hospitality','Human Resources','Insurance',
+  'Legal Services','Manufacturing','Marketing','Media','Nonprofit','Pharmaceuticals',
+  'Property Management','Public Safety','Real Estate','Retail','Security','Sports & Fitness',
+  'Staffing & Recruiting','Technology','Telecommunications','Transportation & Logistics',
+  'Travel & Tourism','Warehousing & Distribution'
+];
+
+const INDUSTRY_ALIASES={
+  tech:'Technology',
+  it:'Technology',
+  software:'Technology',
+  medical:'Healthcare',
+  health:'Healthcare',
+  telecom:'Telecommunications',
+  legal:'Legal Services',
+  law:'Legal Services',
+  pharma:'Pharmaceuticals',
+  biotech:'Biotechnology',
+  recruiting:'Staffing & Recruiting',
+  staffing:'Staffing & Recruiting',
+  logistics:'Transportation & Logistics',
+  transportation:'Transportation & Logistics',
+  warehouse:'Warehousing & Distribution',
+  ecommerce:'E-commerce',
+  'e commerce':'E-commerce',
+  'non profit':'Nonprofit'
+};
+
+const CITIES=[
+  'New York, NY','Los Angeles, CA','Chicago, IL','Houston, TX','Phoenix, AZ',
+  'Philadelphia, PA','San Antonio, TX','San Diego, CA','Dallas, TX','Austin, TX',
+  'Jacksonville, FL','Fort Worth, TX','San Jose, CA','Columbus, OH','Charlotte, NC',
+  'Raleigh, NC','Durham, NC','Greensboro, NC','Winston-Salem, NC','Wilmington, NC',
+  'Fayetteville, NC','Cary, NC','High Point, NC','Asheville, NC','Concord, NC',
+  'San Francisco, CA','Indianapolis, IN','Seattle, WA','Denver, CO','Washington, DC',
+  'Boston, MA','Nashville, TN','Detroit, MI','Portland, OR','Memphis, TN',
+  'Oklahoma City, OK','Las Vegas, NV','Louisville, KY','Baltimore, MD','Milwaukee, WI',
+  'Albuquerque, NM','Tucson, AZ','Fresno, CA','Sacramento, CA','Kansas City, MO',
+  'Mesa, AZ','Atlanta, GA','Omaha, NE','Colorado Springs, CO','Miami, FL','Tampa, FL',
+  'Orlando, FL','Virginia Beach, VA','Long Beach, CA','Oakland, CA','Minneapolis, MN',
+  'Tulsa, OK','Arlington, TX','New Orleans, LA','Wichita, KS','Cleveland, OH',
+  'Bakersfield, CA','Aurora, CO','Anaheim, CA','Honolulu, HI','Riverside, CA',
+  'Lexington, KY','St. Paul, MN','St. Louis, MO','Cincinnati, OH','Pittsburgh, PA',
+  'Greenville, SC','Columbia, SC','Charleston, SC','Richmond, VA','Norfolk, VA',
+  'Boise, ID','Spokane, WA','Tacoma, WA','Salt Lake City, UT','Albany, NY',
+  'Buffalo, NY','Rochester, NY','Syracuse, NY','Hartford, CT','Providence, RI',
+  'Jersey City, NJ','Newark, NJ','Knoxville, TN','Chattanooga, TN','Little Rock, AR',
+  'Des Moines, IA','Madison, WI','Fort Lauderdale, FL','St. Petersburg, FL',
+  'Tallahassee, FL','Savannah, GA','Myrtle Beach, SC','Remote - United States'
+];
+
+const STATE_NAMES={
+  AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',
+  CT:'Connecticut',DE:'Delaware',DC:'District of Columbia',FL:'Florida',GA:'Georgia',
+  HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',
+  LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',
+  MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',
+  NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',
+  OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',
+  SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',
+  WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming'
+};
+
+function $(id){return document.getElementById(id)}
+function normalize(value){return String(value||'').trim().toLowerCase()}
+function showMessage(text,type='error'){
+  const el=$('message');
+  el.textContent=text;
+  el.className='message '+type;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
 }
+function clearMessage(){
+  const el=$('message');
+  el.textContent='';
+  el.className='message';
+}
+function formatSalary(value){
+  const n=Number(value)||0;
+  if(n>=300000)return '$300k+';
+  return '$'+n.toLocaleString('en-US');
+}
+function parseLocation(value){
+  const raw=String(value||'').trim();
+  if(!raw)return {city:'',state:''};
+  if(raw==='Remote - United States')return {city:'Remote',state:''};
+  const parts=raw.split(',').map(v=>v.trim()).filter(Boolean);
+  const city=parts[0]||'';
+  const statePart=(parts[1]||'').toUpperCase();
+  return {city,state:STATE_NAMES[statePart]||parts[1]||''};
+}
+function closeSuggestions(id){
+  const box=$(id);
+  if(box){box.classList.remove('show');box.innerHTML=''}
+}
+function renderSuggestions(inputId,boxId,items,minChars,label,onSelect){
+  const input=$(inputId);
+  const box=$(boxId);
+  const q=normalize(input.value);
 
-function renderRoleSuggestions(){
-  const input=document.getElementById('role');
-  const box=document.getElementById('roleSuggestions');
-  const q=input.value.trim().toLowerCase();
-
-  if(q.length<3){
-    hideRoleSuggestions();
+  if(q.length<minChars){
+    closeSuggestions(boxId);
     return;
   }
 
-  const matches=JOB_TITLE_SUGGESTIONS
-    .filter(title=>title.toLowerCase().includes(q))
+  const matches=items
+    .filter(item=>normalize(item).includes(q))
     .sort((a,b)=>{
-      const aa=a.toLowerCase(),bb=b.toLowerCase();
-      const aStart=aa.startsWith(q)?0:1;
-      const bStart=bb.startsWith(q)?0:1;
-      return aStart-bStart||aa.localeCompare(bb);
+      const aa=normalize(a),bb=normalize(b);
+      const as=aa.startsWith(q)?0:1;
+      const bs=bb.startsWith(q)?0:1;
+      return as-bs||aa.localeCompare(bb);
     })
     .slice(0,8);
 
   if(!matches.length){
-    hideRoleSuggestions();
+    box.innerHTML='<div class="suggestion-empty">No recognized match found. Try a broader term.</div>';
+    box.classList.add('show');
     return;
   }
 
-  box.innerHTML=matches.map((title,index)=>`
-    <button type="button" class="suggestion-item" data-index="${index}">
-      ${title}
-      <span class="suggestion-muted">Use this job title</span>
+  box.innerHTML=matches.map((item,index)=>`
+    <button type="button" class="suggestion" data-index="${index}">
+      ${item}<small>${label}</small>
     </button>
   `).join('');
 
-  box.querySelectorAll('.suggestion-item').forEach(btn=>{
-    btn.onclick=()=>{
-      input.value=matches[Number(btn.dataset.index)];
-      hideRoleSuggestions();
+  box.querySelectorAll('.suggestion').forEach(button=>{
+    button.onclick=()=>{
+      onSelect(matches[Number(button.dataset.index)]);
+      closeSuggestions(boxId);
+      updateProgress();
     };
   });
 
   box.classList.add('show');
 }
 
-document.getElementById('role').addEventListener('input',renderRoleSuggestions);
+/* Role — suggest after 3 characters. If used, it must be recognized. */
+$('roleInput').addEventListener('input',()=>{
+  selectedRole='';
+  $('roleError').classList.remove('show');
+  renderSuggestions('roleInput','roleSuggestions',JOB_TITLES,3,'Use this job title',title=>{
+    $('roleInput').value=title;
+    selectedRole=title;
+  });
+});
 
-document.addEventListener('click',event=>{
-  if(!event.target.closest('.field-suggest')){
-    hideRoleSuggestions();
-    hideIndustrySuggestions();
+/* Location — suggest after 3 characters and require a recognized selection. */
+$('locationInput').addEventListener('input',()=>{
+  selectedLocation='';
+  $('locationError').classList.remove('show');
+  renderSuggestions('locationInput','locationSuggestions',CITIES,3,'Use this location',location=>{
+    $('locationInput').value=location;
+    selectedLocation=location;
+  });
+});
+
+/* Salary */
+function updateSalary(){
+  const minInput=$('salaryMin');
+  const maxInput=$('salaryMax');
+  let min=Number(minInput.value);
+  let max=Number(maxInput.value);
+
+  if(min>=max-10000){
+    min=max-10000;
+    minInput.value=min;
+  }
+  if(max<=min+10000){
+    max=min+10000;
+    maxInput.value=max;
+  }
+
+  $('salaryMinDisplay').textContent=formatSalary(min);
+  $('salaryMaxDisplay').textContent=formatSalary(max);
+
+  const span=CEILING-FLOOR;
+  const left=((min-FLOOR)/span)*100;
+  const right=((max-FLOOR)/span)*100;
+  $('rangeFill').style.left=left+'%';
+  $('rangeFill').style.width=(right-left)+'%';
+
+  updateProgress();
+}
+$('salaryMin').addEventListener('input',()=>{
+  document.querySelectorAll('.quick-chip').forEach(c=>c.classList.remove('active'));
+  updateSalary();
+});
+$('salaryMax').addEventListener('input',()=>{
+  document.querySelectorAll('.quick-chip').forEach(c=>c.classList.remove('active'));
+  updateSalary();
+});
+document.querySelectorAll('.quick-chip').forEach(chip=>{
+  chip.onclick=()=>{
+    $('salaryMin').value=chip.dataset.min;
+    $('salaryMax').value=chip.dataset.max;
+    document.querySelectorAll('.quick-chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    updateSalary();
+  };
+});
+
+/* Single-select work style */
+document.querySelectorAll('#workStyleOptions .choice').forEach(button=>{
+  button.onclick=()=>{
+    document.querySelectorAll('#workStyleOptions .choice').forEach(c=>c.classList.remove('active'));
+    button.classList.add('active');
+    updateProgress();
+  };
+});
+
+/* Multi-select benefits */
+document.querySelectorAll('#benefitOptions .benefit').forEach(button=>{
+  button.onclick=()=>{
+    button.classList.toggle('active');
+    updateProgress();
+  };
+});
+
+/* Multi-select job types */
+document.querySelectorAll('#jobTypeOptions .job-type').forEach(button=>{
+  button.onclick=()=>{
+    button.classList.toggle('active');
+    updateProgress();
+  };
+});
+
+/* Industry allow-list */
+function canonicalIndustry(value){
+  const raw=String(value||'').trim().replace(/\s+/g,' ');
+  if(!raw)return '';
+  const exact=INDUSTRIES.find(item=>normalize(item)===normalize(raw));
+  if(exact)return exact;
+  return INDUSTRY_ALIASES[normalize(raw)]||'';
+}
+function allSelectedIndustries(){
+  return [...document.querySelectorAll('#industryOptions .ind-chip.active')]
+    .map(button=>button.dataset.value)
+    .concat([...document.querySelectorAll('#extraIndustries .extra-chip')].map(button=>button.dataset.value));
+}
+function addExtraIndustry(value){
+  const canonical=canonicalIndustry(value);
+  if(!canonical)return false;
+
+  const builtIn=[...document.querySelectorAll('#industryOptions .ind-chip')]
+    .find(button=>normalize(button.dataset.value)===normalize(canonical));
+
+  if(builtIn){
+    builtIn.classList.add('active');
+    return true;
+  }
+
+  const exists=[...document.querySelectorAll('#extraIndustries .extra-chip')]
+    .some(button=>normalize(button.dataset.value)===normalize(canonical));
+  if(exists)return true;
+
+  const button=document.createElement('button');
+  button.type='button';
+  button.className='extra-chip';
+  button.dataset.value=canonical;
+  button.textContent=canonical+' ×';
+  button.onclick=()=>{
+    button.remove();
+    updateProgress();
+  };
+  $('extraIndustries').appendChild(button);
+  return true;
+}
+document.querySelectorAll('#industryOptions .ind-chip').forEach(button=>{
+  button.onclick=()=>{
+    button.classList.toggle('active');
+    updateProgress();
+  };
+});
+$('industryInput').addEventListener('input',()=>{
+  $('industryError').classList.remove('show');
+  const q=normalize($('industryInput').value);
+
+  if(q.length<3){
+    closeSuggestions('industrySuggestions');
+    return;
+  }
+
+  const already=new Set(allSelectedIndustries().map(normalize));
+  const matches=INDUSTRIES
+    .filter(item=>normalize(item).includes(q)&&!already.has(normalize(item)))
+    .sort((a,b)=>{
+      const aa=normalize(a),bb=normalize(b);
+      const as=aa.startsWith(q)?0:1;
+      const bs=bb.startsWith(q)?0:1;
+      return as-bs||aa.localeCompare(bb);
+    })
+    .slice(0,8);
+
+  const box=$('industrySuggestions');
+  if(!matches.length){
+    box.innerHTML='<div class="suggestion-empty">No recognized industry found. Try a broader term.</div>';
+    box.classList.add('show');
+    return;
+  }
+
+  box.innerHTML=matches.map((item,index)=>`
+    <button type="button" class="suggestion" data-index="${index}">
+      ${item}<small>Add this industry</small>
+    </button>
+  `).join('');
+
+  box.querySelectorAll('.suggestion').forEach(button=>{
+    button.onclick=()=>{
+      addExtraIndustry(matches[Number(button.dataset.index)]);
+      $('industryInput').value='';
+      closeSuggestions('industrySuggestions');
+      updateProgress();
+    };
+  });
+
+  box.classList.add('show');
+});
+$('industryInput').addEventListener('keydown',event=>{
+  if(event.key==='Enter'){
+    event.preventDefault();
+    const canonical=canonicalIndustry($('industryInput').value);
+    if(!canonical){
+      $('industryError').classList.add('show');
+      return;
+    }
+    addExtraIndustry(canonical);
+    $('industryInput').value='';
+    closeSuggestions('industrySuggestions');
+    updateProgress();
   }
 });
 
-function validateStep(){
-  clearMessage();
-  if(currentStep===1&&selectedValues('industryOptions','.chip.active').length===0){
-    showMessage('Choose at least one industry before continuing.');
-    return false;
+document.addEventListener('click',event=>{
+  if(!event.target.closest('.field')){
+    closeSuggestions('roleSuggestions');
+    closeSuggestions('locationSuggestions');
+    closeSuggestions('industrySuggestions');
   }
-  if(currentStep===4){
-    const city=document.getElementById('city').value.trim();
-    const state=document.getElementById('state').value;
-    if(!city&&!state){
-      showMessage('Enter a city or choose a state before continuing.');
+});
+
+function selectedWorkStyle(){
+  return document.querySelector('#workStyleOptions .choice.active')?.dataset.value||'';
+}
+function selectedJobTypes(){
+  return [...document.querySelectorAll('#jobTypeOptions .job-type.active')].map(b=>b.dataset.value);
+}
+function selectedBenefits(){
+  return [...document.querySelectorAll('#benefitOptions .benefit.active')].map(b=>b.dataset.value);
+}
+
+function updateProgress(){
+  const roleOkay=!$('roleInput').value.trim() || Boolean(selectedRole);
+  const locationOkay=Boolean(selectedLocation);
+  const workOkay=Boolean(selectedWorkStyle());
+  const jobTypesOkay=selectedJobTypes().length>0;
+  const industriesOkay=allSelectedIndustries().length>0;
+  const salaryOkay=true;
+  const benefitsOkay=true;
+
+  const sections=[roleOkay,salaryOkay,locationOkay,workOkay,benefitsOkay,jobTypesOkay,industriesOkay];
+  const done=sections.filter(Boolean).length;
+  const pct=Math.round((done/sections.length)*100);
+
+  $('progressPct').textContent=pct+'%';
+  $('progressFill').style.width=pct+'%';
+}
+
+function validate(){
+  clearMessage();
+
+  const roleText=$('roleInput').value.trim();
+  if(roleText && !selectedRole){
+    const exact=JOB_TITLES.find(title=>normalize(title)===normalize(roleText));
+    if(exact){
+      selectedRole=exact;
+      $('roleInput').value=exact;
+    }else{
+      $('roleError').classList.add('show');
+      $('roleSection').scrollIntoView({behavior:'smooth',block:'start'});
       return false;
     }
   }
-  if(currentStep===6&&selectedValues('jobTypeOptions','.option.active').length===0){
+
+  const locationText=$('locationInput').value.trim();
+  if(!selectedLocation){
+    const exact=CITIES.find(location=>normalize(location)===normalize(locationText));
+    if(exact){
+      selectedLocation=exact;
+      $('locationInput').value=exact;
+    }else{
+      $('locationError').classList.add('show');
+      $('locationSection').scrollIntoView({behavior:'smooth',block:'start'});
+      return false;
+    }
+  }
+
+  if(selectedJobTypes().length===0){
     showMessage('Choose at least one job type.');
+    $('jobTypeSection').scrollIntoView({behavior:'smooth',block:'start'});
     return false;
   }
+
+  if(allSelectedIndustries().length===0){
+    showMessage('Choose at least one industry.');
+    $('industrySection').scrollIntoView({behavior:'smooth',block:'start'});
+    return false;
+  }
+
   return true;
 }
-function renderStep(){
-  document.querySelectorAll('.screen').forEach(screen=>{
-    screen.classList.toggle('active',Number(screen.dataset.step)===currentStep);
-  });
-  document.getElementById('stepLabel').textContent='Step '+currentStep+' of '+totalSteps;
-  document.getElementById('progressFill').style.width=((currentStep/totalSteps)*100)+'%';
-  document.getElementById('primaryBtn').textContent=currentStep===totalSteps?'Save & Start Swiping':'Continue';
-  document.getElementById('secondaryBtn').textContent=currentStep===1?'Profile':'Back';
-  if(currentStep===7)renderSummary();
-  window.scrollTo({top:0,behavior:'smooth'});
+
+function collectPreferences(){
+  const location=selectedLocation||$('locationInput').value.trim();
+  const {city,state}=parseLocation(location);
+  const jobTypes=selectedJobTypes();
+
+  return{
+    query:selectedRole||'',
+    city,
+    state,
+    country:'United States',
+    location,
+    salary_min:Number($('salaryMin').value),
+    salary_max:Number($('salaryMax').value),
+    workStyle:selectedWorkStyle(),
+    jobType:jobTypes[0]||'',
+    jobTypes,
+    benefits:selectedBenefits(),
+    industries:allSelectedIndustries().map(canonicalIndustry).filter(Boolean),
+    preferences_complete:true
+  };
 }
-function nextStep(){
-  if(!validateStep())return;
-  if(currentStep<totalSteps){
-    currentStep++;
-    renderStep();
-  }else{
-    savePreferences();
+
+function prefill(saved){
+  if(!saved)return;
+
+  if(saved.query){
+    const role=JOB_TITLES.find(item=>normalize(item)===normalize(saved.query));
+    if(role){
+      selectedRole=role;
+      $('roleInput').value=role;
+    }
   }
-}
-function goBack(){
-  clearMessage();
-  if(currentStep>1){
-    currentStep--;
-    renderStep();
-  }else{
-    window.location.href=onboardingMode?'app-resume-preview.html':'app-account.html';
+
+  const location=saved.location || [saved.city,saved.state].filter(Boolean).join(', ');
+  if(location){
+    const exact=CITIES.find(item=>normalize(item)===normalize(location));
+    if(exact){
+      selectedLocation=exact;
+      $('locationInput').value=exact;
+    }else if(saved.city){
+      // Preserve existing valid-looking saved data while the user edits it.
+      selectedLocation=location;
+      $('locationInput').value=location;
+    }
   }
+
+  if(Number.isFinite(saved.salary_min))$('salaryMin').value=saved.salary_min;
+  if(Number.isFinite(saved.salary_max))$('salaryMax').value=saved.salary_max;
+
+  if(saved.workStyle){
+    document.querySelectorAll('#workStyleOptions .choice').forEach(button=>{
+      button.classList.toggle('active',button.dataset.value===saved.workStyle);
+    });
+  }
+
+  if(Array.isArray(saved.jobTypes)){
+    document.querySelectorAll('#jobTypeOptions .job-type').forEach(button=>{
+      button.classList.toggle('active',saved.jobTypes.includes(button.dataset.value));
+    });
+  }else if(saved.jobType){
+    document.querySelectorAll('#jobTypeOptions .job-type').forEach(button=>{
+      button.classList.toggle('active',button.dataset.value===saved.jobType);
+    });
+  }
+
+  if(Array.isArray(saved.benefits)){
+    document.querySelectorAll('#benefitOptions .benefit').forEach(button=>{
+      button.classList.toggle('active',saved.benefits.includes(button.dataset.value));
+    });
+  }
+
+  if(Array.isArray(saved.industries)){
+    document.querySelectorAll('#industryOptions .ind-chip').forEach(button=>button.classList.remove('active'));
+    $('extraIndustries').innerHTML='';
+
+    saved.industries
+      .map(canonicalIndustry)
+      .filter(Boolean)
+      .forEach(addExtraIndustry);
+  }
+
+  document.querySelectorAll('.quick-chip').forEach(c=>c.classList.remove('active'));
+  updateSalary();
+  updateProgress();
 }
-function renderSummary(){
-  const p=collectPreferences();
-  const rows=[
-    ['Specific role',p.query||'Open within selected industries'],
-    ['Salary',fmtSalary(p.salary_min)+' — '+fmtSalary(p.salary_max)],
-    ['Location',p.location||p.country],
-    ['Work style',p.workStyle||'Not set'],
-    ['Job types',p.jobTypes.join(', ')||'Not set'],
-    ['Benefits',p.benefits.join(', ')||'No required benefits'],
-    ['Industries',p.industries.join(', ')||'Not set']
-  ];
-  document.getElementById('summary').innerHTML=rows.map(([key,value])=>
-    `<div class="summary-row"><div class="summary-key">${key}</div><div class="summary-value">${value}</div></div>`
-  ).join('');
-}
+
 async function savePreferences(){
-  clearMessage();
-  const button=document.getElementById('primaryBtn');
+  if(!validate())return;
+
+  const button=$('saveBtn');
   const original=button.textContent;
   button.disabled=true;
-  button.textContent='Saving...';
+  button.textContent='Saving…';
+
   try{
     if(!currentSession){
       const {data,error}=await sb.auth.getSession();
-      if(error||!data.session)throw new Error('Your session expired. Please log in again.');
+      if(error||!data.session)throw new Error('Your session expired. Please sign in again.');
       currentSession=data.session;
     }
+
     const preferences=collectPreferences();
     const user=currentSession.user;
+
     const {error}=await sb.from('profiles').upsert({
       id:user.id,
       preferences,
       updated_at:new Date().toISOString()
     },{onConflict:'id'});
+
     if(error)throw error;
-    showMessage('Preferences saved successfully.','success');
-    setTimeout(()=>window.location.href='app-swipe.html',650);
+
+    showMessage('Preferences saved. Your job matching is ready.','success');
+
+    setTimeout(()=>{
+      window.location.href='app-swipe.html';
+    },450);
   }catch(error){
     console.error(error);
-    showMessage(error.message||'Your preferences could not be saved.');
+    showMessage(error?.message||'Your preferences could not be saved.');
     button.disabled=false;
     button.textContent=original;
   }
 }
-function prefill(saved){
-  if(!saved)return;
-  if(saved.query)document.getElementById('role').value=saved.query;
-  if(saved.city)document.getElementById('city').value=saved.city;
-  if(saved.state)document.getElementById('state').value=saved.state;
-  if(saved.country)document.getElementById('country').value=saved.country;
-  if(Number.isFinite(saved.salary_min))document.getElementById('salaryMin').value=saved.salary_min;
-  if(Number.isFinite(saved.salary_max))document.getElementById('salaryMax').value=saved.salary_max;
-  if(saved.workStyle){
-    document.querySelectorAll('#workStyleOptions .option').forEach(el=>{
-      el.classList.toggle('active',el.dataset.value===saved.workStyle);
-    });
-  }
-  if(Array.isArray(saved.jobTypes)){
-    document.querySelectorAll('#jobTypeOptions .option').forEach(el=>{
-      el.classList.toggle('active',saved.jobTypes.includes(el.dataset.value));
-    });
-  }
-  if(Array.isArray(saved.benefits)){
-    document.querySelectorAll('#benefitOptions .option').forEach(el=>{
-      el.classList.toggle('active',saved.benefits.includes(el.dataset.value));
-    });
-  }
-  if(Array.isArray(saved.industries)){
-    const builtIn=[...document.querySelectorAll('#industryOptions .chip')];
 
-    const validSaved=saved.industries
-      .map(canonicalIndustry)
-      .filter(Boolean);
-
-    builtIn.forEach(el=>{
-      el.classList.toggle('active',validSaved.includes(el.dataset.value));
-    });
-
-    validSaved.forEach(industry=>{
-      const exists=builtIn.some(el=>el.dataset.value===industry);
-      if(!exists)addIndustryChip(industry,true);
-    });
-  }
-  updateSalary();
-}
 async function initialize(){
   updateSalary();
-  renderStep();
+
   const {data,error}=await sb.auth.getSession();
   if(error||!data.session){
     window.location.replace('app-login.html');
     return;
   }
+
   currentSession=data.session;
-  const {data:profile,error:profileError}=await sb
+
+  const {data:loadedProfile,error:profileError}=await sb
     .from('profiles')
     .select('*')
     .eq('id',currentSession.user.id)
     .maybeSingle();
+
   if(profileError){
     console.error(profileError);
     showMessage('We could not load your saved preferences, but you can still enter them again.');
     return;
   }
+
+  profile=loadedProfile||{};
+
   const resumeData=
     profile?.resume_data && typeof profile.resume_data==='object'
       ?profile.resume_data
@@ -1001,8 +1351,8 @@ async function initialize(){
     profile?.resume_url ||
     profile?.resume_text ||
     resumeData?.personal ||
-    (Array.isArray(resumeData?.experience) && resumeData.experience.length) ||
-    (Array.isArray(resumeData?.skills) && resumeData.skills.length)
+    (Array.isArray(resumeData?.experience)&&resumeData.experience.length) ||
+    (Array.isArray(resumeData?.skills)&&resumeData.skills.length)
   );
 
   if(!hasResume){
@@ -1015,33 +1365,29 @@ async function initialize(){
       ?profile.preferences
       :{};
 
-  const savedTypes=Array.isArray(saved.jobTypes)?saved.jobTypes:[];
-  const preferencesAlreadyComplete=Boolean(
-    saved.preferences_complete ||
-    profile?.preferences_complete ||
-    (
-      String(saved.query||'').trim() &&
-      String(saved.location||saved.city||saved.state||saved.country||'').trim() &&
-      (savedTypes.length||String(saved.jobType||'').trim())
-    )
-  );
+  onboardingMode=!Boolean(saved.preferences_complete);
 
   const resumeOnboarding=
     resumeData?._alygnn_onboarding && typeof resumeData._alygnn_onboarding==='object'
       ?resumeData._alygnn_onboarding
       :{};
 
-  const previewReviewed=resumeOnboarding.preview_reviewed===true;
-
-  if(!preferencesAlreadyComplete&&!previewReviewed){
+  if(onboardingMode && resumeOnboarding.preview_reviewed!==true){
     window.location.replace('app-resume-preview.html');
     return;
   }
 
-  onboardingMode=!preferencesAlreadyComplete;
-
   if(profile?.preferences)prefill(profile.preferences);
+
+  updateProgress();
 }
+
+function goBack(){
+  window.location.href=onboardingMode?'app-resume-preview.html':'app-account.html';
+}
+
+$('saveBtn').addEventListener('click',savePreferences);
+
 initialize();
 </script>
 </body>
