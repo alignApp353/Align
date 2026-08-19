@@ -568,6 +568,71 @@ button,a{font:inherit}
 
 <script src="app-candidate-theme.js"></script>
 <link rel="stylesheet" href="app-candidate-theme.css">
+
+<style id="job-details-dark-and-application-fix">
+/* Job details surfaces that were still hard-coded light. */
+html[data-effective-theme="dark"] .overview-item{
+  background:#101A23!important;
+  border-color:#2B3946!important;
+}
+
+html[data-effective-theme="dark"] .overview-label{
+  color:#91A0AD!important;
+}
+
+html[data-effective-theme="dark"] .overview-value{
+  color:#F4F7F9!important;
+}
+
+html[data-effective-theme="dark"] .score-ring{
+  background:conic-gradient(
+    var(--mint) calc(var(--score)*1%),
+    #2B3946 0
+  )!important;
+}
+
+html[data-effective-theme="dark"] .score-ring::before{
+  background:#15202B!important;
+}
+
+html[data-effective-theme="dark"] .company-card-logo{
+  background:#101A23!important;
+  border-color:#2B3946!important;
+  color:#73A4CE!important;
+}
+
+html[data-effective-theme="dark"] .apply-bar{
+  background:rgba(14,21,29,.97)!important;
+  border-color:#2B3946!important;
+}
+
+html[data-effective-theme="dark"] .secondary-btn{
+  background:#101A23!important;
+  border-color:#2B3946!important;
+  color:#F4F7F9!important;
+}
+
+html[data-effective-theme="dark"] .toast{
+  background:#22303C!important;
+  color:#F4F7F9!important;
+  border:1px solid #334452!important;
+}
+
+/* Existing application state */
+.primary-btn.withdraw-mode{
+  background:#B85E62!important;
+  color:#FFFFFF!important;
+  box-shadow:0 9px 22px rgba(184,94,98,.22)!important;
+}
+
+.primary-btn.withdraw-mode:disabled{
+  opacity:.62;
+}
+
+.apply-inner.existing-application{
+  grid-template-columns:1fr 1.65fr;
+}
+</style>
 </head>
 
 <body>
@@ -722,6 +787,7 @@ const sb=supabase.createClient(
 
 let session=null;
 let job=null;
+let currentApplication=null;
 let toastTimer=null;
 
 function escapeHtml(value){
@@ -917,10 +983,57 @@ function renderJob(){
   jobContent.hidden=false;
   jobContent.style.display='block';
 
+  // Keep the action bar hidden until we know whether this candidate
+  // already has an application for the job.
+  applyBar.hidden=true;
+  applyBar.style.display='none';
+
+  window.scrollTo({top:0,left:0,behavior:'instant'});
+}
+
+function setApplicationActions(){
+  const applyBar=document.getElementById('apply-bar');
+  const applyInner=applyBar.querySelector('.apply-inner');
+  const primary=document.getElementById('apply-btn');
+  const secondary=document.getElementById('pass-btn');
+
   applyBar.hidden=false;
   applyBar.style.display='block';
 
-  window.scrollTo({top:0,left:0,behavior:'instant'});
+  primary.disabled=false;
+  primary.classList.remove('withdraw-mode');
+  applyInner.classList.remove('existing-application');
+
+  if(currentApplication){
+    applyInner.classList.add('existing-application');
+    secondary.textContent='My Jobs';
+    primary.textContent='Withdraw Application';
+    primary.classList.add('withdraw-mode');
+  }else{
+    secondary.textContent='Not for me';
+    primary.textContent='Apply now';
+  }
+}
+
+async function syncApplicationState(){
+  try{
+    const {data:existing,error}=await sb
+      .from('applications')
+      .select('id,status,applied_at')
+      .eq('candidate_id',session.user.id)
+      .eq('job_id',job.id)
+      .order('applied_at',{ascending:false})
+      .limit(1)
+      .maybeSingle();
+
+    if(error)throw error;
+    currentApplication=existing||null;
+  }catch(error){
+    console.warn('Could not check application status:',error);
+    currentApplication=null;
+  }
+
+  setApplicationActions();
 }
 
 async function applyToJob(){
@@ -931,30 +1044,38 @@ async function applyToJob(){
   try{
     const {data:existing,error:checkError}=await sb
       .from('applications')
-      .select('id')
+      .select('id,status,applied_at')
       .eq('candidate_id',session.user.id)
       .eq('job_id',job.id)
+      .order('applied_at',{ascending:false})
+      .limit(1)
       .maybeSingle();
 
     if(checkError)throw checkError;
 
     if(existing){
-      button.textContent='Already applied';
-      showToast('You already applied to this job');
+      currentApplication=existing;
+      setApplicationActions();
+      showToast('Application already submitted');
       return;
     }
 
-    const {error}=await sb.from('applications').insert({
-      candidate_id:session.user.id,
-      job_id:job.id,
-      status:'applied',
-      applied_at:new Date().toISOString(),
-      match_score:job.match_score??null
-    });
+    const {data:created,error}=await sb
+      .from('applications')
+      .insert({
+        candidate_id:session.user.id,
+        job_id:job.id,
+        status:'applied',
+        applied_at:new Date().toISOString(),
+        match_score:job.match_score??null
+      })
+      .select('id,status,applied_at')
+      .single();
 
     if(error)throw error;
 
-    button.textContent='Application sent ✓';
+    currentApplication=created;
+    setApplicationActions();
     showToast('Application submitted');
   }catch(error){
     console.error(error);
@@ -962,6 +1083,59 @@ async function applyToJob(){
     button.textContent='Apply now';
     showToast(error.message||'Could not apply');
   }
+}
+
+async function withdrawApplication(){
+  if(!currentApplication)return;
+
+  const confirmed=window.confirm(
+    'Withdraw your application for this job?'
+  );
+
+  if(!confirmed)return;
+
+  const button=document.getElementById('apply-btn');
+  button.disabled=true;
+  button.textContent='Withdrawing…';
+
+  try{
+    const {error}=await sb
+      .from('applications')
+      .delete()
+      .eq('candidate_id',session.user.id)
+      .eq('job_id',job.id);
+
+    if(error)throw error;
+
+    currentApplication=null;
+    showToast('Application withdrawn');
+
+    const fromMyJobs=
+      new URLSearchParams(window.location.search).get('from')==='my-jobs';
+
+    if(fromMyJobs){
+      setTimeout(()=>{
+        window.location.replace('app-applied.html');
+      },550);
+      return;
+    }
+
+    setApplicationActions();
+  }catch(error){
+    console.error(error);
+    button.disabled=false;
+    button.textContent='Withdraw Application';
+    showToast(error.message||'Could not withdraw application');
+  }
+}
+
+async function handlePrimaryAction(){
+  if(currentApplication){
+    await withdrawApplication();
+    return;
+  }
+
+  await applyToJob();
 }
 
 async function shareJob(){
@@ -986,6 +1160,14 @@ async function shareJob(){
 }
 
 document.getElementById('back-btn').addEventListener('click',()=>{
+  const fromMyJobs=
+    new URLSearchParams(window.location.search).get('from')==='my-jobs';
+
+  if(fromMyJobs){
+    window.location.href='app-applied.html';
+    return;
+  }
+
   if(history.length>1)history.back();
   else window.location.href='app-swipe.html';
 });
@@ -999,10 +1181,15 @@ document.getElementById('save-btn').addEventListener('click',event=>{
 });
 
 document.getElementById('pass-btn').addEventListener('click',()=>{
+  if(currentApplication){
+    window.location.href='app-applied.html';
+    return;
+  }
+
   window.location.href='app-swipe.html';
 });
 
-document.getElementById('apply-btn').addEventListener('click',applyToJob);
+document.getElementById('apply-btn').addEventListener('click',handlePrimaryAction);
 
 (async function initialize(){
   try{
@@ -1032,6 +1219,7 @@ document.getElementById('apply-btn').addEventListener('click',applyToJob);
 
     job=jobData;
     renderJob();
+    await syncApplicationState();
   }catch(error){
     console.error(error);
     const loadingState=document.getElementById('loading-state');
