@@ -210,6 +210,14 @@ button{cursor:pointer}
   line-height:1;
 }
 
+
+.suggestion-empty{
+  padding:14px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+  line-height:1.45;
+}
 </style>
 
 <style id="candidate-preferences-light-redesign">
@@ -266,7 +274,7 @@ body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparen
 
       <div class="industry-search-wrap">
         <div class="industry-search-label">Don't see your industry?</div>
-        <div class="industry-search-copy">Type 3 letters to search, or enter your own.</div>
+        <div class="industry-search-copy">Type 3 letters to search recognized industries.</div>
 
         <div class="field-suggest">
           <input
@@ -282,7 +290,7 @@ body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparen
         </div>
 
         <button class="industry-add-btn" id="industryAddBtn" type="button" onclick="addCustomIndustry()">
-          + Add Industry
+          + Add Selected Industry
         </button>
       </div>
     </div>
@@ -508,25 +516,125 @@ function collectPreferences(){
     jobType:jobTypes[0]||'',
     jobTypes,
     benefits:selectedValues('benefitOptions','.option.active'),
-    industries:selectedValues('industryOptions','.chip.active'),
+    industries:selectedValues('industryOptions','.chip.active')
+      .map(canonicalIndustry)
+      .filter(Boolean),
     preferences_complete:true
   };
 }
 
 
 const INDUSTRY_SUGGESTIONS=[
-  'Accounting','Aerospace & Defense','Agriculture','Architecture & Engineering',
-  'Automotive','Beauty & Wellness','Biotechnology','Business Services',
-  'Clean Energy','Consumer Goods','Consulting','Cybersecurity',
-  'E-commerce','Energy & Utilities','Entertainment','Environmental Services',
-  'Food & Beverage','Human Resources','Insurance','Legal Services',
-  'Media','Nonprofit','Pharmaceuticals','Property Management',
-  'Public Safety','Security','Sports & Fitness','Staffing & Recruiting',
-  'Telecommunications','Travel & Tourism','Warehousing & Distribution'
+  'Accounting',
+  'Advertising',
+  'Aerospace & Defense',
+  'Agriculture',
+  'Architecture & Engineering',
+  'Automotive',
+  'Banking',
+  'Beauty & Wellness',
+  'Biotechnology',
+  'Business Services',
+  'Clean Energy',
+  'Communications',
+  'Construction',
+  'Consumer Goods',
+  'Consulting',
+  'Cybersecurity',
+  'E-commerce',
+  'Education',
+  'Energy & Utilities',
+  'Entertainment',
+  'Environmental Services',
+  'Finance',
+  'Food & Beverage',
+  'Government',
+  'Healthcare',
+  'Hospitality',
+  'Human Resources',
+  'Insurance',
+  'Legal Services',
+  'Manufacturing',
+  'Marketing',
+  'Media',
+  'Nonprofit',
+  'Pharmaceuticals',
+  'Property Management',
+  'Public Safety',
+  'Real Estate',
+  'Retail',
+  'Security',
+  'Sports & Fitness',
+  'Staffing & Recruiting',
+  'Technology',
+  'Telecommunications',
+  'Transportation & Logistics',
+  'Travel & Tourism',
+  'Warehousing & Distribution'
 ];
 
+const INDUSTRY_ALIASES={
+  'tech':'Technology',
+  'it':'Technology',
+  'information technology':'Technology',
+  'software':'Technology',
+  'health':'Healthcare',
+  'medical':'Healthcare',
+  'health care':'Healthcare',
+  'bank':'Banking',
+  'financial services':'Finance',
+  'school':'Education',
+  'schools':'Education',
+  'government / public sector':'Government',
+  'public sector':'Government',
+  'restaurant':'Food & Beverage',
+  'restaurants':'Food & Beverage',
+  'hotel':'Hospitality',
+  'hotels':'Hospitality',
+  'logistics':'Transportation & Logistics',
+  'transportation':'Transportation & Logistics',
+  'warehouse':'Warehousing & Distribution',
+  'warehousing':'Warehousing & Distribution',
+  'telecom':'Telecommunications',
+  'staffing':'Staffing & Recruiting',
+  'recruiting':'Staffing & Recruiting',
+  'recruitment':'Staffing & Recruiting',
+  'realty':'Real Estate',
+  'property':'Property Management',
+  'law':'Legal Services',
+  'legal':'Legal Services',
+  'pharma':'Pharmaceuticals',
+  'biotech':'Biotechnology',
+  'ecommerce':'E-commerce',
+  'e commerce':'E-commerce',
+  'non profit':'Nonprofit'
+};
+
 function normalizeIndustry(value){
-  return String(value||'').trim().replace(/\s+/g,' ');
+  return String(value||'')
+    .trim()
+    .replace(/\s+/g,' ')
+    .replace(/[^\p{L}\p{N}&/+\-.,' ]/gu,'');
+}
+
+function canonicalIndustry(value){
+  const normalized=normalizeIndustry(value);
+  if(!normalized)return '';
+
+  const lower=normalized.toLowerCase();
+
+  const exact=INDUSTRY_SUGGESTIONS.find(
+    industry=>industry.toLowerCase()===lower
+  );
+  if(exact)return exact;
+
+  if(INDUSTRY_ALIASES[lower])return INDUSTRY_ALIASES[lower];
+
+  return '';
+}
+
+function isRecognizedIndustry(value){
+  return Boolean(canonicalIndustry(value));
 }
 
 function selectedIndustryNames(){
@@ -569,7 +677,12 @@ function renderIndustrySuggestions(){
     .slice(0,7);
 
   if(!matches.length){
-    hideIndustrySuggestions();
+    box.innerHTML=`
+      <div class="suggestion-empty">
+        No recognized industry found. Try a broader term.
+      </div>
+    `;
+    box.classList.add('show');
     return;
   }
 
@@ -585,6 +698,7 @@ function renderIndustrySuggestions(){
       addIndustryChip(matches[Number(btn.dataset.index)]);
       input.value='';
       hideIndustrySuggestions();
+      clearMessage();
     };
   });
 
@@ -592,15 +706,15 @@ function renderIndustrySuggestions(){
 }
 
 function addIndustryChip(value,active=true){
-  const industry=normalizeIndustry(value);
-  if(!industry)return;
+  const industry=canonicalIndustry(value);
+  if(!industry)return false;
 
   const existing=[...document.querySelectorAll('#industryOptions .chip')]
     .find(el=>String(el.dataset.value||'').toLowerCase()===industry.toLowerCase());
 
   if(existing){
     if(active)existing.classList.add('active');
-    return;
+    return true;
   }
 
   const button=document.createElement('button');
@@ -609,24 +723,34 @@ function addIndustryChip(value,active=true){
   button.dataset.value=industry;
   button.dataset.custom='1';
   button.textContent=industry;
-  button.onclick=()=>{
-    // Custom choices can be removed with one tap.
-    button.remove();
-  };
+  button.onclick=()=>button.remove();
 
   document.getElementById('industryOptions').appendChild(button);
+  return true;
 }
 
 function addCustomIndustry(){
   const input=document.getElementById('industrySearch');
-  const value=normalizeIndustry(input.value);
+  const raw=normalizeIndustry(input.value);
+  const industry=canonicalIndustry(raw);
 
-  if(!value){
-    showMessage('Type an industry before adding it.');
+  if(!raw){
+    showMessage('Type at least 3 letters to search for an industry.');
     return;
   }
 
-  addIndustryChip(value,true);
+  if(raw.length<3){
+    showMessage('Type at least 3 letters before choosing an industry.');
+    return;
+  }
+
+  if(!industry){
+    showMessage('Please choose a recognized industry from the suggestions.');
+    renderIndustrySuggestions();
+    return;
+  }
+
+  addIndustryChip(industry,true);
   input.value='';
   hideIndustrySuggestions();
   clearMessage();
@@ -833,11 +957,15 @@ function prefill(saved){
   if(Array.isArray(saved.industries)){
     const builtIn=[...document.querySelectorAll('#industryOptions .chip')];
 
+    const validSaved=saved.industries
+      .map(canonicalIndustry)
+      .filter(Boolean);
+
     builtIn.forEach(el=>{
-      el.classList.toggle('active',saved.industries.includes(el.dataset.value));
+      el.classList.toggle('active',validSaved.includes(el.dataset.value));
     });
 
-    saved.industries.forEach(industry=>{
+    validSaved.forEach(industry=>{
       const exists=builtIn.some(el=>el.dataset.value===industry);
       if(!exists)addIndustryChip(industry,true);
     });
