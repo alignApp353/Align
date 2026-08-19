@@ -709,6 +709,9 @@ body.details-open{overflow:hidden}
 .bottom-nav .nav-icon{font-size:17px;line-height:1}
 </style>
 
+
+<script src="app-candidate-theme.js"></script>
+<link rel="stylesheet" href="app-candidate-theme.css">
 </head>
 
 <body>
@@ -1335,60 +1338,6 @@ document.addEventListener('keydown',event=>{
   if(event.key==='Escape'&&document.getElementById('job-details-overlay').classList.contains('open'))closeJobDetails();
 });
 
-
-async function enforceCandidateOnboarding(user){
-  const {data:profile,error}=await sb
-    .from('profiles')
-    .select('*')
-    .eq('id',user.id)
-    .maybeSingle();
-
-  if(error)throw error;
-
-  const resumeData=
-    profile?.resume_data && typeof profile.resume_data==='object'
-      ?profile.resume_data
-      :{};
-
-  const hasResume=Boolean(
-    profile?.resume_file_path||
-    profile?.resume_url||
-    profile?.resume_text||
-    resumeData?.personal||
-    (Array.isArray(resumeData?.experience)&&resumeData.experience.length)||
-    (Array.isArray(resumeData?.skills)&&resumeData.skills.length)
-  );
-
-  if(!hasResume){
-    window.location.replace('app-account.html?setup=required');
-    return false;
-  }
-
-  const p=
-    profile?.preferences && typeof profile.preferences==='object'
-      ?profile.preferences
-      :{};
-  const types=Array.isArray(p.jobTypes)?p.jobTypes:[];
-
-  const preferencesComplete=Boolean(
-    p.preferences_complete||
-    profile?.preferences_complete||
-    user.user_metadata?.preferences_complete||
-    (
-      String(p.query||'').trim()&&
-      String(p.location||p.city||p.state||p.country||'').trim()&&
-      (types.length||String(p.jobType||'').trim())
-    )
-  );
-
-  if(!preferencesComplete){
-    window.location.replace('app-account.html?setup=required');
-    return false;
-  }
-
-  return true;
-}
-
 (async function initialize(){
   const {data,error}=await sb.auth.getSession();
 
@@ -1398,8 +1347,6 @@ async function enforceCandidateOnboarding(user){
   }
 
   session=data.session;
-
-  if(!await enforceCandidateOnboarding(session.user))return;
 
   const fullName=
     session.user.user_metadata?.full_name||
