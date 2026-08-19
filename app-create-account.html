@@ -246,6 +246,14 @@ button{
   height:21px;
 }
 
+.password-eye .eye-slash{
+  display:none;
+}
+
+.eye-btn.is-visible .password-eye .eye-slash{
+  display:block;
+}
+
 .password-help{
   margin:8px 2px 0;
   color:var(--muted-2);
@@ -708,13 +716,10 @@ html[data-effective-theme="dark"] .existing-account-card{
         </svg>
         <input id="password" type="password" placeholder="Create a password" autocomplete="new-password">
         <button class="eye-btn" id="toggle-password" type="button" aria-label="Show password" aria-pressed="false">
-          <svg class="eye-open" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <svg class="password-eye" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
             <circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.8"></circle>
-          </svg>
-          <svg class="eye-closed" viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden>
-            <path d="M3 3l18 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
-            <path d="M10.6 6.1A10.8 10.8 0 0 1 12 6c6 0 9.5 6 9.5 6a15.8 15.8 0 0 1-2.1 2.8M6.2 7.2C3.8 9 2.5 12 2.5 12s3.5 6 9.5 6c1.3 0 2.5-.3 3.5-.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path class="eye-slash" d="M4 4l16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
           </svg>
         </button>
       </div>
@@ -730,13 +735,10 @@ html[data-effective-theme="dark"] .existing-account-card{
         </svg>
         <input id="confirm-password" type="password" placeholder="Confirm your password" autocomplete="new-password">
         <button class="eye-btn" id="toggle-confirm-password" type="button" aria-label="Show confirm password" aria-pressed="false">
-          <svg class="eye-open" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <svg class="password-eye" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
             <circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.8"></circle>
-          </svg>
-          <svg class="eye-closed" viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden>
-            <path d="M3 3l18 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
-            <path d="M10.6 6.1A10.8 10.8 0 0 1 12 6c6 0 9.5 6 9.5 6a15.8 15.8 0 0 1-2.1 2.8M6.2 7.2C3.8 9 2.5 12 2.5 12s3.5 6 9.5 6c1.3 0 2.5-.3 3.5-.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path class="eye-slash" d="M4 4l16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
           </svg>
         </button>
       </div>
@@ -904,17 +906,15 @@ function showVerificationStep(email){
 function togglePasswordField(inputId,buttonId){
   const input=document.getElementById(inputId);
   const button=document.getElementById(buttonId);
-  const showing=input.type==="text";
+  const willShow=input.type==="password";
 
-  input.type=showing?"password":"text";
-  button.setAttribute("aria-pressed",String(!showing));
+  input.type=willShow?"text":"password";
+  button.classList.toggle("is-visible",willShow);
+  button.setAttribute("aria-pressed",String(willShow));
   button.setAttribute(
     "aria-label",
-    showing?"Show password":"Hide password"
+    willShow?"Hide password":"Show password"
   );
-
-  button.querySelector(".eye-open").hidden=!showing;
-  button.querySelector(".eye-closed").hidden=showing;
 }
 
 async function signup(){
