@@ -419,8 +419,8 @@ h1{
   border-color:var(--mint);
   color:#fff;
 }
-.benefit-name{font-size:12px;font-weight:900}
-.benefit-copy{margin-top:2px;color:var(--muted);font-size:10px;line-height:1.35}
+.benefit-name{display:block;font-size:12px;font-weight:900}
+.benefit-copy{display:block;margin-top:2px;color:var(--muted);font-size:10px;line-height:1.35}
 
 /* Job type */
 .job-grid{
@@ -603,13 +603,13 @@ h1{
       </div>
       <div class="card salary-card">
         <div class="salary-caption">I'm looking for</div>
-        <div class="salary-display"><span id="salaryMinDisplay">$10,000</span> <span>—</span> <span id="salaryMaxDisplay">$80,000</span></div>
+        <div class="salary-display"><span id="salaryMinDisplay">$40,000</span> <span>—</span> <span id="salaryMaxDisplay">$80,000</span></div>
 
         <div class="range-wrap">
           <div class="range-bg"></div>
           <div class="range-fill" id="rangeFill"></div>
           <div class="range-inputs">
-            <input type="range" id="salaryMin" min="10000" max="300000" step="5000" value="10000">
+            <input type="range" id="salaryMin" min="10000" max="300000" step="5000" value="40000">
             <input type="range" id="salaryMax" min="10000" max="300000" step="5000" value="80000">
           </div>
         </div>
@@ -617,8 +617,7 @@ h1{
 
         <div class="quick-chips">
           <button class="quick-chip" type="button" data-min="10000" data-max="40000">$10k–$40k</button>
-          <button class="quick-chip active" type="button" data-min="10000" data-max="80000">$10k–$80k</button>
-          <button class="quick-chip" type="button" data-min="40000" data-max="80000">$40k–$80k</button>
+          <button class="quick-chip active" type="button" data-min="40000" data-max="80000">$40k–$80k</button>
           <button class="quick-chip" type="button" data-min="60000" data-max="120000">$60k–$120k</button>
           <button class="quick-chip" type="button" data-min="80000" data-max="150000">$80k–$150k</button>
           <button class="quick-chip" type="button" data-min="100000" data-max="200000">$100k–$200k</button>
@@ -753,6 +752,7 @@ let profile=null;
 let onboardingMode=true;
 let selectedLocation='';
 let selectedRole='';
+const EDIT_MODE=new URLSearchParams(window.location.search).get('edit')==='1';
 const FLOOR=10000;
 const CEILING=300000;
 
@@ -1216,12 +1216,15 @@ function collectPreferences(){
 function prefill(saved){
   if(!saved)return;
 
-  if(saved.query){
+  if(EDIT_MODE && saved.query){
     const role=JOB_TITLES.find(item=>normalize(item)===normalize(saved.query));
     if(role){
       selectedRole=role;
       $('roleInput').value=role;
     }
+  }else{
+    selectedRole='';
+    $('roleInput').value='';
   }
 
   const location=saved.location || [saved.city,saved.state].filter(Boolean).join(', ');
@@ -1237,8 +1240,17 @@ function prefill(saved){
     }
   }
 
-  if(Number.isFinite(saved.salary_min))$('salaryMin').value=saved.salary_min;
-  if(Number.isFinite(saved.salary_max))$('salaryMax').value=saved.salary_max;
+  if(
+    !EDIT_MODE &&
+    Number(saved.salary_min)===10000 &&
+    Number(saved.salary_max)===80000
+  ){
+    $('salaryMin').value=40000;
+    $('salaryMax').value=80000;
+  }else{
+    if(Number.isFinite(saved.salary_min))$('salaryMin').value=saved.salary_min;
+    if(Number.isFinite(saved.salary_max))$('salaryMax').value=saved.salary_max;
+  }
 
   if(saved.workStyle){
     document.querySelectorAll('#workStyleOptions .choice').forEach(button=>{
