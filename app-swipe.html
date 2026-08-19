@@ -1293,6 +1293,63 @@ async function createApplication(job){
   return false;
 }
 
+
+async function recordPassedJob(job){
+  if(!job?.id)return false;
+
+  const {data:existing,error:checkError}=await sb
+    .from('skipped_jobs')
+    .select('job_id')
+    .eq('candidate_id',session.user.id)
+    .eq('job_id',job.id)
+    .maybeSingle();
+
+  if(checkError){
+    console.warn('Could not check passed job:',checkError);
+  }
+
+  if(existing)return false;
+
+  const {error}=await sb
+    .from('skipped_jobs')
+    .insert({
+      candidate_id:session.user.id,
+      job_id:job.id
+    });
+
+  if(error){
+    // Duplicate-safe in case the table has a unique candidate/job constraint.
+    if(error.code==='23505')return false;
+    throw error;
+  }
+
+  return true;
+}
+
+async function removePassedJob(jobId){
+  if(!jobId)return;
+
+  const {error}=await sb
+    .from('skipped_jobs')
+    .delete()
+    .eq('candidate_id',session.user.id)
+    .eq('job_id',jobId);
+
+  if(error)throw error;
+}
+
+async function removeApplicationForUndo(jobId){
+  if(!jobId)return;
+
+  const {error}=await sb
+    .from('applications')
+    .delete()
+    .eq('candidate_id',session.user.id)
+    .eq('job_id',jobId);
+
+  if(error)throw error;
+}
+
 async function animateSwipe(direction){
   setupTopCard();
   if(!activeCard)return;
@@ -1300,11 +1357,18 @@ async function animateSwipe(direction){
   const job=jobs[Number(activeCard.dataset.index)];
   activeCard.classList.add(direction==='right'?'swipe-right':'swipe-left');
 
-  history.push({job,direction,index:currentIndex});
+  const historyEntry={
+    job,
+    direction,
+    index:currentIndex,
+    createdApplication:false,
+    createdPassed:false
+  };
 
   if(direction==='right'){
     try{
       const alreadyExists=await createApplication(job);
+      historyEntry.createdApplication=!alreadyExists;
       applied++;
       showToast(alreadyExists?'Already applied':'Application submitted');
     }catch(error){
@@ -1312,10 +1376,18 @@ async function animateSwipe(direction){
       showToast(error.message||'Could not apply');
     }
   }else{
-    skipped++;
-    showToast('Passed');
+    try{
+      historyEntry.createdPassed=await recordPassedJob(job);
+      skipped++;
+      showToast('Passed · saved to My Jobs');
+    }catch(error){
+      console.error(error);
+      skipped++;
+      showToast('Passed');
+    }
   }
 
+  history.push(historyEntry);
   currentIndex++;
 
   setTimeout(renderCards,350);
@@ -1331,7 +1403,7 @@ function applyCurrent(){
   if(activeCard)animateSwipe('right');
 }
 
-function undo(){
+async function undo(){
   if(!history.length){
     showToast('Nothing to undo');
     return;
@@ -1339,15 +1411,27 @@ function undo(){
 
   const last=history.pop();
 
-  if(last.direction==='right'){
-    applied=Math.max(0,applied-1);
-  }else{
-    skipped=Math.max(0,skipped-1);
-  }
+  try{
+    if(last.direction==='right'){
+      if(last.createdApplication){
+        await removeApplicationForUndo(last.job?.id);
+      }
+      applied=Math.max(0,applied-1);
+    }else{
+      if(last.createdPassed){
+        await removePassedJob(last.job?.id);
+      }
+      skipped=Math.max(0,skipped-1);
+    }
 
-  currentIndex=last.index;
-  renderCards();
-  showToast('Undone');
+    currentIndex=last.index;
+    renderCards();
+    showToast('Undone');
+  }catch(error){
+    console.error('Could not undo swipe:',error);
+    history.push(last);
+    showToast('Could not undo');
+  }
 }
 
 function updateStats(){
