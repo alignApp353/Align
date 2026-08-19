@@ -1052,6 +1052,40 @@ body[data-theme="dark"] .matches-lock{background:#101A23}
 @media(max-width:390px){.onboarding-card{padding:18px}.onboarding-card h2{font-size:26px}.onboarding-step{grid-template-columns:38px 1fr;padding:15px}.step-actions{display:grid;grid-template-columns:1fr}.step-btn{width:100%}}
 </style>
 
+
+<style id="completed-profile-dashboard">
+.complete-actions{
+  margin:18px 0 4px;
+  display:none;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.complete-actions.show{display:grid}
+.complete-action{
+  min-height:56px;
+  border-radius:18px;
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+  font-size:14px;
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:0 8px 22px rgba(23,35,51,.035);
+}
+.complete-action.primary{
+  background:var(--brand-dark);
+  border-color:var(--brand-dark);
+  color:#fff;
+}
+.complete-action.full{
+  grid-column:1/-1;
+}
+@media(max-width:390px){
+  .complete-actions{grid-template-columns:1fr}
+  .complete-action.full{grid-column:auto}
+}
+</style>
+
 </head>
 
 <body>
@@ -1105,6 +1139,18 @@ body[data-theme="dark"] .matches-lock{background:#101A23}
   <p class="lead" id="lead">
     Keep your profile ready so Alygnn can surface stronger job matches.
   </p>
+
+  <section class="complete-actions" id="complete-actions" aria-label="Candidate quick actions">
+    <button class="complete-action primary" type="button" onclick="window.location.href='app-swipe.html'">
+      Start Swiping
+    </button>
+    <button class="complete-action" type="button" onclick="window.location.href='app-resume-preview.html'">
+      View Resume
+    </button>
+    <button class="complete-action full" type="button" onclick="window.location.href='app-preferences.html?edit=1'">
+      Edit Preferences
+    </button>
+  </section>
 
   <section class="onboarding-panel" id="onboarding-panel" hidden>
     <div class="onboarding-card">
@@ -2222,9 +2268,21 @@ async function loadCandidateWorkspace(){
     $('completion-fill').style.width=
       completion+'%';
 
+    const hero=$('profile-hero');
+    if(hero)hero.hidden=false;
+
+    const completeActions=$('complete-actions');
+    if(completeActions)completeActions.classList.remove('show');
+
     if(completion===100){
       $('hero-title').textContent=
         'Your profile is ready for your next strong match.';
+
+      const hero=$('profile-hero');
+      if(hero)hero.hidden=true;
+
+      const completeActions=$('complete-actions');
+      if(completeActions)completeActions.classList.add('show');
     }else if(completion>=75){
       $('hero-title').textContent=
         'Your profile is almost ready for stronger matches.';
