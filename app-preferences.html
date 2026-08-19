@@ -151,6 +151,23 @@ button{cursor:pointer}
   .location-grid{grid-template-columns:1fr}
   .location-grid .full{grid-column:auto}
 }
+
+.field-suggest{position:relative}
+.suggestion-list{
+  position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:90;
+  display:none;max-height:230px;overflow:auto;background:#fff;
+  border:1px solid var(--border);border-radius:16px;
+  box-shadow:0 16px 38px rgba(23,35,51,.13)
+}
+.suggestion-list.show{display:block}
+.suggestion-item{
+  width:100%;min-height:48px;padding:12px 14px;border:0;
+  border-bottom:1px solid #EEF2F5;background:#fff;color:var(--text);
+  text-align:left;font-size:13px;font-weight:800;cursor:pointer
+}
+.suggestion-item:last-child{border-bottom:0}
+.suggestion-item:active{background:#F1F6F9}
+.suggestion-muted{display:block;margin-top:2px;color:var(--muted);font-size:10px;font-weight:700}
 </style>
 
 <style id="candidate-preferences-light-redesign">
@@ -234,8 +251,11 @@ body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparen
     <div class="title">Do you have a specific role in mind?</div>
     <div class="subtitle">Optional. Leave this blank if you want Alygnn to match you across the industries you selected.</div>
     <div class="card">
-      <label class="field-label" for="role">Specific job title <span style="text-transform:none;letter-spacing:0;font-weight:700">(optional)</span></label>
-      <input id="role" class="input" type="text" placeholder="Type a role only if you have one in mind" autocomplete="off">
+      <div class="field-suggest">
+        <label class="field-label" for="role">Specific job title <span style="text-transform:none;letter-spacing:0;font-weight:700">(optional)</span></label>
+        <input id="role" class="input" type="text" placeholder="Type 3 letters to see job titles" autocomplete="off" autocorrect="off" spellcheck="false">
+        <div id="roleSuggestions" class="suggestion-list"></div>
+      </div>
     </div>
   </section>
 
@@ -450,6 +470,78 @@ function collectPreferences(){
     preferences_complete:true
   };
 }
+
+const JOB_TITLE_SUGGESTIONS=[
+  'Account Executive','Account Manager','Accountant','Administrative Assistant',
+  'Analyst','Assistant Manager','Business Analyst','Business Development Manager',
+  'Business Development Representative','Case Manager','Client Success Manager',
+  'Communications Specialist','Construction Manager','Content Coordinator',
+  'Customer Experience Manager','Customer Service Representative','Customer Success Manager',
+  'Data Analyst','Data Engineer','Data Scientist','Delivery Driver','Digital Marketing Specialist',
+  'Director of Operations','Electrical Engineer','Executive Assistant','Financial Advisor',
+  'Financial Analyst','Graphic Designer','Human Resources Coordinator','Human Resources Manager',
+  'IT Support Specialist','Legal Assistant','Logistics Coordinator','Marketing Coordinator',
+  'Marketing Manager','Mechanical Engineer','Medical Assistant','Nurse','Office Administrator',
+  'Operations Coordinator','Operations Manager','Paralegal','Project Coordinator','Project Manager',
+  'Property Manager','Recruiter','Recruiting Coordinator','Retail Associate','Sales Associate',
+  'Sales Manager','Sales Representative','Security Officer','Social Media Coordinator',
+  'Software Engineer','Store Manager','Teacher','Technical Support Specialist',
+  'Warehouse Associate','Warehouse Manager','Web Developer'
+];
+
+function hideRoleSuggestions(){
+  const box=document.getElementById('roleSuggestions');
+  if(box){box.classList.remove('show');box.innerHTML='';}
+}
+
+function renderRoleSuggestions(){
+  const input=document.getElementById('role');
+  const box=document.getElementById('roleSuggestions');
+  const q=input.value.trim().toLowerCase();
+
+  if(q.length<3){
+    hideRoleSuggestions();
+    return;
+  }
+
+  const matches=JOB_TITLE_SUGGESTIONS
+    .filter(title=>title.toLowerCase().includes(q))
+    .sort((a,b)=>{
+      const aa=a.toLowerCase(),bb=b.toLowerCase();
+      const aStart=aa.startsWith(q)?0:1;
+      const bStart=bb.startsWith(q)?0:1;
+      return aStart-bStart||aa.localeCompare(bb);
+    })
+    .slice(0,8);
+
+  if(!matches.length){
+    hideRoleSuggestions();
+    return;
+  }
+
+  box.innerHTML=matches.map((title,index)=>`
+    <button type="button" class="suggestion-item" data-index="${index}">
+      ${title}
+      <span class="suggestion-muted">Use this job title</span>
+    </button>
+  `).join('');
+
+  box.querySelectorAll('.suggestion-item').forEach(btn=>{
+    btn.onclick=()=>{
+      input.value=matches[Number(btn.dataset.index)];
+      hideRoleSuggestions();
+    };
+  });
+
+  box.classList.add('show');
+}
+
+document.getElementById('role').addEventListener('input',renderRoleSuggestions);
+
+document.addEventListener('click',event=>{
+  if(!event.target.closest('.field-suggest'))hideRoleSuggestions();
+});
+
 function validateStep(){
   clearMessage();
   if(currentStep===1&&selectedValues('industryOptions','.chip.active').length===0){
