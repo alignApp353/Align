@@ -94,11 +94,33 @@ const icons={candidate:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColo
 function chooseExperience(type){
   const selected=type==='candidate'?candidateChoice:employerChoice;
   const other=type==='candidate'?employerChoice:candidateChoice;
+
+  const destination=
+    type==='candidate'
+      ?'app-login.html'
+      :'app-employer-login.html';
+
   selected.classList.add('selected');
   other.classList.add('faded');
+
   localStorage.setItem('alygnn_account_type',type);
-  setTimeout(()=>{transitionIcon.className='transition-icon '+type;transitionIcon.innerHTML=icons[type];transitionTitle.textContent=type==='candidate'?'Opening candidate login':'Opening employer login';transitionScreen.classList.add('show')},180);
-  setTimeout(()=>{window.location.href=type==='candidate'?'app-login.html':'app-employer-login.html'},650);
+
+  setTimeout(()=>{
+    transitionIcon.className='transition-icon '+type;
+    transitionIcon.innerHTML=icons[type];
+    transitionTitle.textContent=
+      type==='candidate'
+        ?'Opening candidate login'
+        :'Opening employer login';
+    transitionScreen.classList.add('show');
+  },180);
+
+  // IMPORTANT:
+  // Choosing a path always opens SIGN IN first.
+  // Account creation stays behind the "Create one" link on each login page.
+  setTimeout(()=>{
+    window.location.href=destination;
+  },650);
 }
 candidateChoice.addEventListener('click',()=>chooseExperience('candidate'));
 employerChoice.addEventListener('click',()=>chooseExperience('employer'));
