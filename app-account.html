@@ -689,6 +689,313 @@ button{
     min-height:96px;
   }
 }
+
+
+/* Candidate notifications */
+.notification-shortcut{
+  position:relative;
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:#fff;
+  color:var(--brand-dark);
+  box-shadow:0 7px 20px rgba(23,35,51,.045);
+  cursor:pointer;
+}
+
+.notification-shortcut svg{
+  width:19px;
+  height:19px;
+  stroke:currentColor;
+}
+
+.notification-badge{
+  position:absolute;
+  top:-4px;
+  right:-3px;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:2px solid #fff;
+  border-radius:999px;
+  background:#EF4444;
+  color:#fff;
+  font-size:10px;
+  line-height:1;
+  font-weight:900;
+}
+
+.notification-overlay{
+  position:fixed;
+  inset:0;
+  z-index:120;
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+  background:rgba(10,20,31,.48);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+}
+
+.notification-overlay.open{
+  display:flex;
+}
+
+.notification-sheet{
+  width:100%;
+  max-width:560px;
+  max-height:min(74vh,680px);
+  overflow:auto;
+  padding:14px 20px calc(24px + env(safe-area-inset-bottom));
+  border:1px solid var(--border);
+  border-bottom:none;
+  border-radius:30px 30px 0 0;
+  background:#fff;
+  color:var(--text);
+  box-shadow:0 -22px 70px rgba(23,35,51,.18);
+  animation:notificationSheetUp .22s ease-out;
+}
+
+@keyframes notificationSheetUp{
+  from{transform:translateY(24px);opacity:.25}
+  to{transform:translateY(0);opacity:1}
+}
+
+.notification-grabber{
+  width:54px;
+  height:5px;
+  margin:0 auto 18px;
+  border-radius:999px;
+  background:#DCE4EA;
+}
+
+.notification-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+}
+
+.notification-head h2{
+  margin:0;
+  font-size:27px;
+  line-height:1.05;
+  font-weight:900;
+  letter-spacing:-.6px;
+}
+
+.notification-head p{
+  margin:7px 0 0;
+  color:var(--text-muted);
+  font-size:13px;
+  line-height:1.5;
+}
+
+.notification-close{
+  flex:0 0 auto;
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:transparent;
+  color:var(--text);
+  font-size:22px;
+  cursor:pointer;
+}
+
+.notification-tools{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:18px 0 6px;
+}
+
+.notification-count-label{
+  color:var(--text-muted);
+  font-size:12px;
+  font-weight:800;
+}
+
+.mark-read-btn{
+  border:0;
+  background:transparent;
+  color:var(--brand-dark);
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.notification-list{
+  display:grid;
+}
+
+.notification-item{
+  position:relative;
+  display:grid;
+  grid-template-columns:48px 1fr auto;
+  gap:12px;
+  align-items:start;
+  padding:17px 0;
+  border-bottom:1px solid var(--border);
+}
+
+.notification-item:last-child{
+  border-bottom:0;
+}
+
+.notification-item.unread::before{
+  content:'';
+  position:absolute;
+  left:-10px;
+  top:29px;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--brand);
+}
+
+.notification-icon{
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:14px;
+  background:#EAF2F9;
+  color:var(--brand-dark);
+  font-size:17px;
+  font-weight:900;
+}
+
+.notification-icon.green{
+  background:#E9F6EE;
+  color:#2F9464;
+}
+
+.notification-icon.amber{
+  background:#FFF3D9;
+  color:#A66C00;
+}
+
+.notification-copy strong{
+  display:block;
+  margin:1px 0 4px;
+  color:var(--text);
+  font-size:14px;
+  line-height:1.35;
+}
+
+.notification-copy span{
+  display:block;
+  color:var(--text-muted);
+  font-size:12px;
+  line-height:1.5;
+}
+
+.notification-time{
+  color:var(--text-muted);
+  font-size:10px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.notification-empty{
+  padding:34px 16px 28px;
+  text-align:center;
+  color:var(--text-muted);
+}
+
+.notification-empty-icon{
+  width:52px;
+  height:52px;
+  margin:0 auto 12px;
+  display:grid;
+  place-items:center;
+  border-radius:18px;
+  background:#EAF2F9;
+  color:var(--brand-dark);
+  font-size:20px;
+}
+
+.notification-empty strong{
+  display:block;
+  margin-bottom:5px;
+  color:var(--text);
+  font-size:15px;
+}
+
+/* Dark mode */
+body[data-theme="dark"] .notification-shortcut,
+body[data-theme="dark"] .notification-sheet{
+  background:#0D1A24;
+  border-color:#253845;
+}
+
+body[data-theme="dark"] .notification-badge{
+  border-color:#0D1A24;
+}
+
+body[data-theme="dark"] .notification-grabber{
+  background:#344753;
+}
+
+body[data-theme="dark"] .notification-close{
+  border-color:#2A3B47;
+}
+
+body[data-theme="dark"] .notification-icon{
+  background:#14293B;
+}
+
+body[data-theme="dark"] .notification-icon.green{
+  background:#123326;
+}
+
+body[data-theme="dark"] .notification-icon.amber{
+  background:#372B12;
+}
+
+/* System dark mode */
+@media (prefers-color-scheme:dark){
+  body[data-theme="system"] .notification-shortcut,
+  body[data-theme="system"] .notification-sheet{
+    background:#0D1A24;
+    border-color:#253845;
+  }
+  body[data-theme="system"] .notification-badge{
+    border-color:#0D1A24;
+  }
+  body[data-theme="system"] .notification-grabber{
+    background:#344753;
+  }
+  body[data-theme="system"] .notification-close{
+    border-color:#2A3B47;
+  }
+  body[data-theme="system"] .notification-icon{
+    background:#14293B;
+  }
+  body[data-theme="system"] .notification-icon.green{
+    background:#123326;
+  }
+  body[data-theme="system"] .notification-icon.amber{
+    background:#372B12;
+  }
+}
+
+@media(max-width:380px){
+  .header-actions{gap:5px}
+  .notification-shortcut{width:39px;height:39px}
+}
+
+
 </style>
 
 <style id="inline-candidate-settings-styles">
@@ -1337,6 +1644,17 @@ body[data-profile-complete="true"] #profile-hero{display:none!important}
 body[data-profile-complete="true"] #snapshot-section{display:none!important}
 </style>
 
+
+<style id="notification-effective-theme-fix">
+html[data-effective-theme="dark"] .notification-shortcut,
+html[data-effective-theme="dark"] .notification-sheet{background:#0D1A24!important;border-color:#253845!important}
+html[data-effective-theme="dark"] .notification-badge{border-color:#0D1A24!important}
+html[data-effective-theme="dark"] .notification-grabber{background:#344753!important}
+html[data-effective-theme="dark"] .notification-close{border-color:#2A3B47!important}
+html[data-effective-theme="dark"] .notification-icon{background:#14293B!important}
+html[data-effective-theme="dark"] .notification-icon.green{background:#123326!important}
+html[data-effective-theme="dark"] .notification-icon.amber{background:#372B12!important}
+</style>
 </head>
 
 <body>
@@ -1367,13 +1685,17 @@ body[data-profile-complete="true"] #snapshot-section{display:none!important}
   </div>
 
   <button
-    class="settings-shortcut"
-    id="settings-shortcut"
+    class="notification-shortcut"
+    id="notification-shortcut"
     type="button"
-    aria-label="Open settings"
-    onclick="openSettingsView()"
+    aria-label="Open notifications"
+    onclick="openCandidateNotifications()"
   >
-    ⚙
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path>
+      <path d="M10 21h4" stroke-width="1.9" stroke-linecap="round"></path>
+    </svg>
+    <span class="notification-badge" id="notification-badge" hidden>0</span>
   </button>
 
   <div class="header-spacer" id="settings-header-spacer" hidden></div>
@@ -1748,6 +2070,38 @@ body[data-profile-complete="true"] #snapshot-section{display:none!important}
   </button>
 </main>
 
+<div
+  class="notification-overlay"
+  id="notification-overlay"
+  aria-hidden="true"
+  onclick="candidateNotificationBackdrop(event)"
+>
+  <section class="notification-sheet" role="dialog" aria-modal="true" aria-labelledby="candidate-notification-title">
+    <div class="notification-grabber"></div>
+
+    <div class="notification-head">
+      <div>
+        <h2 id="candidate-notification-title">Notifications</h2>
+        <p>Application updates, profile reminders, and job activity.</p>
+      </div>
+
+      <button
+        class="notification-close"
+        type="button"
+        aria-label="Close notifications"
+        onclick="closeCandidateNotifications()"
+      >×</button>
+    </div>
+
+    <div class="notification-tools">
+      <span class="notification-count-label" id="notification-count-label">You’re all caught up</span>
+      <button class="mark-read-btn" id="mark-read-btn" type="button" onclick="markAllCandidateNotificationsRead()">Mark all read</button>
+    </div>
+
+    <div class="notification-list" id="notification-list"></div>
+  </section>
+</div>
+
 <nav class="bottom-nav" aria-label="Candidate navigation">
   <button class="nav-item active" id="nav-profile" type="button" onclick="openProfileView()"><span class="nav-icon">◉</span><span>My Profile</span></button>
   <button class="nav-item" id="nav-swipe" type="button" onclick="openCandidateDestination('app-swipe.html')"><span class="nav-icon">◇</span><span>Swipe</span></button>
@@ -1777,13 +2131,197 @@ let candidateOnboardingState={complete:true,hasResume:false,previewReviewed:fals
 let dashboardUploadBusy=false;
 
 
+const CANDIDATE_NOTIFICATION_READ_KEY='alygnn_candidate_notification_reads';
+let candidateNotifications=[];
+
+function getCandidateNotificationReads(){
+  try{
+    const parsed=JSON.parse(
+      localStorage.getItem(CANDIDATE_NOTIFICATION_READ_KEY) || '[]'
+    );
+    return new Set(Array.isArray(parsed)?parsed:[]);
+  }catch(error){
+    return new Set();
+  }
+}
+
+function saveCandidateNotificationReads(reads){
+  localStorage.setItem(
+    CANDIDATE_NOTIFICATION_READ_KEY,
+    JSON.stringify(Array.from(reads))
+  );
+}
+
+function buildCandidateNotifications({
+  applicationCount=0,
+  hasResume=false,
+  preferencesComplete=false
+}={}){
+  const notifications=[];
+
+  if(applicationCount>0){
+    notifications.push({
+      id:'applications-'+applicationCount,
+      icon:'◎',
+      iconClass:'green',
+      title:'Application activity',
+      copy:`You have ${applicationCount} active application${applicationCount===1?'':'s'} connected to your Alygnn profile.`,
+      time:'Now',
+      action:'app-applied.html'
+    });
+  }
+
+  if(!hasResume){
+    notifications.push({
+      id:'resume-missing',
+      icon:'▤',
+      iconClass:'',
+      title:'Finish your resume',
+      copy:'Add or build your resume so employers can review your experience and skills.',
+      time:'Profile',
+      action:'app-align-upload.html'
+    });
+  }
+
+  if(!preferencesComplete){
+    notifications.push({
+      id:'preferences-missing',
+      icon:'◎',
+      iconClass:'amber',
+      title:'Complete your job preferences',
+      copy:'Add your target roles, salary, location, and work style for stronger matches.',
+      time:'Profile',
+      action:'app-preferences.html'
+    });
+  }
+
+  return notifications;
+}
+
+function notificationEscape(value){
+  return String(value ?? '').replace(/[&<>"']/g,char=>({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#039;'
+  })[char]);
+}
+
+function renderCandidateNotifications(context){
+  if(context){
+    candidateNotifications=buildCandidateNotifications(context);
+  }
+
+  const list=$('notification-list');
+  const badge=$('notification-badge');
+  const countLabel=$('notification-count-label');
+  const markRead=$('mark-read-btn');
+
+  if(!list || !badge || !countLabel || !markRead) return;
+
+  const reads=getCandidateNotificationReads();
+  const unread=candidateNotifications.filter(item=>!reads.has(item.id));
+
+  badge.textContent=String(unread.length);
+  badge.hidden=unread.length===0;
+
+  countLabel.textContent=unread.length
+    ?`${unread.length} unread notification${unread.length===1?'':'s'}`
+    :'You’re all caught up';
+
+  markRead.hidden=unread.length===0;
+
+  if(!candidateNotifications.length){
+    list.innerHTML=`
+      <div class="notification-empty">
+        <div class="notification-empty-icon">✓</div>
+        <strong>You’re all caught up</strong>
+        <span>No new candidate notifications right now.</span>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML=candidateNotifications.map(item=>{
+    const isUnread=!reads.has(item.id);
+    return `
+      <button
+        type="button"
+        class="notification-item ${isUnread?'unread':''}"
+        style="width:100%;border-left:0;border-right:0;background:transparent;text-align:left;color:inherit;cursor:pointer"
+        onclick="openCandidateNotificationItem('${notificationEscape(item.id)}','${notificationEscape(item.action)}')"
+      >
+        <span class="notification-icon ${notificationEscape(item.iconClass)}">${notificationEscape(item.icon)}</span>
+        <span class="notification-copy">
+          <strong>${notificationEscape(item.title)}</strong>
+          <span>${notificationEscape(item.copy)}</span>
+        </span>
+        <span class="notification-time">${notificationEscape(item.time)}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function openCandidateNotifications(){
+  const overlay=$('notification-overlay');
+  if(!overlay) return;
+
+  renderCandidateNotifications();
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden';
+}
+
+function closeCandidateNotifications(){
+  const overlay=$('notification-overlay');
+  if(!overlay) return;
+
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden','true');
+  document.body.style.overflow='';
+}
+
+function candidateNotificationBackdrop(event){
+  if(event.target===event.currentTarget){
+    closeCandidateNotifications();
+  }
+}
+
+function markAllCandidateNotificationsRead(){
+  const reads=getCandidateNotificationReads();
+  candidateNotifications.forEach(item=>reads.add(item.id));
+  saveCandidateNotificationReads(reads);
+  renderCandidateNotifications();
+}
+
+function openCandidateNotificationItem(id,action){
+  const reads=getCandidateNotificationReads();
+  reads.add(id);
+  saveCandidateNotificationReads(reads);
+  renderCandidateNotifications();
+
+  if(action){
+    window.location.href=action;
+  }
+}
+
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'){
+    closeCandidateNotifications();
+  }
+});
+
+
+
+
 function syncCandidateView(){
   const settingsOpen=window.location.hash==='#settings';
   const profileView=$('profile-view');
   const settingsView=$('settings-view');
   const navProfile=$('nav-profile');
   const navSettings=$('nav-settings');
-  const settingsShortcut=$('settings-shortcut');
+  const notificationShortcut=$('notification-shortcut');
   const settingsBack=$('settings-back');
   const profileSpacer=$('profile-header-spacer');
   const settingsSpacer=$('settings-header-spacer');
@@ -1794,7 +2332,7 @@ function syncCandidateView(){
   if(navProfile) navProfile.classList.toggle('active',!settingsOpen);
   if(navSettings) navSettings.classList.toggle('active',settingsOpen);
 
-  if(settingsShortcut) settingsShortcut.hidden=settingsOpen;
+  if(notificationShortcut) notificationShortcut.hidden=settingsOpen;
   if(settingsBack) settingsBack.hidden=!settingsOpen;
   if(profileSpacer) profileSpacer.hidden=settingsOpen;
   if(settingsSpacer) settingsSpacer.hidden=!settingsOpen;
@@ -3036,6 +3574,12 @@ async function loadCandidateWorkspace(){
       await countApplications(
         user.id
       );
+
+    renderCandidateNotifications({
+      applicationCount,
+      hasResume,
+      preferencesComplete
+    });
 
     activeCandidateName=name;
 
