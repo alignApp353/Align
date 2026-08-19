@@ -371,6 +371,31 @@
     display: block;
   }
 
+
+  /* Validation guidance after Save & Continue is tapped. */
+  .validation-focus {
+    border-color: #c96f6f !important;
+    box-shadow: 0 0 0 4px rgba(215, 154, 154, 0.20) !important;
+    animation: validationPulse .9s ease 1;
+  }
+
+  select.validation-focus,
+  button.validation-focus {
+    outline: 3px solid rgba(215, 154, 154, 0.22) !important;
+    outline-offset: 2px;
+  }
+
+  .section-card.validation-section {
+    border-color: rgba(201, 111, 111, .72) !important;
+    box-shadow: 0 0 0 3px rgba(215,154,154,.10), 0 14px 34px rgba(26,44,66,.06);
+  }
+
+  @keyframes validationPulse {
+    0% { box-shadow: 0 0 0 0 rgba(201,111,111,.34); }
+    60% { box-shadow: 0 0 0 7px rgba(201,111,111,.12); }
+    100% { box-shadow: 0 0 0 4px rgba(215,154,154,.20); }
+  }
+
   input.invalid,
   textarea.invalid {
     border-color: #c97b7b;
@@ -2251,9 +2276,9 @@
               <input id="skillInput" type="text" placeholder="Type 3 letters to search skills" autocomplete="off" aria-autocomplete="list" aria-controls="skillSuggestions">
               <div class="skill-suggestions" id="skillSuggestions" role="listbox"></div>
             </div>
-            <div class="helper">Type 3 letters to search. Select 6–12 skills from Alygnn's skill library.</div>
+            <div class="helper">Type 3 letters to search. Select at least 1 skill from Alygnn's skill library. You can add up to 12.</div>
             <div class="field-error" id="skillError"></div>
-            <div class="skills-count" id="skillsCount">0 of 6 minimum skills selected</div>
+            <div class="skills-count" id="skillsCount">0 of 1 minimum skill selected</div>
           </div>
 
           <div class="skills-list" id="skillsList"></div>
@@ -2491,7 +2516,7 @@
     </div>
     <button type="button" class="action-btn app-preview-btn" id="previewBtn">Preview</button>
     <button type="button" class="action-btn" id="saveDraftBtn">Save draft</button>
-    <button type="button" class="action-btn primary" id="continueBtn" disabled>Complete resume to continue</button>
+    <button type="button" class="action-btn primary" id="continueBtn">Save &amp; continue →</button>
   </div>
 </main>
 
@@ -3786,7 +3811,7 @@
     if (validExperience.length >= 1) score += 20; else tips.push('Add work experience (+20%)');
     if (validExperience.length >= 2) score += 5; else tips.push('Add another job experience (+5%)');
     if (validEducation.length >= 1) score += 10; else tips.push('Add education (+10%)');
-    if (data.skills.length >= 6) score += 15; else tips.push('Add at least 6 skills (+15%)');
+    if (data.skills.length >= 1) score += 15; else tips.push('Add at least 1 skill (+15%)');
 
     score = Math.min(score, 100);
 
@@ -3796,7 +3821,7 @@
     const completed = [];
     if (data.summary && data.summary.length >= 80) completed.push('Professional summary added');
     if (validExperience.length >= 1) completed.push('Work experience added');
-    if (data.skills.length >= 6) completed.push('Strong skills section');
+    if (data.skills.length >= 1) completed.push('Skills section added');
 
     const rows = [
       ...completed.slice(0, 2).map(text => `<div class="score-tip done">✓ ${escapeHtml(text)}</div>`),
@@ -3829,10 +3854,10 @@
     });
 
     if (count) {
-      const remaining = Math.max(0, 6 - state.skills.length);
+      const remaining = Math.max(0, 1 - state.skills.length);
       count.textContent = remaining
-        ? `${state.skills.length} selected · choose ${remaining} more to continue`
-        : `${state.skills.length} selected · skills requirement complete`;
+        ? `${state.skills.length} selected · choose ${remaining} skill to continue`
+        : `${state.skills.length} selected · minimum skill requirement complete`;
       count.classList.toggle('ready', remaining === 0);
     }
 
@@ -4141,12 +4166,52 @@
       }
     });
 
-    if (state.skills.length < 6) add('Select at least 6 skills from the skill library.', document.getElementById('skillInput'));
+    if (state.skills.length < 1) add('Select at least 1 skill from the skill library.', document.getElementById('skillInput'));
     if (state.skills.length > 12) add('Keep your skills list to 12 or fewer.', document.getElementById('skillInput'));
     const invalidSkill = state.skills.find(skill => !SKILL_LIBRARY_SET.has(skill.toLowerCase()));
     if (invalidSkill) add(`Replace “${invalidSkill}” with a skill from the Alygnn list.`, document.getElementById('skillInput'));
 
     return issues;
+  }
+
+  let validationAttempted = false;
+
+  function clearValidationHighlights() {
+    document.querySelectorAll('.validation-focus').forEach(el => el.classList.remove('validation-focus'));
+    document.querySelectorAll('.validation-section').forEach(el => el.classList.remove('validation-section'));
+  }
+
+  function applyValidationHighlights(issues) {
+    clearValidationHighlights();
+
+    issues.forEach(issue => {
+      const element = issue && issue.element;
+      if (!element) return;
+      element.classList.add('validation-focus');
+      const card = element.closest && element.closest('.section-card');
+      if (card) card.classList.add('validation-section');
+    });
+  }
+
+  function goToFirstValidationIssue(issues) {
+    const firstIssue = issues && issues[0];
+    if (!firstIssue) return;
+
+    applyValidationHighlights(issues);
+    setSaveStatus(firstIssue.message, 'error');
+
+    const element = firstIssue.element;
+    if (element) {
+      // Offset slightly above center so the fixed bottom bar does not cover the field.
+      const rect = element.getBoundingClientRect();
+      const targetY = window.scrollY + rect.top - Math.max(120, window.innerHeight * 0.28);
+      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      setTimeout(() => {
+        if (typeof element.focus === 'function') {
+          try { element.focus({ preventScroll: true }); } catch (_) { element.focus(); }
+        }
+      }, 380);
+    }
   }
 
   function updateContinueState() {
@@ -4156,12 +4221,26 @@
 
     const issues = getCompletionIssues();
     const complete = issues.length === 0;
-    button.disabled = !complete;
-    button.textContent = complete ? 'Save & continue →' : 'Complete resume to continue';
+
+    // Keep this button tappable while the form is incomplete. If something is
+    // missing, tapping it takes the candidate directly to the first problem.
+    if (button.dataset.saving !== '1') {
+      button.dataset.saving = '0';
+      button.disabled = false;
+      button.textContent = 'Save & continue →';
+    }
+
     completionStatus.textContent = complete
       ? 'Resume complete — you can continue.'
       : `${issues.length} required item${issues.length === 1 ? '' : 's'} left. Next: ${issues[0].message}`;
     completionStatus.classList.toggle('ready', complete);
+
+    if (complete) {
+      validationAttempted = false;
+      clearValidationHighlights();
+    } else if (validationAttempted) {
+      applyValidationHighlights(issues);
+    }
   }
 
   function validateResume() {
@@ -4172,14 +4251,14 @@
     document.querySelectorAll('.award-item').forEach(item => validateAwardItem(item, true));
 
     const issues = getCompletionIssues();
-    if (!issues.length) return true;
-
-    const firstIssue = issues[0];
-    alert(firstIssue.message);
-    if (firstIssue.element) {
-      firstIssue.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      if (typeof firstIssue.element.focus === 'function') firstIssue.element.focus();
+    if (!issues.length) {
+      validationAttempted = false;
+      clearValidationHighlights();
+      return true;
     }
+
+    validationAttempted = true;
+    goToFirstValidationIssue(issues);
     return false;
   }
 
@@ -4515,6 +4594,7 @@
     }
 
     const button = document.getElementById('continueBtn');
+    button.dataset.saving = '1';
     button.disabled = true;
     button.textContent = 'Saving...';
     setSaveStatus('Saving your resume...');
