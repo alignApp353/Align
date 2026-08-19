@@ -2052,6 +2052,7 @@
   ========================================================== */
   .nav-spacer{width:70px}
   .app-preview-btn{display:none}
+  .builder-back-btn{display:none}
   .mobile-preview-close{display:none}
   .preview-backdrop{display:none}
 
@@ -2144,17 +2145,18 @@
       width:100%;
       padding:10px 14px calc(10px + env(safe-area-inset-bottom));
       display:grid;
-      grid-template-columns:110px minmax(0,1fr);
-      gap:9px;
+      grid-template-columns:86px 98px minmax(0,1fr);
+      gap:8px;
       border-top:1px solid var(--border);
       background:rgba(246,248,247,.97);
       backdrop-filter:blur(18px);
       -webkit-backdrop-filter:blur(18px);
     }
     .bottom-status-wrap{display:none}
+    .builder-back-btn{display:block}
     .app-preview-btn{display:block}
     #saveDraftBtn{display:none}
-    .action-btn{min-height:54px;padding:10px 12px;border-radius:17px;font-weight:700}
+    .action-btn{min-height:54px;padding:10px 9px;border-radius:17px;font-weight:700}
     .action-btn.primary{min-width:0;width:100%}
 
     .location-suggestions,.skill-suggestions{max-height:220px}
@@ -2167,7 +2169,7 @@
 
 <body>
 <nav class="app-nav">
-  <a href="app-align-upload.html" class="nav-back">← Back</a>
+  <a href="app-account.html" class="nav-back">← Back</a>
   <a href="app-account.html" class="logo" aria-label="Alygnn profile">Alygnn<span>.</span></a>
   <div class="nav-spacer" aria-hidden="true"></div>
 </nav>
@@ -2517,6 +2519,7 @@
       <div class="save-status" id="saveStatus">Your draft saves automatically on this device.</div>
       <div class="completion-status" id="completionStatus">Complete the required resume sections to continue.</div>
     </div>
+    <button type="button" class="action-btn builder-back-btn" id="builderBackBtn">← Back</button>
     <button type="button" class="action-btn app-preview-btn" id="previewBtn">Preview</button>
     <button type="button" class="action-btn" id="saveDraftBtn">Save draft</button>
     <button type="button" class="action-btn primary" id="continueBtn">Save &amp; continue →</button>
@@ -4774,6 +4777,17 @@
       preview.scrollTop = 0;
     }
   }
+
+  document.getElementById('builderBackBtn').addEventListener('click', () => {
+    const preview = document.querySelector('.preview-column');
+
+    if (preview?.classList.contains('mobile-open')) {
+      setMobilePreview(false);
+      return;
+    }
+
+    window.location.href = 'app-account.html';
+  });
 
   document.getElementById('previewBtn').addEventListener('click', () => setMobilePreview(true));
   document.getElementById('closePreviewBtn').addEventListener('click', () => setMobilePreview(false));
