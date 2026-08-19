@@ -70,6 +70,93 @@ body{
     border-color:var(--brand);
 }
 
+.password-wrap{
+    position:relative;
+}
+
+.password-wrap .input{
+    padding-right:58px;
+}
+
+.password-toggle{
+    position:absolute;
+    right:12px;
+    top:50%;
+    transform:translateY(-50%);
+    width:42px;
+    height:42px;
+    display:grid;
+    place-items:center;
+    border:0;
+    border-radius:50%;
+    background:transparent;
+    color:#66788A;
+    cursor:pointer;
+}
+
+.password-toggle:active{
+    background:rgba(93,127,163,.10);
+}
+
+.password-toggle svg{
+    width:23px;
+    height:23px;
+}
+
+.existing-account-card{
+    margin:15px 0 4px;
+    padding:18px;
+    border:1px solid #CFE1F0;
+    border-radius:20px;
+    background:#F3F8FC;
+}
+
+.existing-account-icon{
+    width:38px;
+    height:38px;
+    display:grid;
+    place-items:center;
+    margin-bottom:10px;
+    border-radius:50%;
+    background:#E2F3E9;
+    color:#238252;
+    font-size:19px;
+    font-weight:900;
+}
+
+.existing-account-copy strong{
+    display:block;
+    color:var(--text);
+    font-size:16px;
+    line-height:1.35;
+}
+
+.existing-account-copy span{
+    display:block;
+    margin-top:6px;
+    color:var(--text-muted);
+    font-size:13px;
+    line-height:1.5;
+}
+
+.existing-account-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:9px;
+    margin-top:14px;
+}
+
+.existing-account-actions .btn{
+    margin-top:0;
+    padding:14px 12px;
+    font-size:14px;
+}
+
+html[data-effective-theme="dark"] .existing-account-card{
+    background:#13212C;
+    border-color:#2B4355;
+}
+
 .forgot{
     text-align:right;
     margin-bottom:12px;
@@ -141,6 +228,11 @@ body{
     font-size:13px;
     line-height:1.6;
 }
+.small a{
+    color:var(--brand);
+    text-decoration:none;
+    font-weight:800;
+}
 
 .verify-card{display:none;margin-top:8px;padding:22px;border:1px solid var(--border);border-radius:22px;background:var(--card-bg)}
 .verify-card.show{display:block}
@@ -171,7 +263,33 @@ body{
         <input id="firstName" class="input" placeholder="First Name" autocomplete="given-name">
         <input id="lastName" class="input" placeholder="Last Name" autocomplete="family-name">
         <input id="email" class="input" type="email" placeholder="Email" autocomplete="email" inputmode="email">
-        <input id="password" class="input" type="password" placeholder="Password" autocomplete="new-password">
+        <div class="password-wrap">
+        <input id="password" class="input password-input" type="password" placeholder="Password" autocomplete="new-password">
+        <button id="toggle-password" class="password-toggle" type="button" aria-label="Show password" aria-pressed="false">
+            <svg class="eye-open" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+            <svg class="eye-closed" viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden>
+                <path d="M3 3l18 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M10.6 6.1A10.8 10.8 0 0 1 12 6c6 0 9.5 6 9.5 6a15.8 15.8 0 0 1-2.1 2.8M6.2 7.2C3.8 9 2.5 12 2.5 12s3.5 6 9.5 6c1.3 0 2.5-.3 3.5-.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+    </div>
+
+        <div id="signup-message" class="message" aria-live="polite"></div>
+
+        <div id="existing-account-card" class="existing-account-card" hidden>
+            <div class="existing-account-icon">✓</div>
+            <div class="existing-account-copy">
+                <strong>You already have an Alygnn account.</strong>
+                <span>Try signing in with this email, or reset your password if you don’t remember it.</span>
+            </div>
+            <div class="existing-account-actions">
+                <button type="button" class="btn primary" id="existing-signin-btn">Sign in</button>
+                <button type="button" class="btn secondary" id="existing-reset-btn">Reset password</button>
+            </div>
+        </div>
 
         <button id="create-account-btn" class="btn primary" onclick="signup()">Create Account</button>
 
@@ -181,7 +299,10 @@ body{
 
         <div class="link" onclick="location.href='app-login.html'">Already have an account? Sign In</div>
 
-        <div class="small">By continuing, you agree to Alygnn's Terms and Privacy Policy.</div>
+        <div class="small">By continuing, you agree to Alygnn's
+      <a href="terms.html">Terms</a> and
+      <a href="privacy.html">Privacy Policy</a>.
+    </div>
     </div>
 
     <div id="verify-card" class="verify-card">
@@ -215,6 +336,50 @@ const sb = supabase.createClient(
 
 let pendingSignupEmail = "";
 
+function setSignupMessage(text,type){
+    const box=document.getElementById("signup-message");
+    box.textContent=text||"";
+    box.className=text ? "message show "+type : "message";
+}
+
+function hideExistingAccountCard(){
+    document.getElementById("existing-account-card").hidden=true;
+}
+
+function showExistingAccountCard(email){
+    pendingSignupEmail=String(email||"").trim().toLowerCase();
+
+    setSignupMessage("", "");
+    document.getElementById("existing-account-card").hidden=false;
+
+    const createButton=document.getElementById("create-account-btn");
+    createButton.disabled=false;
+    createButton.textContent="Create Account";
+}
+
+function signupLooksLikeExistingAccount(data){
+    const user=data?.user;
+    if(!user)return false;
+
+    // Supabase commonly returns an obfuscated user with no identities
+    // when signUp() is called for an already-confirmed email.
+    if(Array.isArray(user.identities) && user.identities.length===0){
+        return true;
+    }
+
+    // For an existing unconfirmed account, created_at may belong to the
+    // original signup rather than this request. Treat older records as existing.
+    const createdAt=Date.parse(user.created_at||"");
+    if(Number.isFinite(createdAt)){
+        const ageMs=Date.now()-createdAt;
+        if(ageMs > 90*1000){
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function setVerifyMessage(text, type){
     const box = document.getElementById("verify-message");
     box.textContent = text;
@@ -236,13 +401,26 @@ async function signup(){
     const password = document.getElementById("password").value;
     const button = document.getElementById("create-account-btn");
 
+    hideExistingAccountCard();
+    setSignupMessage("", "");
+
     if(!firstName || !lastName || !email || !password){
-        alert("Please complete all fields.");
+        setSignupMessage("Please complete all fields.","error");
+        return;
+    }
+
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){
+        setSignupMessage("Please enter a valid email address.","error");
         return;
     }
 
     if(password.length < 8){
-        alert("Password must be at least 8 characters.");
+        setSignupMessage("Password must be at least 8 characters.","error");
+        return;
+    }
+
+    if(!/[A-Za-z]/.test(password) || !/\d/.test(password)){
+        setSignupMessage("Use at least one letter and one number in your password.","error");
         return;
     }
 
@@ -265,12 +443,28 @@ async function signup(){
     button.textContent = "Create Account";
 
     if(error){
-        alert(error.message);
+        const raw=String(error.message||"").toLowerCase();
+
+        if(
+            raw.includes("already registered") ||
+            raw.includes("already exists") ||
+            raw.includes("user already")
+        ){
+            showExistingAccountCard(email);
+            return;
+        }
+
+        setSignupMessage(error.message||"Unable to create your account.","error");
+        return;
+    }
+
+    if(signupLooksLikeExistingAccount(data)){
+        showExistingAccountCard(email);
         return;
     }
 
     if(data?.session){
-        window.location.href = "align-upload.html";
+        window.location.href = "app-align-upload.html";
         return;
     }
 
@@ -311,7 +505,7 @@ async function verifyEmailCode(){
     setVerifyMessage("Email confirmed. Continuing...", "success");
 
     setTimeout(() => {
-        window.location.href = data?.session ? "align-upload.html" : "app-login.html";
+        window.location.href = data?.session ? "app-align-upload.html" : "app-login.html";
     }, 600);
 }
 
@@ -341,6 +535,43 @@ async function resendVerificationCode(){
     setVerifyMessage("A new verification code was sent.", "success");
 }
 
+
+document.getElementById("toggle-password").addEventListener("click",()=>{
+    const input=document.getElementById("password");
+    const button=document.getElementById("toggle-password");
+    const showing=input.type==="text";
+
+    input.type=showing ? "password" : "text";
+    button.setAttribute("aria-pressed",String(!showing));
+    button.setAttribute("aria-label",showing ? "Show password" : "Hide password");
+
+    button.querySelector(".eye-open").hidden=!showing;
+    button.querySelector(".eye-closed").hidden=showing;
+});
+
+document.getElementById("existing-signin-btn").addEventListener("click",()=>{
+    if(pendingSignupEmail){
+        try{
+            sessionStorage.setItem("alygnn_prefill_login_email",pendingSignupEmail);
+        }catch(_){}
+    }
+    window.location.href="app-login.html";
+});
+
+document.getElementById("existing-reset-btn").addEventListener("click",()=>{
+    if(pendingSignupEmail){
+        try{
+            sessionStorage.setItem("alygnn_prefill_reset_email",pendingSignupEmail);
+        }catch(_){}
+    }
+    window.location.href="app-forgot-password.html";
+});
+
+document.getElementById("email").addEventListener("input",()=>{
+    hideExistingAccountCard();
+    setSignupMessage("", "");
+});
+
 document.addEventListener("keydown", event => {
     if(event.key === "Enter" && document.getElementById("verify-card").classList.contains("show")){
         verifyEmailCode();
@@ -352,7 +583,7 @@ async function googleSignup(){
     const { error } = await sb.auth.signInWithOAuth({
         provider:"google",
         options:{
-            redirectTo:"https://alygnn.com/app-home.html"
+            redirectTo:"https://alygnn.com/app-account.html"
         }
     });
 
