@@ -53,13 +53,78 @@ function render(){
  document.getElementById('interviewCount').textContent=apps.filter(x=>x.status==='interview').length;
  document.getElementById('offerCount').textContent=apps.filter(x=>x.status==='offer').length;
  if(!rows.length){document.getElementById('content').innerHTML=`<div class="empty"><div class="empty-title">No applications yet</div><div class="empty-copy">When you apply to jobs, they will appear here with their latest status.</div><button class="btn primary" onclick="location.href='app-swipe.html'">Find Jobs</button></div>`;return}
- document.getElementById('content').innerHTML=`<div class="list">${rows.map(x=>{const j=x.jobs||{};return `<div class="card"><div class="card-top"><div><div class="job-title">${esc(j.title||'Job Application')}</div><div class="company">${esc(j.company_name||j.company||'Employer')}</div></div><div class="status ${x.status}">${esc(x.status[0].toUpperCase()+x.status.slice(1))}</div></div><div class="meta"><span>${esc(j.location||'')}</span><span>Applied ${esc(fmt(x.applied_at))}</span></div>${x.match_score!=null?`<div class="match">${esc(x.match_score)}% Match</div>`:''}<div class="actions"><button class="btn primary" onclick="location.href='app-job-details.html?id=${encodeURIComponent(j.id||x.job_id)}'">View Job</button><button class="btn secondary" onclick="location.href='app-application-details.html?id=${encodeURIComponent(x.id)}'">Details</button></div></div>`}).join('')}</div>`;
+ document.getElementById('content').innerHTML=`<div class="list">${rows.map(x=>{const j=x.jobs||{};const company=j.company||j.company_name||j.employer_name||j.company_title||'Employer';return `<div class="card"><div class="card-top"><div><div class="job-title">${esc(j.title||'Job Application')}</div><div class="company">${esc(company)}</div></div><div class="status ${x.status}">${esc(x.status[0].toUpperCase()+x.status.slice(1))}</div></div><div class="meta"><span>${esc(j.location||'')}</span><span>Applied ${esc(fmt(x.applied_at))}</span></div>${x.match_score!=null?`<div class="match">${esc(x.match_score)}% Match</div>`:''}<div class="actions"><button class="btn primary" onclick="location.href='app-job-details.html?id=${encodeURIComponent(j.id||x.job_id)}'">View Job</button><button class="btn secondary" onclick="location.href='app-application-details.html?id=${encodeURIComponent(x.id)}'">Details</button></div></div>`}).join('')}</div>`;
 }
 (async()=>{
  const{data,error}=await sb.auth.getSession();if(error||!data.session){location.replace('app-login.html');return}
- const{data:rows,error:e}=await sb.from('applications').select('id,job_id,status,applied_at,match_score,jobs(id,title,company_name,company,location)').eq('candidate_id',data.session.user.id).order('applied_at',{ascending:false});
- if(e){console.error(e);document.getElementById('message').textContent=e.message||'Applications could not be loaded.';document.getElementById('message').className='message error';apps=[];render();return}
- apps=(rows||[]).map(x=>({...x,status:String(x.status||'applied').toLowerCase()}));render();
+ let rows=[];
+ let e=null;
+
+ // Load the related job with jobs(*) so this page does not assume
+ // columns such as jobs.company_name exist in the current database schema.
+ {
+   const result=await sb
+     .from('applications')
+     .select('id,job_id,status,applied_at,match_score,jobs(*)')
+     .eq('candidate_id',data.session.user.id)
+     .order('applied_at',{ascending:false});
+
+   rows=result.data||[];
+   e=result.error||null;
+ }
+
+ // Older application rows / schemas may not expose the relationship.
+ // Fall back to loading applications and jobs separately.
+ if(e){
+   console.warn('Nested jobs query unavailable. Using fallback:',e);
+
+   const applicationResult=await sb
+     .from('applications')
+     .select('id,job_id,status,applied_at,match_score')
+     .eq('candidate_id',data.session.user.id)
+     .order('applied_at',{ascending:false});
+
+   if(applicationResult.error){
+     console.error(applicationResult.error);
+     document.getElementById('message').textContent='Your applications could not be loaded right now.';
+     document.getElementById('message').className='message error';
+     apps=[];
+     render();
+     return;
+   }
+
+   rows=applicationResult.data||[];
+
+   const jobIds=[...new Set(rows.map(row=>row.job_id).filter(Boolean))];
+
+   if(jobIds.length){
+     const jobResult=await sb
+       .from('jobs')
+       .select('*')
+       .in('id',jobIds);
+
+     if(!jobResult.error){
+       const jobsById=new Map((jobResult.data||[]).map(job=>[String(job.id),job]));
+
+       rows=rows.map(row=>({
+         ...row,
+         jobs:jobsById.get(String(row.job_id))||null
+       }));
+     }else{
+       console.warn('Jobs fallback could not be loaded:',jobResult.error);
+     }
+   }
+ }
+
+ document.getElementById('message').textContent='';
+ document.getElementById('message').className='message';
+
+ apps=(rows||[]).map(x=>({
+   ...x,
+   status:String(x.status||'applied').toLowerCase()
+ }));
+
+ render();
 })();
 </script>
 </body>
