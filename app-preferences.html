@@ -259,6 +259,56 @@ h1{
 .field-error.show{display:block}
 
 /* Salary */
+
+.comp-type-wrap{
+  margin-bottom:18px;
+}
+.comp-type-label{
+  margin-bottom:9px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1.1px;
+  text-transform:uppercase;
+}
+.comp-type-options{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.comp-type-btn{
+  min-height:46px;
+  padding:9px 10px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:#fff;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+}
+.comp-type-btn.active{
+  border-color:var(--brand-dark);
+  background:var(--brand-soft);
+  color:var(--brand-dark);
+}
+.compensation-period{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+}
+
+html[data-effective-theme="dark"] .comp-type-btn{
+  background:#101A23;
+  border-color:#2B3946;
+  color:#A7B2BD;
+}
+html[data-effective-theme="dark"] .comp-type-btn.active{
+  background:#1B3042;
+  border-color:#6C98BF;
+  color:#F4F7F9;
+}
+
 .salary-card{padding:20px}
 .salary-caption{
   color:var(--muted);
@@ -679,36 +729,48 @@ html[data-effective-theme="dark"] .salary-handle-max{
     <section class="section" id="salarySection">
       <div class="section-head">
         <div class="section-num">02 — Compensation</div>
-        <div class="section-title">Salary range</div>
-        <div class="section-copy">Set the yearly pay range you want Alygnn to use when matching jobs.</div>
+        <div class="section-title">Compensation preference</div>
+        <div class="section-copy" id="compensationCopy">Choose how you want to be paid, then set your preferred range.</div>
       </div>
+
       <div class="card salary-card">
+        <div class="comp-type-wrap">
+          <div class="comp-type-label">How do you want to be paid?</div>
+
+          <div class="comp-type-options" id="compTypeOptions">
+            <button class="comp-type-btn active" type="button" data-type="yearly">Yearly salary</button>
+            <button class="comp-type-btn" type="button" data-type="hourly">Hourly</button>
+            <button class="comp-type-btn" type="button" data-type="monthly">Monthly</button>
+          </div>
+        </div>
+
         <div class="salary-caption">I'm looking for</div>
-        <div class="salary-display"><span id="salaryMinDisplay">$40,000</span> <span>—</span> <span id="salaryMaxDisplay">$80,000</span></div>
+        <div class="salary-display">
+          <span id="salaryMinDisplay">$40,000</span>
+          <span>—</span>
+          <span id="salaryMaxDisplay">$80,000</span>
+        </div>
+        <div class="compensation-period" id="compensationPeriod">per year</div>
 
         <div class="range-wrap">
           <div class="range-bg"></div>
           <div class="range-fill" id="rangeFill"></div>
 
-          <!-- Visible handles. The native range thumbs stay underneath for dragging. -->
           <div class="salary-handle salary-handle-min" id="salaryMinHandle" aria-hidden="true"></div>
           <div class="salary-handle salary-handle-max" id="salaryMaxHandle" aria-hidden="true"></div>
 
           <div class="range-inputs">
-            <input type="range" id="salaryMin" min="10000" max="300000" step="5000" value="40000" aria-label="Minimum salary">
-            <input type="range" id="salaryMax" min="10000" max="300000" step="5000" value="80000" aria-label="Maximum salary">
+            <input type="range" id="salaryMin" min="10000" max="300000" step="5000" value="40000" aria-label="Minimum compensation">
+            <input type="range" id="salaryMax" min="10000" max="300000" step="5000" value="80000" aria-label="Maximum compensation">
           </div>
         </div>
-        <div class="range-labels"><span>$10k</span><span>$300k+</span></div>
 
-        <div class="quick-chips">
-          <button class="quick-chip" type="button" data-min="10000" data-max="40000">$10k–$40k</button>
-          <button class="quick-chip active" type="button" data-min="40000" data-max="80000">$40k–$80k</button>
-          <button class="quick-chip" type="button" data-min="60000" data-max="120000">$60k–$120k</button>
-          <button class="quick-chip" type="button" data-min="80000" data-max="150000">$80k–$150k</button>
-          <button class="quick-chip" type="button" data-min="100000" data-max="200000">$100k–$200k</button>
-          <button class="quick-chip" type="button" data-min="150000" data-max="300000">$150k+</button>
+        <div class="range-labels">
+          <span id="rangeFloorLabel">$10k</span>
+          <span id="rangeCeilingLabel">$300k+</span>
         </div>
+
+        <div class="quick-chips" id="salaryQuickChips"></div>
       </div>
     </section>
 
@@ -839,8 +901,70 @@ let onboardingMode=true;
 let selectedLocation='';
 let selectedRole='';
 const EDIT_MODE=new URLSearchParams(window.location.search).get('edit')==='1';
-const FLOOR=10000;
-const CEILING=300000;
+
+const COMPENSATION_CONFIG={
+  yearly:{
+    label:'Yearly salary',
+    periodLabel:'per year',
+    min:10000,
+    max:300000,
+    step:5000,
+    defaultMin:40000,
+    defaultMax:80000,
+    floorLabel:'$10k',
+    ceilingLabel:'$300k+',
+    chips:[
+      [10000,40000],
+      [40000,80000],
+      [60000,120000],
+      [80000,150000],
+      [100000,200000],
+      [150000,300000]
+    ]
+  },
+  hourly:{
+    label:'Hourly',
+    periodLabel:'per hour',
+    min:7.25,
+    max:150,
+    step:0.25,
+    defaultMin:15,
+    defaultMax:30,
+    floorLabel:'$7.25/hr',
+    ceilingLabel:'$150+/hr',
+    chips:[
+      [7.25,15],
+      [15,25],
+      [20,30],
+      [25,40],
+      [30,50],
+      [50,75],
+      [75,150]
+    ]
+  },
+  monthly:{
+    label:'Monthly',
+    periodLabel:'per month',
+    min:1000,
+    max:25000,
+    step:500,
+    defaultMin:3000,
+    defaultMax:6000,
+    floorLabel:'$1k/mo',
+    ceilingLabel:'$25k+/mo',
+    chips:[
+      [1000,3000],
+      [3000,5000],
+      [4000,7000],
+      [5000,8000],
+      [8000,12000],
+      [12000,18000],
+      [18000,25000]
+    ]
+  }
+};
+
+let compensationType='yearly';
 
 const JOB_TITLES=[
   'Account Executive','Account Manager','Accountant','Administrative Assistant',
@@ -941,10 +1065,72 @@ function clearMessage(){
   el.textContent='';
   el.className='message';
 }
-function formatSalary(value){
+function formatSalary(value,type=compensationType){
   const n=Number(value)||0;
-  if(n>=300000)return '$300k+';
+
+  if(type==='hourly'){
+    const decimals=Number.isInteger(n)?0:2;
+    return '$'+n.toLocaleString('en-US',{
+      minimumFractionDigits:decimals,
+      maximumFractionDigits:2
+    });
+  }
+
   return '$'+n.toLocaleString('en-US');
+}
+
+function salaryChipLabel(minVal,maxVal){
+  const config=COMPENSATION_CONFIG[compensationType];
+  const maxText=maxVal>=config.max
+    ? formatSalary(maxVal)+'+'
+    : formatSalary(maxVal);
+
+  if(compensationType==='hourly'){
+    return `${formatSalary(minVal)}–${maxText}/hr`;
+  }
+
+  if(compensationType==='monthly'){
+    const short=value=>{
+      const n=Number(value);
+      return n>=1000
+        ? '$'+((n/1000)%1===0?(n/1000).toFixed(0):(n/1000).toFixed(1))+'k'
+        : formatSalary(n);
+    };
+    const shortMax=maxVal>=config.max?short(maxVal)+'+':short(maxVal);
+    return `${short(minVal)}–${shortMax}/mo`;
+  }
+
+  const short=value=>{
+    const n=Number(value);
+    return n>=1000
+      ? '$'+((n/1000)%1===0?(n/1000).toFixed(0):(n/1000).toFixed(1))+'k'
+      : formatSalary(n);
+  };
+
+  const shortMax=maxVal>=config.max?short(maxVal)+'+':short(maxVal);
+  return `${short(minVal)}–${shortMax}`;
+}
+
+function renderSalaryQuickChips(activeMin=null,activeMax=null){
+  const container=$('salaryQuickChips');
+  const config=COMPENSATION_CONFIG[compensationType];
+
+  container.innerHTML=config.chips.map(([minVal,maxVal])=>{
+    const active=Number(minVal)===Number(activeMin) && Number(maxVal)===Number(activeMax);
+    return `<button class="quick-chip${active?' active':''}" type="button" data-min="${minVal}" data-max="${maxVal}">${salaryChipLabel(minVal,maxVal)}</button>`;
+  }).join('');
+
+  container.querySelectorAll('.quick-chip').forEach(chip=>{
+    chip.onclick=()=>{
+      $('salaryMin').value=chip.dataset.min;
+      $('salaryMax').value=chip.dataset.max;
+
+      container.querySelectorAll('.quick-chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+
+      updateSalary();
+    };
+  });
 }
 function parseLocation(value){
   const raw=String(value||'').trim();
@@ -1022,59 +1208,106 @@ $('locationInput').addEventListener('input',()=>{
   });
 });
 
-/* Salary */
-function updateSalary(){
+/* Compensation */
+function setCompensationType(type,preserveValues=false){
+  compensationType=COMPENSATION_CONFIG[type]?type:'yearly';
+  const config=COMPENSATION_CONFIG[compensationType];
   const minInput=$('salaryMin');
   const maxInput=$('salaryMax');
+
+  document.querySelectorAll('#compTypeOptions .comp-type-btn').forEach(button=>{
+    button.classList.toggle('active',button.dataset.type===compensationType);
+  });
+
+  minInput.min=config.min;
+  minInput.max=config.max;
+  minInput.step=config.step;
+
+  maxInput.min=config.min;
+  maxInput.max=config.max;
+  maxInput.step=config.step;
+
+  if(!preserveValues){
+    minInput.value=config.defaultMin;
+    maxInput.value=config.defaultMax;
+  }else{
+    let min=Number(minInput.value);
+    let max=Number(maxInput.value);
+
+    if(!Number.isFinite(min))min=config.defaultMin;
+    if(!Number.isFinite(max))max=config.defaultMax;
+
+    min=Math.max(config.min,Math.min(config.max-config.step,min));
+    max=Math.max(min+config.step,Math.min(config.max,max));
+
+    minInput.value=min;
+    maxInput.value=max;
+  }
+
+  $('compensationPeriod').textContent=config.periodLabel;
+  $('rangeFloorLabel').textContent=config.floorLabel;
+  $('rangeCeilingLabel').textContent=config.ceilingLabel;
+
+  updateSalary();
+  renderSalaryQuickChips(
+    Number(minInput.value),
+    Number(maxInput.value)
+  );
+}
+
+function updateSalary(){
+  const config=COMPENSATION_CONFIG[compensationType];
+  const minInput=$('salaryMin');
+  const maxInput=$('salaryMax');
+
   let min=Number(minInput.value);
   let max=Number(maxInput.value);
 
-  if(min>=max-10000){
-    min=max-10000;
+  if(!Number.isFinite(min))min=config.defaultMin;
+  if(!Number.isFinite(max))max=config.defaultMax;
+
+  if(min>=max-config.step){
+    min=Math.max(config.min,max-config.step);
     minInput.value=min;
   }
-  if(max<=min+10000){
-    max=min+10000;
+
+  if(max<=min+config.step){
+    max=Math.min(config.max,min+config.step);
     maxInput.value=max;
   }
 
   $('salaryMinDisplay').textContent=formatSalary(min);
   $('salaryMaxDisplay').textContent=formatSalary(max);
 
-  const span=CEILING-FLOOR;
-  const left=((min-FLOOR)/span)*100;
-  const right=((max-FLOOR)/span)*100;
+  const span=config.max-config.min;
+  const left=((min-config.min)/span)*100;
+  const right=((max-config.min)/span)*100;
 
   $('rangeFill').style.left=left+'%';
-  $('rangeFill').style.width=(right-left)+'%';
+  $('rangeFill').style.width=Math.max(0,right-left)+'%';
 
-  // Explicit handles keep both minimum and maximum dots visible in Android WebView.
   $('salaryMinHandle').style.left=left+'%';
   $('salaryMaxHandle').style.left=right+'%';
 
-  // If the handles get very close, keep the active side above the other touch target.
-  minInput.style.zIndex=min>(CEILING-50000)?'7':'5';
-  maxInput.style.zIndex=min>(CEILING-50000)?'6':'6';
-
   updateProgress();
 }
-$('salaryMin').addEventListener('input',()=>{
-  document.querySelectorAll('.quick-chip').forEach(c=>c.classList.remove('active'));
-  updateSalary();
-});
-$('salaryMax').addEventListener('input',()=>{
-  document.querySelectorAll('.quick-chip').forEach(c=>c.classList.remove('active'));
-  updateSalary();
-});
-document.querySelectorAll('.quick-chip').forEach(chip=>{
-  chip.onclick=()=>{
-    $('salaryMin').value=chip.dataset.min;
-    $('salaryMax').value=chip.dataset.max;
-    document.querySelectorAll('.quick-chip').forEach(c=>c.classList.remove('active'));
-    chip.classList.add('active');
-    updateSalary();
+
+document.querySelectorAll('#compTypeOptions .comp-type-btn').forEach(button=>{
+  button.onclick=()=>{
+    setCompensationType(button.dataset.type,false);
   };
 });
+
+$('salaryMin').addEventListener('input',()=>{
+  $('salaryQuickChips').querySelectorAll('.quick-chip').forEach(c=>c.classList.remove('active'));
+  updateSalary();
+});
+
+$('salaryMax').addEventListener('input',()=>{
+  $('salaryQuickChips').querySelectorAll('.quick-chip').forEach(c=>c.classList.remove('active'));
+  updateSalary();
+});
+
 
 /* Single-select work style */
 document.querySelectorAll('#workStyleOptions .choice').forEach(button=>{
@@ -1297,6 +1530,9 @@ function collectPreferences(){
     state,
     country:'United States',
     location,
+    compensation_type:compensationType,
+    compensationType:compensationType,
+    pay_type:compensationType,
     salary_min:Number($('salaryMin').value),
     salary_max:Number($('salaryMax').value),
     workStyle:selectedWorkStyle(),
@@ -1335,17 +1571,51 @@ function prefill(saved){
     }
   }
 
+  const savedCompensationType=
+    // Older profiles may still contain "commission"; because that option
+    // has been removed, the config check below will fall back to yearly.
+    saved.compensation_type ||
+    saved.compensationType ||
+    saved.pay_type ||
+    'yearly';
+
+  setCompensationType(
+    COMPENSATION_CONFIG[savedCompensationType] ? savedCompensationType : 'yearly',
+    false
+  );
+
+  const config=COMPENSATION_CONFIG[compensationType];
+
   if(
     !EDIT_MODE &&
+    compensationType==='yearly' &&
     Number(saved.salary_min)===10000 &&
     Number(saved.salary_max)===80000
   ){
     $('salaryMin').value=40000;
     $('salaryMax').value=80000;
   }else{
-    if(Number.isFinite(saved.salary_min))$('salaryMin').value=saved.salary_min;
-    if(Number.isFinite(saved.salary_max))$('salaryMax').value=saved.salary_max;
+    if(Number.isFinite(saved.salary_min)){
+      $('salaryMin').value=Math.max(
+        config.min,
+        Math.min(config.max-config.step,Number(saved.salary_min))
+      );
+    }
+
+    if(Number.isFinite(saved.salary_max)){
+      const currentMin=Number($('salaryMin').value);
+      $('salaryMax').value=Math.max(
+        currentMin+config.step,
+        Math.min(config.max,Number(saved.salary_max))
+      );
+    }
   }
+
+  updateSalary();
+  renderSalaryQuickChips(
+    Number($('salaryMin').value),
+    Number($('salaryMax').value)
+  );
 
   if(saved.workStyle){
     document.querySelectorAll('#workStyleOptions .choice').forEach(button=>{
@@ -1379,7 +1649,6 @@ function prefill(saved){
       .forEach(addExtraIndustry);
   }
 
-  document.querySelectorAll('.quick-chip').forEach(c=>c.classList.remove('active'));
   updateSalary();
   updateProgress();
 }
@@ -1424,7 +1693,7 @@ async function savePreferences(){
 }
 
 async function initialize(){
-  updateSalary();
+  setCompensationType('yearly',false);
 
   const {data,error}=await sb.auth.getSession();
   if(error||!data.session){
