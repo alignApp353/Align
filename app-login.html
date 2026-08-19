@@ -1,225 +1,375 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#F6F8F7">
-<title>Candidate Login | Alygnn</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account - Alygnn</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
-:root{--brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--text:#172333;--muted:#59697A;--border:#DDE3E8;--accent:#23A968;--accent-dark:#188B52;--accent-bg:#E8F7EF;--danger:#B64040;--danger-bg:#FCEDED;--success:#18794E;--success-bg:#E8F6EE}
-html,body{width:100%;min-height:100%}
-body{min-height:100vh;background:radial-gradient(circle at 12% 8%,rgba(140,182,155,.13),transparent 28%),radial-gradient(circle at 90% 84%,rgba(93,127,163,.13),transparent 31%),var(--bg);color:var(--text)}
-button,input,a{font:inherit}
-.page{width:100%;max-width:520px;min-height:100vh;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
-.topbar{min-height:51px;display:grid;grid-template-columns:48px 1fr 48px;align-items:center}
-.back-btn{width:44px;height:44px;border:1px solid var(--border);border-radius:50%;background:#fff;color:var(--text);font-size:21px;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 16px rgba(23,35,51,.06)}
-.brand{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:31px;color:var(--brand)}
-.brand span{color:var(--sage)}
-.login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 0 14px}
-.identity{text-align:center}
-.identity-icon{width:72px;height:72px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--accent);background:var(--accent-bg)}
-.identity-icon svg{width:35px;height:35px}
-h1{margin-top:19px;font-size:30px;line-height:1.1;letter-spacing:-.55px;font-weight:900}
-.subtitle{max-width:330px;margin:9px auto 0;color:var(--muted);font-size:14px;line-height:1.5}
-.form{margin-top:31px}
-.field{margin-top:17px}.field:first-child{margin-top:0}
-.label-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-label{font-size:13px;font-weight:900}
-.forgot{border:none;background:transparent;color:var(--accent-dark);font-size:12px;font-weight:900}
-.input-wrap{min-height:56px;padding:0 15px;border:1px solid var(--border);border-radius:17px;background:rgba(255,255,255,.94);display:flex;align-items:center;gap:11px}
-.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px rgba(93,127,163,.1)}
-.field-icon{width:20px;height:20px;color:#7A8794;flex:0 0 20px}
-input{width:100%;min-width:0;border:none;outline:none;background:transparent;color:var(--text);font-size:15px}
-input::placeholder{color:#98A2AD}
-.show-btn{border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:900}
-.message{display:none;margin-top:16px;padding:12px 14px;border-radius:14px;font-size:12px;line-height:1.45;font-weight:700}
-.message.error{display:block;color:var(--danger);background:var(--danger-bg)}
-.message.success{display:block;color:var(--success);background:var(--success-bg)}
-.primary{width:100%;min-height:56px;margin-top:22px;border:none;border-radius:17px;background:var(--accent);color:#fff;font-size:15px;font-weight:900;box-shadow:0 9px 24px rgba(52,95,145,.2)}
-.primary:disabled,.social:disabled{opacity:.65}
-.divider{margin:25px 0 15px;display:flex;align-items:center;gap:13px;color:#8995A1;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px}
-.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--border)}
-.social{width:100%;min-height:54px;margin-top:10px;border:1px solid var(--border);border-radius:17px;background:#fff;color:var(--text);display:flex;align-items:center;justify-content:center;gap:12px;font-size:14px;font-weight:900}
-.social:first-of-type{margin-top:0}
-.google-mark{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:16px;font-weight:900;color:#4285F4}
-.apple-mark{font-size:22px;line-height:1}
-.signup{margin-top:25px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
-.signup a{color:var(--accent-dark);text-decoration:none;font-weight:900}
-.switch{margin-top:15px;text-align:center}
-.switch-btn{border:none;background:transparent;color:var(--brand);font-size:12px;font-weight:900}
-@media(max-height:760px){.login{justify-content:flex-start;padding-top:15px}.identity-icon{width:61px;height:61px}h1{font-size:27px;margin-top:13px}.form{margin-top:23px}.field{margin-top:13px}.input-wrap{min-height:51px}.primary{min-height:52px;margin-top:17px}.divider{margin:18px 0 11px}.social{min-height:49px;margin-top:8px}.signup{margin-top:17px}}
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap');
+
+:root{
+    --brand: #5D7FA3;
+    --sage: #8CB69B;
+    --bg: #F6F8F7;
+    --card-bg: #FCFCFA;
+    --text: #1A2530;
+    --border: #DDE3E8;
+    --mint: #6FBF8F;
+    --rose: #D79A9A;
+    --text-muted: #4A5968;
+}
+
+body{
+    margin:0;
+    font-family:'DM Sans', sans-serif;
+    background:var(--bg);
+    color:var(--text);
+}
+
+.screen{
+    min-height:100vh;
+    max-width:500px;
+    margin:auto;
+    padding:40px 24px;
+    display:flex;
+    flex-direction:column;
+}
+
+.logo{
+    font-size:44px;
+    font-weight:800;
+    color:var(--brand);
+    margin-top:30px;
+    letter-spacing:-1px;
+}
+
+.subtitle{
+    font-size:18px;
+    color:var(--text-muted);
+    line-height:1.6;
+    margin-top:12px;
+    margin-bottom:36px;
+}
+
+.input{
+    width:100%;
+    box-sizing:border-box;
+    padding:18px;
+    margin-bottom:16px;
+    border-radius:18px;
+    border:1px solid var(--border);
+    background:var(--card-bg);
+    font-size:16px;
+    font-family:'DM Sans', sans-serif;
+    color:var(--text);
+}
+
+.input:focus{
+    outline:none;
+    border-color:var(--brand);
+}
+
+.forgot{
+    text-align:right;
+    margin-bottom:12px;
+}
+
+.forgot a{
+    color:var(--brand);
+    text-decoration:none;
+    font-weight:600;
+}
+
+.btn{
+    width:100%;
+    padding:18px;
+    border:none;
+    border-radius:20px;
+    font-size:17px;
+    font-weight:700;
+    font-family:'DM Sans', sans-serif;
+    cursor:pointer;
+    transition:.2s;
+    margin-top:10px;
+}
+
+.primary{
+    background:var(--brand);
+    color:white;
+}
+
+.primary:hover{
+    opacity:.95;
+}
+
+.google{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    color:var(--text);
+}
+
+.divider{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin:28px 0 12px;
+    color:var(--text-muted);
+}
+
+.divider::before,
+.divider::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--border);
+}
+
+.link{
+    text-align:center;
+    margin-top:24px;
+    color:var(--brand);
+    font-weight:700;
+    cursor:pointer;
+}
+
+.small{
+    margin-top:auto;
+    padding-top:30px;
+    text-align:center;
+    color:var(--text-muted);
+    font-size:13px;
+    line-height:1.6;
+}
+.small a{
+    color:var(--brand);
+    text-decoration:none;
+    font-weight:800;
+}
+
+.verify-card{display:none;margin-top:8px;padding:22px;border:1px solid var(--border);border-radius:22px;background:var(--card-bg)}
+.verify-card.show{display:block}
+.verify-title{font-size:24px;font-weight:800;margin-bottom:8px}
+.verify-copy{color:var(--text-muted);font-size:14px;line-height:1.55;margin-bottom:18px}
+.verify-email{color:var(--text);font-weight:700}
+.verify-code{text-align:center;font-size:24px;letter-spacing:5px;font-weight:800}
+.secondary{background:transparent;color:var(--brand);border:1px solid var(--border)}
+.message{display:none;margin-top:14px;padding:12px 14px;border-radius:14px;font-size:13px;line-height:1.45;font-weight:700}
+.message.show{display:block}
+.message.error{color:#A53E3E;background:#FCEDED}
+.message.success{color:#18794E;background:#E8F6EE}
+.form-hidden{display:none!important}
+
 </style>
 </head>
+
 <body>
-<main class="page">
-<header class="topbar">
-<button class="back-btn" id="back-btn" type="button" aria-label="Go back">←</button>
-<div class="brand">Alygnn<span>.</span></div><div></div>
-</header>
-<section class="login">
-<div class="identity">
-<div class="identity-icon">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 21c.7-4.1 3.2-6.2 7.5-6.2s6.8 2.1 7.5 6.2"></path></svg>
+
+<div class="screen">
+
+    <div class="logo">Alygnn</div>
+    <div class="subtitle">
+        Create your account and start finding jobs.
+    </div>
+
+    <div id="signup-fields">
+        <input id="firstName" class="input" placeholder="First Name" autocomplete="given-name">
+        <input id="lastName" class="input" placeholder="Last Name" autocomplete="family-name">
+        <input id="email" class="input" type="email" placeholder="Email" autocomplete="email" inputmode="email">
+        <input id="password" class="input" type="password" placeholder="Password" autocomplete="new-password">
+
+        <button id="create-account-btn" class="btn primary" onclick="signup()">Create Account</button>
+
+        <div class="divider">or</div>
+
+        <button class="btn google" onclick="googleSignup()">Continue with Google</button>
+
+        <div class="link" onclick="location.href='app-login.html'">Already have an account? Sign In</div>
+
+        <div class="small">By continuing, you agree to Alygnn's
+      <a href="terms.html">Terms</a> and
+      <a href="privacy.html">Privacy Policy</a>.
+    </div>
+    </div>
+
+    <div id="verify-card" class="verify-card">
+        <div class="verify-title">Check your email</div>
+        <div class="verify-copy">
+            We sent a verification code to <span id="verify-email" class="verify-email"></span>.
+            Enter the code here to confirm your email. The email does not send you to the Alygnn website.
+        </div>
+
+        <input id="verification-code" class="input verify-code" type="text"
+               inputmode="numeric" autocomplete="one-time-code"
+               placeholder="Code" maxlength="8">
+
+        <button id="verify-btn" class="btn primary" onclick="verifyEmailCode()">Verify email</button>
+        <button id="resend-btn" class="btn secondary" onclick="resendVerificationCode()">Resend code</button>
+
+        <div id="verify-message" class="message" aria-live="polite"></div>
+    </div>
+
 </div>
-<h1>Welcome back</h1>
-<p class="subtitle">Sign in to continue your job search.</p>
-</div>
-<div class="form">
-<div class="field">
-<div class="label-row"><label for="email">Email address</label></div>
-<div class="input-wrap">
-<svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg>
-<input id="email" type="email" placeholder="Enter your email" autocomplete="email" inputmode="email">
-</div></div>
-<div class="field">
-<div class="label-row"><label for="password">Password</label><button class="forgot" id="forgot-btn" type="button">Forgot password?</button></div>
-<div class="input-wrap">
-<svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
-<input id="password" type="password" placeholder="Enter your password" autocomplete="current-password">
-<button class="show-btn" id="show-btn" type="button">Show</button>
-</div></div>
-<div id="message" class="message" aria-live="polite"></div>
-<button class="primary" id="sign-in-btn" type="button">Sign in</button>
-<div class="divider">or continue with</div>
-<button class="social" id="google-btn" type="button"><span class="google-mark">G</span><span>Continue with Google</span></button>
-<button class="social" id="apple-btn" type="button"><span class="apple-mark">●</span><span>Continue with Apple</span></button>
-<div class="signup">Don’t have an account? <a href="app-create-account.html">Create one</a></div>
-<div class="switch"><button class="switch-btn" id="switch-btn" type="button">Switch to employer sign in</button></div>
-</div></section></main>
+
 <script>
-const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-const ACCOUNT_TYPE='candidate';
 
-function showMessage(text,type){const m=document.getElementById('message');m.textContent=text;m.className='message '+type}
-function setLoading(b,l,lt,nt){b.disabled=l;b.textContent=l?lt:nt}
-function friendlyError(error){
-  const raw=String(error?.message||'').toLowerCase();
-  if(raw.includes('invalid login credentials')||raw.includes('invalid credentials'))return'Incorrect email or password. Please try again.';
-  if(raw.includes('email not confirmed')||raw.includes('confirm your email'))return'Please verify your email before signing in.';
-  if(raw.includes('fetch')||raw.includes('network')||raw.includes('failed to fetch'))return'Unable to connect. Please check your internet connection.';
-  if(raw.includes('too many requests')||raw.includes('rate limit'))return'Too many attempts. Please wait a few minutes and try again.';
-  return error?.message||'Unable to sign in. Please try again.';
+const SUPABASE_URL = "https://auth.alygnn.com";
+const SUPABASE_KEY = "sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG";
+
+const sb = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
+
+let pendingSignupEmail = "";
+
+function setVerifyMessage(text, type){
+    const box = document.getElementById("verify-message");
+    box.textContent = text;
+    box.className = "message show " + type;
 }
 
-function parseProfileObject(value){
-  if(!value)return {};
-  if(typeof value==='object'&&!Array.isArray(value))return value;
-  if(typeof value==='string'){
-    try{
-      const parsed=JSON.parse(value);
-      return parsed&&typeof parsed==='object'?parsed:{};
-    }catch(_){return {}}
-  }
-  return {};
-}
-function hasCandidateResume(profile){
-  const data=parseProfileObject(profile?.resume_data);
-  return Boolean(
-    profile?.resume_file_path||
-    profile?.resume_url||
-    profile?.resume_text||
-    Object.keys(data).length
-  );
-}
-function candidateResumePreviewReviewed(profile){
-  const data=parseProfileObject(profile?.resume_data);
-  const onboarding=parseProfileObject(data._alygnn_onboarding);
-  return onboarding.preview_reviewed===true;
-}
-function candidatePreferencesComplete(profile,user){
-  const p=parseProfileObject(profile?.preferences);
-  const meta=user?.user_metadata||{};
-  const hasRole=Boolean(String(p.query||'').trim());
-  const hasLocation=Boolean(String(p.location||p.city||p.state||p.country||'').trim());
-  const types=Array.isArray(p.jobTypes)?p.jobTypes:[];
-  const hasType=Boolean(types.length||String(p.jobType||'').trim());
-  return Boolean(
-    p.preferences_complete||
-    profile?.preferences_complete||
-    meta.preferences_complete||
-    (hasRole&&hasLocation&&hasType)
-  );
-}
-function onboardingDestination(profile,user){
-  if(!hasCandidateResume(profile))return 'app-align-upload.html';
-
-  const preferencesComplete=candidatePreferencesComplete(profile,user);
-  if(preferencesComplete)return 'app-account.html';
-
-  if(!candidateResumePreviewReviewed(profile))return 'app-resume-preview.html';
-  return 'app-preferences.html';
+function showVerificationStep(email){
+    pendingSignupEmail = String(email || "").trim().toLowerCase();
+    document.getElementById("signup-fields").classList.add("form-hidden");
+    document.getElementById("verify-card").classList.add("show");
+    document.getElementById("verify-email").textContent = pendingSignupEmail;
+    document.getElementById("verification-code").focus();
 }
 
-async function candidateDestination(user){
-  // Dashboard-first flow: every authenticated candidate lands on app-account.
-  // The dashboard reads persisted Supabase data and locks only the job actions
-  // that should still be unavailable.
-  return 'app-account.html';
+async function signup(){
+    const firstName = document.getElementById("firstName").value.trim();
+    const lastName = document.getElementById("lastName").value.trim();
+    const email = document.getElementById("email").value.trim().toLowerCase();
+    const password = document.getElementById("password").value;
+    const button = document.getElementById("create-account-btn");
+
+    if(!firstName || !lastName || !email || !password){
+        alert("Please complete all fields.");
+        return;
+    }
+
+    if(password.length < 8){
+        alert("Password must be at least 8 characters.");
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Creating Account...";
+
+    const { data, error } = await sb.auth.signUp({
+        email,
+        password,
+        options:{
+            data:{
+                first_name:firstName,
+                last_name:lastName,
+                EmailFlow:"app"
+            }
+        }
+    });
+
+    button.disabled = false;
+    button.textContent = "Create Account";
+
+    if(error){
+        alert(error.message);
+        return;
+    }
+
+    if(data?.session){
+        window.location.href = "app-align-upload.html";
+        return;
+    }
+
+    showVerificationStep(email);
 }
 
-async function redirectIfLoggedIn(){
-  const params=new URLSearchParams(location.search);
-  if(params.has('logout'))return;
-  const {data,error}=await sb.auth.getSession();
-  if(error||!data.session)return;
-  const destination=await candidateDestination(data.session.user);
-  location.replace(destination);
+async function verifyEmailCode(){
+    const token = document.getElementById("verification-code").value.replace(/\s+/g, "").trim();
+    const button = document.getElementById("verify-btn");
+
+    if(!pendingSignupEmail){
+        setVerifyMessage("Please create your account again.", "error");
+        return;
+    }
+
+    if(token.length < 6){
+        setVerifyMessage("Enter the verification code from your email.", "error");
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Verifying...";
+
+    const { data, error } = await sb.auth.verifyOtp({
+        email: pendingSignupEmail,
+        token,
+        type: "email"
+    });
+
+    button.disabled = false;
+    button.textContent = "Verify email";
+
+    if(error){
+        setVerifyMessage("That code is invalid or expired. Check the email and try again.", "error");
+        return;
+    }
+
+    setVerifyMessage("Email confirmed. Continuing...", "success");
+
+    setTimeout(() => {
+        window.location.href = data?.session ? "app-align-upload.html" : "app-login.html";
+    }, 600);
 }
 
-async function signIn(){
-  const email=document.getElementById('email').value.trim().toLowerCase();
-  const password=document.getElementById('password').value;
-  const button=document.getElementById('sign-in-btn');
-  if(!email){showMessage('Please enter your email address.','error');return}
-  if(!password){showMessage('Please enter your password.','error');return}
-  setLoading(button,true,'Signing in…','Sign in');
+async function resendVerificationCode(){
+    if(!pendingSignupEmail){
+        setVerifyMessage("Please create your account again.", "error");
+        return;
+    }
 
-  const {data,error}=await sb.auth.signInWithPassword({email,password});
-  if(error){
-    showMessage(friendlyError(error),'error');
-    setLoading(button,false,'Signing in…','Sign in');
-    return;
-  }
+    const button = document.getElementById("resend-btn");
+    button.disabled = true;
+    button.textContent = "Sending...";
 
-  localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
-  showMessage('Welcome back. Opening your workspace…','success');
+    const { error } = await sb.auth.resend({
+        type: "signup",
+        email: pendingSignupEmail
+    });
 
-  const destination=await candidateDestination(data.user);
-  setTimeout(()=>location.replace(destination),300);
+    button.disabled = false;
+    button.textContent = "Resend code";
+
+    if(error){
+        setVerifyMessage(error.message, "error");
+        return;
+    }
+
+    setVerifyMessage("A new verification code was sent.", "success");
 }
 
-async function googleLogin(){
-  const button=document.getElementById('google-btn');
-  setLoading(button,true,'Opening Google…','Continue with Google');
-  localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
-  const {error}=await sb.auth.signInWithOAuth({
-    provider:'google',
-    options:{redirectTo:'https://alygnn.com/app-home.html'}
-  });
-  if(error){
-    showMessage(friendlyError(error),'error');
-    setLoading(button,false,'Opening Google…','Continue with Google');
-  }
-}
-
-document.getElementById('back-btn').addEventListener('click',()=>location.href='index.html');
-document.getElementById('show-btn').addEventListener('click',e=>{
-  const i=document.getElementById('password');
-  const s=i.type==='text';
-  i.type=s?'password':'text';
-  e.currentTarget.textContent=s?'Show':'Hide';
+document.addEventListener("keydown", event => {
+    if(event.key === "Enter" && document.getElementById("verify-card").classList.contains("show")){
+        verifyEmailCode();
+    }
 });
-document.getElementById('forgot-btn').addEventListener('click',()=>location.href='app-forgot-password.html');
-document.getElementById('sign-in-btn').addEventListener('click',signIn);
-document.getElementById('google-btn').addEventListener('click',googleLogin);
-document.getElementById('apple-btn').addEventListener('click',()=>showMessage('Apple sign-in is not connected yet.','error'));
-document.getElementById('switch-btn').addEventListener('click',()=>location.href='app-employer-login.html');
-document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')signIn()});
-redirectIfLoggedIn();
+
+async function googleSignup(){
+
+    const { error } = await sb.auth.signInWithOAuth({
+        provider:"google",
+        options:{
+            redirectTo:"https://alygnn.com/app-account.html"
+        }
+    });
+
+    if(error){
+        alert(error.message);
+    }
+}
+
 </script>
-</body></html>
+
+</body>
+</html>
