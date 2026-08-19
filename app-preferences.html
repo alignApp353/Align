@@ -303,25 +303,75 @@ h1{
   -webkit-appearance:none;
   pointer-events:none;
 }
-.range-inputs input::-webkit-slider-runnable-track{height:5px;background:transparent}
+.range-inputs input::-webkit-slider-runnable-track{
+  height:5px;
+  background:transparent;
+}
 .range-inputs input::-webkit-slider-thumb{
-  width:23px;height:23px;
-  margin-top:-9px;
+  width:34px;
+  height:34px;
+  margin-top:-15px;
+  border:0;
   border-radius:50%;
-  border:3px solid var(--brand-dark);
-  background:#fff;
-  box-shadow:0 2px 6px rgba(0,0,0,.12);
+  background:transparent;
+  box-shadow:none;
   appearance:none;
   -webkit-appearance:none;
   pointer-events:auto;
 }
-.range-inputs input::-moz-range-track{height:5px;background:transparent}
+.range-inputs input::-moz-range-track{
+  height:5px;
+  background:transparent;
+}
 .range-inputs input::-moz-range-thumb{
-  width:18px;height:18px;
+  width:34px;
+  height:34px;
+  border:0;
   border-radius:50%;
-  border:3px solid var(--brand-dark);
-  background:#fff;
+  background:transparent;
   pointer-events:auto;
+}
+
+/* Always-visible salary handles.
+   These are separate from the browser's native thumbs so both handles
+   remain visible in Android WebView in Light and Dark modes. */
+.salary-handle{
+  position:absolute;
+  top:20.5px;
+  z-index:7;
+  width:25px;
+  height:25px;
+  border:4px solid #35679A;
+  border-radius:50%;
+  background:#FFFFFF;
+  box-shadow:
+    0 0 0 3px rgba(53,103,154,.12),
+    0 4px 10px rgba(23,35,51,.18);
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  transition:left .04s linear;
+}
+.salary-handle-max{
+  box-shadow:
+    inset 0 0 0 5px #35679A,
+    0 0 0 3px rgba(53,103,154,.12),
+    0 4px 10px rgba(23,35,51,.18);
+}
+#salaryMin{z-index:5}
+#salaryMax{z-index:6}
+
+html[data-effective-theme="dark"] .salary-handle{
+  border-color:#72A6D2;
+  background:#F7FAFC;
+  box-shadow:
+    0 0 0 4px rgba(114,166,210,.16),
+    0 4px 12px rgba(0,0,0,.34);
+}
+html[data-effective-theme="dark"] .salary-handle-max{
+  box-shadow:
+    inset 0 0 0 5px #35679A,
+    0 0 0 4px rgba(114,166,210,.16),
+    0 4px 12px rgba(0,0,0,.34);
 }
 .range-labels{
   display:flex;
@@ -611,9 +661,14 @@ h1{
         <div class="range-wrap">
           <div class="range-bg"></div>
           <div class="range-fill" id="rangeFill"></div>
+
+          <!-- Visible handles. The native range thumbs stay underneath for dragging. -->
+          <div class="salary-handle salary-handle-min" id="salaryMinHandle" aria-hidden="true"></div>
+          <div class="salary-handle salary-handle-max" id="salaryMaxHandle" aria-hidden="true"></div>
+
           <div class="range-inputs">
-            <input type="range" id="salaryMin" min="10000" max="300000" step="5000" value="40000">
-            <input type="range" id="salaryMax" min="10000" max="300000" step="5000" value="80000">
+            <input type="range" id="salaryMin" min="10000" max="300000" step="5000" value="40000" aria-label="Minimum salary">
+            <input type="range" id="salaryMax" min="10000" max="300000" step="5000" value="80000" aria-label="Maximum salary">
           </div>
         </div>
         <div class="range-labels"><span>$10k</span><span>$300k+</span></div>
@@ -961,8 +1016,17 @@ function updateSalary(){
   const span=CEILING-FLOOR;
   const left=((min-FLOOR)/span)*100;
   const right=((max-FLOOR)/span)*100;
+
   $('rangeFill').style.left=left+'%';
   $('rangeFill').style.width=(right-left)+'%';
+
+  // Explicit handles keep both minimum and maximum dots visible in Android WebView.
+  $('salaryMinHandle').style.left=left+'%';
+  $('salaryMaxHandle').style.left=right+'%';
+
+  // If the handles get very close, keep the active side above the other touch target.
+  minInput.style.zIndex=min>(CEILING-50000)?'7':'5';
+  maxInput.style.zIndex=min>(CEILING-50000)?'6':'6';
 
   updateProgress();
 }
