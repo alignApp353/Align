@@ -167,7 +167,59 @@
   .salary-chip:hover { border-color: var(--brand); color: var(--brand); }
   .salary-chip.active { background: var(--brand); color: white; border-color: var(--brand); }
 
-  .location-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; max-width: 420px; }
+  .comp-type-wrap { margin-bottom: 16px; }
+  .comp-type-label {
+    margin-bottom: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .comp-type-options {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .comp-type-btn {
+    min-height: 44px;
+    padding: 9px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    background: var(--card-bg);
+    color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .comp-type-btn:hover {
+    border-color: var(--brand);
+    color: var(--brand);
+  }
+  .comp-type-btn.active {
+    border-color: var(--brand);
+    background: var(--brand-light);
+    color: var(--brand);
+  }
+  .commission-note {
+    display: none;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(93,127,163,0.07);
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  .commission-note.show { display: block; }
+
+  @media (max-width: 700px) {
+    .comp-type-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  .location-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; max-width: 520px; }
   .input-group { display: flex; flex-direction: column; gap: 6px; position: relative; }
   .input-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); font-weight: 500; }
   .input-field {
@@ -185,15 +237,35 @@
      picker further down the page, since a rigid <select> doesn't scale
      to thousands of cities the way it does for country/state. */
   .city-suggestions {
-    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
-    background: white; border: 1px solid var(--border); border-radius: 10px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.08); max-height: 200px; overflow-y: auto;
-    display: none; z-index: 10;
+    position: static;
+    width: 100%;
+    margin-top: 2px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 8px 22px rgba(26,37,48,0.08);
+    max-height: 210px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    display: none;
   }
   .city-suggestion-item {
-    padding: 9px 14px; font-size: 13px; cursor: pointer; color: var(--text);
+    display: flex;
+    align-items: center;
+    min-height: 42px;
+    padding: 10px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text);
+    border-bottom: 1px solid rgba(221,227,232,0.72);
+    transition: background 0.15s ease, color 0.15s ease;
   }
-  .city-suggestion-item:hover { background: var(--brand-light); }
+  .city-suggestion-item:last-child { border-bottom: none; }
+  .city-suggestion-item:hover,
+  .city-suggestion-item.is-active {
+    background: var(--brand-light);
+    color: var(--brand);
+  }
 
   .role-input-wrap { margin-bottom: 24px; }
   .role-input-wrap .input-field {
@@ -417,44 +489,66 @@
 
     <hr class="section-divider">
 
-    <!-- SALARY RANGE -->
+    <!-- COMPENSATION -->
     <div class="pref-section" id="salary">
       <div class="section-header">
         <div class="section-num">01 — Compensation</div>
-        <div class="section-title">Salary range</div>
+        <div class="section-title">Compensation preference</div>
       </div>
+
+      <div class="comp-type-wrap">
+        <div class="comp-type-label">How do you want to be paid?</div>
+
+        <div class="comp-type-options">
+          <button type="button" class="comp-type-btn active" data-type="yearly"
+            onclick="setCompensationType('yearly')">Yearly salary</button>
+
+          <button type="button" class="comp-type-btn" data-type="hourly"
+            onclick="setCompensationType('hourly')">Hourly</button>
+
+          <button type="button" class="comp-type-btn" data-type="monthly"
+            onclick="setCompensationType('monthly')">Monthly salary</button>
+
+          <button type="button" class="comp-type-btn" data-type="commission"
+            onclick="setCompensationType('commission')">Commission</button>
+        </div>
+
+        <div class="commission-note" id="commission-note">
+          For commission-based jobs, choose the annual total earnings range you would ideally want, including base pay and commission.
+        </div>
+      </div>
+
       <div class="salary-display">
         <div class="salary-row">
           <div>
             <div class="salary-label">I'm looking for</div>
             <div class="salary-vals">
-              <span class="salary-val" id="salary-min-display">$10,000</span>
+              <span class="salary-val" id="salary-min-display">$10k</span>
               <span class="salary-sep">—</span>
-              <span class="salary-val" id="salary-max-display">$80,000</span>
+              <span class="salary-val" id="salary-max-display">$80k</span>
             </div>
           </div>
-          <div class="salary-type">per year</div>
+          <div class="salary-type" id="salary-type-label">per year</div>
         </div>
+
         <div class="range-wrap">
           <div class="range-track-bg">
             <div class="range-track-fill" id="range-fill"></div>
           </div>
+
           <div class="range-inputs">
             <input type="range" id="salary-min" min="10000" max="300000" step="5000" value="10000">
             <input type="range" id="salary-max" min="10000" max="300000" step="5000" value="80000">
           </div>
-          <div class="range-labels"><span>$10k</span><span>$300k+</span></div>
+
+          <div class="range-labels">
+            <span id="range-floor-label">$10k</span>
+            <span id="range-ceiling-label">$300k+</span>
+          </div>
         </div>
       </div>
-      <div class="salary-chips">
-        <button class="salary-chip" onclick="setRange(10000,40000)">$10k – $40k</button>
-        <button class="salary-chip" onclick="setRange(40000,80000)">$40k – $80k</button>
-        <button class="salary-chip active" onclick="setRange(10000,80000)">$10k – $80k</button>
-        <button class="salary-chip" onclick="setRange(60000,120000)">$60k – $120k</button>
-        <button class="salary-chip" onclick="setRange(80000,150000)">$80k – $150k</button>
-        <button class="salary-chip" onclick="setRange(100000,200000)">$100k – $200k</button>
-        <button class="salary-chip" onclick="setRange(150000,300000)">$150k+</button>
-      </div>
+
+      <div class="salary-chips" id="salary-chips"></div>
     </div>
 
     <hr class="section-divider">
@@ -790,27 +884,177 @@
     return { city, state };
   }
 
-  function fmtSalary(val) {
-    if (val >= 300000) return '$300k+';
-    if (val >= 1000) return '$' + (val / 1000).toFixed(0) + ',000';
-    return '$' + val.toLocaleString();
+  const COMPENSATION_CONFIG = {
+    yearly: {
+      periodLabel: 'per year',
+      min: 10000, max: 300000, step: 5000,
+      defaultMin: 10000, defaultMax: 80000,
+      floorLabel: '$10k', ceilingLabel: '$300k+',
+      chips: [
+        [10000,40000], [40000,80000], [10000,80000],
+        [60000,120000], [80000,150000],
+        [100000,200000], [150000,300000]
+      ]
+    },
+    hourly: {
+      periodLabel: 'per hour',
+      min: 7.25, max: 150, step: 0.25,
+      defaultMin: 15, defaultMax: 30,
+      floorLabel: '$7.25/hr', ceilingLabel: '$150+/hr',
+      chips: [
+        [7.25,15], [15,25], [20,30], [25,40],
+        [30,50], [50,75], [75,150]
+      ]
+    },
+    monthly: {
+      periodLabel: 'per month',
+      min: 1000, max: 25000, step: 500,
+      defaultMin: 3000, defaultMax: 6000,
+      floorLabel: '$1k/mo', ceilingLabel: '$25k+/mo',
+      chips: [
+        [1000,3000], [3000,5000], [4000,7000],
+        [5000,8000], [8000,12000],
+        [12000,18000], [18000,25000]
+      ]
+    },
+    commission: {
+      periodLabel: 'annual earnings',
+      min: 10000, max: 300000, step: 5000,
+      defaultMin: 40000, defaultMax: 100000,
+      floorLabel: '$10k', ceilingLabel: '$300k+',
+      chips: [
+        [20000,50000], [40000,80000], [50000,100000],
+        [75000,125000], [100000,150000],
+        [150000,200000], [200000,300000]
+      ]
+    }
+  };
+
+  let compensationType = 'yearly';
+
+  function fmtSalary(val, type = compensationType) {
+    const num = Number(val);
+
+    if (type === 'hourly') {
+      return '$' + num.toLocaleString();
+    }
+
+    if (num >= 1000000) {
+      return '$' + (num / 1000000).toFixed(num % 1000000 ? 1 : 0) + 'M';
+    }
+
+    if (num >= 1000) {
+      const k = num / 1000;
+      return '$' + (Number.isInteger(k) ? k.toFixed(0) : k.toFixed(1)) + 'k';
+    }
+
+    return '$' + num.toLocaleString();
+  }
+
+  function salaryChipLabel(minVal, maxVal) {
+    const config = COMPENSATION_CONFIG[compensationType];
+    const maxText = maxVal >= config.max
+      ? `${fmtSalary(maxVal)}+`
+      : fmtSalary(maxVal);
+
+    if (compensationType === 'hourly') {
+      return `${fmtSalary(minVal)} – ${maxText}/hr`;
+    }
+
+    if (compensationType === 'monthly') {
+      return `${fmtSalary(minVal)} – ${maxText}/mo`;
+    }
+
+    return `${fmtSalary(minVal)} – ${maxText}`;
+  }
+
+  function renderSalaryChips(activeMin = null, activeMax = null) {
+    const container = document.getElementById('salary-chips');
+    const config = COMPENSATION_CONFIG[compensationType];
+
+    container.innerHTML = config.chips.map(([minVal, maxVal]) => {
+      const active = minVal === activeMin && maxVal === activeMax ? ' active' : '';
+      return `<button type="button" class="salary-chip${active}" onclick="setRange(${minVal}, ${maxVal}, this)">${salaryChipLabel(minVal, maxVal)}</button>`;
+    }).join('');
+  }
+
+  function setCompensationType(type, preserveValues = false) {
+    compensationType = COMPENSATION_CONFIG[type] ? type : 'yearly';
+    const config = COMPENSATION_CONFIG[compensationType];
+
+    document.querySelectorAll('.comp-type-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.type === compensationType);
+    });
+
+    const minInput = document.getElementById('salary-min');
+    const maxInput = document.getElementById('salary-max');
+
+    minInput.min = config.min;
+    minInput.max = config.max;
+    minInput.step = config.step;
+
+    maxInput.min = config.min;
+    maxInput.max = config.max;
+    maxInput.step = config.step;
+
+    if (!preserveValues) {
+      minInput.value = config.defaultMin;
+      maxInput.value = config.defaultMax;
+    } else {
+      let minVal = parseInt(minInput.value, 10);
+      let maxVal = parseInt(maxInput.value, 10);
+
+      if (!Number.isFinite(minVal)) minVal = config.defaultMin;
+      if (!Number.isFinite(maxVal)) maxVal = config.defaultMax;
+
+      minVal = Math.max(config.min, Math.min(config.max - config.step, minVal));
+      maxVal = Math.max(minVal + config.step, Math.min(config.max, maxVal));
+
+      minInput.value = minVal;
+      maxInput.value = maxVal;
+    }
+
+    document.getElementById('salary-type-label').textContent = config.periodLabel;
+    document.getElementById('range-floor-label').textContent = config.floorLabel;
+    document.getElementById('range-ceiling-label').textContent = config.ceilingLabel;
+    document.getElementById('commission-note')
+      .classList.toggle('show', compensationType === 'commission');
+
+    renderSalaryChips(
+      parseInt(minInput.value, 10),
+      parseInt(maxInput.value, 10)
+    );
+
+    updateFill();
+    markDone('sc-salary');
+    updateProgress();
   }
 
   function updateFill() {
-    const minVal = parseInt(document.getElementById('salary-min').value);
-    const maxVal = parseInt(document.getElementById('salary-max').value);
-    const range = TOTAL - FLOOR;
-    const leftPct  = ((minVal - FLOOR) / range) * 100;
-    const rightPct = ((maxVal - FLOOR) / range) * 100;
-    document.getElementById('range-fill').style.left  = leftPct + '%';
-    document.getElementById('range-fill').style.width = (rightPct - leftPct) + '%';
+    const config = COMPENSATION_CONFIG[compensationType];
+    const minVal = parseInt(document.getElementById('salary-min').value, 10);
+    const maxVal = parseInt(document.getElementById('salary-max').value, 10);
+
+    const range = config.max - config.min;
+    const leftPct = ((minVal - config.min) / range) * 100;
+    const rightPct = ((maxVal - config.min) / range) * 100;
+
+    document.getElementById('range-fill').style.left = leftPct + '%';
+    document.getElementById('range-fill').style.width =
+      Math.max(0, rightPct - leftPct) + '%';
+
     document.getElementById('salary-min-display').textContent = fmtSalary(minVal);
     document.getElementById('salary-max-display').textContent = fmtSalary(maxVal);
   }
 
   document.getElementById('salary-min').addEventListener('input', function() {
-    const maxVal = parseInt(document.getElementById('salary-max').value);
-    if (parseInt(this.value) >= maxVal - 10000) this.value = maxVal - 10000;
+    const config = COMPENSATION_CONFIG[compensationType];
+    const maxVal = parseInt(document.getElementById('salary-max').value, 10);
+
+    if (parseInt(this.value, 10) >= maxVal - config.step) {
+      this.value = Math.max(config.min, maxVal - config.step);
+    }
+
     updateFill();
     document.querySelectorAll('.salary-chip').forEach(c => c.classList.remove('active'));
     markDone('sc-salary');
@@ -818,20 +1062,28 @@
   });
 
   document.getElementById('salary-max').addEventListener('input', function() {
-    const minVal = parseInt(document.getElementById('salary-min').value);
-    if (parseInt(this.value) <= minVal + 10000) this.value = minVal + 10000;
+    const config = COMPENSATION_CONFIG[compensationType];
+    const minVal = parseInt(document.getElementById('salary-min').value, 10);
+
+    if (parseInt(this.value, 10) <= minVal + config.step) {
+      this.value = Math.min(config.max, minVal + config.step);
+    }
+
     updateFill();
     document.querySelectorAll('.salary-chip').forEach(c => c.classList.remove('active'));
     markDone('sc-salary');
     updateProgress();
   });
 
-  function setRange(minVal, maxVal) {
+  function setRange(minVal, maxVal, button = null) {
     document.getElementById('salary-min').value = minVal;
     document.getElementById('salary-max').value = maxVal;
+
     updateFill();
+
     document.querySelectorAll('.salary-chip').forEach(c => c.classList.remove('active'));
-    event.target.classList.add('active');
+    if (button) button.classList.add('active');
+
     markDone('sc-salary');
     updateProgress();
   }
@@ -852,17 +1104,39 @@
       return;
     }
 
-    const matches = KNOWN_CITIES.filter(city => normalize(city).includes(value)).slice(0, 8);
+    // Remove duplicates and rank the most natural matches first:
+    // 1) city begins with what was typed
+    // 2) another word begins with it
+    // 3) remaining substring matches
+    const uniqueCities = [...new Set(KNOWN_CITIES)];
+    const scored = uniqueCities
+      .map(city => {
+        const normalized = normalize(city);
+        const cityName = normalized.split(',')[0].trim();
+        const words = cityName.split(/\s+/);
 
-    if (matches.length === 0) {
+        let score = 99;
+        if (cityName.startsWith(value)) score = 0;
+        else if (words.some(word => word.startsWith(value))) score = 1;
+        else if (normalized.includes(value)) score = 2;
+
+        return { city, score };
+      })
+      .filter(item => item.score < 99)
+      .sort((a, b) => a.score - b.score || a.city.localeCompare(b.city))
+      .slice(0, 7)
+      .map(item => item.city);
+
+    if (scored.length === 0) {
       box.style.display = 'none';
       box.innerHTML = '';
       return;
     }
 
-    box.innerHTML = matches.map(name =>
-      `<div class="city-suggestion-item" onclick="selectCitySuggestion('${name.replace(/'/g, "\\'")}')">${name}</div>`
+    box.innerHTML = scored.map(name =>
+      `<div class="city-suggestion-item" role="option" onclick="selectCitySuggestion('${name.replace(/'/g, "\\'")}')">${name}</div>`
     ).join('');
+
     box.style.display = 'block';
   }
 
@@ -897,10 +1171,36 @@
         : saved.city;
     }
 
+    const savedCompensationType =
+      saved.compensation_type ||
+      saved.compensationType ||
+      saved.pay_type ||
+      'yearly';
+
+    setCompensationType(
+      COMPENSATION_CONFIG[savedCompensationType]
+        ? savedCompensationType
+        : 'yearly',
+      false
+    );
+
     if (typeof saved.salary_min === 'number' && typeof saved.salary_max === 'number') {
-      document.getElementById('salary-min').value = saved.salary_min;
-      document.getElementById('salary-max').value = saved.salary_max;
-      document.querySelectorAll('.salary-chip').forEach(c => c.classList.remove('active'));
+      const config = COMPENSATION_CONFIG[compensationType];
+
+      const minVal = Math.max(
+        config.min,
+        Math.min(config.max - config.step, saved.salary_min)
+      );
+
+      const maxVal = Math.max(
+        minVal + config.step,
+        Math.min(config.max, saved.salary_max)
+      );
+
+      document.getElementById('salary-min').value = minVal;
+      document.getElementById('salary-max').value = maxVal;
+
+      renderSalaryChips(minVal, maxVal);
       updateFill();
       markDone('sc-salary');
     }
@@ -1134,6 +1434,13 @@
       location: locationInput,
       salary_min: salaryMin,
       salary_max: salaryMax,
+      compensation_type: compensationType,
+      compensation_period:
+        compensationType === 'hourly'
+          ? 'hour'
+          : compensationType === 'monthly'
+            ? 'month'
+            : 'year',
       workStyle: workStyle,
       jobType: activeJobTypes[0] || '',
       jobTypes: activeJobTypes,
@@ -1190,7 +1497,7 @@
   }
 
   // Initialize
-  updateFill();
+  setCompensationType('yearly', false);
   markDone('sc-salary');
   markDone('sc-workstyle');
   markDone('sc-benefits');
