@@ -26,6 +26,71 @@ button{font:inherit;cursor:pointer}.app{width:100%;max-width:520px;min-height:10
 
 <script src="app-candidate-theme.js"></script>
 <link rel="stylesheet" href="app-candidate-theme.css">
+
+<style id="my-jobs-nav-fix">
+.bottom-nav{
+  position:fixed!important;
+  left:0!important;
+  right:0!important;
+  bottom:0!important;
+  max-width:520px!important;
+  margin:0 auto!important;
+  min-height:72px!important;
+  padding:10px 12px calc(13px + env(safe-area-inset-bottom))!important;
+  display:grid!important;
+  grid-template-columns:repeat(4,1fr)!important;
+  backdrop-filter:blur(16px)!important;
+  -webkit-backdrop-filter:blur(16px)!important;
+  z-index:50!important;
+}
+
+.bottom-nav .nav-item{
+  position:relative;
+  min-height:54px;
+  border:0;
+  background:transparent!important;
+  color:#738394;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  padding:0;
+  font-size:9px;
+  font-weight:800;
+}
+
+.bottom-nav .nav-icon{
+  font-size:17px;
+  line-height:1;
+}
+
+.bottom-nav .nav-item.active{
+  color:#35679A!important;
+}
+
+.bottom-nav .nav-item.active::before{
+  content:'';
+  position:absolute;
+  top:-9px;
+  width:34px;
+  height:3px;
+  border-radius:999px;
+  background:#35679A;
+}
+
+html[data-effective-theme="dark"] .bottom-nav .nav-item{
+  color:#8293A2;
+}
+
+html[data-effective-theme="dark"] .bottom-nav .nav-item.active{
+  color:#73A4CE!important;
+}
+
+html[data-effective-theme="dark"] .bottom-nav .nav-item.active::before{
+  background:#73A4CE;
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -35,12 +100,12 @@ button{font:inherit;cursor:pointer}.app{width:100%;max-width:520px;min-height:10
 <div class="tabs"><button class="tab active" onclick="filterApps('all',this)">All</button><button class="tab" onclick="filterApps('applied',this)">Applied</button><button class="tab" onclick="filterApps('interview',this)">Interview</button><button class="tab" onclick="filterApps('offer',this)">Offer</button><button class="tab" onclick="filterApps('rejected',this)">Rejected</button></div>
 <div id="message" class="message"></div><div id="content"><div class="loading">Loading your applications...</div></div>
 </div>
-<div class="bottom-nav">
-  <div class="nav-item" onclick="location.href='app-account.html'">My Profile</div>
-  <div class="nav-item" onclick="location.href='app-swipe.html'">Swipe</div>
-  <div class="nav-item active">My Jobs</div>
-  <div class="nav-item" onclick="location.href='app-account.html#settings'">Settings</div>
-</div>
+<nav class="bottom-nav" aria-label="Candidate navigation">
+  <button class="nav-item" type="button" onclick="location.href='app-account.html'"><span class="nav-icon">◉</span><span>My Profile</span></button>
+  <button class="nav-item" type="button" onclick="location.href='app-swipe.html'"><span class="nav-icon">◇</span><span>Swipe</span></button>
+  <button class="nav-item active" type="button"><span class="nav-icon">▣</span><span>My Jobs</span></button>
+  <button class="nav-item" type="button" onclick="location.href='app-account.html#settings'"><span class="nav-icon">⚙</span><span>Settings</span></button>
+</nav>
 <script>
 const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let apps=[],active='all';
@@ -53,7 +118,7 @@ function render(){
  document.getElementById('interviewCount').textContent=apps.filter(x=>x.status==='interview').length;
  document.getElementById('offerCount').textContent=apps.filter(x=>x.status==='offer').length;
  if(!rows.length){document.getElementById('content').innerHTML=`<div class="empty"><div class="empty-title">No applications yet</div><div class="empty-copy">When you apply to jobs, they will appear here with their latest status.</div><button class="btn primary" onclick="location.href='app-swipe.html'">Find Jobs</button></div>`;return}
- document.getElementById('content').innerHTML=`<div class="list">${rows.map(x=>{const j=x.jobs||{};const company=j.company||j.company_name||j.employer_name||j.company_title||'Employer';return `<div class="card"><div class="card-top"><div><div class="job-title">${esc(j.title||'Job Application')}</div><div class="company">${esc(company)}</div></div><div class="status ${x.status}">${esc(x.status[0].toUpperCase()+x.status.slice(1))}</div></div><div class="meta"><span>${esc(j.location||'')}</span><span>Applied ${esc(fmt(x.applied_at))}</span></div>${x.match_score!=null?`<div class="match">${esc(x.match_score)}% Match</div>`:''}<div class="actions"><button class="btn primary" onclick="location.href='app-job-details.html?id=${encodeURIComponent(j.id||x.job_id)}'">View Job</button><button class="btn secondary" onclick="location.href='app-application-details.html?id=${encodeURIComponent(x.id)}'">Details</button></div></div>`}).join('')}</div>`;
+ document.getElementById('content').innerHTML=`<div class="list">${rows.map(x=>{const j=x.jobs||{};const company=j.company||j.company_name||j.employer_name||j.company_title||'Employer';return `<div class="card"><div class="card-top"><div><div class="job-title">${esc(j.title||'Job Application')}</div><div class="company">${esc(company)}</div></div><div class="status ${x.status}">${esc(x.status[0].toUpperCase()+x.status.slice(1))}</div></div><div class="meta"><span>${esc(j.location||'')}</span><span>Applied ${esc(fmt(x.applied_at))}</span></div>${x.match_score!=null?`<div class="match">${esc(x.match_score)}% Match</div>`:''}<div class="actions"><button class="btn primary" onclick="location.href='app-job-details.html?id=${encodeURIComponent(j.id||x.job_id)}&from=my-jobs'">View Job</button><button class="btn secondary" onclick="location.href='app-application-details.html?id=${encodeURIComponent(x.id)}'">Details</button></div></div>`}).join('')}</div>`;
 }
 (async()=>{
  const{data,error}=await sb.auth.getSession();if(error||!data.session){location.replace('app-login.html');return}
