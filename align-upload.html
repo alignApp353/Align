@@ -213,6 +213,99 @@
     white-space:nowrap;
   }
 
+  .existing-resume-state{
+    display:none;
+    max-width:760px;
+    margin:0 auto;
+    animation:fadeUp .4s ease both;
+  }
+
+  .existing-resume-card{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:22px;
+    padding:34px;
+    text-align:center;
+  }
+
+  .existing-resume-icon{
+    width:58px;
+    height:58px;
+    margin:0 auto 18px;
+    border-radius:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--mint-light);
+    color:#3E805A;
+    font-size:24px;
+  }
+
+  .existing-resume-card h2{
+    font-family:'DM Serif Display',serif;
+    font-size:30px;
+    letter-spacing:-.5px;
+    margin-bottom:8px;
+  }
+
+  .existing-resume-card p{
+    max-width:520px;
+    margin:0 auto;
+    color:var(--text-muted);
+    font-size:14px;
+    line-height:1.6;
+  }
+
+  .existing-resume-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:26px;
+  }
+
+  .existing-resume-action{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:48px;
+    padding:12px 16px;
+    border-radius:12px;
+    border:1.5px solid var(--border);
+    background:#fff;
+    color:var(--text);
+    text-decoration:none;
+    font-family:'DM Sans',sans-serif;
+    font-size:13px;
+    cursor:pointer;
+    transition:.2s;
+  }
+
+  .existing-resume-action:hover{
+    border-color:var(--brand);
+    color:var(--brand);
+  }
+
+  .existing-resume-action.primary{
+    border-color:var(--brand);
+    background:var(--brand);
+    color:#fff;
+  }
+
+  .existing-resume-action.primary:hover{
+    opacity:.9;
+    color:#fff;
+  }
+
+  .existing-resume-note{
+    margin-top:16px !important;
+    font-size:12px !important;
+  }
+
+  @media(max-width:640px){
+    .existing-resume-actions{grid-template-columns:1fr}
+    .existing-resume-card{padding:26px 18px}
+  }
+
   .uploading-state { display: none; }
   .upload-progress {
     background: var(--card-bg);
@@ -458,14 +551,53 @@
 
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
-  <div class="nav-step">
-    <span class="step-pill">Step 1 of 3</span>
-    Upload resume
+  <div class="nav-step" id="resume-nav-step">
+    <span class="step-pill" id="resume-step-pill">Step 1 of 3</span>
+    <span id="resume-step-label">Upload resume</span>
   </div>
-  <a href="index.html" class="nav-back">← Back</a>
+  <a href="index.html" class="nav-back" id="resume-back-link">← Back</a>
 </nav>
 
 <main>
+
+  <!-- EXISTING RESUME STATE — shown for logged-in candidates with a saved resume -->
+  <div class="existing-resume-state" id="existing-resume-state">
+    <div class="existing-resume-card">
+      <div class="existing-resume-icon">✓</div>
+      <h2>Your resume is already saved.</h2>
+      <p id="existing-resume-copy">
+        You do not need to upload it again. You can view your current resume,
+        replace it, edit it with Alygnn, or continue to your preferences.
+      </p>
+
+      <div class="existing-resume-actions">
+        <button
+          type="button"
+          class="existing-resume-action primary"
+          id="view-current-resume-btn"
+          onclick="openExistingResume()"
+        >View current resume</button>
+
+        <a class="existing-resume-action" href="resume-builder.html" id="edit-existing-resume-link">
+          Edit in Alygnn builder
+        </a>
+
+        <button
+          type="button"
+          class="existing-resume-action"
+          onclick="showReplacementUpload()"
+        >Upload a different resume</button>
+
+        <a class="existing-resume-action" href="preferences.html">
+          Edit preferences
+        </a>
+      </div>
+
+      <p class="existing-resume-note">
+        Your current resume stays connected to your Alygnn account unless you replace it.
+      </p>
+    </div>
+  </div>
 
   <!-- UPLOAD SCREEN -->
   <div class="screen" id="upload-screen">
@@ -668,6 +800,15 @@
   const dropZone = document.getElementById('drop-zone');
   const fileInput = document.getElementById('file-input');
   const uploadScreen = document.getElementById('upload-screen');
+  const existingResumeState = document.getElementById('existing-resume-state');
+  const resumeBackLink = document.getElementById('resume-back-link');
+  const resumeStepPill = document.getElementById('resume-step-pill');
+  const resumeStepLabel = document.getElementById('resume-step-label');
+
+  let existingResumeFilePath = null;
+  let existingResumeData = null;
+  let existingResumeSource = null;
+  let forceReplacementMode = false;
   const uploadingScreen = document.getElementById('uploading-screen');
   const confirmScreen = document.getElementById('confirm-screen');
   const progressBar = document.getElementById('progress-bar');
@@ -954,6 +1095,113 @@
     }
   }
 
+  function showReplacementUpload() {
+    forceReplacementMode = true;
+    existingResumeState.style.display = 'none';
+    uploadScreen.style.display = 'block';
+    uploadScreen.style.animation = 'fadeUp 0.4s ease both';
+
+    if (resumeStepPill) resumeStepPill.textContent = 'Resume';
+    if (resumeStepLabel) resumeStepLabel.textContent = 'Replace resume';
+  }
+
+  async function openExistingResume() {
+    if (existingResumeFilePath) {
+      const btn = document.getElementById('view-current-resume-btn');
+      const original = btn?.textContent || 'View current resume';
+
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Opening…';
+      }
+
+      const { data, error } = await sb.storage
+        .from('resumes')
+        .createSignedUrl(existingResumeFilePath, 60);
+
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = original;
+      }
+
+      if (error || !data?.signedUrl) {
+        console.error('Could not create resume URL:', error);
+        alert('We could not open your resume right now. Please try again.');
+        return;
+      }
+
+      window.open(data.signedUrl, '_blank');
+      return;
+    }
+
+    // Resume-builder resumes may only exist as structured resume_data.
+    if (existingResumeData) {
+      window.location.href = 'resume-builder.html?view=1';
+    }
+  }
+
+  async function initExistingResumeState() {
+    const { data: { session }, error: sessionError } = await sb.auth.getSession();
+
+    if (sessionError) {
+      console.error('Could not read session:', sessionError);
+      return;
+    }
+
+    // Logged-out users are still in the normal onboarding flow.
+    if (!session?.user) return;
+
+    if (resumeBackLink) resumeBackLink.href = 'account.html';
+
+    const { data: profile, error } = await sb
+      .from('profiles')
+      .select('resume_file_path,resume_data,resume_source')
+      .eq('id', session.user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Could not load existing resume:', error);
+      return;
+    }
+
+    existingResumeFilePath = profile?.resume_file_path || null;
+    existingResumeData = profile?.resume_data || null;
+    existingResumeSource = profile?.resume_source || null;
+
+    const hasExistingResume = !!(existingResumeFilePath || existingResumeData);
+    if (!hasExistingResume || forceReplacementMode) return;
+
+    uploadScreen.style.display = 'none';
+    uploadingScreen.style.display = 'none';
+    confirmScreen.style.display = 'none';
+    existingResumeState.style.display = 'block';
+
+    if (resumeStepPill) resumeStepPill.textContent = 'Resume';
+    if (resumeStepLabel) resumeStepLabel.textContent = 'Your resume';
+
+    const viewBtn = document.getElementById('view-current-resume-btn');
+    const editLink = document.getElementById('edit-existing-resume-link');
+    const copy = document.getElementById('existing-resume-copy');
+
+    if (!existingResumeFilePath && existingResumeData) {
+      if (viewBtn) viewBtn.textContent = 'View current resume';
+      if (editLink) {
+        editLink.textContent = 'Edit in Alygnn builder';
+        editLink.href = 'resume-builder.html';
+      }
+      if (copy) {
+        copy.textContent =
+          'Your Alygnn-built resume is already saved to your account. You can view it, edit it, replace it, or update your preferences.';
+      }
+    } else {
+      if (viewBtn) viewBtn.textContent = 'View current resume';
+      if (editLink) {
+        editLink.textContent = 'Build or edit with Alygnn';
+        editLink.href = 'resume-builder.html';
+      }
+    }
+  }
+
   // If the person already has an account, persist their resume to
   // that account's row in the database — both the parsed data AND
   // the actual file itself, so it can be viewed later from the
@@ -1036,6 +1284,8 @@
       alert('We could not temporarily save your resume. Please try uploading it again.');
     }
   }
+
+  initExistingResumeState();
 </script>
 </body>
 </html>
