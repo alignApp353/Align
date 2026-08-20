@@ -2,572 +2,1936 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#F5F8F8">
-<title>Resume Preview | Alygnn</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Alygnn — Job Preferences</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
-:root{--brand:#5D7FA3;--brand-dark:#35679A;--sage:#8CB69B;--bg:#F5F8F8;--card:#fff;--text:#172333;--muted:#66788A;--border:#DCE5EB;--soft:#EFF4F7;--green:#359762;--shadow:0 14px 38px rgba(23,35,51,.055)}
-html,body{width:100%;min-height:100%}
-body{min-height:100vh;background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparent 27%),var(--bg);color:var(--text);padding-bottom:calc(105px + env(safe-area-inset-bottom))}
-button{font:inherit;cursor:pointer}
-[hidden]{display:none!important}
-.header{position:sticky;top:0;z-index:40;min-height:84px;padding:calc(12px + env(safe-area-inset-top)) 18px 12px;display:grid;grid-template-columns:46px 1fr 46px;align-items:center;background:rgba(245,248,248,.96);border-bottom:1px solid var(--border);backdrop-filter:blur(18px)}
-.back{width:42px;height:42px;border:1px solid var(--border);border-radius:50%;background:#fff;color:var(--text);font-size:20px}
-.logo{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:30px;color:var(--brand)}
-.logo span{color:var(--sage)}
-.page{width:100%;max-width:600px;margin:auto;padding:22px 16px 34px}
-.step{font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--brand-dark)}
-.progress{height:7px;margin-top:10px;border-radius:999px;background:#E4EBF0;overflow:hidden}
-.progress>div{height:100%;width:66.666%;border-radius:999px;background:var(--brand-dark)}
-h1{margin-top:24px;font-size:30px;line-height:1.08;letter-spacing:-.7px;font-weight:900}
-.sub{margin-top:10px;color:var(--muted);font-size:14px;line-height:1.55}
-.status{margin-top:18px;padding:14px 16px;border:1px solid #CFE3D6;border-radius:18px;background:#ECF7F0;color:#246E45;font-size:13px;font-weight:800}
-.preview-shell{margin-top:20px;border:1px solid var(--border);border-radius:26px;background:var(--card);box-shadow:var(--shadow);overflow:hidden}
-.preview-head{padding:15px 17px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px}
-.preview-title{font-size:13px;font-weight:900}
-.preview-badge{padding:6px 9px;border-radius:999px;background:#EAF2F8;color:var(--brand-dark);font-size:10px;font-weight:900}
-.file-frame{width:100%;height:min(67vh,720px);min-height:520px;border:0;background:#fff}
-.pdf-preview{
+:root{
+  --brand:#5D7FA3;
+  --brand-dark:#35679A;
+  --sage:#8CB69B;
+  --bg:#F6F8F7;
+  --card:#FCFCFA;
+  --text:#172333;
+  --muted:#6B7E91;
+  --border:#DCE5EB;
+  --mint:#6FBF8F;
+  --mint-soft:#EAF6EF;
+  --brand-soft:#EDF3F8;
+  --danger:#B95656;
+  --danger-soft:#FFF0F0;
+  --shadow:0 14px 38px rgba(26,44,66,.06);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{
+  margin:0;
+  min-height:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family:'DM Sans',Arial,sans-serif;
+}
+body{padding-bottom:env(safe-area-inset-bottom)}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{
   width:100%;
-  min-height:520px;
-  padding:18px 20px 22px;
-  background:#EEF2F5;
-  overflow-x:hidden;
-  overflow-y:visible;
-}
-.pdf-preview-loading{
-  min-height:420px;
-  display:grid;
-  place-items:center;
-  text-align:center;
-  color:var(--muted);
-  font-size:12px;
-  font-weight:800;
-}
-.pdf-preview-loading .spinner{
-  margin:0 auto 12px;
-}
-.pdf-page{
-  width:92%;
-  max-width:92%;
-  margin:0 auto 16px;
-  background:#fff;
-  box-shadow:0 5px 18px rgba(23,35,51,.10);
-  overflow:hidden;
-}
-.pdf-page:last-child{
-  margin-bottom:0;
-}
-.pdf-page canvas{
-  display:block;
-  width:100% !important;
-  max-width:100% !important;
-  height:auto !important;
+  max-width:560px;
+  min-height:100vh;
   margin:0 auto;
-  background:#fff;
+  padding-bottom:calc(112px + env(safe-area-inset-bottom));
 }
-.pdf-preview-error{
-  min-height:420px;
-  padding:34px 22px;
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:100;
   display:grid;
-  place-items:center;
+  grid-template-columns:72px 1fr 72px;
+  align-items:center;
+  min-height:76px;
+  padding:calc(10px + env(safe-area-inset-top)) 18px 10px;
+  background:rgba(246,248,247,.94);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+.back{
+  border:0;
+  background:transparent;
+  color:var(--brand-dark);
+  padding:10px 0;
+  text-align:left;
+  font-weight:900;
+  font-size:14px;
+}
+.logo{
   text-align:center;
+  font-family:'DM Serif Display',serif;
+  color:var(--brand);
+  font-size:30px;
+  letter-spacing:-.7px;
+}
+.logo span{color:var(--sage)}
+.header-spacer{width:72px}
+.stage{
+  padding:18px 20px 12px;
+  background:rgba(246,248,247,.96);
+}
+.stage-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  font-size:10px;
+  font-weight:800;
   color:var(--muted);
 }
-.pdf-preview-error strong{
+.stage-item{display:flex;align-items:center;gap:5px}
+.stage-dot{
+  width:21px;height:21px;border-radius:50%;
+  display:grid;place-items:center;
+  background:#E7EDF1;color:var(--muted);
+}
+.stage-dot.done{background:var(--mint);color:#fff}
+.stage-dot.active{background:var(--brand-dark);color:#fff}
+.stage-line{width:22px;height:1px;background:var(--border)}
+.progress-wrap{
+  margin-top:16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.progress-meta{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  flex:1;
+  font-size:11px;
+  font-weight:800;
+  color:var(--muted);
+}
+.progress-track{
+  height:5px;
+  flex:1;
+  overflow:hidden;
+  border-radius:999px;
+  background:#E7EDF1;
+}
+.progress-fill{
+  width:0%;
+  height:100%;
+  border-radius:999px;
+  background:var(--mint);
+  transition:width .25s ease;
+}
+.intro{
+  padding:24px 22px 2px;
+}
+.eyebrow{
+  color:var(--brand-dark);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:2px;
+  text-transform:uppercase;
+}
+h1{
+  margin:8px 0 0;
+  font-size:34px;
+  line-height:1.05;
+  letter-spacing:-1.3px;
+}
+.intro p{
+  margin:10px 0 0;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.55;
+}
+.section{
+  padding:26px 22px 2px;
+  scroll-margin-top:150px;
+}
+.section-head{margin-bottom:14px}
+.section-num{
+  color:var(--brand-dark);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1.6px;
+  text-transform:uppercase;
+}
+.section-title{
+  margin-top:5px;
+  font-size:23px;
+  font-weight:900;
+  letter-spacing:-.5px;
+}
+.section-copy{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.5;
+}
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:22px;
+  padding:18px;
+  box-shadow:var(--shadow);
+}
+.field{position:relative}
+.label{
   display:block;
   margin-bottom:8px;
+  color:var(--muted);
+  font-size:10px;
+  letter-spacing:1.1px;
+  text-transform:uppercase;
+  font-weight:900;
+}
+.input{
+  width:100%;
+  min-height:54px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:0 15px;
+  background:#fff;
   color:var(--text);
+  outline:none;
   font-size:15px;
 }
-.pdf-open-fallback{
-  margin-top:16px;
+.input:focus{
+  border-color:var(--brand-dark);
+  box-shadow:0 0 0 3px rgba(53,103,154,.10);
+}
+.input::placeholder{color:#A3AFBA}
+.suggestions{
+  position:absolute;
+  top:calc(100% + 6px);
+  left:0;right:0;
+  z-index:80;
+  display:none;
+  max-height:230px;
+  overflow:auto;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:15px;
+  box-shadow:0 18px 42px rgba(23,35,51,.15);
+}
+.suggestions.show{display:block}
+.suggestion{
+  width:100%;
+  min-height:48px;
+  padding:11px 13px;
+  border:0;
+  border-bottom:1px solid #EEF2F5;
+  background:#fff;
+  color:var(--text);
+  text-align:left;
+  font-size:13px;
+  font-weight:800;
+}
+.suggestion:last-child{border-bottom:0}
+.suggestion:active{background:#F2F6F9}
+.suggestion small{
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:700;
+}
+.suggestion-empty{
+  padding:13px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.45;
+  font-weight:700;
+}
+.field-error{
+  display:none;
+  margin-top:8px;
+  color:var(--danger);
+  font-size:11px;
+  font-weight:800;
+}
+.field-error.show{display:block}
+
+/* Salary */
+
+.comp-type-wrap{
+  margin-bottom:18px;
+}
+.comp-type-label{
+  margin-bottom:9px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1.1px;
+  text-transform:uppercase;
+}
+.comp-type-options{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.comp-type-btn{
   min-height:46px;
-  padding:0 16px;
+  padding:9px 10px;
   border:1px solid var(--border);
   border-radius:14px;
   background:#fff;
-  color:var(--brand-dark);
+  color:var(--muted);
+  font-size:11px;
   font-weight:900;
 }
-.file-fallback{padding:44px 24px;text-align:center}
-.file-icon{width:70px;height:70px;margin:0 auto;border-radius:22px;background:#EAF2F8;color:var(--brand-dark);display:grid;place-items:center;font-size:28px;font-weight:900}
-.file-name{margin-top:16px;font-weight:900;font-size:17px;word-break:break-word}
-.file-copy{margin:8px auto 0;max-width:360px;color:var(--muted);font-size:13px;line-height:1.55}
-.open-file{margin-top:18px;min-height:48px;padding:0 18px;border:1px solid var(--border);border-radius:15px;background:#fff;color:var(--brand-dark);font-weight:900}
-.resume-paper{padding:34px 30px 42px;background:#fff;color:#172333}
-.paper-name{font-size:28px;font-weight:900;letter-spacing:-.6px}
-.paper-contact{margin-top:5px;color:#627285;font-size:11px;line-height:1.5}
-.paper-rule{height:2px;margin:15px 0 20px;background:#315D89}
-.paper-section{margin-top:20px}
-.paper-section:first-of-type{margin-top:0}
-.paper-title{font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#315D89}
-.paper-copy{margin-top:7px;font-size:12px;line-height:1.6;white-space:pre-wrap}
-.paper-item{margin-top:10px}
-.paper-item strong{display:block;font-size:13px}
-.paper-meta{margin-top:2px;color:#627285;font-size:11px}
-.skills{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
-.skill{padding:6px 9px;border-radius:999px;background:#EFF4F7;font-size:10px;font-weight:800}
-.error{margin-top:18px;padding:14px 16px;border-radius:16px;background:#FDEEEE;color:#9F4E4E;font-size:13px;font-weight:800}
-.footer{position:fixed;left:0;right:0;bottom:0;z-index:45;background:rgba(255,255,255,.97);border-top:1px solid var(--border);backdrop-filter:blur(18px);padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
-.footer-inner{max-width:600px;margin:auto;display:grid;grid-template-columns:.8fr 1.2fr;gap:10px}
-.secondary,.primary{min-height:54px;border-radius:17px;font-weight:900}
-.secondary{border:1px solid var(--border);background:#fff;color:var(--text)}
-.primary{border:0;background:var(--brand-dark);color:#fff}
-.loading{min-height:55vh;display:grid;place-items:center;text-align:center;color:var(--muted);font-weight:800}
-.spinner{width:34px;height:34px;margin:0 auto 12px;border:3px solid #E1E8ED;border-top-color:var(--brand-dark);border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-@media(max-width:520px){.resume-paper{padding:27px 22px 34px}.file-frame{min-height:480px}}
+.comp-type-btn.active{
+  border-color:var(--brand-dark);
+  background:var(--brand-soft);
+  color:var(--brand-dark);
+}
+.compensation-period{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+}
+
+html[data-effective-theme="dark"] .comp-type-btn{
+  background:#101A23;
+  border-color:#2B3946;
+  color:#A7B2BD;
+}
+html[data-effective-theme="dark"] .comp-type-btn.active{
+  background:#1B3042;
+  border-color:#6C98BF;
+  color:#F4F7F9;
+}
+
+.salary-card{padding:20px}
+.salary-caption{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+}
+.salary-display{
+  margin-top:5px;
+  font-size:28px;
+  font-weight:900;
+  letter-spacing:-1px;
+}
+.salary-display span{color:var(--muted);font-weight:600}
+.range-wrap{
+  position:relative;
+  height:42px;
+  margin-top:21px;
+}
+.range-bg,
+.range-fill{
+  position:absolute;
+  left:0;right:0;
+  top:18px;
+  height:5px;
+  border-radius:999px;
+}
+.range-bg{background:#E4EBF0}
+.range-fill{background:var(--brand-dark);right:auto}
+.range-inputs{
+  position:absolute;
+  left:0;right:0;top:0;
+  height:42px;
+}
+.range-inputs input{
+  position:absolute;
+  left:0;
+  width:100%;
+  height:42px;
+  margin:0;
+  background:transparent;
+  appearance:none;
+  -webkit-appearance:none;
+
+  /* Android WebView can draw the two native thumbs differently.
+     Keep the real sliders interactive, but make their rendering invisible.
+     The two matching .salary-handle elements are the only visible dots. */
+  opacity:0;
+  pointer-events:none;
+}
+.range-inputs input::-webkit-slider-runnable-track{
+  height:5px;
+  background:transparent;
+}
+.range-inputs input::-webkit-slider-thumb{
+  width:34px;
+  height:34px;
+  margin-top:-15px;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  box-shadow:none;
+  appearance:none;
+  -webkit-appearance:none;
+  pointer-events:auto;
+}
+.range-inputs input::-moz-range-track{
+  height:5px;
+  background:transparent;
+}
+.range-inputs input::-moz-range-thumb{
+  width:34px;
+  height:34px;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  pointer-events:auto;
+}
+
+/* Always-visible salary handles.
+   These are separate from the browser's native thumbs so both handles
+   remain visible in Android WebView in Light and Dark modes. */
+.salary-handle{
+  position:absolute;
+  top:20.5px;
+  z-index:20;
+  width:25px;
+  height:25px;
+  border:4px solid #35679A;
+  border-radius:50%;
+  background:#FFFFFF;
+  box-shadow:
+    0 0 0 3px rgba(53,103,154,.12),
+    0 4px 10px rgba(23,35,51,.18);
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  transition:left .04s linear;
+}
+.salary-handle-max{
+  box-shadow:
+    0 0 0 3px rgba(53,103,154,.12),
+    0 4px 10px rgba(23,35,51,.18);
+}
+#salaryMin{z-index:5}
+#salaryMax{z-index:6}
+
+html[data-effective-theme="dark"] .salary-handle{
+  border-color:#72A6D2;
+  background:#F7FAFC;
+  box-shadow:
+    0 0 0 4px rgba(114,166,210,.16),
+    0 4px 12px rgba(0,0,0,.34);
+}
+html[data-effective-theme="dark"] .salary-handle-max{
+  border-color:#72A6D2;
+  background:#F7FAFC;
+  box-shadow:
+    0 0 0 4px rgba(114,166,210,.16),
+    0 4px 12px rgba(0,0,0,.34);
+}
+.range-labels{
+  display:flex;
+  justify-content:space-between;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:700;
+}
+.quick-chips{
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  padding:14px 0 2px;
+  scrollbar-width:none;
+}
+.quick-chips::-webkit-scrollbar{display:none}
+.quick-chip{
+  flex:0 0 auto;
+  min-height:36px;
+  padding:0 13px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:#fff;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+}
+.quick-chip.active{
+  border-color:var(--brand-dark);
+  background:var(--brand-soft);
+  color:var(--brand-dark);
+}
+
+/* Choice cards */
+.choice-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:9px;
+}
+.choice{
+  min-height:104px;
+  padding:13px 9px;
+  border:1px solid var(--border);
+  border-radius:17px;
+  background:#fff;
+  color:var(--text);
+  text-align:center;
+}
+.choice.active{
+  border-color:var(--brand-dark);
+  background:var(--brand-soft);
+}
+.choice-icon{font-size:22px}
+.choice-name{
+  margin-top:7px;
+  font-size:12px;
+  font-weight:900;
+}
+.choice-sub{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.35;
+}
+
+/* Benefits */
+.benefit-grid{display:grid;gap:9px}
+.benefit{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-height:66px;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#fff;
+  text-align:left;
+}
+.benefit.active{
+  border-color:var(--mint);
+  background:var(--mint-soft);
+}
+.check{
+  width:23px;height:23px;
+  flex:0 0 auto;
+  display:grid;place-items:center;
+  border:1px solid var(--border);
+  border-radius:7px;
+  color:transparent;
+  font-size:12px;
+  font-weight:900;
+}
+.benefit.active .check{
+  background:var(--mint);
+  border-color:var(--mint);
+  color:#fff;
+}
+.benefit-name{display:block;font-size:12px;font-weight:900}
+.benefit-copy{display:block;margin-top:2px;color:var(--muted);font-size:10px;line-height:1.35}
+
+/* Job type */
+.job-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+}
+.job-type{
+  min-height:64px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#fff;
+  color:var(--text);
+  font-size:12px;
+  font-weight:900;
+}
+.job-type.active{
+  border-color:var(--brand-dark);
+  background:var(--brand-soft);
+  color:var(--brand-dark);
+}
+
+/* Industry */
+.chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.ind-chip{
+  min-height:38px;
+  padding:0 14px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:#fff;
+  color:var(--text);
+  font-size:11px;
+  font-weight:800;
+}
+.ind-chip.active{
+  border-color:var(--brand-dark);
+  background:var(--brand-dark);
+  color:#fff;
+}
+.industry-search{
+  margin-top:16px;
+  padding-top:16px;
+  border-top:1px solid var(--border);
+}
+.industry-hint{
+  margin:0 0 10px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.45;
+}
+.selected-extra{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:11px;
+}
+.extra-chip{
+  min-height:34px;
+  padding:0 12px;
+  border:0;
+  border-radius:999px;
+  background:var(--brand-soft);
+  color:var(--brand-dark);
+  font-size:10px;
+  font-weight:900;
+}
+
+/* Bottom save */
+.message{
+  display:none;
+  margin:20px 22px 0;
+  padding:13px 14px;
+  border-radius:15px;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.45;
+}
+.message.error{
+  display:block;
+  background:var(--danger-soft);
+  color:var(--danger);
+  border:1px solid #F2D0D0;
+}
+.message.success{
+  display:block;
+  background:var(--mint-soft);
+  color:#24754D;
+  border:1px solid #CFE8D9;
+}
+.bottom-save{
+  position:fixed;
+  left:0;right:0;bottom:0;
+  z-index:120;
+  max-width:560px;
+  margin:0 auto;
+  padding:12px 18px calc(12px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--border);
+  background:rgba(246,248,247,.96);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+.save-btn{
+  width:100%;
+  min-height:56px;
+  border:0;
+  border-radius:18px;
+  background:var(--brand-dark);
+  color:#fff;
+  font-size:15px;
+  font-weight:900;
+  box-shadow:0 12px 26px rgba(53,103,154,.18);
+}
+.save-btn:disabled{opacity:.6;cursor:not-allowed}
+
+@media(max-width:390px){
+  .choice-grid{grid-template-columns:1fr}
+  .choice{min-height:78px;text-align:left;display:grid;grid-template-columns:34px 1fr;align-items:center}
+  .choice-icon{grid-row:1/3}
+  .choice-name{margin-top:0}
+}
+
+/* V19: both salary handles are one identical visual component. */
+.salary-handle-min,
+.salary-handle-max{
+  width:25px!important;
+  height:25px!important;
+  border:4px solid #35679A!important;
+  border-radius:50%!important;
+  background:#FFFFFF!important;
+  box-shadow:
+    0 0 0 3px rgba(53,103,154,.12),
+    0 4px 10px rgba(23,35,51,.18)!important;
+}
+
+html[data-effective-theme="dark"] .salary-handle-min,
+html[data-effective-theme="dark"] .salary-handle-max{
+  border-color:#72A6D2!important;
+  background:#F7FAFC!important;
+  box-shadow:
+    0 0 0 4px rgba(114,166,210,.16),
+    0 4px 12px rgba(0,0,0,.34)!important;
+}
+
 </style>
 
-<style id="alygnn-resume-template-preview">
-.template-filters{display:flex;gap:8px;overflow:auto;margin:18px -2px 0;padding:2px 2px 8px;scrollbar-width:none}.template-filters::-webkit-scrollbar{display:none}.filter-chip{flex:0 0 auto;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--muted);padding:9px 12px;font-size:10px;font-weight:900}.filter-chip.active{background:var(--brand-dark);border-color:var(--brand-dark);color:#fff}
-.template-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px}.template-card{position:relative;border:1px solid var(--border);border-radius:18px;background:#fff;padding:10px;text-align:left;cursor:pointer;box-shadow:0 8px 22px rgba(23,35,51,.035)}.template-card.selected{border:2px solid var(--brand-dark);padding:9px;box-shadow:0 0 0 3px rgba(53,103,154,.08)}.template-card-name{margin-top:9px;font-size:11px;font-weight:900;color:var(--text)}.template-card-copy{margin-top:3px;color:var(--muted);font-size:8px;line-height:1.35;min-height:22px}.template-tag{position:absolute;right:8px;top:8px;padding:4px 6px;border-radius:999px;background:#EEF4F8;color:var(--brand-dark);font-size:7px;font-weight:900;text-transform:uppercase;letter-spacing:.4px}
-.template-mini{height:145px;border-radius:10px;background:#EEF2F7;padding:10px;overflow:hidden}.mini-paper{height:100%;background:#fff;padding:9px;box-shadow:0 3px 10px rgba(23,35,51,.07);position:relative;overflow:hidden}.mini-name{height:8px;width:45%;background:#172333;border-radius:2px}.mini-contact{height:3px;width:70%;margin-top:4px;background:#B5C0CB;border-radius:2px}.mini-rule{height:2px;margin:7px 0;background:var(--mini-accent,#35679A)}.mini-section{height:4px;width:32%;margin-top:8px;background:var(--mini-accent,#35679A);border-radius:2px}.mini-line{height:3px;margin-top:4px;background:#C9D1D8;border-radius:2px}.mini-line.short{width:62%}.mini-line.medium{width:82%}.template-mini.sidebar .mini-paper{padding-left:38%}.template-mini.sidebar .mini-paper:before{content:'';position:absolute;left:0;top:0;bottom:0;width:32%;background:var(--mini-accent,#35679A)}.template-mini.headerband .mini-paper:before{content:'';position:absolute;left:0;right:0;top:0;height:27%;background:color-mix(in srgb,var(--mini-accent,#35679A) 18%,white)}.template-mini.headerband .mini-name{margin-top:28%}.template-mini.centered .mini-name,.template-mini.centered .mini-contact{margin-left:auto;margin-right:auto}.template-mini.bars .mini-section{width:100%;height:8px;padding:0;background:color-mix(in srgb,var(--mini-accent,#35679A) 14%,#E8EBEE)}.template-mini.compact .mini-line{margin-top:2px}.template-mini.bold .mini-name{height:14px;width:58%}.template-mini.split .mini-paper:after{content:'';position:absolute;top:35%;right:7%;width:26%;height:53%;border-left:1px solid #D6DDE3}
-.design-card{margin-top:18px;padding:17px;border:1px solid var(--border);border-radius:20px;background:#fff}.design-title{font-size:14px;font-weight:900}.design-label{margin-top:16px;color:var(--muted);font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.8px}.color-swatches{display:flex;gap:9px;flex-wrap:wrap;margin-top:9px}.color-swatch{width:31px;height:31px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px #CCD6DE}.color-swatch.active{box-shadow:0 0 0 3px #172333}.segmented{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:9px}.segmented button{min-height:42px;border:1px solid var(--border);border-radius:13px;background:#F8FAFB;color:var(--muted);font-size:10px;font-weight:900}.segmented button.active{background:#EAF2F8;border-color:#BCD3E4;color:var(--brand-dark)}
-
-.resume-design{--resume-accent:#35679A;background:#fff;color:#172333;border-radius:12px;overflow:hidden;box-shadow:0 10px 28px rgba(23,35,51,.10);font-size:10px;line-height:1.45;min-height:520px}.resume-design,.resume-design *{font-family:'DM Sans',Arial,sans-serif!important}.resume-design.font-serif,.resume-design.font-serif *{font-family:Georgia,'Times New Roman',serif!important}.resume-design.compact{font-size:9px;line-height:1.32}.resume-inner{padding:28px 26px 34px}.resume-header{padding-bottom:12px;border-bottom:2px solid var(--resume-accent)}.rd-name{font-size:26px;font-weight:900;line-height:1.05;letter-spacing:-.5px}.rd-contact{margin-top:5px;color:#627285;font-size:9px}.rd-section{margin-top:16px}.rd-title{margin-bottom:7px;color:var(--resume-accent);font-size:9px;font-weight:900;letter-spacing:1px;text-transform:uppercase}.rd-item{margin-top:9px}.rd-item:first-child{margin-top:0}.rd-item-title{font-size:11px;font-weight:900}.rd-meta{margin-top:1px;color:#66788A;font-size:8.5px}.rd-copy{margin-top:3px;color:#35475A;white-space:pre-wrap}.rd-skills{display:flex;flex-wrap:wrap;gap:5px}.rd-skill{padding:4px 6px;border-radius:999px;background:#EEF3F6;font-size:8px;font-weight:800}.rd-muted{color:#8A97A4}
-.resume-design.template-pure-ats .resume-header{border-bottom:1px solid #172333}.resume-design.template-pure-ats .rd-title{color:#172333;border-bottom:1px solid #172333;padding-bottom:3px}.resume-design.template-pure-ats .rd-skill{background:transparent;border-radius:0;padding:0 8px 0 0}
-.resume-design.template-simple-ats .resume-header{border:0}.resume-design.template-simple-ats .rd-title{color:#172333;border-bottom:1px solid #BFC8D0;padding-bottom:3px}
-.resume-design.template-classic .rd-name{text-align:center;font-weight:700}.resume-design.template-classic .rd-contact{text-align:center}.resume-design.template-classic .resume-header{border-bottom:1px solid #172333}.resume-design.template-classic .rd-title{color:#172333}
-.resume-design.template-traditional .resume-header{text-align:center;border:0}.resume-design.template-traditional .rd-title{color:#172333;background:#E8E8E8;text-align:center;padding:4px;letter-spacing:1.3px}
-.resume-design.template-modern .rd-name{color:var(--resume-accent)}.resume-design.template-modern .resume-header{border-bottom:1px solid var(--resume-accent)}.resume-design.template-modern .rd-title{font-size:10px}
-.resume-design.template-minimal .resume-header{border:0}.resume-design.template-minimal .rd-title{color:#172333;font-size:9px;border-bottom:1px solid #172333;padding-bottom:4px}.resume-design.template-minimal .rd-skill{background:transparent;padding:0 10px 0 0}
-.resume-design.template-executive .resume-header{margin:-28px -26px 18px;padding:25px 26px 20px;background:#172333;color:#fff;border:0}.resume-design.template-executive .rd-contact{color:#D6DEE5}.resume-design.template-executive .rd-title{border-bottom:1px solid color-mix(in srgb,var(--resume-accent) 35%,#DCE5EB);padding-bottom:4px}
-.resume-design.template-professional .resume-inner,.resume-design.template-two-column .resume-inner,.resume-design.template-creative .resume-inner{padding:0}.resume-design.template-professional .resume-header,.resume-design.template-two-column .resume-header,.resume-design.template-creative .resume-header{padding:24px 24px 15px;margin-left:31%;border:0}.rd-two{display:grid;grid-template-columns:31% 69%;min-height:450px}.rd-side{padding:20px 14px;background:var(--resume-accent);color:#fff}.rd-side .rd-title{color:#fff}.rd-side .rd-meta,.rd-side .rd-copy{color:rgba(255,255,255,.82)}.rd-side .rd-skill{display:block;background:rgba(255,255,255,.14);color:#fff;border-radius:4px;margin-top:4px}.rd-main{padding:0 24px 28px}.resume-design.template-two-column .rd-side{background:#F2F5F7;color:#172333;border-right:1px solid #DCE5EB}.resume-design.template-two-column .rd-side .rd-title{color:var(--resume-accent)}.resume-design.template-two-column .rd-side .rd-meta,.resume-design.template-two-column .rd-side .rd-copy{color:#66788A}.resume-design.template-two-column .rd-side .rd-skill{background:#E3EAF0;color:#172333}.resume-design.template-creative .rd-side{background:color-mix(in srgb,var(--resume-accent) 88%,#172333)}
-.resume-design.template-skills-first .rd-skills{display:grid;grid-template-columns:repeat(2,1fr)}.resume-design.template-skills-first .rd-skill{border-radius:4px;background:color-mix(in srgb,var(--resume-accent) 10%,white);border-left:3px solid var(--resume-accent)}
-.resume-design.template-combination .rd-title{border-left:4px solid var(--resume-accent);padding-left:7px}.resume-design.template-technical .resume-header{border-bottom:1px solid #BFCAD4}.resume-design.template-technical .rd-skills{display:grid;grid-template-columns:repeat(2,1fr)}.resume-design.template-technical .rd-skill{border-radius:3px;background:#F0F4F7}.resume-design.template-student .rd-title{color:#172333;border-bottom:2px solid var(--resume-accent);padding-bottom:3px}.resume-design.template-compact .resume-inner{padding:20px 22px 24px}.resume-design.template-compact .rd-section{margin-top:10px}.resume-design.template-compact .rd-item{margin-top:5px}.resume-design.template-compact .rd-name{font-size:22px}
-@media(max-width:420px){.template-grid{gap:9px}.template-mini{height:126px}.resume-design{min-height:460px}.resume-inner{padding:22px 19px 27px}.resume-design.template-executive .resume-header{margin:-22px -19px 15px;padding:20px 19px 17px}.resume-design.template-professional .resume-header,.resume-design.template-two-column .resume-header,.resume-design.template-creative .resume-header{padding:20px 17px 12px;margin-left:34%}.rd-two{grid-template-columns:34% 66%}.rd-main{padding:0 17px 22px}.rd-side{padding:17px 10px}}
-</style>
+<script src="app-candidate-theme.js"></script>
+<link rel="stylesheet" href="app-candidate-theme.css">
 </head>
 <body>
-<header class="header">
-  <button class="back" id="backBtn" type="button" aria-label="Edit resume">←</button>
-  <div class="logo">Alygnn<span>.</span></div>
-  <div></div>
-</header>
+<div class="app">
+  <header class="topbar">
+    <button class="back" type="button" onclick="goBack()">← Back</button>
+    <div class="logo">Alygnn<span>.</span></div>
+    <div class="header-spacer"></div>
+  </header>
 
-<main class="page">
-  <div class="step" id="setupStep">Candidate setup · Step 2 of 3</div>
-  <div class="progress" id="setupProgress"><div></div></div>
-  <h1 id="pageTitle">Review your resume.</h1>
-  <p class="sub" id="pageSub">Make sure everything looks right. Your resume is what Alygnn will connect to your applications.</p>
-
-  <div class="loading" id="loading">
-    <div><div class="spinner"></div><div>Loading your resume…</div></div>
-  </div>
-
-  <div id="content" hidden>
-    <div class="status">✓ Resume saved to your Alygnn profile</div>
-
-    <section class="preview-shell">
-      <div class="preview-head">
-        <div class="preview-title">Resume preview</div>
-        <div class="preview-badge" id="sourceBadge">Ready</div>
+  <div class="stage">
+    <div class="stage-row">
+      <div class="stage-item"><span class="stage-dot done">✓</span><span>Resume</span></div>
+      <span class="stage-line"></span>
+      <div class="stage-item"><span class="stage-dot active">2</span><span>Preferences</span></div>
+      <span class="stage-line"></span>
+      <div class="stage-item"><span class="stage-dot">3</span><span>Matches</span></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span>Preferences filled</span>
+        <span id="progressPct">0%</span>
       </div>
-      <div id="previewBody"></div>
-    </section>
-    <div class="error" id="message" hidden></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
   </div>
-</main>
 
-<footer class="footer" id="footer" hidden>
-  <div class="footer-inner">
-    <button class="secondary" id="editBtn" type="button">Edit Resume</button>
-    <button class="primary" id="continueBtn" type="button">Continue to Preferences</button>
-  </div>
-</footer>
+  <main>
+    <section class="intro">
+      <div class="eyebrow">Job preferences</div>
+      <h1>Set your criteria</h1>
+      <p>Tell Alygnn what matters to you. We’ll use these preferences to narrow your job matches.</p>
+    </section>
+
+    <section class="section" id="roleSection">
+      <div class="section-head">
+        <div class="section-num">01 — What you're looking for</div>
+        <div class="section-title">What job are you searching for?</div>
+        <div class="section-copy">Optional. Type 3 letters to see recognized job titles.</div>
+      </div>
+      <div class="card">
+        <div class="field">
+          <label class="label" for="roleInput">Job title</label>
+          <input id="roleInput" class="input" placeholder="e.g. Mar, Dat, Nur" autocomplete="off" autocorrect="off" spellcheck="false">
+          <div id="roleSuggestions" class="suggestions"></div>
+          <div id="roleError" class="field-error">Choose a recognized job title from the suggestions.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="salarySection">
+      <div class="section-head">
+        <div class="section-num">02 — Compensation</div>
+        <div class="section-title">Compensation preference</div>
+        <div class="section-copy" id="compensationCopy">Choose how you want to be paid, then set your preferred range.</div>
+      </div>
+
+      <div class="card salary-card">
+        <div class="comp-type-wrap">
+          <div class="comp-type-label">How do you want to be paid?</div>
+
+          <div class="comp-type-options" id="compTypeOptions">
+            <button class="comp-type-btn active" type="button" data-type="yearly">Yearly salary</button>
+            <button class="comp-type-btn" type="button" data-type="hourly">Hourly</button>
+            <button class="comp-type-btn" type="button" data-type="monthly">Monthly</button>
+          </div>
+        </div>
+
+        <div class="salary-caption">I'm looking for</div>
+        <div class="salary-display">
+          <span id="salaryMinDisplay">$40,000</span>
+          <span>—</span>
+          <span id="salaryMaxDisplay">$80,000</span>
+        </div>
+        <div class="compensation-period" id="compensationPeriod">per year</div>
+
+        <div class="range-wrap">
+          <div class="range-bg"></div>
+          <div class="range-fill" id="rangeFill"></div>
+
+          <div class="salary-handle salary-handle-min" id="salaryMinHandle" aria-hidden="true"></div>
+          <div class="salary-handle salary-handle-max" id="salaryMaxHandle" aria-hidden="true"></div>
+
+          <div class="range-inputs">
+            <input type="range" id="salaryMin" min="10000" max="300000" step="5000" value="40000" aria-label="Minimum compensation">
+            <input type="range" id="salaryMax" min="10000" max="300000" step="5000" value="80000" aria-label="Maximum compensation">
+          </div>
+        </div>
+
+        <div class="range-labels">
+          <span id="rangeFloorLabel">$10k</span>
+          <span id="rangeCeilingLabel">$300k+</span>
+        </div>
+
+        <div class="quick-chips" id="salaryQuickChips"></div>
+      </div>
+    </section>
+
+    <section class="section" id="locationSection">
+      <div class="section-head">
+        <div class="section-num">03 — Location</div>
+        <div class="section-title">Where do you want to work?</div>
+        <div class="section-copy">Type 3 letters to search. Small cities work too — use City, ST.</div>
+      </div>
+      <div class="card">
+        <div class="field">
+          <label class="label" for="locationInput">City / location</label>
+          <input id="locationInput" class="input" placeholder="e.g. Ral, Cha, Rem" autocomplete="off" autocorrect="off" spellcheck="false">
+          <div id="locationSuggestions" class="suggestions"></div>
+          <div id="locationError" class="field-error">Enter or choose a valid City, ST location.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="workStyleSection">
+      <div class="section-head">
+        <div class="section-num">04 — Work style</div>
+        <div class="section-title">How do you want to work?</div>
+      </div>
+      <div class="choice-grid" id="workStyleOptions">
+        <button class="choice active" type="button" data-value="Remote">
+          <div class="choice-icon">⌂</div>
+          <div class="choice-name">Remote</div>
+          <div class="choice-sub">Work from anywhere</div>
+        </button>
+        <button class="choice" type="button" data-value="Hybrid">
+          <div class="choice-icon">↔</div>
+          <div class="choice-name">Hybrid</div>
+          <div class="choice-sub">Office + home</div>
+        </button>
+        <button class="choice" type="button" data-value="On-site">
+          <div class="choice-icon">▦</div>
+          <div class="choice-name">On-site</div>
+          <div class="choice-sub">At the workplace</div>
+        </button>
+      </div>
+    </section>
+
+    <section class="section" id="benefitsSection">
+      <div class="section-head">
+        <div class="section-num">05 — Benefits</div>
+        <div class="section-title">Ideal benefits</div>
+        <div class="section-copy">Optional. Select only the benefits that matter to you.</div>
+      </div>
+      <div class="benefit-grid" id="benefitOptions">
+        <button class="benefit" type="button" data-value="Health Insurance"><span class="check">✓</span><span><span class="benefit-name">Health Insurance</span><span class="benefit-copy">Medical, dental, vision</span></span></button>
+        <button class="benefit" type="button" data-value="Competitive Pay + Bonuses"><span class="check">✓</span><span><span class="benefit-name">Competitive Pay + Bonuses</span><span class="benefit-copy">Bonus pay, commission, incentives</span></span></button>
+        <button class="benefit" type="button" data-value="Paid Time Off"><span class="check">✓</span><span><span class="benefit-name">Paid Time Off</span><span class="benefit-copy">Vacation, sick days, holidays</span></span></button>
+        <button class="benefit" type="button" data-value="Flexible Schedule / Remote Work"><span class="check">✓</span><span><span class="benefit-name">Flexible Schedule / Remote Work</span><span class="benefit-copy">Flexible hours or location</span></span></button>
+        <button class="benefit" type="button" data-value="Career Growth & Training"><span class="check">✓</span><span><span class="benefit-name">Career Growth & Training</span><span class="benefit-copy">Training, mentorship, promotions</span></span></button>
+        <button class="benefit" type="button" data-value="401(k) / Retirement Plan"><span class="check">✓</span><span><span class="benefit-name">401(k) / Retirement Plan</span><span class="benefit-copy">Retirement savings or match</span></span></button>
+        <button class="benefit" type="button" data-value="Education Assistance"><span class="check">✓</span><span><span class="benefit-name">Education Assistance</span><span class="benefit-copy">Tuition or certification support</span></span></button>
+        <button class="benefit" type="button" data-value="Wellness & Workplace Perks"><span class="check">✓</span><span><span class="benefit-name">Wellness & Workplace Perks</span><span class="benefit-copy">Gym, discounts, company perks</span></span></button>
+      </div>
+    </section>
+
+    <section class="section" id="jobTypeSection">
+      <div class="section-head">
+        <div class="section-num">06 — Job type</div>
+        <div class="section-title">What type of role?</div>
+        <div class="section-copy">Choose at least one.</div>
+      </div>
+      <div class="job-grid" id="jobTypeOptions">
+        <button class="job-type active" type="button" data-value="FULLTIME">Full-time</button>
+        <button class="job-type" type="button" data-value="PARTTIME">Part-time</button>
+        <button class="job-type" type="button" data-value="CONTRACTOR">Contract</button>
+        <button class="job-type" type="button" data-value="INTERN">Internship</button>
+      </div>
+    </section>
+
+    <section class="section" id="industrySection">
+      <div class="section-head">
+        <div class="section-num">07 — Industry</div>
+        <div class="section-title">Preferred industries</div>
+        <div class="section-copy">Choose common industries below, or search for another recognized industry.</div>
+      </div>
+      <div class="card">
+        <div class="chips" id="industryOptions">
+          <button class="ind-chip" type="button" data-value="Technology">Technology</button>
+          <button class="ind-chip" type="button" data-value="Healthcare">Healthcare</button>
+          <button class="ind-chip" type="button" data-value="Finance">Finance</button>
+          <button class="ind-chip" type="button" data-value="Education">Education</button>
+          <button class="ind-chip" type="button" data-value="Government">Government</button>
+          <button class="ind-chip" type="button" data-value="Retail">Retail</button>
+          <button class="ind-chip" type="button" data-value="Hospitality">Hospitality</button>
+          <button class="ind-chip" type="button" data-value="Real Estate">Real Estate</button>
+          <button class="ind-chip" type="button" data-value="Construction">Construction</button>
+          <button class="ind-chip" type="button" data-value="Manufacturing">Manufacturing</button>
+          <button class="ind-chip" type="button" data-value="Transportation & Logistics">Transportation & Logistics</button>
+          <button class="ind-chip" type="button" data-value="Marketing">Marketing</button>
+        </div>
+
+        <div class="industry-search">
+          <p class="industry-hint">Don't see your industry? Type 3 letters to search. Only recognized industries can be added.</p>
+          <div class="field">
+            <input id="industryInput" class="input" placeholder="e.g. Tel, Leg, Bio" autocomplete="off" autocorrect="off" spellcheck="false">
+            <div id="industrySuggestions" class="suggestions"></div>
+            <div id="industryError" class="field-error">Choose a recognized industry from the suggestions.</div>
+          </div>
+          <div class="selected-extra" id="extraIndustries"></div>
+        </div>
+      </div>
+    </section>
+
+    <div id="message" class="message"></div>
+  </main>
+</div>
+
+<div class="bottom-save">
+  <button id="saveBtn" class="save-btn" type="button">Save Preferences & Start Matching</button>
+</div>
 
 <script>
-const sb=supabase.createClient(
-  'https://auth.alygnn.com',
-  'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
-  {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
+const SUPABASE_URL='https://auth.alygnn.com';
+const SUPABASE_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+});
+
+let currentSession=null;
+let profile=null;
+let onboardingMode=true;
+let selectedLocation='';
+let locationStateHint='';
+let selectedRole='';
+const EDIT_MODE=new URLSearchParams(window.location.search).get('edit')==='1';
+
+const COMPENSATION_CONFIG={
+  yearly:{
+    label:'Yearly salary',
+    periodLabel:'per year',
+    min:10000,
+    max:300000,
+    step:5000,
+    defaultMin:40000,
+    defaultMax:80000,
+    floorLabel:'$10k',
+    ceilingLabel:'$300k+',
+    chips:[
+      [10000,40000],
+      [40000,80000],
+      [60000,120000],
+      [80000,150000],
+      [100000,200000],
+      [150000,300000]
+    ]
+  },
+  hourly:{
+    label:'Hourly',
+    periodLabel:'per hour',
+    min:7.25,
+    max:150,
+    step:0.25,
+    defaultMin:15,
+    defaultMax:30,
+    floorLabel:'$7.25/hr',
+    ceilingLabel:'$150+/hr',
+    chips:[
+      [7.25,15],
+      [15,25],
+      [20,30],
+      [25,40],
+      [30,50],
+      [50,75],
+      [75,150]
+    ]
+  },
+  monthly:{
+    label:'Monthly',
+    periodLabel:'per month',
+    min:1000,
+    max:25000,
+    step:500,
+    defaultMin:3000,
+    defaultMax:6000,
+    floorLabel:'$1k/mo',
+    ceilingLabel:'$25k+/mo',
+    chips:[
+      [1000,3000],
+      [3000,5000],
+      [4000,7000],
+      [5000,8000],
+      [8000,12000],
+      [12000,18000],
+      [18000,25000]
+    ]
+  }
+};
+
+let compensationType='yearly';
+
+const JOB_TITLES=[
+  'Account Executive','Account Manager','Accountant','Administrative Assistant',
+  'Analyst','Assistant Manager','Business Analyst','Business Development Manager',
+  'Business Development Representative','Case Manager','Client Success Manager',
+  'Communications Specialist','Construction Manager','Content Coordinator',
+  'Customer Experience Manager','Customer Service Representative','Customer Success Manager',
+  'Data Analyst','Data Engineer','Data Scientist','Delivery Driver','Digital Marketing Specialist',
+  'Director of Operations','Electrical Engineer','Executive Assistant','Financial Advisor',
+  'Financial Analyst','Graphic Designer','Human Resources Coordinator','Human Resources Manager',
+  'IT Support Specialist','Legal Assistant','Logistics Coordinator','Marketing Coordinator',
+  'Marketing Manager','Mechanical Engineer','Medical Assistant','Nurse','Office Administrator',
+  'Operations Coordinator','Operations Manager','Paralegal','Project Coordinator','Project Manager',
+  'Property Manager','Recruiter','Recruiting Coordinator','Retail Associate','Sales Associate',
+  'Sales Manager','Sales Representative','Security Officer','Social Media Coordinator',
+  'Software Engineer','Store Manager','Teacher','Technical Support Specialist',
+  'Warehouse Associate','Warehouse Manager','Web Developer'
+];
+
+const INDUSTRIES=[
+  'Accounting','Advertising','Aerospace & Defense','Agriculture','Architecture & Engineering',
+  'Automotive','Banking','Beauty & Wellness','Biotechnology','Business Services','Clean Energy',
+  'Communications','Construction','Consumer Goods','Consulting','Cybersecurity','E-commerce',
+  'Education','Energy & Utilities','Entertainment','Environmental Services','Finance',
+  'Food & Beverage','Government','Healthcare','Hospitality','Human Resources','Insurance',
+  'Legal Services','Manufacturing','Marketing','Media','Nonprofit','Pharmaceuticals',
+  'Property Management','Public Safety','Real Estate','Retail','Security','Sports & Fitness',
+  'Staffing & Recruiting','Technology','Telecommunications','Transportation & Logistics',
+  'Travel & Tourism','Warehousing & Distribution'
+];
+
+const INDUSTRY_ALIASES={
+  tech:'Technology',
+  it:'Technology',
+  software:'Technology',
+  medical:'Healthcare',
+  health:'Healthcare',
+  telecom:'Telecommunications',
+  legal:'Legal Services',
+  law:'Legal Services',
+  pharma:'Pharmaceuticals',
+  biotech:'Biotechnology',
+  recruiting:'Staffing & Recruiting',
+  staffing:'Staffing & Recruiting',
+  logistics:'Transportation & Logistics',
+  transportation:'Transportation & Logistics',
+  warehouse:'Warehousing & Distribution',
+  ecommerce:'E-commerce',
+  'e commerce':'E-commerce',
+  'non profit':'Nonprofit'
+};
+
+const CITIES=[
+  'New York, NY','Los Angeles, CA','Chicago, IL','Houston, TX','Phoenix, AZ',
+  'Philadelphia, PA','San Antonio, TX','San Diego, CA','Dallas, TX','Austin, TX',
+  'Jacksonville, FL','Fort Worth, TX','San Jose, CA','Columbus, OH','Charlotte, NC',
+  'Raleigh, NC','Durham, NC','Greensboro, NC','Winston-Salem, NC','Wilmington, NC',
+  'Fayetteville, NC','Cary, NC','High Point, NC','Asheville, NC','Concord, NC',
+  'San Francisco, CA','Indianapolis, IN','Seattle, WA','Denver, CO','Washington, DC',
+  'Boston, MA','Nashville, TN','Detroit, MI','Portland, OR','Memphis, TN',
+  'Oklahoma City, OK','Las Vegas, NV','Louisville, KY','Baltimore, MD','Milwaukee, WI',
+  'Albuquerque, NM','Tucson, AZ','Fresno, CA','Sacramento, CA','Kansas City, MO',
+  'Mesa, AZ','Atlanta, GA','Omaha, NE','Colorado Springs, CO','Miami, FL','Tampa, FL',
+  'Orlando, FL','Virginia Beach, VA','Long Beach, CA','Oakland, CA','Minneapolis, MN',
+  'Tulsa, OK','Arlington, TX','New Orleans, LA','Wichita, KS','Cleveland, OH',
+  'Bakersfield, CA','Aurora, CO','Anaheim, CA','Honolulu, HI','Riverside, CA',
+  'Lexington, KY','St. Paul, MN','St. Louis, MO','Cincinnati, OH','Pittsburgh, PA',
+  'Greenville, SC','Columbia, SC','Charleston, SC','Richmond, VA','Norfolk, VA',
+  'Boise, ID','Spokane, WA','Tacoma, WA','Salt Lake City, UT','Albany, NY',
+  'Buffalo, NY','Rochester, NY','Syracuse, NY','Hartford, CT','Providence, RI',
+  'Jersey City, NJ','Newark, NJ','Knoxville, TN','Chattanooga, TN','Little Rock, AR',
+  'Des Moines, IA','Madison, WI','Fort Lauderdale, FL','St. Petersburg, FL',
+  'Tallahassee, FL','Savannah, GA','Myrtle Beach, SC',
+  'Aberdeen, NC','Ahoskie, NC','Albemarle, NC','Angier, NC','Apex, NC','Archdale, NC','Archer Lodge, NC','Asheboro, NC','Ayden, NC','Banner Elk, NC','Beaufort, NC','Belmont, NC','Benson, NC','Bermuda Run, NC','Bessemer City, NC','Black Mountain, NC','Blowing Rock, NC','Boone, NC','Brevard, NC','Burgaw, NC','Burlington, NC','Butner, NC','Calabash, NC','Cameron, NC','Canton, NC','Carrboro, NC','Chapel Hill, NC','Clayton, NC','Clemmons, NC','Clinton, NC','Cornelius, NC','Creedmoor, NC','Davidson, NC','Dunn, NC','Elizabeth City, NC','Elon, NC','Franklinton, NC','Fuquay-Varina, NC','Garner, NC','Gastonia, NC','Goldsboro, NC','Graham, NC','Havelock, NC','Henderson, NC','Hendersonville, NC','Hillsborough, NC','Holly Springs, NC','Hope Mills, NC','Huntersville, NC','Indian Trail, NC','Kannapolis, NC','Kernersville, NC','Kill Devil Hills, NC','Kings Mountain, NC','Kinston, NC','Knightdale, NC','Laurinburg, NC','Leland, NC','Lenoir, NC','Lexington, NC','Lillington, NC','Lincolnton, NC','Louisburg, NC','Lumberton, NC','Manteo, NC','Marion, NC','Matthews, NC','Mebane, NC','Mint Hill, NC','Monroe, NC','Mooresville, NC','Morehead City, NC','Morganton, NC','Morrisville, NC','Mount Airy, NC','New Bern, NC','Oxford, NC','Pinehurst, NC','Pittsboro, NC','Reidsville, NC','Roanoke Rapids, NC','Rockingham, NC','Rocky Mount, NC','Rolesville, NC','Roxboro, NC','Sanford, NC','Salisbury, NC','Selma, NC','Seven Springs, NC','Shelby, NC','Siler City, NC','Smithfield, NC','Southern Pines, NC','Spring Lake, NC','Statesville, NC','Tarboro, NC','Thomasville, NC','Wake Forest, NC','Washington, NC','Waynesville, NC','Wendell, NC','Wilson, NC','Youngsville, NC','Zebulon, NC',
+  'Remote - United States'
+];
+
+const STATE_NAMES={
+  AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',
+  CT:'Connecticut',DE:'Delaware',DC:'District of Columbia',FL:'Florida',GA:'Georgia',
+  HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',
+  LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',
+  MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',
+  NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',
+  OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',
+  SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',
+  WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming'
+};
+
+const STATE_CODES=new Set(Object.keys(STATE_NAMES));
+const STATE_NAME_TO_CODE=Object.fromEntries(
+  Object.entries(STATE_NAMES).map(([code,name])=>[name.toLowerCase(),code])
 );
 
-let user=null;
-let profile=null;
-let signedUrl='';
-const RESUME_TEMPLATES=[
-  {id:'prime-ats',name:'Prime ATS'},{id:'pure-ats',name:'Pure ATS'},{id:'simple-ats',name:'Simple ATS'},
-  {id:'classic',name:'Classic'},{id:'traditional',name:'Traditional'},{id:'modern',name:'Modern'},
-  {id:'minimal',name:'Minimal'},{id:'professional',name:'Professional'},{id:'executive',name:'Executive'},
-  {id:'two-column',name:'Two Column ATS'},{id:'skills-first',name:'Skills First'},{id:'combination',name:'Combination'},
-  {id:'technical',name:'Technical'},{id:'student',name:'Student / Entry'},{id:'creative',name:'Creative'},{id:'compact',name:'Compact'}
-];
-const $=id=>document.getElementById(id);
+function normalizeCustomLocation(value){
+  const raw=String(value||'').trim().replace(/\s+/g,' ');
+  if(!raw)return '';
 
-function parseObject(value){
-  if(!value)return {};
-  if(typeof value==='object'&&!Array.isArray(value))return value;
-  if(typeof value==='string'){
-    try{
-      const parsed=JSON.parse(value);
-      return parsed&&typeof parsed==='object'?parsed:{};
-    }catch(_){return {}}
+  if(/^remote(?:\s*-\s*united states)?$/i.test(raw)){
+    return 'Remote - United States';
   }
-  return {};
+
+  const match=raw.match(/^([A-Za-z][A-Za-z .'-]{1,58}),\s*([A-Za-z .]{2,24})$/);
+  if(!match)return '';
+
+  const city=match[1]
+    .trim()
+    .replace(/\s+/g,' ')
+    .replace(/\b\w/g,char=>char.toUpperCase());
+
+  const stateRaw=match[2].trim();
+  const code=
+    stateRaw.length===2 && STATE_CODES.has(stateRaw.toUpperCase())
+      ?stateRaw.toUpperCase()
+      :STATE_NAME_TO_CODE[stateRaw.toLowerCase()]||'';
+
+  if(!code)return '';
+
+  return `${city}, ${code}`;
 }
-function esc(value){
-  return String(value??'').replace(/[&<>"']/g,c=>({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
-  })[c]);
+
+
+function titleCaseLocationName(value){
+  return String(value||'')
+    .trim()
+    .replace(/\s+/g,' ')
+    .toLowerCase()
+    .replace(/\b[a-z]/g,char=>char.toUpperCase());
 }
-function showError(text){
-  $('message').textContent=text;
-  $('message').hidden=false;
+
+function extractStateHint(value){
+  const match=String(value||'')
+    .trim()
+    .match(/,\s*([A-Za-z]{2})$/);
+
+  if(!match)return '';
+
+  const code=match[1].toUpperCase();
+  return STATE_CODES.has(code)?code:'';
 }
-function hasResume(){
+
+function locationIsUsable(value){
   return Boolean(
-    profile?.resume_file_path||
-    profile?.resume_url||
-    profile?.resume_text||
-    Object.keys(parseObject(profile?.resume_data)).length
+    CITIES.some(item=>normalize(item)===normalize(value)) ||
+    normalizeCustomLocation(value)
   );
 }
-function currentSource(){
-  return String(profile?.resume_source||(
-    Object.keys(parseObject(profile?.resume_data)).length?'builder':'upload'
-  )).toLowerCase();
+
+function $(id){return document.getElementById(id)}
+function normalize(value){return String(value||'').trim().toLowerCase()}
+function showMessage(text,type='error'){
+  const el=$('message');
+  el.textContent=text;
+  el.className='message '+type;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
 }
-function templateName(id){return RESUME_TEMPLATES.find(t=>t.id===id)?.name||'Prime ATS'}
-function resumeParts(data){
-  const person=parseObject(data.personal);
-  const fullName=[person.first_name,person.last_name].filter(Boolean).join(' ').trim()||profile?.full_name||user?.email?.split('@')[0]||'Alygnn Candidate';
-  const contact=[[person.city,person.state].filter(Boolean).join(', '),person.email||user?.email,person.phone].filter(Boolean).join(' · ');
-  const experience=Array.isArray(data.experience)?data.experience:[];
-  const education=Array.isArray(data.education)?data.education:[];
-  const skills=Array.isArray(data.skills)?data.skills:[];
-  const experienceHtml=experience.length?experience.map(item=>{const role=[item.title||item.job_title,item.company].filter(Boolean).join(' · ');const dates=[item.start||item.start_date,item.end||item.end_date].filter(Boolean).join(' – ');const meta=[dates,item.location].filter(Boolean).join(' · ');const details=item.description||item.details||'';return `<div class="rd-item"><div class="rd-item-title">${esc(role||'Experience')}</div>${meta?`<div class="rd-meta">${esc(meta)}</div>`:''}${details?`<div class="rd-copy">${esc(details)}</div>`:''}</div>`;}).join(''):'<div class="rd-muted">No work experience added.</div>';
-  const educationHtml=education.length?education.map(item=>{const title=[item.degree,item.school||item.school_name||item.institution].filter(Boolean).join(' · ');const dates=[item.start||item.start_date,item.end||item.end_date||item.graduation_date].filter(Boolean).join(' – ');const meta=[dates,item.location].filter(Boolean).join(' · ');return `<div class="rd-item"><div class="rd-item-title">${esc(title||'Education')}</div>${meta?`<div class="rd-meta">${esc(meta)}</div>`:''}</div>`;}).join(''):'<div class="rd-muted">No education added.</div>';
-  const skillsHtml=skills.length?`<div class="rd-skills">${skills.map(skill=>`<span class="rd-skill">${esc(skill)}</span>`).join('')}</div>`:'<div class="rd-muted">No skills added.</div>';
-  return {fullName,contact,experience:experienceHtml,education:educationHtml,skills:skillsHtml};
+function clearMessage(){
+  const el=$('message');
+  el.textContent='';
+  el.className='message';
 }
-function rdSection(title,content){return `<section class="rd-section"><div class="rd-title">${title}</div>${content}</section>`}
-function buildResumeHtml(data){
-  const design=parseObject(data._alygnn_design);
-  const id=design.template||'prime-ats',accent=design.accent||'#35679A',font=design.font||'sans',density=design.density||'comfortable';
-  const parts=resumeParts(data);
-  const header=`<header class="resume-header"><div class="rd-name">${esc(parts.fullName)}</div><div class="rd-contact">${esc(parts.contact||'Contact information')}</div></header>`;
-  const exp=rdSection('Experience',parts.experience),edu=rdSection('Education',parts.education),sk=rdSection('Skills',parts.skills);
-  let body='';
-  if(id==='student')body=edu+sk+exp;else if(['skills-first','technical','combination'].includes(id))body=sk+exp+edu;else body=exp+edu+sk;
-  if(['professional','two-column','creative'].includes(id))return `<article class="resume-design template-${id} ${font==='serif'?'font-serif':''} ${density==='compact'?'compact':''}" style="--resume-accent:${esc(accent)}"><div class="resume-inner">${header}<div class="rd-two"><aside class="rd-side">${rdSection('Contact',`<div class="rd-copy">${esc(parts.contact||'Contact information')}</div>`)}${sk}</aside><main class="rd-main">${exp}${edu}</main></div></div></article>`;
-  return `<article class="resume-design template-${id} ${font==='serif'?'font-serif':''} ${density==='compact'?'compact':''}" style="--resume-accent:${esc(accent)}"><div class="resume-inner">${header}${body}</div></article>`;
-}
-function renderBuilderResume(){
-  const data=parseObject(profile?.resume_data);
-  $('previewBody').innerHTML=buildResumeHtml(data);
-  const design=parseObject(data._alygnn_design);
-  $('sourceBadge').textContent=templateName(design.template||'prime-ats');
-}
+function formatSalary(value,type=compensationType){
+  const n=Number(value)||0;
 
-
-async function renderPdfWithPdfJs(url){
-  const previewBody=$('previewBody');
-
-  previewBody.innerHTML=`
-    <div class="pdf-preview" id="pdfPreview">
-      <div class="pdf-preview-loading" id="pdfPreviewLoading">
-        <div>
-          <div class="spinner"></div>
-          <div>Rendering your resume…</div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  const container=$('pdfPreview');
-
-  try{
-    if(!window.pdfjsLib){
-      throw new Error('PDF preview library did not load.');
-    }
-
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc=
-      'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-
-    const loadingTask=window.pdfjsLib.getDocument({
-      url,
-      withCredentials:false
+  if(type==='hourly'){
+    const decimals=Number.isInteger(n)?0:2;
+    return '$'+n.toLocaleString('en-US',{
+      minimumFractionDigits:decimals,
+      maximumFractionDigits:2
     });
+  }
 
-    const pdf=await loadingTask.promise;
+  return '$'+n.toLocaleString('en-US');
+}
 
-    container.innerHTML='';
+function salaryChipLabel(minVal,maxVal){
+  const config=COMPENSATION_CONFIG[compensationType];
+  const maxText=maxVal>=config.max
+    ? formatSalary(maxVal)+'+'
+    : formatSalary(maxVal);
 
-    /*
-     * Deliberately render a little smaller than the available card width.
-     * This keeps the full Letter/A4 page visible on phones instead of making
-     * uploaded resumes feel zoomed or clipping the right edge.
-     */
-    const containerWidth=
-      container.getBoundingClientRect().width ||
-      container.clientWidth ||
-      520;
+  if(compensationType==='hourly'){
+    return `${formatSalary(minVal)}–${maxText}/hr`;
+  }
 
-    const maxWidth=Math.max(
-      240,
-      Math.min(
-        820,
-        (containerWidth - 40) * 0.92
-      )
+  if(compensationType==='monthly'){
+    const short=value=>{
+      const n=Number(value);
+      return n>=1000
+        ? '$'+((n/1000)%1===0?(n/1000).toFixed(0):(n/1000).toFixed(1))+'k'
+        : formatSalary(n);
+    };
+    const shortMax=maxVal>=config.max?short(maxVal)+'+':short(maxVal);
+    return `${short(minVal)}–${shortMax}/mo`;
+  }
+
+  const short=value=>{
+    const n=Number(value);
+    return n>=1000
+      ? '$'+((n/1000)%1===0?(n/1000).toFixed(0):(n/1000).toFixed(1))+'k'
+      : formatSalary(n);
+  };
+
+  const shortMax=maxVal>=config.max?short(maxVal)+'+':short(maxVal);
+  return `${short(minVal)}–${shortMax}`;
+}
+
+function renderSalaryQuickChips(activeMin=null,activeMax=null){
+  const container=$('salaryQuickChips');
+  const config=COMPENSATION_CONFIG[compensationType];
+
+  container.innerHTML=config.chips.map(([minVal,maxVal])=>{
+    const active=Number(minVal)===Number(activeMin) && Number(maxVal)===Number(activeMax);
+    return `<button class="quick-chip${active?' active':''}" type="button" data-min="${minVal}" data-max="${maxVal}">${salaryChipLabel(minVal,maxVal)}</button>`;
+  }).join('');
+
+  container.querySelectorAll('.quick-chip').forEach(chip=>{
+    chip.onclick=()=>{
+      $('salaryMin').value=chip.dataset.min;
+      $('salaryMax').value=chip.dataset.max;
+
+      container.querySelectorAll('.quick-chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+
+      updateSalary();
+    };
+  });
+}
+function parseLocation(value){
+  const raw=String(value||'').trim();
+  if(!raw)return {city:'',state:''};
+  if(raw==='Remote - United States')return {city:'Remote',state:''};
+  const parts=raw.split(',').map(v=>v.trim()).filter(Boolean);
+  const city=parts[0]||'';
+  const statePart=(parts[1]||'').toUpperCase();
+  return {city,state:STATE_NAMES[statePart]||parts[1]||''};
+}
+function closeSuggestions(id){
+  const box=$(id);
+  if(box){box.classList.remove('show');box.innerHTML=''}
+}
+function renderSuggestions(inputId,boxId,items,minChars,label,onSelect){
+  const input=$(inputId);
+  const box=$(boxId);
+  const q=normalize(input.value);
+
+  if(q.length<minChars){
+    closeSuggestions(boxId);
+    return;
+  }
+
+  const matches=items
+    .filter(item=>normalize(item).includes(q))
+    .sort((a,b)=>{
+      const aa=normalize(a),bb=normalize(b);
+      const as=aa.startsWith(q)?0:1;
+      const bs=bb.startsWith(q)?0:1;
+      return as-bs||aa.localeCompare(bb);
+    })
+    .slice(0,8);
+
+  if(!matches.length){
+    box.innerHTML='<div class="suggestion-empty">No recognized match found. Try a broader term.</div>';
+    box.classList.add('show');
+    return;
+  }
+
+  box.innerHTML=matches.map((item,index)=>`
+    <button type="button" class="suggestion" data-index="${index}">
+      ${item}<small>${label}</small>
+    </button>
+  `).join('');
+
+  box.querySelectorAll('.suggestion').forEach(button=>{
+    button.onclick=()=>{
+      onSelect(matches[Number(button.dataset.index)]);
+      closeSuggestions(boxId);
+      updateProgress();
+    };
+  });
+
+  box.classList.add('show');
+}
+
+/* Role — suggest after 3 characters. If used, it must be recognized. */
+$('roleInput').addEventListener('input',()=>{
+  selectedRole='';
+  $('roleError').classList.remove('show');
+  renderSuggestions('roleInput','roleSuggestions',JOB_TITLES,3,'Use this job title',title=>{
+    $('roleInput').value=title;
+    selectedRole=title;
+  });
+});
+
+/* Location — suggest after 3 characters.
+   Small towns are supported too. If a real City, ST is not in the local
+   suggestion list, the candidate can still select their properly formatted
+   location instead of being blocked by the old major-city-only list. */
+$('locationInput').addEventListener('input',()=>{
+  const previousLocation=selectedLocation || $('locationInput').dataset.lastLocation || '';
+
+  if(!locationStateHint){
+    locationStateHint=extractStateHint(previousLocation);
+  }
+
+  selectedLocation='';
+  $('locationError').classList.remove('show');
+
+  const input=$('locationInput');
+  const box=$('locationSuggestions');
+  const raw=input.value.trim();
+  const custom=normalizeCustomLocation(raw);
+
+  renderSuggestions(
+    'locationInput',
+    'locationSuggestions',
+    CITIES,
+    3,
+    'Use this location',
+    location=>{
+      input.value=location;
+      selectedLocation=location;
+      locationStateHint=extractStateHint(location) || locationStateHint;
+      input.dataset.lastLocation=location;
+    }
+  );
+
+  // If the user types only the town name and we know their current state,
+  // offer that smaller town even when it is not in the old major-city list.
+  const cityOnly=
+    raw.length>=3 &&
+    !raw.includes(',') &&
+    /^[A-Za-z][A-Za-z .'-]{1,58}$/.test(raw);
+
+  if(cityOnly && locationStateHint){
+    const inferred=
+      `${titleCaseLocationName(raw)}, ${locationStateHint}`;
+
+    const alreadyShown=CITIES.some(
+      item=>normalize(item)===normalize(inferred)
     );
 
-    // Render every page so the user can scroll through the entire resume.
-    for(let pageNumber=1;pageNumber<=pdf.numPages;pageNumber+=1){
-      const page=await pdf.getPage(pageNumber);
-      const baseViewport=page.getViewport({scale:1});
-      const cssScale=maxWidth/baseViewport.width;
+    if(!alreadyShown){
+      const empty=box.querySelector('.suggestion-empty');
+      if(empty)empty.remove();
 
-      // Render at a higher internal resolution for crisp text on phones.
-      const outputScale=Math.min(
-        window.devicePixelRatio || 1,
-        2
-      );
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='suggestion inferred-location-suggestion';
+      button.innerHTML=
+        `${inferred}<small>Use this city</small>`;
 
-      const viewport=page.getViewport({
-        scale:cssScale*outputScale
-      });
+      button.onclick=()=>{
+        input.value=inferred;
+        selectedLocation=inferred;
+        input.dataset.lastLocation=inferred;
+        closeSuggestions('locationSuggestions');
+        updateProgress();
+      };
 
-      const pageWrap=document.createElement('div');
-      pageWrap.className='pdf-page';
-
-      const canvas=document.createElement('canvas');
-      const context=canvas.getContext('2d',{
-        alpha:false
-      });
-
-      canvas.width=Math.floor(viewport.width);
-      canvas.height=Math.floor(viewport.height);
-      canvas.style.width='100%';
-      canvas.style.height='auto';
-
-      pageWrap.appendChild(canvas);
-      container.appendChild(pageWrap);
-
-      await page.render({
-        canvasContext:context,
-        viewport
-      }).promise;
+      box.prepend(button);
+      box.classList.add('show');
     }
+  }
 
-  }catch(error){
-    console.error('PDF preview error:',error);
+  if(custom && !CITIES.some(item=>normalize(item)===normalize(custom))){
+    const empty=box.querySelector('.suggestion-empty');
+    if(empty)empty.remove();
 
-    container.innerHTML=`
-      <div class="pdf-preview-error">
-        <div>
-          <strong>Preview unavailable</strong>
-          <div>
-            Your resume is saved, but this device could not render the PDF preview.
-          </div>
-          <button
-            class="pdf-open-fallback"
-            id="pdfOpenFallback"
-            type="button"
-          >
-            Open Resume
-          </button>
-        </div>
-      </div>
-    `;
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='suggestion custom-location-suggestion';
+    button.innerHTML=
+      `${custom}<small>Use this city</small>`;
 
-    $('pdfOpenFallback').onclick=()=>{
-      window.location.href=url;
+    button.onclick=()=>{
+      input.value=custom;
+      selectedLocation=custom;
+      locationStateHint=extractStateHint(custom) || locationStateHint;
+      input.dataset.lastLocation=custom;
+      closeSuggestions('locationSuggestions');
+      updateProgress();
     };
-  }
-}
 
-async function renderUploadedResume(){
-  const path=profile?.resume_file_path;
-  if(!path){
-    showError('The uploaded resume file could not be found.');
-    return;
+    box.prepend(button);
+    box.classList.add('show');
   }
 
-  const {data,error}=await sb.storage.from('resumes').createSignedUrl(path,900);
-  if(error||!data?.signedUrl){
-    showError(error?.message||'Unable to open your uploaded resume.');
-    return;
+  updateProgress();
+});
+
+$('locationInput').addEventListener('blur',()=>{
+  const normalized=normalizeCustomLocation($('locationInput').value);
+  if(normalized){
+    $('locationInput').value=normalized;
+    selectedLocation=normalized;
+    $('locationError').classList.remove('show');
+    updateProgress();
   }
+});
 
-  signedUrl=data.signedUrl;
-  const ext=String(path).split('.').pop().toLowerCase();
-  const fileLabel=path.split('/').pop();
+/* Compensation */
+function setCompensationType(type,preserveValues=false){
+  compensationType=COMPENSATION_CONFIG[type]?type:'yearly';
+  const config=COMPENSATION_CONFIG[compensationType];
+  const minInput=$('salaryMin');
+  const maxInput=$('salaryMax');
 
-  if(ext==='pdf'){
-    await renderPdfWithPdfJs(signedUrl);
+  document.querySelectorAll('#compTypeOptions .comp-type-btn').forEach(button=>{
+    button.classList.toggle('active',button.dataset.type===compensationType);
+  });
+
+  minInput.min=config.min;
+  minInput.max=config.max;
+  minInput.step=config.step;
+
+  maxInput.min=config.min;
+  maxInput.max=config.max;
+  maxInput.step=config.step;
+
+  if(!preserveValues){
+    minInput.value=config.defaultMin;
+    maxInput.value=config.defaultMax;
   }else{
-    $('previewBody').innerHTML=`
-      <div class="file-fallback">
-        <div class="file-icon">▤</div>
-        <div class="file-name">${esc(fileLabel)}</div>
-        <div class="file-copy">Your resume is saved. Word files may open in the device viewer instead of displaying directly inside Alygnn.</div>
-        <button class="open-file" id="openFileBtn" type="button">Open Resume</button>
-      </div>
-    `;
-    $('openFileBtn').onclick=()=>window.location.href=signedUrl;
+    let min=Number(minInput.value);
+    let max=Number(maxInput.value);
+
+    if(!Number.isFinite(min))min=config.defaultMin;
+    if(!Number.isFinite(max))max=config.defaultMax;
+
+    min=Math.max(config.min,Math.min(config.max-config.step,min));
+    max=Math.max(min+config.step,Math.min(config.max,max));
+
+    minInput.value=min;
+    maxInput.value=max;
   }
-}
 
+  $('compensationPeriod').textContent=config.periodLabel;
+  $('rangeFloorLabel').textContent=config.floorLabel;
+  $('rangeCeilingLabel').textContent=config.ceilingLabel;
 
-function preferencesAreComplete(){
-  const preferences=parseObject(profile?.preferences);
-  const meta=parseObject(user?.user_metadata);
-  const jobTypes=Array.isArray(preferences.jobTypes)
-    ?preferences.jobTypes
-    :[];
-
-  return Boolean(
-    preferences.preferences_complete ||
-    profile?.preferences_complete ||
-    meta.preferences_complete ||
-    (
-      String(preferences.query||'').trim() &&
-      String(
-        preferences.location ||
-        preferences.city ||
-        preferences.state ||
-        preferences.country ||
-        ''
-      ).trim() &&
-      (
-        jobTypes.length ||
-        String(preferences.jobType||'').trim()
-      )
-    )
+  updateSalary();
+  renderSalaryQuickChips(
+    Number(minInput.value),
+    Number(maxInput.value)
   );
 }
 
-function configureResumeFlow(){
-  const complete=preferencesAreComplete();
+function updateSalary(){
+  const config=COMPENSATION_CONFIG[compensationType];
+  const minInput=$('salaryMin');
+  const maxInput=$('salaryMax');
 
-  if(complete){
-    $('setupStep').hidden=true;
-    $('setupProgress').hidden=true;
-    $('pageTitle').textContent='Your resume.';
-    $('pageSub').textContent='This is the resume connected to your Alygnn profile and applications.';
-    $('continueBtn').textContent='Go to Preferences';
-    $('backBtn').setAttribute('aria-label','Back to dashboard');
+  let min=Number(minInput.value);
+  let max=Number(maxInput.value);
+
+  if(!Number.isFinite(min))min=config.defaultMin;
+  if(!Number.isFinite(max))max=config.defaultMax;
+
+  if(min>=max-config.step){
+    min=Math.max(config.min,max-config.step);
+    minInput.value=min;
+  }
+
+  if(max<=min+config.step){
+    max=Math.min(config.max,min+config.step);
+    maxInput.value=max;
+  }
+
+  $('salaryMinDisplay').textContent=formatSalary(min);
+  $('salaryMaxDisplay').textContent=formatSalary(max);
+
+  const span=config.max-config.min;
+  const left=((min-config.min)/span)*100;
+  const right=((max-config.min)/span)*100;
+
+  $('rangeFill').style.left=left+'%';
+  $('rangeFill').style.width=Math.max(0,right-left)+'%';
+
+  $('salaryMinHandle').style.left=left+'%';
+  $('salaryMaxHandle').style.left=right+'%';
+
+  updateProgress();
+}
+
+document.querySelectorAll('#compTypeOptions .comp-type-btn').forEach(button=>{
+  button.onclick=()=>{
+    setCompensationType(button.dataset.type,false);
+  };
+});
+
+$('salaryMin').addEventListener('input',()=>{
+  $('salaryQuickChips').querySelectorAll('.quick-chip').forEach(c=>c.classList.remove('active'));
+  updateSalary();
+});
+
+$('salaryMax').addEventListener('input',()=>{
+  $('salaryQuickChips').querySelectorAll('.quick-chip').forEach(c=>c.classList.remove('active'));
+  updateSalary();
+});
+
+
+/* Single-select work style */
+document.querySelectorAll('#workStyleOptions .choice').forEach(button=>{
+  button.onclick=()=>{
+    document.querySelectorAll('#workStyleOptions .choice').forEach(c=>c.classList.remove('active'));
+    button.classList.add('active');
+    updateProgress();
+  };
+});
+
+/* Multi-select benefits */
+document.querySelectorAll('#benefitOptions .benefit').forEach(button=>{
+  button.onclick=()=>{
+    button.classList.toggle('active');
+    updateProgress();
+  };
+});
+
+/* Multi-select job types */
+document.querySelectorAll('#jobTypeOptions .job-type').forEach(button=>{
+  button.onclick=()=>{
+    button.classList.toggle('active');
+    updateProgress();
+  };
+});
+
+/* Industry allow-list */
+function canonicalIndustry(value){
+  const raw=String(value||'').trim().replace(/\s+/g,' ');
+  if(!raw)return '';
+  const exact=INDUSTRIES.find(item=>normalize(item)===normalize(raw));
+  if(exact)return exact;
+  return INDUSTRY_ALIASES[normalize(raw)]||'';
+}
+function allSelectedIndustries(){
+  return [...document.querySelectorAll('#industryOptions .ind-chip.active')]
+    .map(button=>button.dataset.value)
+    .concat([...document.querySelectorAll('#extraIndustries .extra-chip')].map(button=>button.dataset.value));
+}
+function addExtraIndustry(value){
+  const canonical=canonicalIndustry(value);
+  if(!canonical)return false;
+
+  const builtIn=[...document.querySelectorAll('#industryOptions .ind-chip')]
+    .find(button=>normalize(button.dataset.value)===normalize(canonical));
+
+  if(builtIn){
+    builtIn.classList.add('active');
+    return true;
+  }
+
+  const exists=[...document.querySelectorAll('#extraIndustries .extra-chip')]
+    .some(button=>normalize(button.dataset.value)===normalize(canonical));
+  if(exists)return true;
+
+  const button=document.createElement('button');
+  button.type='button';
+  button.className='extra-chip';
+  button.dataset.value=canonical;
+  button.textContent=canonical+' ×';
+  button.onclick=()=>{
+    button.remove();
+    updateProgress();
+  };
+  $('extraIndustries').appendChild(button);
+  return true;
+}
+document.querySelectorAll('#industryOptions .ind-chip').forEach(button=>{
+  button.onclick=()=>{
+    button.classList.toggle('active');
+    updateProgress();
+  };
+});
+$('industryInput').addEventListener('input',()=>{
+  $('industryError').classList.remove('show');
+  const q=normalize($('industryInput').value);
+
+  if(q.length<3){
+    closeSuggestions('industrySuggestions');
     return;
   }
 
-  $('setupStep').hidden=false;
-  $('setupProgress').hidden=false;
-  $('pageTitle').textContent='Review your resume.';
-  $('pageSub').textContent='Make sure everything looks right. Your resume is what Alygnn will connect to your applications.';
-  $('continueBtn').textContent='Continue to Preferences';
-  $('backBtn').setAttribute('aria-label','Edit resume');
-}
+  const already=new Set(allSelectedIndustries().map(normalize));
+  const matches=INDUSTRIES
+    .filter(item=>normalize(item).includes(q)&&!already.has(normalize(item)))
+    .sort((a,b)=>{
+      const aa=normalize(a),bb=normalize(b);
+      const as=aa.startsWith(q)?0:1;
+      const bs=bb.startsWith(q)?0:1;
+      return as-bs||aa.localeCompare(bb);
+    })
+    .slice(0,8);
 
-function goBackFromResume(){
-  if(preferencesAreComplete()){
-    window.location.href='app-account.html';
+  const box=$('industrySuggestions');
+  if(!matches.length){
+    box.innerHTML='<div class="suggestion-empty">No recognized industry found. Try a broader term.</div>';
+    box.classList.add('show');
     return;
   }
 
-  editResume();
+  box.innerHTML=matches.map((item,index)=>`
+    <button type="button" class="suggestion" data-index="${index}">
+      ${item}<small>Add this industry</small>
+    </button>
+  `).join('');
+
+  box.querySelectorAll('.suggestion').forEach(button=>{
+    button.onclick=()=>{
+      addExtraIndustry(matches[Number(button.dataset.index)]);
+      $('industryInput').value='';
+      closeSuggestions('industrySuggestions');
+      updateProgress();
+    };
+  });
+
+  box.classList.add('show');
+});
+$('industryInput').addEventListener('keydown',event=>{
+  if(event.key==='Enter'){
+    event.preventDefault();
+    const canonical=canonicalIndustry($('industryInput').value);
+    if(!canonical){
+      $('industryError').classList.add('show');
+      return;
+    }
+    addExtraIndustry(canonical);
+    $('industryInput').value='';
+    closeSuggestions('industrySuggestions');
+    updateProgress();
+  }
+});
+
+document.addEventListener('click',event=>{
+  if(!event.target.closest('.field')){
+    closeSuggestions('roleSuggestions');
+    closeSuggestions('locationSuggestions');
+    closeSuggestions('industrySuggestions');
+  }
+});
+
+function selectedWorkStyle(){
+  return document.querySelector('#workStyleOptions .choice.active')?.dataset.value||'';
+}
+function selectedJobTypes(){
+  return [...document.querySelectorAll('#jobTypeOptions .job-type.active')].map(b=>b.dataset.value);
+}
+function selectedBenefits(){
+  return [...document.querySelectorAll('#benefitOptions .benefit.active')].map(b=>b.dataset.value);
 }
 
-function editResume(){
-  window.location.href=currentSource()==='builder'
-    ?'app-resume-builder.html'
-    :'app-align-upload.html';
+function updateProgress(){
+  const roleOkay=!$('roleInput').value.trim() || Boolean(selectedRole);
+  const locationOkay=Boolean(selectedLocation || normalizeCustomLocation($('locationInput').value));
+  const workOkay=Boolean(selectedWorkStyle());
+  const jobTypesOkay=selectedJobTypes().length>0;
+  const industriesOkay=allSelectedIndustries().length>0;
+  const salaryOkay=true;
+  const benefitsOkay=true;
+
+  const sections=[roleOkay,salaryOkay,locationOkay,workOkay,benefitsOkay,jobTypesOkay,industriesOkay];
+  const done=sections.filter(Boolean).length;
+  const pct=Math.round((done/sections.length)*100);
+
+  $('progressPct').textContent=pct+'%';
+  $('progressFill').style.width=pct+'%';
+}
+
+function validate(){
+  clearMessage();
+
+  const roleText=$('roleInput').value.trim();
+  if(roleText && !selectedRole){
+    const exact=JOB_TITLES.find(title=>normalize(title)===normalize(roleText));
+    if(exact){
+      selectedRole=exact;
+      $('roleInput').value=exact;
+    }else{
+      $('roleError').classList.add('show');
+      $('roleSection').scrollIntoView({behavior:'smooth',block:'start'});
+      return false;
+    }
+  }
+
+  const locationText=$('locationInput').value.trim();
+  if(!selectedLocation){
+    const exact=CITIES.find(location=>normalize(location)===normalize(locationText));
+    const custom=normalizeCustomLocation(locationText);
+
+    if(exact){
+      selectedLocation=exact;
+      $('locationInput').value=exact;
+    }else if(custom){
+      selectedLocation=custom;
+      $('locationInput').value=custom;
+    }else{
+      $('locationError').textContent='Enter a city and state, such as Garner, NC.';
+      $('locationError').classList.add('show');
+      $('locationSection').scrollIntoView({behavior:'smooth',block:'start'});
+      return false;
+    }
+  }
+
+  if(selectedJobTypes().length===0){
+    showMessage('Choose at least one job type.');
+    $('jobTypeSection').scrollIntoView({behavior:'smooth',block:'start'});
+    return false;
+  }
+
+  if(allSelectedIndustries().length===0){
+    showMessage('Choose at least one industry.');
+    $('industrySection').scrollIntoView({behavior:'smooth',block:'start'});
+    return false;
+  }
+
+  return true;
+}
+
+function collectPreferences(){
+  const location=selectedLocation||$('locationInput').value.trim();
+  const {city,state}=parseLocation(location);
+  const jobTypes=selectedJobTypes();
+
+  return{
+    query:selectedRole||'',
+    city,
+    state,
+    country:'United States',
+    location,
+    compensation_type:compensationType,
+    compensationType:compensationType,
+    pay_type:compensationType,
+    salary_min:Number($('salaryMin').value),
+    salary_max:Number($('salaryMax').value),
+    workStyle:selectedWorkStyle(),
+    jobType:jobTypes[0]||'',
+    jobTypes,
+    benefits:selectedBenefits(),
+    industries:allSelectedIndustries().map(canonicalIndustry).filter(Boolean),
+    preferences_complete:true
+  };
+}
+
+function prefill(saved){
+  if(!saved)return;
+
+  if(EDIT_MODE && saved.query){
+    const role=JOB_TITLES.find(item=>normalize(item)===normalize(saved.query));
+    if(role){
+      selectedRole=role;
+      $('roleInput').value=role;
+    }
+  }else{
+    selectedRole='';
+    $('roleInput').value='';
+  }
+
+  const location=saved.location || [saved.city,saved.state].filter(Boolean).join(', ');
+  if(location){
+    locationStateHint=extractStateHint(location) || locationStateHint;
+    $('locationInput').dataset.lastLocation=location;
+
+    const exact=CITIES.find(item=>normalize(item)===normalize(location));
+
+    if(exact){
+      selectedLocation=exact;
+      $('locationInput').value=exact;
+    }else if(saved.city || normalizeCustomLocation(location)){
+      // Preserve existing valid-looking saved data while the user edits it.
+      selectedLocation=location;
+      $('locationInput').value=location;
+    }
+  }
+
+  const savedCompensationType=
+    // Older profiles may still contain "commission"; because that option
+    // has been removed, the config check below will fall back to yearly.
+    saved.compensation_type ||
+    saved.compensationType ||
+    saved.pay_type ||
+    'yearly';
+
+  setCompensationType(
+    COMPENSATION_CONFIG[savedCompensationType] ? savedCompensationType : 'yearly',
+    false
+  );
+
+  const config=COMPENSATION_CONFIG[compensationType];
+
+  if(
+    !EDIT_MODE &&
+    compensationType==='yearly' &&
+    Number(saved.salary_min)===10000 &&
+    Number(saved.salary_max)===80000
+  ){
+    $('salaryMin').value=40000;
+    $('salaryMax').value=80000;
+  }else{
+    if(Number.isFinite(saved.salary_min)){
+      $('salaryMin').value=Math.max(
+        config.min,
+        Math.min(config.max-config.step,Number(saved.salary_min))
+      );
+    }
+
+    if(Number.isFinite(saved.salary_max)){
+      const currentMin=Number($('salaryMin').value);
+      $('salaryMax').value=Math.max(
+        currentMin+config.step,
+        Math.min(config.max,Number(saved.salary_max))
+      );
+    }
+  }
+
+  updateSalary();
+  renderSalaryQuickChips(
+    Number($('salaryMin').value),
+    Number($('salaryMax').value)
+  );
+
+  if(saved.workStyle){
+    document.querySelectorAll('#workStyleOptions .choice').forEach(button=>{
+      button.classList.toggle('active',button.dataset.value===saved.workStyle);
+    });
+  }
+
+  if(Array.isArray(saved.jobTypes)){
+    document.querySelectorAll('#jobTypeOptions .job-type').forEach(button=>{
+      button.classList.toggle('active',saved.jobTypes.includes(button.dataset.value));
+    });
+  }else if(saved.jobType){
+    document.querySelectorAll('#jobTypeOptions .job-type').forEach(button=>{
+      button.classList.toggle('active',button.dataset.value===saved.jobType);
+    });
+  }
+
+  if(Array.isArray(saved.benefits)){
+    document.querySelectorAll('#benefitOptions .benefit').forEach(button=>{
+      button.classList.toggle('active',saved.benefits.includes(button.dataset.value));
+    });
+  }
+
+  if(Array.isArray(saved.industries)){
+    document.querySelectorAll('#industryOptions .ind-chip').forEach(button=>button.classList.remove('active'));
+    $('extraIndustries').innerHTML='';
+
+    saved.industries
+      .map(canonicalIndustry)
+      .filter(Boolean)
+      .forEach(addExtraIndustry);
+  }
+
+  updateSalary();
+  updateProgress();
+}
+
+async function savePreferences(){
+  if(!validate())return;
+
+  const button=$('saveBtn');
+  const original=button.textContent;
+  button.disabled=true;
+  button.textContent='Saving…';
+
+  try{
+    if(!currentSession){
+      const {data,error}=await sb.auth.getSession();
+      if(error||!data.session)throw new Error('Your session expired. Please sign in again.');
+      currentSession=data.session;
+    }
+
+    const preferences=collectPreferences();
+    const user=currentSession.user;
+
+    const {error}=await sb.from('profiles').upsert({
+      id:user.id,
+      preferences,
+      updated_at:new Date().toISOString()
+    },{onConflict:'id'});
+
+    if(error)throw error;
+
+    showMessage('Preferences saved. Your job matching is ready.','success');
+
+    setTimeout(()=>{
+      window.location.href='app-swipe.html';
+    },450);
+  }catch(error){
+    console.error(error);
+    showMessage(error?.message||'Your preferences could not be saved.');
+    button.disabled=false;
+    button.textContent=original;
+  }
 }
 
 async function initialize(){
+  setCompensationType('yearly',false);
+
   const {data,error}=await sb.auth.getSession();
   if(error||!data.session){
     window.location.replace('app-login.html');
     return;
   }
 
-  user=data.session.user;
+  currentSession=data.session;
 
-  const {data:profileData,error:profileError}=await sb
+  const {data:loadedProfile,error:profileError}=await sb
     .from('profiles')
     .select('*')
-    .eq('id',user.id)
+    .eq('id',currentSession.user.id)
     .maybeSingle();
 
   if(profileError){
     console.error(profileError);
-    window.location.replace('app-home.html');
+    showMessage('We could not load your saved preferences, but you can still enter them again.');
     return;
   }
 
-  profile=profileData;
+  profile=loadedProfile||{};
 
-  configureResumeFlow();
+  const resumeData=
+    profile?.resume_data && typeof profile.resume_data==='object'
+      ?profile.resume_data
+      :{};
 
-  if(!hasResume()){
-    window.location.replace('app-align-upload.html');
+  const hasResume=Boolean(
+    profile?.resume_file_path ||
+    profile?.resume_url ||
+    profile?.resume_text ||
+    resumeData?.personal ||
+    (Array.isArray(resumeData?.experience)&&resumeData.experience.length) ||
+    (Array.isArray(resumeData?.skills)&&resumeData.skills.length)
+  );
+
+  if(!hasResume){
+    window.location.replace('app-account.html?setup=required');
     return;
   }
 
-  $('sourceBadge').textContent=currentSource()==='builder'?'Resume template':'Uploaded resume';
+  const saved=
+    profile?.preferences && typeof profile.preferences==='object'
+      ?profile.preferences
+      :{};
 
-  if(currentSource()==='builder'){
-    renderBuilderResume();
-  }else{
-    await renderUploadedResume();
+  onboardingMode=!Boolean(saved.preferences_complete);
+
+  const resumeOnboarding=
+    resumeData?._alygnn_onboarding && typeof resumeData._alygnn_onboarding==='object'
+      ?resumeData._alygnn_onboarding
+      :{};
+
+  if(onboardingMode && resumeOnboarding.preview_reviewed!==true){
+    window.location.replace('app-resume-preview.html');
+    return;
   }
 
-  $('loading').hidden=true;
-  $('content').hidden=false;
-  $('footer').hidden=false;
+  if(profile?.preferences)prefill(profile.preferences);
+
+  updateProgress();
 }
 
-async function continueToPreferences(){
-  if(preferencesAreComplete()){
-    window.location.href='app-preferences.html?edit=1';
-    return;
-  }
-
-  const button=$('continueBtn');
-  button.disabled=true;
-  button.textContent='Saving…';
-
-  try{
-    const resumeData=parseObject(profile?.resume_data);
-    const onboarding=parseObject(resumeData._alygnn_onboarding);
-
-    resumeData._alygnn_onboarding={
-      ...onboarding,
-      preview_reviewed:true,
-      preview_reviewed_at:new Date().toISOString()
-    };
-
-    const {error}=await sb
-      .from('profiles')
-      .update({
-        resume_data:resumeData,
-        updated_at:new Date().toISOString()
-      })
-      .eq('id',user.id);
-
-    if(error)throw error;
-
-    profile.resume_data=resumeData;
-    window.location.href='app-preferences.html';
-  }catch(error){
-    console.error(error);
-    showError(error?.message||'We could not save your resume review. Please try again.');
-    button.disabled=false;
-    button.textContent='Continue to Preferences';
-  }
+function goBack(){
+  window.location.href=onboardingMode?'app-resume-preview.html':'app-account.html';
 }
 
-$('backBtn').onclick=goBackFromResume;
-$('editBtn').onclick=editResume;
-$('continueBtn').onclick=continueToPreferences;
+$('saveBtn').addEventListener('click',savePreferences);
 
 initialize();
 </script>
