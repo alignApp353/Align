@@ -86,7 +86,12 @@
   .job-row:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
   .job-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .job-status.active { background: var(--mint); }
+  .job-status.pending { background: #E7B86D; }
   .job-status.paused { background: var(--rose); }
+  .job-status-badge { display: inline-flex; align-items: center; margin-left: 8px; padding: 2px 8px; border-radius: 100px; font-size: 10px; font-weight: 500; vertical-align: middle; }
+  .job-status-badge.active { color: #2d8a57; background: var(--mint-light); }
+  .job-status-badge.pending { color: #7a5a1a; background: rgba(231,184,109,0.14); }
+  .job-status-badge.paused { color: #a05858; background: rgba(215,154,154,0.12); }
   .job-info { flex: 1; }
   .job-title-text { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
   .job-meta { font-size: 12px; color: var(--text-muted); }
@@ -350,7 +355,7 @@
         <div class="page-sub">Manage your job listings</div>
       </div>
       <div class="section-header">
-        <div class="section-title">Active listings</div>
+        <div class="section-title">Job listings</div>
         <button class="btn-primary" id="post-new-job-btn" onclick="openPostJob()">+ Post new job</button>
       </div>
       <input type="text" class="form-input" id="jobs-search-input" placeholder="Search your posted jobs by title, location, or type…" autocomplete="off" oninput="renderJobs()" style="margin-bottom: 16px;">
@@ -390,7 +395,7 @@
         <div class="page-sub">Fill in the details and start finding candidates</div>
       </div>
       <div class="verification-lock" id="verification-lock" style="display:none;">
-        Your business must be approved by Alygnn before you can post jobs.
+        You can create a job now. It will stay pending and hidden from candidates until your business is approved.
       </div>
 
       <div class="wizard-wrap">
@@ -1155,6 +1160,7 @@
     renderSelectedChips('benefit');
 
     updateVerificationUI();
+    await activatePendingJobsIfApproved();
     await loadJobs();
     await loadBillingEntitlement();
     updatePostingAccessUI();
@@ -1237,7 +1243,12 @@
   }
 
   function activeJobCount() {
-    return jobs.filter(job => String(job.status || 'active').toLowerCase() === 'active').length;
+    // Pending jobs reserve a posting slot too, so an unverified paid employer
+    // cannot queue unlimited listings while waiting for approval.
+    return jobs.filter(job => {
+      const status = String(job.status || 'active').toLowerCase();
+      return status === 'active' || status === 'pending';
+    }).length;
   }
 
   function paidJobLimit() {
@@ -1296,12 +1307,8 @@
     const sidebarButton = document.getElementById('sidebar-post-job-btn');
     const sidebarLabel = document.getElementById('sidebar-post-job-label');
 
-    if (!employerVerified) {
-      if (topButton) topButton.textContent = '+ Post new job';
-      if (sidebarLabel) sidebarLabel.textContent = 'Post a Job';
-      return;
-    }
-
+    // Verification no longer blocks the posting flow. Unverified employers
+    // may submit a listing, but the listing is saved with status='pending'.
     if (!billingReady) return;
 
     const access = getPostingAccess();
@@ -1331,11 +1338,8 @@
   }
 
   function openPostJob() {
-    if (!employerVerified) {
-      window.location.href = 'employer-onboarding.html';
-      return;
-    }
-
+    // Business verification does not block creating the listing. If the
+    // employer is not approved yet, postJob() saves it as pending instead.
     if (!billingReady) {
       showToast('Checking your posting plan…');
       return;
@@ -1395,11 +1399,6 @@
   // linked in — e.g. from a job's "Candidates" button back to My Jobs,
   // not all the way back to Account.
   function showPanel(name) {
-    if (name === 'post' && !employerVerified) {
-      window.location.href = 'employer-onboarding.html';
-      return;
-    }
-
     // Editing an existing listing never consumes another posting slot.
     // Creating a new listing must pass the billing gate.
     if (name === 'post' && !editingJobId && billingReady && !canCreateNewJob()) {
@@ -1444,35 +1443,38 @@
     const lockBox = document.getElementById('verification-lock');
     const postBtn = document.getElementById('post-job-btn');
 
+    // Verification controls whether a listing is LIVE, not whether an employer
+    // is allowed to prepare/submit it. Billing limits still apply normally.
+    if (postBtn) {
+      postBtn.classList.remove('locked');
+      postBtn.disabled = false;
+    }
+
     if (employerVerified) {
       if (lockBox) lockBox.style.display = 'none';
-      if (postBtn) {
-        postBtn.classList.remove('locked');
-        postBtn.disabled = false;
-      }
       updatePostingAccessUI();
       return;
     }
 
-    const status = currentProfile?.verification_status || 'not_submitted';
+    const status = String(currentProfile?.verification_status || 'not_submitted').toLowerCase();
+    const submitted = ['pending', 'submitted', 'under_review', 'in_review'].includes(status);
 
     if (lockBox) {
       lockBox.style.display = 'block';
-      lockBox.innerHTML = `
-        <strong>Business verification required</strong><br>
-        Current status: <strong>${escapeHtml(status)}</strong>. Your business must be approved by Alygnn before you can post jobs.
-        <br><br>
-        <a href="employer-onboarding.html" style="color:#5D7FA3; font-weight:500;">Complete business verification →</a>
-      `;
+      lockBox.innerHTML = submitted
+        ? `
+          <strong>Business verification pending</strong><br>
+          You can post your job now. It will be saved as <strong>Pending approval</strong> and will stay hidden from candidates until Alygnn approves your business.
+        `
+        : `
+          <strong>Business verification not complete</strong><br>
+          You can create your job now, but it will stay <strong>Pending approval</strong> and hidden from candidates until your business is verified.
+          <br><br>
+          <a href="employer-onboarding.html" style="color:#5D7FA3; font-weight:500;">Complete business verification →</a>
+        `;
     }
 
-    if (postBtn) {
-      postBtn.classList.add('locked');
-      postBtn.disabled = true;
-    }
-
-    // Keep the wizard's own Continue/Post button (step 5) in sync with
-    // verification status too, not just the hidden legacy #post-job-btn.
+    updatePostingAccessUI();
     if (typeof renderWizardStep === 'function') renderWizardStep();
   }
 
@@ -1500,7 +1502,7 @@
     if (currentWizardStep === TOTAL_WIZARD_STEPS) {
       continueBtn.textContent = editingJobId ? 'Save changes →' : 'Post job →';
       const postingAllowed = editingJobId || (!billingReady ? false : canCreateNewJob());
-      const locked = !employerVerified || !postingAllowed;
+      const locked = !postingAllowed;
       continueBtn.classList.toggle('locked', locked);
       continueBtn.disabled = locked;
     } else {
@@ -1647,6 +1649,23 @@
       .join('')
       .substring(0, 2)
       .toUpperCase();
+  }
+
+  async function activatePendingJobsIfApproved() {
+    // Database trigger should make this immediate when an admin approves the
+    // employer. This client-side fallback also promotes any pending jobs the
+    // next time an approved employer opens the dashboard.
+    if (!currentUser || !employerVerified) return;
+
+    const { error } = await sb
+      .from('jobs')
+      .update({ status: 'active', updated_at: new Date().toISOString() })
+      .eq('employer_id', currentUser.id)
+      .eq('status', 'pending');
+
+    if (error) {
+      console.warn('Could not auto-activate pending jobs from dashboard:', error);
+    }
   }
 
   async function loadJobs() {
@@ -2025,7 +2044,7 @@
     const jobsList = document.getElementById('jobs-list');
 
     if (jobs.length === 0) {
-      jobsList.innerHTML = `<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">No active listings</div>Post your first job to start receiving candidates.</div>`;
+      jobsList.innerHTML = `<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">No job listings</div>Post your first job. If your business is still being verified, the job will stay pending until approval.</div>`;
       return;
     }
 
@@ -2073,11 +2092,20 @@
   }
 
   function renderJobRow(job) {
+    const rawStatus = String(job.status || 'active').toLowerCase();
+    const statusClass = rawStatus === 'pending' ? 'pending' : rawStatus === 'active' ? 'active' : 'paused';
+    const statusLabel = rawStatus === 'pending'
+      ? 'Pending approval'
+      : rawStatus === 'active'
+        ? 'Active'
+        : (rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1));
+    const pending = rawStatus === 'pending';
+
     return `
       <div class="job-row">
-        <div class="job-status active"></div>
+        <div class="job-status ${statusClass}"></div>
         <div class="job-info">
-          <div class="job-title-text">${escapeHtml(job.title)}</div>
+          <div class="job-title-text">${escapeHtml(job.title)}<span class="job-status-badge ${statusClass}">${escapeHtml(statusLabel)}</span></div>
           <div class="job-meta">${escapeHtml(job.job_type || '')} · ${escapeHtml(formatWorkStyleLabel(job.work_style))}${job.salary ? ' · ' + escapeHtml(job.salary) : ''}${job.location ? ' · ' + escapeHtml(job.location) : ''}</div>
         </div>
         <div class="job-stats">
@@ -2085,7 +2113,9 @@
           <div><div class="js-val">${jobAppliedCounts[job.id] || 0}</div><div class="js-label">Applied</div></div>
         </div>
         <div class="job-actions">
-          <button class="btn-view" onclick="viewCandidatesForJob('${job.id}')">Candidates</button>
+          ${pending
+            ? '<button class="btn-view" disabled style="opacity:.45; cursor:not-allowed;" title="This job will accept candidates after business approval.">Candidates</button>'
+            : `<button class="btn-view" onclick="viewCandidatesForJob('${job.id}')">Candidates</button>`}
           <button class="btn-view" onclick="window.location.href='job-details.html?job=${job.id}&from=employer'">View</button>
           <button class="btn-view" onclick="editJob('${job.id}')">Edit</button>
           <button class="btn-danger" onclick="deleteJob('${job.id}')">Delete</button>
@@ -2447,10 +2477,8 @@
   // correctly.
 
   async function postJob() {
-    if (!employerVerified) {
-      window.location.href = 'employer-onboarding.html';
-      return;
-    }
+    // Verification determines whether a NEW listing is active or pending.
+    // It no longer sends the employer back through onboarding.
 
     // Editing does not use another posting. Creating a new listing does.
     if (!editingJobId) {
@@ -2495,7 +2523,7 @@
         .insert({
           employer_id: currentUser.id,
           ...job,
-          status: 'active'
+          status: employerVerified ? 'active' : 'pending'
         });
 
       if (error) {
@@ -2524,7 +2552,9 @@
         return;
       }
 
-      showToast('🎉 Job posted successfully!');
+      showToast(employerVerified
+        ? 'Job posted successfully!'
+        : 'Job saved as pending. It will go live automatically after your business is approved.');
       clearJobForm();
     }
 
