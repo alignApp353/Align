@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
 :root{--brand:#5D7FA3;--brand-dark:#35679A;--sage:#8CB69B;--bg:#F5F8F8;--card:#fff;--text:#172333;--muted:#66788A;--border:#DCE5EB;--soft:#EFF4F7;--green:#359762;--shadow:0 14px 38px rgba(23,35,51,.055)}
@@ -32,6 +33,64 @@ h1{margin-top:24px;font-size:30px;line-height:1.08;letter-spacing:-.7px;font-wei
 .preview-title{font-size:13px;font-weight:900}
 .preview-badge{padding:6px 9px;border-radius:999px;background:#EAF2F8;color:var(--brand-dark);font-size:10px;font-weight:900}
 .file-frame{width:100%;height:min(67vh,720px);min-height:520px;border:0;background:#fff}
+.pdf-preview{
+  width:100%;
+  min-height:520px;
+  padding:14px;
+  background:#EEF2F5;
+  overflow:hidden;
+}
+.pdf-preview-loading{
+  min-height:420px;
+  display:grid;
+  place-items:center;
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+}
+.pdf-preview-loading .spinner{
+  margin:0 auto 12px;
+}
+.pdf-page{
+  width:100%;
+  margin:0 auto 14px;
+  background:#fff;
+  box-shadow:0 5px 18px rgba(23,35,51,.10);
+}
+.pdf-page:last-child{
+  margin-bottom:0;
+}
+.pdf-page canvas{
+  display:block;
+  width:100%;
+  height:auto;
+  background:#fff;
+}
+.pdf-preview-error{
+  min-height:420px;
+  padding:34px 22px;
+  display:grid;
+  place-items:center;
+  text-align:center;
+  color:var(--muted);
+}
+.pdf-preview-error strong{
+  display:block;
+  margin-bottom:8px;
+  color:var(--text);
+  font-size:15px;
+}
+.pdf-open-fallback{
+  margin-top:16px;
+  min-height:46px;
+  padding:0 16px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:#fff;
+  color:var(--brand-dark);
+  font-weight:900;
+}
 .file-fallback{padding:44px 24px;text-align:center}
 .file-icon{width:70px;height:70px;margin:0 auto;border-radius:22px;background:#EAF2F8;color:var(--brand-dark);display:grid;place-items:center;font-size:28px;font-weight:900}
 .file-name{margin-top:16px;font-weight:900;font-size:17px;word-break:break-word}
@@ -204,6 +263,115 @@ function renderBuilderResume(){
   $('sourceBadge').textContent=templateName(design.template||'prime-ats');
 }
 
+
+async function renderPdfWithPdfJs(url){
+  const previewBody=$('previewBody');
+
+  previewBody.innerHTML=`
+    <div class="pdf-preview" id="pdfPreview">
+      <div class="pdf-preview-loading" id="pdfPreviewLoading">
+        <div>
+          <div class="spinner"></div>
+          <div>Rendering your resume…</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const container=$('pdfPreview');
+
+  try{
+    if(!window.pdfjsLib){
+      throw new Error('PDF preview library did not load.');
+    }
+
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc=
+      'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+    const loadingTask=window.pdfjsLib.getDocument({
+      url,
+      withCredentials:false
+    });
+
+    const pdf=await loadingTask.promise;
+
+    container.innerHTML='';
+
+    const maxWidth=Math.max(
+      260,
+      Math.min(
+        900,
+        (container.clientWidth || 520) - 28
+      )
+    );
+
+    // Render every page so the user can scroll through the entire resume.
+    for(let pageNumber=1;pageNumber<=pdf.numPages;pageNumber+=1){
+      const page=await pdf.getPage(pageNumber);
+      const baseViewport=page.getViewport({scale:1});
+      const cssScale=maxWidth/baseViewport.width;
+
+      // Render at a higher internal resolution for crisp text on phones.
+      const outputScale=Math.min(
+        window.devicePixelRatio || 1,
+        2
+      );
+
+      const viewport=page.getViewport({
+        scale:cssScale*outputScale
+      });
+
+      const pageWrap=document.createElement('div');
+      pageWrap.className='pdf-page';
+
+      const canvas=document.createElement('canvas');
+      const context=canvas.getContext('2d',{
+        alpha:false
+      });
+
+      canvas.width=Math.floor(viewport.width);
+      canvas.height=Math.floor(viewport.height);
+      canvas.style.width=
+        Math.floor(viewport.width/outputScale)+'px';
+      canvas.style.height=
+        Math.floor(viewport.height/outputScale)+'px';
+
+      pageWrap.appendChild(canvas);
+      container.appendChild(pageWrap);
+
+      await page.render({
+        canvasContext:context,
+        viewport
+      }).promise;
+    }
+
+  }catch(error){
+    console.error('PDF preview error:',error);
+
+    container.innerHTML=`
+      <div class="pdf-preview-error">
+        <div>
+          <strong>Preview unavailable</strong>
+          <div>
+            Your resume is saved, but this device could not render the PDF preview.
+          </div>
+          <button
+            class="pdf-open-fallback"
+            id="pdfOpenFallback"
+            type="button"
+          >
+            Open Resume
+          </button>
+        </div>
+      </div>
+    `;
+
+    $('pdfOpenFallback').onclick=()=>{
+      window.location.href=url;
+    };
+  }
+}
+
 async function renderUploadedResume(){
   const path=profile?.resume_file_path;
   if(!path){
@@ -222,7 +390,7 @@ async function renderUploadedResume(){
   const fileLabel=path.split('/').pop();
 
   if(ext==='pdf'){
-    $('previewBody').innerHTML=`<iframe class="file-frame" title="Resume preview" src="${esc(signedUrl)}"></iframe>`;
+    await renderPdfWithPdfJs(signedUrl);
   }else{
     $('previewBody').innerHTML=`
       <div class="file-fallback">
