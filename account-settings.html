@@ -154,7 +154,7 @@
   <div class="section danger-section">
     <h2>Delete account</h2>
     <div class="desc">Permanently delete your account and all associated data. This can't be undone.</div>
-    <button class="btn btn-danger" onclick="confirmDelete()">Delete my account</button>
+    <button class="btn btn-danger" id="delete-account-btn" onclick="confirmDelete()">Delete my account</button>
   </div>
 
 </div>
@@ -390,19 +390,70 @@
   }
 
   async function confirmDelete() {
-    const sure = confirm('This will permanently delete your account and all your data. This cannot be undone. Are you sure?');
+    const sure = confirm(
+      'This will permanently delete your Alygnn account. Your current login will stop working immediately. This cannot be undone. Are you sure?'
+    );
     if (!sure) return;
 
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-      await sb.from('profiles').upsert({
-        id: session.user.id,
-        deletion_requested: true,
+    const btn = document.getElementById('delete-account-btn');
+    const originalText = btn.textContent;
+
+    btn.disabled = true;
+    btn.textContent = 'Deleting account…';
+
+    try {
+      const {
+        data: { session },
+        error: sessionError
+      } = await sb.auth.getSession();
+
+      if (sessionError || !session) {
+        throw new Error('Your session expired. Please sign in again before deleting your account.');
+      }
+
+      const response = await fetch('/api/delete-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        }
       });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'We could not delete your account.');
+      }
+
+      // The server has already permanently removed the Supabase Auth user.
+      // Clear any cached browser session/data left on this device.
+      try {
+        await sb.auth.signOut({ scope: 'local' });
+      } catch (_) {}
+
+      Object.keys(localStorage).forEach((key) => {
+        const lower = key.toLowerCase();
+        if (
+          lower.includes('supabase') ||
+          lower.includes('sb-') ||
+          lower.includes('alygnn')
+        ) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      sessionStorage.clear();
+
+      alert('Your Alygnn account has been permanently deleted.');
+      window.location.replace('login.html?account_deleted=1');
+    } catch (error) {
+      console.error('Account deletion failed:', error);
+      showMsg(
+        error?.message || 'We could not delete your account. Please try again.'
+      );
+      btn.disabled = false;
+      btn.textContent = originalText;
     }
-    await sb.auth.signOut();
-    alert('Your deletion request has been received. You have been signed out.');
-    window.location.href = 'index.html';
   }
 
   init();
