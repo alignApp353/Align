@@ -2,6 +2,10 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
+/* =========================================================
+   BASIC HELPERS
+========================================================= */
+
 function sendJson(res, status, payload) {
   return res.status(status).json(payload);
 }
@@ -34,6 +38,11 @@ function serviceClient() {
     }
   );
 }
+
+
+/* =========================================================
+   DATABASE HELPERS
+========================================================= */
 
 function isMissingSchemaError(error) {
   const code = String(error?.code || '');
@@ -113,6 +122,11 @@ async function safeSelectIds(
 
   return data || [];
 }
+
+
+/* =========================================================
+   STORAGE HELPERS
+========================================================= */
 
 async function listAllFiles(
   storageBucket,
@@ -225,15 +239,22 @@ async function removePaths(
   }
 }
 
+
+/* =========================================================
+   STORAGE CLEANUP
+========================================================= */
+
 async function cleanupStorage(
   supabase,
   userId,
   profile,
   ownedCompanyIds
 ) {
-  /*
-   * Candidate resumes
-   */
+
+  /* ---------------------------------------------------------
+     CANDIDATE RESUMES
+  --------------------------------------------------------- */
+
   const resumeBucket =
     supabase.storage.from('resumes');
 
@@ -256,9 +277,11 @@ async function cleanupStorage(
     );
   }
 
-  /*
-   * Employer verification files
-   */
+
+  /* ---------------------------------------------------------
+     EMPLOYER VERIFICATION DOCUMENTS
+  --------------------------------------------------------- */
+
   const employerBucket =
     supabase.storage.from(
       'employer-verification-documents'
@@ -293,10 +316,9 @@ async function cleanupStorage(
     }
   }
 
-  /*
-   * Older storage layout:
-   * <user-id>/...
-   */
+
+  /* Older user-ID based folders */
+
   employerPaths.push(
     ...(
       await listAllFiles(
@@ -306,10 +328,9 @@ async function cleanupStorage(
     )
   );
 
-  /*
-   * Newer company-scoped layout:
-   * <company-id>/...
-   */
+
+  /* Company based folders */
+
   for (
     const companyId
     of ownedCompanyIds
@@ -332,43 +353,44 @@ async function cleanupStorage(
   }
 }
 
+
+/* =========================================================
+   CANDIDATE CLEANUP
+========================================================= */
+
 async function cleanupCandidateData(
   supabase,
   userId
 ) {
   const candidateTables = [
-    [
-      'applications',
-      'candidate_id'
-    ],
-    [
-      'skipped_jobs',
-      'candidate_id'
-    ],
-    [
-      'saved_jobs',
-      'candidate_id'
-    ],
-    [
-      'liked_jobs',
-      'candidate_id'
-    ],
-    [
-      'job_likes',
-      'candidate_id'
-    ],
-    [
-      'swipes',
-      'candidate_id'
-    ],
-    [
-      'swipe_actions',
-      'candidate_id'
-    ],
-    [
-      'password_change_codes',
-      'user_id'
-    ]
+
+    ['applications', 'candidate_id'],
+
+    ['skipped_jobs', 'candidate_id'],
+
+    /*
+     * IMPORTANT:
+     * AI match records
+     */
+    ['job_matches', 'candidate_id'],
+
+    /*
+     * IMPORTANT:
+     * Candidate interview records
+     */
+    ['interviews', 'candidate_id'],
+
+    ['saved_jobs', 'candidate_id'],
+
+    ['liked_jobs', 'candidate_id'],
+
+    ['job_likes', 'candidate_id'],
+
+    ['swipes', 'candidate_id'],
+
+    ['swipe_actions', 'candidate_id'],
+
+    ['password_change_codes', 'user_id']
   ];
 
   for (
@@ -386,11 +408,17 @@ async function cleanupCandidateData(
   }
 }
 
+
+/* =========================================================
+   DELETE RECORDS CONNECTED TO JOBS
+========================================================= */
+
 async function deleteJobDependents(
   supabase,
   jobIds
 ) {
   for (const jobId of jobIds) {
+
     await safeDeleteBy(
       supabase,
       'applications',
@@ -401,6 +429,20 @@ async function deleteJobDependents(
     await safeDeleteBy(
       supabase,
       'skipped_jobs',
+      'job_id',
+      jobId
+    );
+
+    await safeDeleteBy(
+      supabase,
+      'job_matches',
+      'job_id',
+      jobId
+    );
+
+    await safeDeleteBy(
+      supabase,
+      'interviews',
       'job_id',
       jobId
     );
@@ -441,6 +483,11 @@ async function deleteJobDependents(
     );
   }
 }
+
+
+/* =========================================================
+   EMPLOYER JOB CLEANUP
+========================================================= */
 
 async function cleanupJobsOwnedByUser(
   supabase,
@@ -475,10 +522,19 @@ async function cleanupJobsOwnedByUser(
     });
   }
 
+  /*
+   * Delete everything underneath jobs first.
+   */
+
   await deleteJobDependents(
     supabase,
     [...jobIds]
   );
+
+
+  /*
+   * Then delete the jobs themselves.
+   */
 
   for (
     const column
@@ -493,10 +549,16 @@ async function cleanupJobsOwnedByUser(
   }
 }
 
+
+/* =========================================================
+   COMPANY CLEANUP
+========================================================= */
+
 async function cleanupCompanyData(
   supabase,
   userId
 ) {
+
   const ownedCompanies =
     await safeSelectIds(
       supabase,
@@ -511,10 +573,11 @@ async function cleanupCompanyData(
       .map(row => row?.id)
       .filter(Boolean);
 
-  /*
-   * Remove reviewer / approver
-   * references first.
-   */
+
+  /* ---------------------------------------------------------
+     REMOVE REVIEWER REFERENCES
+  --------------------------------------------------------- */
+
   await safeNullBy(
     supabase,
     'company_members',
@@ -536,10 +599,11 @@ async function cleanupCompanyData(
     userId
   );
 
-  /*
-   * Remove activity log rows
-   * that identify this user.
-   */
+
+  /* ---------------------------------------------------------
+     ACTIVITY LOGS
+  --------------------------------------------------------- */
+
   await safeDeleteBy(
     supabase,
     'company_activity_log',
@@ -554,10 +618,11 @@ async function cleanupCompanyData(
     userId
   );
 
-  /*
-   * If this person is simply a member
-   * of another company, remove membership.
-   */
+
+  /* ---------------------------------------------------------
+     COMPANY MEMBERSHIP
+  --------------------------------------------------------- */
+
   await safeDeleteBy(
     supabase,
     'company_members',
@@ -565,14 +630,20 @@ async function cleanupCompanyData(
     userId
   );
 
-  /*
-   * If they OWN a company,
-   * clean that company too.
-   */
+
+  /* ---------------------------------------------------------
+     OWNED COMPANIES
+  --------------------------------------------------------- */
+
   for (
     const companyId
     of ownedCompanyIds
   ) {
+
+    /*
+     * Find company jobs.
+     */
+
     const companyJobs =
       await safeSelectIds(
         supabase,
@@ -582,12 +653,22 @@ async function cleanupCompanyData(
         companyId
       );
 
+
+    /*
+     * Delete job child records.
+     */
+
     await deleteJobDependents(
       supabase,
       companyJobs
         .map(row => row?.id)
         .filter(Boolean)
     );
+
+
+    /*
+     * Delete company jobs.
+     */
 
     await safeDeleteBy(
       supabase,
@@ -596,12 +677,22 @@ async function cleanupCompanyData(
       companyId
     );
 
+
+    /*
+     * Verification documents
+     */
+
     await safeDeleteBy(
       supabase,
       'employer_verification_documents',
       'company_id',
       companyId
     );
+
+
+    /*
+     * Employer verification
+     */
 
     await safeDeleteBy(
       supabase,
@@ -610,12 +701,22 @@ async function cleanupCompanyData(
       companyId
     );
 
+
+    /*
+     * Company activity
+     */
+
     await safeDeleteBy(
       supabase,
       'company_activity_log',
       'company_id',
       companyId
     );
+
+
+    /*
+     * Company AI / blueprint
+     */
 
     await safeDeleteBy(
       supabase,
@@ -624,12 +725,22 @@ async function cleanupCompanyData(
       companyId
     );
 
+
+    /*
+     * Members
+     */
+
     await safeDeleteBy(
       supabase,
       'company_members',
       'company_id',
       companyId
     );
+
+
+    /*
+     * Company itself
+     */
 
     await safeDeleteBy(
       supabase,
@@ -642,17 +753,29 @@ async function cleanupCompanyData(
   return ownedCompanyIds;
 }
 
+
+/* =========================================================
+   MAIN API HANDLER
+========================================================= */
+
 module.exports =
 async function handler(
   req,
   res
 ) {
+
   res.setHeader(
     'Cache-Control',
     'no-store'
   );
 
+
+  /* ---------------------------------------------------------
+     OPTIONS
+  --------------------------------------------------------- */
+
   if (req.method === 'OPTIONS') {
+
     res.setHeader(
       'Allow',
       'POST, OPTIONS'
@@ -663,7 +786,13 @@ async function handler(
       .end();
   }
 
+
+  /* ---------------------------------------------------------
+     ONLY POST IS ALLOWED
+  --------------------------------------------------------- */
+
   if (req.method !== 'POST') {
+
     res.setHeader(
       'Allow',
       'POST, OPTIONS'
@@ -680,12 +809,20 @@ async function handler(
     );
   }
 
+
+  /* ---------------------------------------------------------
+     CREATE SERVER SUPABASE CLIENT
+  --------------------------------------------------------- */
+
   let supabase;
 
   try {
+
     supabase =
       serviceClient();
+
   } catch (error) {
+
     console.error(
       'Delete account configuration error:',
       error
@@ -702,10 +839,16 @@ async function handler(
     );
   }
 
+
+  /* ---------------------------------------------------------
+     GET USER TOKEN
+  --------------------------------------------------------- */
+
   const token =
     getAccessToken(req);
 
   if (!token) {
+
     return sendJson(
       res,
       401,
@@ -716,6 +859,11 @@ async function handler(
       }
     );
   }
+
+
+  /* ---------------------------------------------------------
+     VERIFY USER
+  --------------------------------------------------------- */
 
   const {
     data: {
@@ -730,6 +878,7 @@ async function handler(
     userError ||
     !user
   ) {
+
     return sendJson(
       res,
       401,
@@ -741,10 +890,23 @@ async function handler(
     );
   }
 
+
+  /* =========================================================
+     BEGIN ACCOUNT DELETION
+  ========================================================= */
+
   try {
-    /*
-     * Load the profile first.
-     */
+
+    console.log(
+      'Starting account deletion:',
+      user.id
+    );
+
+
+    /* -------------------------------------------------------
+       LOAD PROFILE
+    ------------------------------------------------------- */
+
     const {
       data: profile,
       error: profileError
@@ -764,16 +926,18 @@ async function handler(
         profileError
       )
     ) {
+
       console.warn(
         'Could not read profile before deletion:',
         profileError.message
       );
     }
 
-    /*
-     * Find any company this
-     * user owns.
-     */
+
+    /* -------------------------------------------------------
+       FIND COMPANIES OWNED BY USER
+    ------------------------------------------------------- */
+
     const ownedCompanies =
       await safeSelectIds(
         supabase,
@@ -790,9 +954,15 @@ async function handler(
         )
         .filter(Boolean);
 
-    /*
-     * 1. Delete Storage files.
-     */
+
+    /* -------------------------------------------------------
+       1. STORAGE
+    ------------------------------------------------------- */
+
+    console.log(
+      'Cleaning storage...'
+    );
+
     await cleanupStorage(
       supabase,
       user.id,
@@ -800,34 +970,53 @@ async function handler(
       ownedCompanyIds
     );
 
-    /*
-     * 2. Delete candidate data.
-     */
+
+    /* -------------------------------------------------------
+       2. CANDIDATE DATA
+    ------------------------------------------------------- */
+
+    console.log(
+      'Cleaning candidate data...'
+    );
+
     await cleanupCandidateData(
       supabase,
       user.id
     );
 
-    /*
-     * 3. Delete jobs owned
-     * by this account.
-     */
+
+    /* -------------------------------------------------------
+       3. EMPLOYER JOB DATA
+    ------------------------------------------------------- */
+
+    console.log(
+      'Cleaning employer jobs...'
+    );
+
     await cleanupJobsOwnedByUser(
       supabase,
       user.id
     );
 
-    /*
-     * 4. Delete company relationships.
-     */
+
+    /* -------------------------------------------------------
+       4. COMPANY DATA
+    ------------------------------------------------------- */
+
+    console.log(
+      'Cleaning company data...'
+    );
+
     await cleanupCompanyData(
       supabase,
       user.id
     );
 
-    /*
-     * 5. Delete verification records.
-     */
+
+    /* -------------------------------------------------------
+       5. OTHER VERIFICATION DATA
+    ------------------------------------------------------- */
+
     await safeDeleteBy(
       supabase,
       'employer_verification_documents',
@@ -849,9 +1038,15 @@ async function handler(
       user.id
     );
 
-    /*
-     * 6. Delete public profile.
-     */
+
+    /* -------------------------------------------------------
+       6. PROFILE
+    ------------------------------------------------------- */
+
+    console.log(
+      'Deleting profile...'
+    );
+
     await safeDeleteBy(
       supabase,
       'profiles',
@@ -859,12 +1054,15 @@ async function handler(
       user.id
     );
 
-    /*
-     * 7. Permanently delete
-     * the Supabase Auth account.
-     *
-     * false = HARD delete.
-     */
+
+    /* -------------------------------------------------------
+       7. DELETE SUPABASE AUTH USER
+    ------------------------------------------------------- */
+
+    console.log(
+      'Deleting Supabase Auth user...'
+    );
+
     const {
       error: deleteUserError
     } =
@@ -874,10 +1072,31 @@ async function handler(
           false
         );
 
+
+    /* -------------------------------------------------------
+       AUTH DELETE FAILED
+    ------------------------------------------------------- */
+
     if (deleteUserError) {
+
       console.error(
         'Supabase Auth deletion failed:',
         deleteUserError
+      );
+
+      console.error(
+        'Supabase Auth deletion message:',
+        deleteUserError.message
+      );
+
+      console.error(
+        'Supabase Auth deletion status:',
+        deleteUserError.status
+      );
+
+      console.error(
+        'Supabase Auth deletion code:',
+        deleteUserError.code
       );
 
       return sendJson(
@@ -893,6 +1112,16 @@ async function handler(
       );
     }
 
+
+    /* -------------------------------------------------------
+       SUCCESS
+    ------------------------------------------------------- */
+
+    console.log(
+      'Account permanently deleted:',
+      user.id
+    );
+
     return sendJson(
       res,
       200,
@@ -900,10 +1129,23 @@ async function handler(
         success: true
       }
     );
+
+
   } catch (error) {
+
     console.error(
       'Delete account failed:',
       error
+    );
+
+    console.error(
+      'Delete account error message:',
+      error?.message
+    );
+
+    console.error(
+      'Delete account error code:',
+      error?.code
     );
 
     return sendJson(
