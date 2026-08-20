@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+\<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1171,6 +1171,52 @@ body[data-theme="dark"] .notification-icon.amber{
   box-shadow:0 0 0 3px rgba(93,127,163,.10);
 }
 
+.settings-password-wrap{
+  position:relative;
+}
+
+.settings-password-wrap + .settings-password-wrap{
+  margin-top:0;
+}
+
+.settings-password-wrap .settings-input{
+  padding-right:58px;
+}
+
+.settings-password-eye{
+  position:absolute;
+  right:9px;
+  top:calc(50% + 6px);
+  transform:translateY(-50%);
+  width:40px;
+  height:40px;
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  color:#7B8DA0;
+  cursor:pointer;
+  z-index:2;
+}
+
+.settings-password-eye:active{
+  background:rgba(93,127,163,.10);
+}
+
+.settings-password-eye svg{
+  width:21px;
+  height:21px;
+}
+
+.settings-password-eye .settings-eye-slash{
+  display:none;
+}
+
+.settings-password-eye.is-visible .settings-eye-slash{
+  display:block;
+}
+
 .settings-primary-btn{
   width:100%;
   min-height:50px;
@@ -2003,8 +2049,41 @@ html[data-effective-theme="dark"] .notification-icon.amber{background:#372B12!im
     <div class="settings-card-title">Change Password</div>
     <p class="settings-card-copy">Choose a new password with at least 8 characters.</p>
 
-    <input id="settings-new-password" class="settings-input" type="password" autocomplete="new-password" placeholder="New password">
-    <input id="settings-confirm-password" class="settings-input" type="password" autocomplete="new-password" placeholder="Confirm password">
+    <div class="settings-password-wrap">
+      <input id="settings-new-password" class="settings-input settings-password-input" type="password" autocomplete="new-password" placeholder="New password">
+      <button
+        class="settings-password-eye"
+        id="settings-new-password-eye"
+        type="button"
+        aria-label="Show new password"
+        aria-pressed="false"
+        onclick="toggleSettingsPassword('settings-new-password','settings-new-password-eye')"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+          <circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.8"></circle>
+          <path class="settings-eye-slash" d="M4 4l16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+        </svg>
+      </button>
+    </div>
+
+    <div class="settings-password-wrap">
+      <input id="settings-confirm-password" class="settings-input settings-password-input" type="password" autocomplete="new-password" placeholder="Confirm password">
+      <button
+        class="settings-password-eye"
+        id="settings-confirm-password-eye"
+        type="button"
+        aria-label="Show confirm password"
+        aria-pressed="false"
+        onclick="toggleSettingsPassword('settings-confirm-password','settings-confirm-password-eye')"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+          <circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.8"></circle>
+          <path class="settings-eye-slash" d="M4 4l16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+        </svg>
+      </button>
+    </div>
 
     <button id="settings-password-btn" class="settings-primary-btn" type="button" onclick="changeCandidatePassword()">
       Update Password
@@ -2481,6 +2560,73 @@ function toggleCandidateSetting(key,button){
   }
 }
 
+
+function toggleSettingsPassword(inputId,buttonId){
+  const input=$(inputId);
+  const button=$(buttonId);
+
+  if(!input || !button)return;
+
+  const willShow=input.type==='password';
+
+  input.type=willShow?'text':'password';
+  button.classList.toggle('is-visible',willShow);
+  button.setAttribute('aria-pressed',String(willShow));
+  button.setAttribute(
+    'aria-label',
+    willShow
+      ?'Hide password'
+      :'Show password'
+  );
+}
+
+async function sendCandidatePasswordChangeEmail(){
+  try{
+    const {data,error}=await sb.auth.getSession();
+
+    if(error)throw error;
+
+    const session=data?.session;
+    const email=session?.user?.email;
+
+    if(!session || !email){
+      throw new Error('No authenticated email is available.');
+    }
+
+    const response=await fetch(
+      'https://alygnn.com/api/notify-password-change',
+      {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':`Bearer ${session.access_token}`
+        },
+        body:JSON.stringify({
+          email
+        })
+      }
+    );
+
+    if(!response.ok){
+      const responseText=await response.text();
+      throw new Error(
+        responseText ||
+        'Password confirmation email failed.'
+      );
+    }
+
+    return true;
+
+  }catch(error){
+    console.warn(
+      'Password changed, but confirmation email could not be sent:',
+      error
+    );
+
+    return false;
+  }
+}
+
 async function changeCandidatePassword(){
   // Keep password characters exactly as entered.
   const password=$('settings-new-password')?.value || '';
@@ -2539,11 +2685,34 @@ async function changeCandidatePassword(){
       throw new Error('Password update could not be confirmed.');
     }
 
+    const confirmationEmailSent=
+      await sendCandidatePasswordChangeEmail();
+
     $('settings-new-password').value='';
     $('settings-confirm-password').value='';
 
+    const newEye=$('settings-new-password-eye');
+    const confirmEye=$('settings-confirm-password-eye');
+
+    if(newEye){
+      newEye.classList.remove('is-visible');
+      newEye.setAttribute('aria-pressed','false');
+      newEye.setAttribute('aria-label','Show new password');
+    }
+
+    if(confirmEye){
+      confirmEye.classList.remove('is-visible');
+      confirmEye.setAttribute('aria-pressed','false');
+      confirmEye.setAttribute('aria-label','Show confirm password');
+    }
+
+    $('settings-new-password').type='password';
+    $('settings-confirm-password').type='password';
+
     showSettingsMessage(
-      'Password updated successfully.',
+      confirmationEmailSent
+        ?'Password updated successfully. Confirmation email sent.'
+        :'Password updated successfully. The confirmation email could not be sent.',
       'success'
     );
 
