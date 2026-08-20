@@ -699,7 +699,7 @@ html[data-effective-theme="dark"] .toast{
       <div class="match-score-row">
         <div class="score-ring" id="score-ring">
           <div class="score-number">
-            <span id="score-number">94%</span>
+            <span id="score-number">—</span>
             <small>Match</small>
           </div>
         </div>
@@ -711,27 +711,27 @@ html[data-effective-theme="dark"] .toast{
 
       <div class="breakdown">
         <div class="breakdown-row">
-          <div class="breakdown-label">Skills</div>
+          <div class="breakdown-label">Role</div>
           <div class="bar"><div class="bar-fill" id="skills-bar"></div></div>
-          <div class="breakdown-value" id="skills-value">92%</div>
+          <div class="breakdown-value" id="skills-value">—</div>
         </div>
 
         <div class="breakdown-row">
-          <div class="breakdown-label">Experience</div>
+          <div class="breakdown-label">Work fit</div>
           <div class="bar"><div class="bar-fill" id="experience-bar"></div></div>
-          <div class="breakdown-value" id="experience-value">95%</div>
+          <div class="breakdown-value" id="experience-value">—</div>
         </div>
 
         <div class="breakdown-row">
           <div class="breakdown-label">Salary</div>
           <div class="bar"><div class="bar-fill" id="salary-bar"></div></div>
-          <div class="breakdown-value" id="salary-value">90%</div>
+          <div class="breakdown-value" id="salary-value">—</div>
         </div>
 
         <div class="breakdown-row">
           <div class="breakdown-label">Location</div>
           <div class="bar"><div class="bar-fill" id="location-bar"></div></div>
-          <div class="breakdown-value" id="location-value">88%</div>
+          <div class="breakdown-value" id="location-value">—</div>
         </div>
       </div>
     </section>
@@ -789,6 +789,8 @@ let session=null;
 let job=null;
 let currentApplication=null;
 let currentPassed=false;
+let candidatePreferences={};
+let currentMatchScore=0;
 let toastTimer=null;
 
 function escapeHtml(value){
@@ -841,6 +843,285 @@ function firstValue(...values){
   return values.find(value=>value!==undefined&&value!==null&&String(value).trim()!=='');
 }
 
+
+function alygnnMatchText(value){
+  return String(value ?? '').trim().toLowerCase();
+}
+
+function alygnnMatchTokens(value){
+  return alygnnMatchText(value)
+    .replace(/[^a-z0-9+#. ]/g,' ')
+    .split(/\s+/)
+    .map(token=>token.trim())
+    .filter(token=>token.length>1);
+}
+
+function alygnnTokenOverlap(a,b){
+  const left=new Set(alygnnMatchTokens(a));
+  const right=new Set(alygnnMatchTokens(b));
+
+  if(!left.size || !right.size)return 0;
+
+  let shared=0;
+  left.forEach(token=>{
+    if(right.has(token))shared+=1;
+  });
+
+  return shared/Math.max(1,Math.min(left.size,right.size));
+}
+
+function alygnnNormalizeJobType(value){
+  const raw=alygnnMatchText(value).replace(/[^a-z]/g,'');
+
+  if(raw.includes('fulltime'))return 'fulltime';
+  if(raw.includes('parttime'))return 'parttime';
+  if(raw.includes('contract'))return 'contractor';
+  if(raw.includes('intern'))return 'intern';
+
+  return raw;
+}
+
+function alygnnJobSalary(job){
+  const min=Number(job?.salary_min);
+  const max=Number(job?.salary_max);
+
+  return{
+    min:Number.isFinite(min) && min>0 ? min : null,
+    max:Number.isFinite(max) && max>0 ? max : null
+  };
+}
+
+function alygnnJobLocation(job){
+  return String(
+    job?.location ||
+    [job?.city,job?.state].filter(Boolean).join(', ') ||
+    ''
+  ).trim();
+}
+
+function alygnnComputeMatch(job,preferences){
+  const criteria=[];
+
+  let roleValue=null;
+  let locationValue=null;
+  let workStyleValue=null;
+  let jobTypeValue=null;
+  let industryValue=null;
+  let salaryValue=null;
+
+  const wantedTitle=String(preferences?.query || '').trim();
+
+  if(wantedTitle){
+    const title=String(job?.title || '').trim();
+    let value=alygnnTokenOverlap(wantedTitle,title);
+
+    const wanted=alygnnMatchText(wantedTitle);
+    const actual=alygnnMatchText(title);
+
+    if(
+      wanted &&
+      actual &&
+      (actual.includes(wanted) || wanted.includes(actual))
+    ){
+      value=Math.max(value,.95);
+    }
+
+    roleValue=value;
+    criteria.push({key:'role',weight:34,value});
+  }
+
+  const wantedLocation=String(
+    preferences?.location ||
+    [preferences?.city,preferences?.state].filter(Boolean).join(', ') ||
+    ''
+  ).trim();
+
+  if(wantedLocation){
+    const jobLocation=alygnnJobLocation(job);
+    const wanted=alygnnMatchText(wantedLocation);
+    const actual=alygnnMatchText(jobLocation);
+    const remote=alygnnMatchText(job?.work_style).includes('remote');
+
+    let value=alygnnTokenOverlap(wantedLocation,jobLocation);
+
+    if(
+      wanted &&
+      actual &&
+      (actual.includes(wanted) || wanted.includes(actual))
+    ){
+      value=Math.max(value,1);
+    }
+
+    if(
+      alygnnMatchText(preferences?.workStyle).includes('remote') &&
+      remote
+    ){
+      value=Math.max(value,.9);
+    }
+
+    locationValue=value;
+    criteria.push({key:'location',weight:18,value});
+  }
+
+  const wantedStyle=String(preferences?.workStyle || '').trim();
+
+  if(wantedStyle){
+    const actualStyle=String(
+      job?.work_style ||
+      job?.work_arrangement ||
+      ''
+    ).trim();
+
+    const value=
+      alygnnMatchText(actualStyle)
+        .includes(alygnnMatchText(wantedStyle))
+        ?1
+        :0;
+
+    workStyleValue=value;
+    criteria.push({key:'workStyle',weight:14,value});
+  }
+
+  const wantedTypes=Array.isArray(preferences?.jobTypes)
+    ?preferences.jobTypes
+    :[preferences?.jobType].filter(Boolean);
+
+  if(wantedTypes.length){
+    const actualType=alygnnNormalizeJobType(
+      job?.job_type ||
+      job?.employment_type
+    );
+
+    const value=wantedTypes
+      .map(alygnnNormalizeJobType)
+      .includes(actualType)
+        ?1
+        :0;
+
+    jobTypeValue=value;
+    criteria.push({key:'jobType',weight:14,value});
+  }
+
+  const wantedIndustries=Array.isArray(preferences?.industries)
+    ?preferences.industries.filter(Boolean)
+    :[];
+
+  if(wantedIndustries.length){
+    const jobIndustry=String(
+      job?.industry ||
+      job?.category ||
+      job?.sector ||
+      ''
+    ).trim();
+
+    if(jobIndustry){
+      let value=0;
+
+      for(const industry of wantedIndustries){
+        value=Math.max(
+          value,
+          alygnnTokenOverlap(industry,jobIndustry)
+        );
+
+        if(
+          alygnnMatchText(jobIndustry).includes(alygnnMatchText(industry)) ||
+          alygnnMatchText(industry).includes(alygnnMatchText(jobIndustry))
+        ){
+          value=Math.max(value,1);
+        }
+      }
+
+      industryValue=value;
+      criteria.push({key:'industry',weight:10,value});
+    }
+  }
+
+  const prefMin=Number(preferences?.salary_min);
+  const prefMax=Number(preferences?.salary_max);
+  const salary=alygnnJobSalary(job);
+
+  if(
+    (Number.isFinite(prefMin) || Number.isFinite(prefMax)) &&
+    (salary.min || salary.max)
+  ){
+    const targetMin=Number.isFinite(prefMin)
+      ?prefMin
+      :0;
+
+    const targetMax=Number.isFinite(prefMax)
+      ?prefMax
+      :Number.MAX_SAFE_INTEGER;
+
+    const jobMin=salary.min || 0;
+    const jobMax=salary.max || Number.MAX_SAFE_INTEGER;
+
+    const overlaps=
+      Math.max(targetMin,jobMin) <=
+      Math.min(targetMax,jobMax);
+
+    salaryValue=overlaps?1:0;
+
+    criteria.push({
+      key:'salary',
+      weight:10,
+      value:salaryValue
+    });
+  }
+
+  if(!criteria.length){
+    return{
+      score:0,
+      breakdown:{
+        role:null,
+        work:null,
+        salary:null,
+        location:null
+      }
+    };
+  }
+
+  const weight=
+    criteria.reduce(
+      (sum,item)=>sum+item.weight,
+      0
+    );
+
+  const points=
+    criteria.reduce(
+      (sum,item)=>sum+(item.weight*item.value),
+      0
+    );
+
+  const score=Math.max(
+    0,
+    Math.min(
+      99,
+      Math.round((points/weight)*100)
+    )
+  );
+
+  const workParts=[
+    workStyleValue,
+    jobTypeValue,
+    industryValue
+  ].filter(value=>value!==null);
+
+  const workValue=
+    workParts.length
+      ?workParts.reduce((sum,value)=>sum+value,0)/workParts.length
+      :null;
+
+  return{
+    score,
+    breakdown:{
+      role:roleValue===null?null:Math.round(roleValue*100),
+      work:workValue===null?null:Math.round(workValue*100),
+      salary:salaryValue===null?null:Math.round(salaryValue*100),
+      location:locationValue===null?null:Math.round(locationValue*100)
+    }
+  };
+}
+
 function showToast(message){
   const toast=document.getElementById('toast');
   toast.textContent=message;
@@ -878,10 +1159,24 @@ function renderList(elementId,sectionId,items){
 }
 
 function setBreakdown(id,value){
-  const score=clamp(Math.round(value),0,100);
-  document.getElementById(id+'-value').textContent=score+'%';
+  const valueElement=document.getElementById(id+'-value');
+  const barElement=document.getElementById(id+'-bar');
+
+  if(value===null || value===undefined || !Number.isFinite(Number(value))){
+    valueElement.textContent='—';
+
+    requestAnimationFrame(()=>{
+      barElement.style.width='0%';
+    });
+
+    return;
+  }
+
+  const score=clamp(Math.round(Number(value)),0,100);
+  valueElement.textContent=score+'%';
+
   requestAnimationFrame(()=>{
-    document.getElementById(id+'-bar').style.width=score+'%';
+    barElement.style.width=score+'%';
   });
 }
 
@@ -895,7 +1190,9 @@ function renderJob(){
   const type=firstValue(job.job_type,job.employment_type,'Not listed');
   const workStyle=firstValue(job.work_style,job.work_arrangement,'Flexible');
   const experience=firstValue(job.experience_level,job.seniority,'Not listed');
-  const score=clamp(Number(job.match_score??94),0,100);
+  const match=alygnnComputeMatch(job,candidatePreferences);
+  const score=match.score;
+  currentMatchScore=score;
   const logoInitials=initials(company);
 
   document.title=(job.title||'Job Details')+' | Alygnn';
@@ -928,16 +1225,18 @@ function renderJob(){
   document.getElementById('score-ring').style.setProperty('--score',score);
   document.getElementById('score-number').textContent=score+'%';
   document.getElementById('match-copy').textContent=
-    score>=90
-      ? 'This role strongly aligns with your candidate profile, preferences, and career direction.'
-      : score>=75
-      ? 'This role aligns well with several parts of your candidate profile and preferences.'
-      : 'This role matches some of your preferences. Review the details before applying.';
+    score>=80
+      ? 'This role strongly aligns with your saved job preferences.'
+      : score>=60
+      ? 'This role aligns with several of your saved job preferences.'
+      : score>0
+      ? 'This role matches some of your saved preferences. Review the details before applying.'
+      : 'Add or update your job preferences to calculate a personalized match.';
 
-  setBreakdown('skills',firstValue(job.skills_match,score-2));
-  setBreakdown('experience',firstValue(job.experience_match,score+1));
-  setBreakdown('salary',firstValue(job.salary_match,score-4));
-  setBreakdown('location',firstValue(job.location_match,score-6));
+  setBreakdown('skills',match.breakdown.role);
+  setBreakdown('experience',match.breakdown.work);
+  setBreakdown('salary',match.breakdown.salary);
+  setBreakdown('location',match.breakdown.location);
 
   document.getElementById('description').textContent=
     firstValue(
@@ -1094,7 +1393,7 @@ async function applyToJob(){
         job_id:job.id,
         status:'applied',
         applied_at:new Date().toISOString(),
-        match_score:job.match_score??null
+        match_score:currentMatchScore||null
       })
       .select('id,status,applied_at')
       .single();
@@ -1273,6 +1572,40 @@ document.getElementById('apply-btn').addEventListener('click',handlePrimaryActio
     if(!jobData)throw new Error('This job is no longer available.');
 
     job=jobData;
+
+    try{
+      const {data:profileData,error:profileError}=await sb
+        .from('profiles')
+        .select('preferences')
+        .eq('id',session.user.id)
+        .maybeSingle();
+
+      if(profileError)throw profileError;
+
+      const rawPreferences=profileData?.preferences;
+
+      if(
+        rawPreferences &&
+        typeof rawPreferences==='object' &&
+        !Array.isArray(rawPreferences)
+      ){
+        candidatePreferences=rawPreferences;
+      }else if(typeof rawPreferences==='string'){
+        try{
+          candidatePreferences=JSON.parse(rawPreferences)||{};
+        }catch(_){
+          candidatePreferences={};
+        }
+      }
+    }catch(preferenceError){
+      console.warn(
+        'Could not load candidate preferences for match score:',
+        preferenceError
+      );
+
+      candidatePreferences={};
+    }
+
     renderJob();
     await syncApplicationState();
   }catch(error){
