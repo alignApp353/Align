@@ -1057,6 +1057,12 @@ body[data-theme="dark"] .notification-icon.amber{
   color:var(--rose);
 }
 
+.settings-message a{
+  color:var(--brand-dark);
+  font-weight:800;
+  text-decoration:none;
+}
+
 .settings-card{
   margin-top:18px;
   padding:20px;
@@ -2048,7 +2054,7 @@ html[data-effective-theme="dark"] .notification-icon.amber{background:#372B12!im
   <section class="settings-card">
     <div class="settings-card-title">Support</div>
 
-    <button class="settings-row" type="button" onclick="showSettingsMessage('Help & Support is coming soon.','info')">
+    <button class="settings-row" type="button" onclick="openCandidateSupport()">
       <span class="settings-row-copy">
         <strong>Help & Support</strong>
         <small>Get help with your Alygnn account</small>
@@ -2056,7 +2062,7 @@ html[data-effective-theme="dark"] .notification-icon.amber{background:#372B12!im
       <span class="settings-arrow">›</span>
     </button>
 
-    <button class="settings-row" type="button" onclick="showSettingsMessage('Alygnn Version 1.0','info')">
+    <button class="settings-row" type="button" onclick="openCandidateAbout()">
       <span class="settings-row-copy">
         <strong>About Alygnn</strong>
         <small>Version and product information</small>
@@ -2376,6 +2382,42 @@ function showSettingsMessage(message,type='info'){
   },4200);
 }
 
+
+function showPersistentSettingsInfo(htmlContent){
+  const box=$('settings-message');
+  if(!box)return;
+
+  clearTimeout(showSettingsMessage.timer);
+
+  box.className='settings-message';
+  box.innerHTML=htmlContent;
+  box.hidden=false;
+
+  window.scrollTo({
+    top:0,
+    left:0,
+    behavior:'smooth'
+  });
+}
+
+function openCandidateSupport(){
+  showPersistentSettingsInfo(`
+    <strong>Help &amp; Support</strong><br>
+    Need help with your Alygnn account? Contact
+    <a href="mailto:admin@alygnn.com?subject=Alygnn%20Support">admin@alygnn.com</a>.
+  `);
+}
+
+function openCandidateAbout(){
+  showPersistentSettingsInfo(`
+    <strong>About Alygnn</strong><br>
+    Alygnn is a job-matching platform. Job seekers can create a profile,
+    upload a resume, set job preferences, and swipe through and apply to
+    job postings. Employers can create a verified business account and
+    post job openings for job seekers to discover and apply to.
+  `);
+}
+
 function getCandidateTheme(){
   return window.AlygnnCandidateTheme
     ? window.AlygnnCandidateTheme.get()
@@ -2440,8 +2482,9 @@ function toggleCandidateSetting(key,button){
 }
 
 async function changeCandidatePassword(){
-  const password=safeString($('settings-new-password')?.value);
-  const confirm=safeString($('settings-confirm-password')?.value);
+  // Keep password characters exactly as entered.
+  const password=$('settings-new-password')?.value || '';
+  const confirm=$('settings-confirm-password')?.value || '';
   const button=$('settings-password-btn');
 
   if(!password || !confirm){
@@ -2460,20 +2503,81 @@ async function changeCandidatePassword(){
   }
 
   const original=button?.textContent || 'Update Password';
+
   if(button){
     button.disabled=true;
     button.textContent='Updating…';
   }
 
   try{
-    const {error}=await sb.auth.updateUser({password});
-    if(error) throw error;
+    const {data:sessionData,error:sessionError}=await sb.auth.getSession();
+
+    if(sessionError)throw sessionError;
+
+    if(!sessionData?.session?.user){
+      throw new Error('Your session expired. Please sign in again.');
+    }
+
+    // Refresh the mobile session first so updateUser is not working
+    // against an expired/stale token.
+    const {error:refreshError}=await sb.auth.refreshSession();
+
+    if(refreshError){
+      console.warn(
+        'Session refresh before password update failed:',
+        refreshError
+      );
+    }
+
+    const {data,error}=await sb.auth.updateUser({
+      password
+    });
+
+    if(error)throw error;
+
+    if(!data?.user){
+      throw new Error('Password update could not be confirmed.');
+    }
 
     $('settings-new-password').value='';
     $('settings-confirm-password').value='';
-    showSettingsMessage('Password updated successfully.','success');
+
+    showSettingsMessage(
+      'Password updated successfully.',
+      'success'
+    );
+
   }catch(error){
-    showSettingsMessage(error?.message || 'Unable to update password.','error');
+    const raw=String(error?.message || '').toLowerCase();
+
+    let message=
+      error?.message ||
+      'Unable to update password.';
+
+    if(
+      raw.includes('same password') ||
+      raw.includes('different from the old password') ||
+      raw.includes('new password should be different')
+    ){
+      message='Choose a password different from your current password.';
+    }else if(
+      raw.includes('session') ||
+      raw.includes('jwt') ||
+      raw.includes('not authenticated')
+    ){
+      message='Your session expired. Sign in again, then change your password.';
+    }else if(
+      raw.includes('password should be at least') ||
+      raw.includes('weak password')
+    ){
+      message='Choose a stronger password with at least 8 characters.';
+    }
+
+    showSettingsMessage(
+      message,
+      'error'
+    );
+
   }finally{
     if(button){
       button.disabled=false;
