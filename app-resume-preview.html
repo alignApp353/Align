@@ -36,9 +36,10 @@ h1{margin-top:24px;font-size:30px;line-height:1.08;letter-spacing:-.7px;font-wei
 .pdf-preview{
   width:100%;
   min-height:520px;
-  padding:14px;
+  padding:18px 20px 22px;
   background:#EEF2F5;
-  overflow:hidden;
+  overflow-x:hidden;
+  overflow-y:visible;
 }
 .pdf-preview-loading{
   min-height:420px;
@@ -53,18 +54,22 @@ h1{margin-top:24px;font-size:30px;line-height:1.08;letter-spacing:-.7px;font-wei
   margin:0 auto 12px;
 }
 .pdf-page{
-  width:100%;
-  margin:0 auto 14px;
+  width:92%;
+  max-width:92%;
+  margin:0 auto 16px;
   background:#fff;
   box-shadow:0 5px 18px rgba(23,35,51,.10);
+  overflow:hidden;
 }
 .pdf-page:last-child{
   margin-bottom:0;
 }
 .pdf-page canvas{
   display:block;
-  width:100%;
-  height:auto;
+  width:100% !important;
+  max-width:100% !important;
+  height:auto !important;
+  margin:0 auto;
   background:#fff;
 }
 .pdf-preview-error{
@@ -297,11 +302,21 @@ async function renderPdfWithPdfJs(url){
 
     container.innerHTML='';
 
+    /*
+     * Deliberately render a little smaller than the available card width.
+     * This keeps the full Letter/A4 page visible on phones instead of making
+     * uploaded resumes feel zoomed or clipping the right edge.
+     */
+    const containerWidth=
+      container.getBoundingClientRect().width ||
+      container.clientWidth ||
+      520;
+
     const maxWidth=Math.max(
-      260,
+      240,
       Math.min(
-        900,
-        (container.clientWidth || 520) - 28
+        820,
+        (containerWidth - 40) * 0.92
       )
     );
 
@@ -331,10 +346,8 @@ async function renderPdfWithPdfJs(url){
 
       canvas.width=Math.floor(viewport.width);
       canvas.height=Math.floor(viewport.height);
-      canvas.style.width=
-        Math.floor(viewport.width/outputScale)+'px';
-      canvas.style.height=
-        Math.floor(viewport.height/outputScale)+'px';
+      canvas.style.width='100%';
+      canvas.style.height='auto';
 
       pageWrap.appendChild(canvas);
       container.appendChild(pageWrap);
