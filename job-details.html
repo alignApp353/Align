@@ -134,6 +134,123 @@ nav{
   margin-top:14px;
 }
 
+
+/* ALYGNN MATCH BREAKDOWN */
+.match-section{
+  display:none;
+}
+
+.match-section.show{
+  display:block;
+}
+
+.match-intro{
+  margin-top:-4px;
+  margin-bottom:18px;
+  color:var(--text-muted);
+  font-size:13px;
+  line-height:1.55;
+}
+
+.match-score-row{
+  display:flex;
+  align-items:center;
+  gap:22px;
+  margin-bottom:22px;
+}
+
+.score-ring{
+  --score:0;
+  width:96px;
+  height:96px;
+  flex:0 0 96px;
+  position:relative;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:conic-gradient(#6FBF8F calc(var(--score) * 1%), #E7ECEF 0);
+}
+
+.score-ring::before{
+  content:'';
+  position:absolute;
+  inset:9px;
+  border-radius:50%;
+  background:var(--card-bg);
+}
+
+.score-number{
+  position:relative;
+  z-index:1;
+  text-align:center;
+  color:var(--text);
+  font-size:22px;
+  font-weight:700;
+  line-height:1;
+}
+
+.score-number small{
+  display:block;
+  margin-top:5px;
+  color:var(--text-muted);
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.9px;
+  text-transform:uppercase;
+}
+
+.match-copy{
+  max-width:430px;
+  color:var(--text-muted);
+  font-size:14px;
+  line-height:1.6;
+}
+
+.match-breakdown{
+  display:grid;
+  gap:14px;
+}
+
+.breakdown-row{
+  display:grid;
+  grid-template-columns:92px 1fr 44px;
+  align-items:center;
+  gap:12px;
+}
+
+.breakdown-label{
+  color:var(--text);
+  font-size:12px;
+  font-weight:700;
+}
+
+.breakdown-bar{
+  height:8px;
+  overflow:hidden;
+  border-radius:999px;
+  background:#E7ECEF;
+}
+
+.breakdown-fill{
+  width:0;
+  height:100%;
+  border-radius:inherit;
+  background:#6FBF8F;
+  transition:width .55s ease;
+}
+
+.breakdown-value{
+  text-align:right;
+  color:var(--brand);
+  font-size:12px;
+  font-weight:700;
+}
+
+.match-loading{
+  color:var(--text-muted);
+  font-size:13px;
+}
+
 .section{
   background:var(--card-bg);
   border:1px solid var(--border);
@@ -181,6 +298,10 @@ nav{
 
 @media(max-width:600px){
   .field-grid{ grid-template-columns:1fr; }
+
+  .match-score-row{ align-items:flex-start; gap:16px; }
+  .score-ring{ width:84px; height:84px; flex-basis:84px; }
+  .breakdown-row{ grid-template-columns:82px 1fr 40px; gap:9px; }
 }
 
 .mini-footer{ text-align:center; padding:24px 6% 40px; font-size:12px; color:var(--text-muted); }
@@ -206,6 +327,53 @@ nav{
     <div class="job-meta" id="job-meta">—</div>
     <div class="job-badges" id="job-badges"></div>
     <div class="applied-note" id="applied-note"></div>
+  </div>
+
+
+  <div class="section match-section" id="match-section">
+    <h2>Your Alygnn match</h2>
+    <p class="match-intro">A clear breakdown of how this job aligns with your profile.</p>
+
+    <div id="match-loading" class="match-loading">Calculating your match…</div>
+
+    <div id="match-content" style="display:none;">
+      <div class="match-score-row">
+        <div class="score-ring" id="score-ring">
+          <div class="score-number">
+            <span id="score-number">—</span>
+            <small>Match</small>
+          </div>
+        </div>
+
+        <div class="match-copy" id="match-copy"></div>
+      </div>
+
+      <div class="match-breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Skills</div>
+          <div class="breakdown-bar"><div class="breakdown-fill" id="skills-bar"></div></div>
+          <div class="breakdown-value" id="skills-value">—</div>
+        </div>
+
+        <div class="breakdown-row">
+          <div class="breakdown-label">Experience</div>
+          <div class="breakdown-bar"><div class="breakdown-fill" id="experience-bar"></div></div>
+          <div class="breakdown-value" id="experience-value">—</div>
+        </div>
+
+        <div class="breakdown-row">
+          <div class="breakdown-label">Salary</div>
+          <div class="breakdown-bar"><div class="breakdown-fill" id="salary-bar"></div></div>
+          <div class="breakdown-value" id="salary-value">—</div>
+        </div>
+
+        <div class="breakdown-row">
+          <div class="breakdown-label">Location</div>
+          <div class="breakdown-bar"><div class="breakdown-fill" id="location-bar"></div></div>
+          <div class="breakdown-value" id="location-value">—</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="section" id="interview-section" style="display:none;">
@@ -318,6 +486,125 @@ function renderListOrText(value){
 
 function getParam(name){
   return new URLSearchParams(window.location.search).get(name);
+}
+
+
+function clampScore(value){
+  const number = Number(value);
+  if(!Number.isFinite(number)) return null;
+  return Math.max(0, Math.min(100, Math.round(number)));
+}
+
+function firstScore(...values){
+  for(const value of values){
+    const score = clampScore(value);
+    if(score !== null) return score;
+  }
+  return null;
+}
+
+function readBreakdownScore(match, key){
+  const breakdown = match?.breakdown && typeof match.breakdown === 'object'
+    ? match.breakdown
+    : {};
+
+  const aliases = {
+    skills: [match?.skills_match, match?.skills_score, breakdown.skills, breakdown.skills_match, breakdown.skills_score],
+    experience: [match?.experience_match, match?.experience_score, breakdown.experience, breakdown.experience_match, breakdown.experience_score],
+    salary: [match?.salary_match, match?.salary_score, breakdown.salary, breakdown.salary_match, breakdown.salary_score],
+    location: [match?.location_match, match?.location_score, breakdown.location, breakdown.location_match, breakdown.location_score],
+  };
+
+  return firstScore(...(aliases[key] || []));
+}
+
+function setBreakdownRow(id, value){
+  const score = clampScore(value);
+  if(score === null) return;
+
+  document.getElementById(`${id}-value`).textContent = `${score}%`;
+  requestAnimationFrame(() => {
+    document.getElementById(`${id}-bar`).style.width = `${score}%`;
+  });
+}
+
+function defaultMatchCopy(score){
+  if(score >= 90){
+    return 'This role strongly aligns with your candidate profile, preferences, and career direction.';
+  }
+  if(score >= 75){
+    return 'This role aligns well with several parts of your candidate profile and preferences.';
+  }
+  if(score >= 60){
+    return 'This role matches several parts of your profile. Review the details to see where it fits best.';
+  }
+  return 'This role matches some of your preferences. Review the details before deciding whether to apply.';
+}
+
+function renderMatchBreakdown(match){
+  const section = document.getElementById('match-section');
+  const loading = document.getElementById('match-loading');
+  const content = document.getElementById('match-content');
+
+  const score = clampScore(match?.score ?? match?.match_score);
+  if(score === null){
+    section.classList.remove('show');
+    return;
+  }
+
+  section.classList.add('show');
+  loading.style.display = 'none';
+  content.style.display = '';
+
+  document.getElementById('score-ring').style.setProperty('--score', score);
+  document.getElementById('score-number').textContent = `${score}%`;
+  document.getElementById('match-copy').textContent = match?.reason || defaultMatchCopy(score);
+
+  // Prefer real category scores if the scoring backend provides them.
+  // The Android job-details screen currently falls back to small offsets
+  // from the overall score, so the website mirrors that same behavior.
+  const skills = readBreakdownScore(match, 'skills') ?? clampScore(score - 2);
+  const experience = readBreakdownScore(match, 'experience') ?? clampScore(score + 1);
+  const salary = readBreakdownScore(match, 'salary') ?? clampScore(score - 4);
+  const location = readBreakdownScore(match, 'location') ?? clampScore(score - 6);
+
+  setBreakdownRow('skills', skills);
+  setBreakdownRow('experience', experience);
+  setBreakdownRow('salary', salary);
+  setBreakdownRow('location', location);
+}
+
+async function loadMatchInfo(jobId, candidateId){
+  const section = document.getElementById('match-section');
+  section.classList.add('show');
+
+  try{
+    const { data: cached, error: cacheError } = await sb
+      .from('job_matches')
+      .select('*')
+      .eq('job_id', jobId)
+      .eq('candidate_id', candidateId)
+      .maybeSingle();
+
+    if(!cacheError && cached?.score != null){
+      return cached;
+    }
+
+    const { data, error } = await sb.functions.invoke('score-job-match', {
+      body: { candidateId, jobIds: [jobId] },
+    });
+
+    if(error) throw error;
+
+    const scored = Array.isArray(data?.scores)
+      ? data.scores.find(item => String(item.job_id) === String(jobId))
+      : null;
+
+    return scored || null;
+  }catch(error){
+    console.warn('Could not load Alygnn match breakdown:', error);
+    return null;
+  }
 }
 
 async function loadApplicationInfo(jobId, appId, candidateId){
@@ -514,6 +801,16 @@ async function initJobDetailsPage(){
 
   renderJob(job, appInfo, interviewInfo);
   showPage();
+
+  if(!isEmployerView){
+    loadMatchInfo(jobId, session.user.id).then(matchInfo => {
+      if(matchInfo){
+        renderMatchBreakdown(matchInfo);
+      } else {
+        document.getElementById('match-section').classList.remove('show');
+      }
+    });
+  }
 }
 
 initJobDetailsPage();
