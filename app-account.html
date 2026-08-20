@@ -1,4 +1,4 @@
-\<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1217,6 +1217,52 @@ body[data-theme="dark"] .notification-icon.amber{
   display:block;
 }
 
+.settings-password-verify{
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid var(--border);
+}
+
+.settings-password-verify-title{
+  color:var(--text);
+  font-size:16px;
+  font-weight:900;
+}
+
+.settings-password-verify-copy{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+}
+
+.settings-password-verify-copy strong{
+  color:var(--text);
+}
+
+.settings-password-code{
+  margin-top:14px;
+  text-align:center;
+  letter-spacing:5px;
+  font-size:18px;
+  font-weight:900;
+}
+
+.settings-password-verify .settings-primary-btn{
+  margin-top:12px;
+}
+
+.settings-password-resend{
+  width:100%;
+  margin-top:8px;
+  padding:12px;
+  border:0;
+  background:transparent;
+  color:var(--brand-dark);
+  font-weight:900;
+  cursor:pointer;
+}
+
 .settings-primary-btn{
   width:100%;
   min-height:50px;
@@ -2088,6 +2134,43 @@ html[data-effective-theme="dark"] .notification-icon.amber{background:#372B12!im
     <button id="settings-password-btn" class="settings-primary-btn" type="button" onclick="changeCandidatePassword()">
       Update Password
     </button>
+
+    <div id="settings-password-verify" class="settings-password-verify" hidden>
+      <div class="settings-password-verify-title">Check your email</div>
+      <div class="settings-password-verify-copy">
+        We sent a 6-digit verification code to
+        <strong id="settings-password-email"></strong>.
+        Enter it below to confirm this password change.
+      </div>
+
+      <input
+        id="settings-password-code"
+        class="settings-input settings-password-code"
+        type="text"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        maxlength="6"
+        placeholder="6-digit code"
+      >
+
+      <button
+        id="settings-password-verify-btn"
+        class="settings-primary-btn"
+        type="button"
+        onclick="verifyCandidatePasswordChange()"
+      >
+        Verify &amp; Change Password
+      </button>
+
+      <button
+        id="settings-password-resend-btn"
+        class="settings-password-resend"
+        type="button"
+        onclick="resendCandidatePasswordCode()"
+      >
+        Resend code
+      </button>
+    </div>
   </section>
 
   <section class="settings-card">
@@ -2627,24 +2710,84 @@ async function sendCandidatePasswordChangeEmail(){
   }
 }
 
+
+let pendingCandidatePasswordChange=null;
+
+function resetSettingsPasswordEyes(){
+  const newPassword=$('settings-new-password');
+  const confirmPassword=$('settings-confirm-password');
+  const newEye=$('settings-new-password-eye');
+  const confirmEye=$('settings-confirm-password-eye');
+
+  if(newPassword)newPassword.type='password';
+  if(confirmPassword)confirmPassword.type='password';
+
+  [
+    [newEye,'Show new password'],
+    [confirmEye,'Show confirm password']
+  ].forEach(([button,label])=>{
+    if(!button)return;
+
+    button.classList.remove('is-visible');
+    button.setAttribute('aria-pressed','false');
+    button.setAttribute('aria-label',label);
+  });
+}
+
+function hidePasswordVerificationStep(){
+  const verify=$('settings-password-verify');
+
+  if(verify){
+    verify.hidden=true;
+  }
+
+  const code=$('settings-password-code');
+
+  if(code){
+    code.value='';
+  }
+}
+
+async function sendCandidatePasswordOtp(email){
+  const {error}=await sb.auth.signInWithOtp({
+    email,
+    options:{
+      shouldCreateUser:false
+    }
+  });
+
+  if(error)throw error;
+}
+
 async function changeCandidatePassword(){
-  // Keep password characters exactly as entered.
   const password=$('settings-new-password')?.value || '';
   const confirm=$('settings-confirm-password')?.value || '';
   const button=$('settings-password-btn');
 
+  hidePasswordVerificationStep();
+  pendingCandidatePasswordChange=null;
+
   if(!password || !confirm){
-    showSettingsMessage('Please fill out both password fields.','error');
+    showSettingsMessage(
+      'Please fill out both password fields.',
+      'error'
+    );
     return;
   }
 
   if(password.length<8){
-    showSettingsMessage('Password must be at least 8 characters.','error');
+    showSettingsMessage(
+      'Password must be at least 8 characters.',
+      'error'
+    );
     return;
   }
 
   if(password!==confirm){
-    showSettingsMessage('Passwords do not match.','error');
+    showSettingsMessage(
+      'Passwords do not match.',
+      'error'
+    );
     return;
   }
 
@@ -2652,94 +2795,65 @@ async function changeCandidatePassword(){
 
   if(button){
     button.disabled=true;
-    button.textContent='Updating…';
+    button.textContent='Sending code…';
   }
 
   try{
-    const {data:sessionData,error:sessionError}=await sb.auth.getSession();
+    const {
+      data:sessionData,
+      error:sessionError
+    }=await sb.auth.getSession();
 
     if(sessionError)throw sessionError;
 
-    if(!sessionData?.session?.user){
-      throw new Error('Your session expired. Please sign in again.');
-    }
+    const session=sessionData?.session;
+    const email=session?.user?.email;
 
-    // Refresh the mobile session first so updateUser is not working
-    // against an expired/stale token.
-    const {error:refreshError}=await sb.auth.refreshSession();
-
-    if(refreshError){
-      console.warn(
-        'Session refresh before password update failed:',
-        refreshError
+    if(!session || !email){
+      throw new Error(
+        'Your session expired. Please sign in again.'
       );
     }
 
-    const {data,error}=await sb.auth.updateUser({
+    await sendCandidatePasswordOtp(email);
+
+    pendingCandidatePasswordChange={
+      email,
       password
-    });
+    };
 
-    if(error)throw error;
-
-    if(!data?.user){
-      throw new Error('Password update could not be confirmed.');
-    }
-
-    const confirmationEmailSent=
-      await sendCandidatePasswordChangeEmail();
-
-    $('settings-new-password').value='';
-    $('settings-confirm-password').value='';
-
-    const newEye=$('settings-new-password-eye');
-    const confirmEye=$('settings-confirm-password-eye');
-
-    if(newEye){
-      newEye.classList.remove('is-visible');
-      newEye.setAttribute('aria-pressed','false');
-      newEye.setAttribute('aria-label','Show new password');
-    }
-
-    if(confirmEye){
-      confirmEye.classList.remove('is-visible');
-      confirmEye.setAttribute('aria-pressed','false');
-      confirmEye.setAttribute('aria-label','Show confirm password');
-    }
-
-    $('settings-new-password').type='password';
-    $('settings-confirm-password').type='password';
+    $('settings-password-email').textContent=email;
+    $('settings-password-verify').hidden=false;
 
     showSettingsMessage(
-      confirmationEmailSent
-        ?'Password updated successfully. Confirmation email sent.'
-        :'Password updated successfully. The confirmation email could not be sent.',
+      'Verification code sent. Check your email.',
       'success'
     );
+
+    setTimeout(()=>{
+      $('settings-password-code')?.focus();
+    },100);
 
   }catch(error){
     const raw=String(error?.message || '').toLowerCase();
 
     let message=
       error?.message ||
-      'Unable to update password.';
+      'Unable to send the verification code.';
 
     if(
-      raw.includes('same password') ||
-      raw.includes('different from the old password') ||
-      raw.includes('new password should be different')
+      raw.includes('rate limit') ||
+      raw.includes('too many')
     ){
-      message='Choose a password different from your current password.';
+      message=
+        'Too many verification attempts. Wait a moment and try again.';
     }else if(
       raw.includes('session') ||
       raw.includes('jwt') ||
       raw.includes('not authenticated')
     ){
-      message='Your session expired. Sign in again, then change your password.';
-    }else if(
-      raw.includes('password should be at least') ||
-      raw.includes('weak password')
-    ){
-      message='Choose a stronger password with at least 8 characters.';
+      message=
+        'Your session expired. Sign in again, then change your password.';
     }
 
     showSettingsMessage(
@@ -2754,6 +2868,197 @@ async function changeCandidatePassword(){
     }
   }
 }
+
+async function resendCandidatePasswordCode(){
+  const button=$('settings-password-resend-btn');
+
+  if(!pendingCandidatePasswordChange?.email){
+    showSettingsMessage(
+      'Enter your new password again, then tap Update Password.',
+      'error'
+    );
+    return;
+  }
+
+  const original=button?.textContent || 'Resend code';
+
+  if(button){
+    button.disabled=true;
+    button.textContent='Sending…';
+  }
+
+  try{
+    await sendCandidatePasswordOtp(
+      pendingCandidatePasswordChange.email
+    );
+
+    showSettingsMessage(
+      'A new verification code was sent.',
+      'success'
+    );
+
+  }catch(error){
+    showSettingsMessage(
+      error?.message ||
+      'Unable to resend the verification code.',
+      'error'
+    );
+
+  }finally{
+    if(button){
+      button.disabled=false;
+      button.textContent=original;
+    }
+  }
+}
+
+async function verifyCandidatePasswordChange(){
+  const code=String(
+    $('settings-password-code')?.value || ''
+  )
+    .replace(/\D/g,'')
+    .trim();
+
+  const button=$('settings-password-verify-btn');
+
+  if(!pendingCandidatePasswordChange){
+    showSettingsMessage(
+      'Enter your new password again, then request a new code.',
+      'error'
+    );
+    return;
+  }
+
+  if(!/^\d{6}$/.test(code)){
+    showSettingsMessage(
+      'Enter the 6-digit verification code from your email.',
+      'error'
+    );
+    return;
+  }
+
+  const original=
+    button?.textContent ||
+    'Verify & Change Password';
+
+  if(button){
+    button.disabled=true;
+    button.textContent='Verifying…';
+  }
+
+  try{
+    const {
+      email,
+      password
+    }=pendingCandidatePasswordChange;
+
+    const {
+      data:verificationData,
+      error:verificationError
+    }=await sb.auth.verifyOtp({
+      email,
+      token:code,
+      type:'email'
+    });
+
+    if(verificationError){
+      throw verificationError;
+    }
+
+    if(!verificationData?.session){
+      throw new Error(
+        'The verification code could not be confirmed.'
+      );
+    }
+
+    const {
+      data:updateData,
+      error:updateError
+    }=await sb.auth.updateUser({
+      password
+    });
+
+    if(updateError){
+      throw updateError;
+    }
+
+    if(!updateData?.user){
+      throw new Error(
+        'Password update could not be confirmed.'
+      );
+    }
+
+    const confirmationEmailSent=
+      await sendCandidatePasswordChangeEmail();
+
+    $('settings-new-password').value='';
+    $('settings-confirm-password').value='';
+    $('settings-password-code').value='';
+
+    pendingCandidatePasswordChange=null;
+    hidePasswordVerificationStep();
+    resetSettingsPasswordEyes();
+
+    showSettingsMessage(
+      confirmationEmailSent
+        ?'Password changed successfully. Confirmation email sent.'
+        :'Password changed successfully. The confirmation email could not be sent.',
+      'success'
+    );
+
+  }catch(error){
+    const raw=String(error?.message || '').toLowerCase();
+
+    let message=
+      error?.message ||
+      'Unable to verify the code.';
+
+    if(
+      raw.includes('expired') ||
+      raw.includes('invalid') ||
+      raw.includes('token')
+    ){
+      message=
+        'That verification code is invalid or expired. Try again or resend the code.';
+    }else if(
+      raw.includes('same password') ||
+      raw.includes('different from the old password')
+    ){
+      message=
+        'Choose a password different from your current password.';
+    }
+
+    showSettingsMessage(
+      message,
+      'error'
+    );
+
+  }finally{
+    if(button){
+      button.disabled=false;
+      button.textContent=original;
+    }
+  }
+}
+
+$('settings-password-code')?.addEventListener(
+  'input',
+  event=>{
+    event.target.value=
+      event.target.value
+        .replace(/\D/g,'')
+        .slice(0,6);
+  }
+);
+
+$('settings-password-code')?.addEventListener(
+  'keydown',
+  event=>{
+    if(event.key==='Enter'){
+      verifyCandidatePasswordChange();
+    }
+  }
+);
 
 window.addEventListener('hashchange',syncCandidateView);
 
