@@ -778,14 +778,14 @@ html[data-effective-theme="dark"] .salary-handle-max{
       <div class="section-head">
         <div class="section-num">03 — Location</div>
         <div class="section-title">Where do you want to work?</div>
-        <div class="section-copy">Type 3 letters and choose a city or remote option.</div>
+        <div class="section-copy">Type 3 letters to search. Small cities work too — use City, ST.</div>
       </div>
       <div class="card">
         <div class="field">
           <label class="label" for="locationInput">City / location</label>
           <input id="locationInput" class="input" placeholder="e.g. Ral, Cha, Rem" autocomplete="off" autocorrect="off" spellcheck="false">
           <div id="locationSuggestions" class="suggestions"></div>
-          <div id="locationError" class="field-error">Choose a recognized location from the suggestions.</div>
+          <div id="locationError" class="field-error">Enter or choose a valid City, ST location.</div>
         </div>
       </div>
     </section>
@@ -1037,7 +1037,9 @@ const CITIES=[
   'Buffalo, NY','Rochester, NY','Syracuse, NY','Hartford, CT','Providence, RI',
   'Jersey City, NJ','Newark, NJ','Knoxville, TN','Chattanooga, TN','Little Rock, AR',
   'Des Moines, IA','Madison, WI','Fort Lauderdale, FL','St. Petersburg, FL',
-  'Tallahassee, FL','Savannah, GA','Myrtle Beach, SC','Remote - United States'
+  'Tallahassee, FL','Savannah, GA','Myrtle Beach, SC',
+  'Aberdeen, NC','Ahoskie, NC','Albemarle, NC','Angier, NC','Apex, NC','Archdale, NC','Archer Lodge, NC','Asheboro, NC','Ayden, NC','Banner Elk, NC','Beaufort, NC','Belmont, NC','Benson, NC','Bermuda Run, NC','Bessemer City, NC','Black Mountain, NC','Blowing Rock, NC','Boone, NC','Brevard, NC','Burgaw, NC','Burlington, NC','Butner, NC','Calabash, NC','Cameron, NC','Canton, NC','Carrboro, NC','Chapel Hill, NC','Clayton, NC','Clemmons, NC','Clinton, NC','Cornelius, NC','Creedmoor, NC','Davidson, NC','Dunn, NC','Elizabeth City, NC','Elon, NC','Franklinton, NC','Fuquay-Varina, NC','Garner, NC','Gastonia, NC','Goldsboro, NC','Graham, NC','Havelock, NC','Henderson, NC','Hendersonville, NC','Hillsborough, NC','Holly Springs, NC','Hope Mills, NC','Huntersville, NC','Indian Trail, NC','Kannapolis, NC','Kernersville, NC','Kill Devil Hills, NC','Kings Mountain, NC','Kinston, NC','Knightdale, NC','Laurinburg, NC','Leland, NC','Lenoir, NC','Lexington, NC','Lillington, NC','Lincolnton, NC','Louisburg, NC','Lumberton, NC','Manteo, NC','Marion, NC','Matthews, NC','Mebane, NC','Mint Hill, NC','Monroe, NC','Mooresville, NC','Morehead City, NC','Morganton, NC','Morrisville, NC','Mount Airy, NC','New Bern, NC','Oxford, NC','Pinehurst, NC','Pittsboro, NC','Reidsville, NC','Roanoke Rapids, NC','Rockingham, NC','Rocky Mount, NC','Rolesville, NC','Roxboro, NC','Sanford, NC','Salisbury, NC','Selma, NC','Shelby, NC','Siler City, NC','Smithfield, NC','Southern Pines, NC','Spring Lake, NC','Statesville, NC','Tarboro, NC','Thomasville, NC','Wake Forest, NC','Washington, NC','Waynesville, NC','Wendell, NC','Wilson, NC','Youngsville, NC','Zebulon, NC',
+  'Remote - United States'
 ];
 
 const STATE_NAMES={
@@ -1051,6 +1053,45 @@ const STATE_NAMES={
   SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',
   WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming'
 };
+
+const STATE_CODES=new Set(Object.keys(STATE_NAMES));
+const STATE_NAME_TO_CODE=Object.fromEntries(
+  Object.entries(STATE_NAMES).map(([code,name])=>[name.toLowerCase(),code])
+);
+
+function normalizeCustomLocation(value){
+  const raw=String(value||'').trim().replace(/\s+/g,' ');
+  if(!raw)return '';
+
+  if(/^remote(?:\s*-\s*united states)?$/i.test(raw)){
+    return 'Remote - United States';
+  }
+
+  const match=raw.match(/^([A-Za-z][A-Za-z .'-]{1,58}),\s*([A-Za-z .]{2,24})$/);
+  if(!match)return '';
+
+  const city=match[1]
+    .trim()
+    .replace(/\s+/g,' ')
+    .replace(/\b\w/g,char=>char.toUpperCase());
+
+  const stateRaw=match[2].trim();
+  const code=
+    stateRaw.length===2 && STATE_CODES.has(stateRaw.toUpperCase())
+      ?stateRaw.toUpperCase()
+      :STATE_NAME_TO_CODE[stateRaw.toLowerCase()]||'';
+
+  if(!code)return '';
+
+  return `${city}, ${code}`;
+}
+
+function locationIsUsable(value){
+  return Boolean(
+    CITIES.some(item=>normalize(item)===normalize(value)) ||
+    normalizeCustomLocation(value)
+  );
+}
 
 function $(id){return document.getElementById(id)}
 function normalize(value){return String(value||'').trim().toLowerCase()}
@@ -1198,14 +1239,51 @@ $('roleInput').addEventListener('input',()=>{
   });
 });
 
-/* Location — suggest after 3 characters and require a recognized selection. */
+/* Location — suggest after 3 characters.
+   Small towns are supported too. If a real City, ST is not in the local
+   suggestion list, the candidate can still select their properly formatted
+   location instead of being blocked by the old major-city-only list. */
 $('locationInput').addEventListener('input',()=>{
   selectedLocation='';
   $('locationError').classList.remove('show');
+
+  const input=$('locationInput');
+  const box=$('locationSuggestions');
+  const custom=normalizeCustomLocation(input.value);
+
   renderSuggestions('locationInput','locationSuggestions',CITIES,3,'Use this location',location=>{
     $('locationInput').value=location;
     selectedLocation=location;
   });
+
+  if(custom && !CITIES.some(item=>normalize(item)===normalize(custom))){
+    const existing=box.innerHTML;
+    box.innerHTML=`
+      <button type="button" class="suggestion custom-location-suggestion">
+        ${custom}<small>Use this city</small>
+      </button>
+      ${existing}
+    `;
+    box.querySelector('.custom-location-suggestion').onclick=()=>{
+      input.value=custom;
+      selectedLocation=custom;
+      closeSuggestions('locationSuggestions');
+      updateProgress();
+    };
+    box.classList.add('show');
+  }
+
+  updateProgress();
+});
+
+$('locationInput').addEventListener('blur',()=>{
+  const normalized=normalizeCustomLocation($('locationInput').value);
+  if(normalized){
+    $('locationInput').value=normalized;
+    selectedLocation=normalized;
+    $('locationError').classList.remove('show');
+    updateProgress();
+  }
 });
 
 /* Compensation */
@@ -1460,7 +1538,7 @@ function selectedBenefits(){
 
 function updateProgress(){
   const roleOkay=!$('roleInput').value.trim() || Boolean(selectedRole);
-  const locationOkay=Boolean(selectedLocation);
+  const locationOkay=Boolean(selectedLocation || normalizeCustomLocation($('locationInput').value));
   const workOkay=Boolean(selectedWorkStyle());
   const jobTypesOkay=selectedJobTypes().length>0;
   const industriesOkay=allSelectedIndustries().length>0;
@@ -1494,10 +1572,16 @@ function validate(){
   const locationText=$('locationInput').value.trim();
   if(!selectedLocation){
     const exact=CITIES.find(location=>normalize(location)===normalize(locationText));
+    const custom=normalizeCustomLocation(locationText);
+
     if(exact){
       selectedLocation=exact;
       $('locationInput').value=exact;
+    }else if(custom){
+      selectedLocation=custom;
+      $('locationInput').value=custom;
     }else{
+      $('locationError').textContent='Enter a city and state, such as Garner, NC.';
       $('locationError').classList.add('show');
       $('locationSection').scrollIntoView({behavior:'smooth',block:'start'});
       return false;
