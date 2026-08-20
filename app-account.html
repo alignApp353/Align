@@ -1263,6 +1263,31 @@ body[data-theme="dark"] .notification-icon.amber{
   cursor:pointer;
 }
 
+.settings-password-inline-message{
+  margin-top:10px;
+  padding:11px 12px;
+  border-radius:12px;
+  font-size:12px;
+  line-height:1.45;
+  font-weight:800;
+  text-align:center;
+}
+
+.settings-password-inline-message.info{
+  color:var(--brand-dark);
+  background:rgba(93,127,163,.12);
+}
+
+.settings-password-inline-message.success{
+  color:#2F9464;
+  background:rgba(111,191,143,.13);
+}
+
+.settings-password-inline-message.error{
+  color:var(--rose);
+  background:rgba(215,154,154,.13);
+}
+
 .settings-primary-btn{
   width:100%;
   min-height:50px;
@@ -2170,6 +2195,13 @@ html[data-effective-theme="dark"] .notification-icon.amber{background:#372B12!im
       >
         Resend code
       </button>
+
+      <div
+        id="settings-password-verify-message"
+        class="settings-password-inline-message"
+        hidden
+        aria-live="polite"
+      ></div>
     </div>
   </section>
 
@@ -2711,6 +2743,24 @@ async function sendCandidatePasswordChangeEmail(){
 }
 
 
+
+function setPasswordVerifyMessage(message,type='info'){
+  const box=$('settings-password-verify-message');
+
+  if(!box)return;
+
+  if(!message){
+    box.textContent='';
+    box.className='settings-password-inline-message';
+    box.hidden=true;
+    return;
+  }
+
+  box.textContent=message;
+  box.className='settings-password-inline-message '+type;
+  box.hidden=false;
+}
+
 let pendingCandidatePasswordChange=null;
 
 function resetSettingsPasswordEyes(){
@@ -2746,6 +2796,8 @@ function hidePasswordVerificationStep(){
   if(code){
     code.value='';
   }
+
+  setPasswordVerifyMessage('');
 }
 
 async function sendCandidatePasswordOtp(email){
@@ -2824,6 +2876,11 @@ async function changeCandidatePassword(){
 
     $('settings-password-email').textContent=email;
     $('settings-password-verify').hidden=false;
+
+    setPasswordVerifyMessage(
+      'Verification code sent. Enter the 6-digit code below.',
+      'success'
+    );
 
     showSettingsMessage(
       'Verification code sent. Check your email.',
@@ -2920,20 +2977,23 @@ async function verifyCandidatePasswordChange(){
     .trim();
 
   const button=$('settings-password-verify-btn');
+  const resendButton=$('settings-password-resend-btn');
 
   if(!pendingCandidatePasswordChange){
-    showSettingsMessage(
-      'Enter your new password again, then request a new code.',
-      'error'
-    );
+    const message=
+      'Enter your new password again, then request a new code.';
+
+    setPasswordVerifyMessage(message,'error');
+    showSettingsMessage(message,'error');
     return;
   }
 
   if(!/^\d{6}$/.test(code)){
-    showSettingsMessage(
-      'Enter the 6-digit verification code from your email.',
-      'error'
-    );
+    const message=
+      'Enter the 6-digit verification code from your email.';
+
+    setPasswordVerifyMessage(message,'error');
+    showSettingsMessage(message,'error');
     return;
   }
 
@@ -2945,6 +3005,15 @@ async function verifyCandidatePasswordChange(){
     button.disabled=true;
     button.textContent='Verifying…';
   }
+
+  if(resendButton){
+    resendButton.disabled=true;
+  }
+
+  setPasswordVerifyMessage(
+    'Verifying your code…',
+    'info'
+  );
 
   try{
     const {
@@ -2971,6 +3040,11 @@ async function verifyCandidatePasswordChange(){
       );
     }
 
+    setPasswordVerifyMessage(
+      'Code verified. Updating your password…',
+      'info'
+    );
+
     const {
       data:updateData,
       error:updateError
@@ -2988,25 +3062,65 @@ async function verifyCandidatePasswordChange(){
       );
     }
 
-    const confirmationEmailSent=
-      await sendCandidatePasswordChangeEmail();
-
+    // The password is already changed at this point.
+    // Do NOT make the user wait for the separate confirmation-email API.
     $('settings-new-password').value='';
     $('settings-confirm-password').value='';
     $('settings-password-code').value='';
 
     pendingCandidatePasswordChange=null;
-    hidePasswordVerificationStep();
     resetSettingsPasswordEyes();
 
-    showSettingsMessage(
-      confirmationEmailSent
-        ?'Password changed successfully. Confirmation email sent.'
-        :'Password changed successfully. The confirmation email could not be sent.',
+    setPasswordVerifyMessage(
+      'Password updated successfully.',
       'success'
     );
 
+    showSettingsMessage(
+      'Password updated successfully.',
+      'success'
+    );
+
+    if(button){
+      button.textContent='Password Updated ✓';
+    }
+
+    // Send the security confirmation email in the background.
+    // A mail/API problem must never make the password update look stuck.
+    void sendCandidatePasswordChangeEmail()
+      .then(sent=>{
+        if(sent){
+          setPasswordVerifyMessage(
+            'Password updated successfully. Confirmation email sent.',
+            'success'
+          );
+        }else{
+          console.warn(
+            'Password updated, but the confirmation email was not sent.'
+          );
+        }
+      })
+      .catch(error=>{
+        console.warn(
+          'Password confirmation email failed after successful update:',
+          error
+        );
+      });
+
+    setTimeout(()=>{
+      hidePasswordVerificationStep();
+
+      if(button){
+        button.textContent=original;
+      }
+    },2200);
+
   }catch(error){
+    console.error(
+      'Password verification/update failed:',
+      error
+    );
+
     const raw=String(error?.message || '').toLowerCase();
 
     let message=
@@ -3026,7 +3140,18 @@ async function verifyCandidatePasswordChange(){
     ){
       message=
         'Choose a password different from your current password.';
+    }else if(
+      raw.includes('password') &&
+      raw.includes('weak')
+    ){
+      message=
+        'Choose a stronger password and try again.';
     }
+
+    setPasswordVerifyMessage(
+      message,
+      'error'
+    );
 
     showSettingsMessage(
       message,
@@ -3036,7 +3161,14 @@ async function verifyCandidatePasswordChange(){
   }finally{
     if(button){
       button.disabled=false;
-      button.textContent=original;
+
+      if(button.textContent==='Verifying…'){
+        button.textContent=original;
+      }
+    }
+
+    if(resendButton){
+      resendButton.disabled=false;
     }
   }
 }
