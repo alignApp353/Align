@@ -3064,21 +3064,22 @@ function renderCandidateOnboardingGate({hasResume,previewReviewed,preferencesCom
 }
 
 
-function recommendationText(value){
-  return safeString(value).toLowerCase();
+
+function alygnnMatchText(value){
+  return String(value ?? '').trim().toLowerCase();
 }
 
-function recommendationTokens(value){
-  return recommendationText(value)
+function alygnnMatchTokens(value){
+  return alygnnMatchText(value)
     .replace(/[^a-z0-9+#. ]/g,' ')
     .split(/\s+/)
     .map(token=>token.trim())
     .filter(token=>token.length>1);
 }
 
-function tokenOverlap(a,b){
-  const left=new Set(recommendationTokens(a));
-  const right=new Set(recommendationTokens(b));
+function alygnnTokenOverlap(a,b){
+  const left=new Set(alygnnMatchTokens(a));
+  const right=new Set(alygnnMatchTokens(b));
 
   if(!left.size || !right.size)return 0;
 
@@ -3090,8 +3091,8 @@ function tokenOverlap(a,b){
   return shared/Math.max(1,Math.min(left.size,right.size));
 }
 
-function normalizeJobType(value){
-  const raw=recommendationText(value).replace(/[^a-z]/g,'');
+function alygnnNormalizeJobType(value){
+  const raw=alygnnMatchText(value).replace(/[^a-z]/g,'');
 
   if(raw.includes('fulltime'))return 'fulltime';
   if(raw.includes('parttime'))return 'parttime';
@@ -3101,7 +3102,7 @@ function normalizeJobType(value){
   return raw;
 }
 
-function recommendationSalary(job){
+function alygnnJobSalary(job){
   const min=Number(job?.salary_min);
   const max=Number(job?.salary_max);
 
@@ -3111,12 +3112,247 @@ function recommendationSalary(job){
   };
 }
 
+function alygnnJobLocation(job){
+  return String(
+    job?.location ||
+    [job?.city,job?.state].filter(Boolean).join(', ') ||
+    ''
+  ).trim();
+}
+
+function alygnnComputeMatch(job,preferences){
+  const criteria=[];
+
+  let roleValue=null;
+  let locationValue=null;
+  let workStyleValue=null;
+  let jobTypeValue=null;
+  let industryValue=null;
+  let salaryValue=null;
+
+  const wantedTitle=String(preferences?.query || '').trim();
+
+  if(wantedTitle){
+    const title=String(job?.title || '').trim();
+    let value=alygnnTokenOverlap(wantedTitle,title);
+
+    const wanted=alygnnMatchText(wantedTitle);
+    const actual=alygnnMatchText(title);
+
+    if(
+      wanted &&
+      actual &&
+      (actual.includes(wanted) || wanted.includes(actual))
+    ){
+      value=Math.max(value,.95);
+    }
+
+    roleValue=value;
+    criteria.push({key:'role',weight:34,value});
+  }
+
+  const wantedLocation=String(
+    preferences?.location ||
+    [preferences?.city,preferences?.state].filter(Boolean).join(', ') ||
+    ''
+  ).trim();
+
+  if(wantedLocation){
+    const jobLocation=alygnnJobLocation(job);
+    const wanted=alygnnMatchText(wantedLocation);
+    const actual=alygnnMatchText(jobLocation);
+    const remote=alygnnMatchText(job?.work_style).includes('remote');
+
+    let value=alygnnTokenOverlap(wantedLocation,jobLocation);
+
+    if(
+      wanted &&
+      actual &&
+      (actual.includes(wanted) || wanted.includes(actual))
+    ){
+      value=Math.max(value,1);
+    }
+
+    if(
+      alygnnMatchText(preferences?.workStyle).includes('remote') &&
+      remote
+    ){
+      value=Math.max(value,.9);
+    }
+
+    locationValue=value;
+    criteria.push({key:'location',weight:18,value});
+  }
+
+  const wantedStyle=String(preferences?.workStyle || '').trim();
+
+  if(wantedStyle){
+    const actualStyle=String(
+      job?.work_style ||
+      job?.work_arrangement ||
+      ''
+    ).trim();
+
+    const value=
+      alygnnMatchText(actualStyle)
+        .includes(alygnnMatchText(wantedStyle))
+        ?1
+        :0;
+
+    workStyleValue=value;
+    criteria.push({key:'workStyle',weight:14,value});
+  }
+
+  const wantedTypes=Array.isArray(preferences?.jobTypes)
+    ?preferences.jobTypes
+    :[preferences?.jobType].filter(Boolean);
+
+  if(wantedTypes.length){
+    const actualType=alygnnNormalizeJobType(
+      job?.job_type ||
+      job?.employment_type
+    );
+
+    const value=wantedTypes
+      .map(alygnnNormalizeJobType)
+      .includes(actualType)
+        ?1
+        :0;
+
+    jobTypeValue=value;
+    criteria.push({key:'jobType',weight:14,value});
+  }
+
+  const wantedIndustries=Array.isArray(preferences?.industries)
+    ?preferences.industries.filter(Boolean)
+    :[];
+
+  if(wantedIndustries.length){
+    const jobIndustry=String(
+      job?.industry ||
+      job?.category ||
+      job?.sector ||
+      ''
+    ).trim();
+
+    if(jobIndustry){
+      let value=0;
+
+      for(const industry of wantedIndustries){
+        value=Math.max(
+          value,
+          alygnnTokenOverlap(industry,jobIndustry)
+        );
+
+        if(
+          alygnnMatchText(jobIndustry).includes(alygnnMatchText(industry)) ||
+          alygnnMatchText(industry).includes(alygnnMatchText(jobIndustry))
+        ){
+          value=Math.max(value,1);
+        }
+      }
+
+      industryValue=value;
+      criteria.push({key:'industry',weight:10,value});
+    }
+  }
+
+  const prefMin=Number(preferences?.salary_min);
+  const prefMax=Number(preferences?.salary_max);
+  const salary=alygnnJobSalary(job);
+
+  if(
+    (Number.isFinite(prefMin) || Number.isFinite(prefMax)) &&
+    (salary.min || salary.max)
+  ){
+    const targetMin=Number.isFinite(prefMin)
+      ?prefMin
+      :0;
+
+    const targetMax=Number.isFinite(prefMax)
+      ?prefMax
+      :Number.MAX_SAFE_INTEGER;
+
+    const jobMin=salary.min || 0;
+    const jobMax=salary.max || Number.MAX_SAFE_INTEGER;
+
+    const overlaps=
+      Math.max(targetMin,jobMin) <=
+      Math.min(targetMax,jobMax);
+
+    salaryValue=overlaps?1:0;
+
+    criteria.push({
+      key:'salary',
+      weight:10,
+      value:salaryValue
+    });
+  }
+
+  if(!criteria.length){
+    return{
+      score:0,
+      breakdown:{
+        role:null,
+        work:null,
+        salary:null,
+        location:null
+      }
+    };
+  }
+
+  const weight=
+    criteria.reduce(
+      (sum,item)=>sum+item.weight,
+      0
+    );
+
+  const points=
+    criteria.reduce(
+      (sum,item)=>sum+(item.weight*item.value),
+      0
+    );
+
+  const score=Math.max(
+    0,
+    Math.min(
+      99,
+      Math.round((points/weight)*100)
+    )
+  );
+
+  const workParts=[
+    workStyleValue,
+    jobTypeValue,
+    industryValue
+  ].filter(value=>value!==null);
+
+  const workValue=
+    workParts.length
+      ?workParts.reduce((sum,value)=>sum+value,0)/workParts.length
+      :null;
+
+  return{
+    score,
+    breakdown:{
+      role:roleValue===null?null:Math.round(roleValue*100),
+      work:workValue===null?null:Math.round(workValue*100),
+      salary:salaryValue===null?null:Math.round(salaryValue*100),
+      location:locationValue===null?null:Math.round(locationValue*100)
+    }
+  };
+}
+
+function jobPreferenceFit(job,preferences){
+  return alygnnComputeMatch(job,preferences).score;
+}
+
 function recommendationSalaryText(job){
   if(safeString(job?.salary)){
     return safeString(job.salary);
   }
 
-  const {min,max}=recommendationSalary(job);
+  const {min,max}=alygnnJobSalary(job);
 
   if(min && max){
     return '$'+min.toLocaleString('en-US')+'–$'+max.toLocaleString('en-US');
@@ -3144,8 +3380,7 @@ function recommendationCompany(job){
 
 function recommendationLocation(job){
   return safeString(
-    job?.location ||
-    [job?.city,job?.state].filter(Boolean).join(', ') ||
+    alygnnJobLocation(job) ||
     'Location not listed'
   );
 }
@@ -3167,149 +3402,6 @@ function recommendationEscape(value){
     '"':'&quot;',
     "'":'&#039;'
   })[char]);
-}
-
-function jobPreferenceFit(job,preferences){
-  const criteria=[];
-
-  const wantedTitle=safeString(preferences?.query);
-  if(wantedTitle){
-    const title=safeString(job?.title);
-    let value=tokenOverlap(wantedTitle,title);
-
-    const wanted=recommendationText(wantedTitle);
-    const actual=recommendationText(title);
-
-    if(wanted && actual && (actual.includes(wanted)||wanted.includes(actual))){
-      value=Math.max(value,.95);
-    }
-
-    criteria.push({weight:34,value});
-  }
-
-  const wantedLocation=safeString(
-    preferences?.location ||
-    [preferences?.city,preferences?.state].filter(Boolean).join(', ')
-  );
-
-  if(wantedLocation){
-    const jobLocation=recommendationLocation(job);
-    const wanted=recommendationText(wantedLocation);
-    const actual=recommendationText(jobLocation);
-    const remote=recommendationText(job?.work_style).includes('remote');
-
-    let value=tokenOverlap(wantedLocation,jobLocation);
-
-    if(actual.includes(wanted)||wanted.includes(actual)){
-      value=Math.max(value,1);
-    }
-
-    if(
-      recommendationText(preferences?.workStyle).includes('remote') &&
-      remote
-    ){
-      value=Math.max(value,.9);
-    }
-
-    criteria.push({weight:18,value});
-  }
-
-  const wantedStyle=safeString(preferences?.workStyle);
-  if(wantedStyle){
-    const actualStyle=safeString(job?.work_style);
-    const value=
-      recommendationText(actualStyle).includes(recommendationText(wantedStyle))
-        ?1
-        :0;
-
-    criteria.push({weight:14,value});
-  }
-
-  const wantedTypes=Array.isArray(preferences?.jobTypes)
-    ?preferences.jobTypes
-    :[preferences?.jobType].filter(Boolean);
-
-  if(wantedTypes.length){
-    const actualType=normalizeJobType(
-      job?.job_type ||
-      job?.employment_type
-    );
-
-    const value=wantedTypes
-      .map(normalizeJobType)
-      .includes(actualType)
-        ?1
-        :0;
-
-    criteria.push({weight:14,value});
-  }
-
-  const wantedIndustries=Array.isArray(preferences?.industries)
-    ?preferences.industries.filter(Boolean)
-    :[];
-
-  if(wantedIndustries.length){
-    const jobIndustry=safeString(
-      job?.industry ||
-      job?.category ||
-      job?.sector
-    );
-
-    let value=0;
-
-    for(const industry of wantedIndustries){
-      value=Math.max(
-        value,
-        tokenOverlap(industry,jobIndustry)
-      );
-
-      if(
-        recommendationText(jobIndustry).includes(recommendationText(industry)) ||
-        recommendationText(industry).includes(recommendationText(jobIndustry))
-      ){
-        value=Math.max(value,1);
-      }
-    }
-
-    // Only count Industry as an applicable scoring criterion when the
-    // listing actually provides an industry/category.
-    if(jobIndustry){
-      criteria.push({weight:10,value});
-    }
-  }
-
-  const prefMin=Number(preferences?.salary_min);
-  const prefMax=Number(preferences?.salary_max);
-  const salary=recommendationSalary(job);
-
-  if(
-    (Number.isFinite(prefMin)||Number.isFinite(prefMax)) &&
-    (salary.min||salary.max)
-  ){
-    const targetMin=Number.isFinite(prefMin)?prefMin:0;
-    const targetMax=Number.isFinite(prefMax)?prefMax:Number.MAX_SAFE_INTEGER;
-    const jobMin=salary.min||0;
-    const jobMax=salary.max||Number.MAX_SAFE_INTEGER;
-
-    const overlaps=Math.max(targetMin,jobMin)<=Math.min(targetMax,jobMax);
-    criteria.push({weight:10,value:overlaps?1:0});
-  }
-
-  if(!criteria.length){
-    return 50;
-  }
-
-  const weight=criteria.reduce((sum,item)=>sum+item.weight,0);
-  const points=criteria.reduce((sum,item)=>sum+(item.weight*item.value),0);
-
-  // Keep the UI honest: this is a preference fit score, not an AI promise.
-  return Math.max(
-    1,
-    Math.min(
-      99,
-      Math.round((points/weight)*100)
-    )
-  );
 }
 
 function recommendationJobType(job){
@@ -3354,7 +3446,7 @@ function recommendationCard(job){
           </div>
         </div>
 
-        <div class="recommendation-fit">${fit}% fit</div>
+        <div class="recommendation-fit">${fit}% match</div>
       </div>
 
       <div class="recommendation-meta">${pills}</div>
@@ -3391,7 +3483,11 @@ async function loadRecommendedJobs(userId,preferences){
   status.textContent='Finding jobs that fit your preferences…';
 
   try{
-    const [jobsResult,applicationsResult]=await Promise.all([
+    const [
+      jobsResult,
+      applicationsResult,
+      skippedResult
+    ]=await Promise.all([
       sb
         .from('jobs')
         .select('*')
@@ -3401,6 +3497,11 @@ async function loadRecommendedJobs(userId,preferences){
 
       sb
         .from('applications')
+        .select('job_id')
+        .eq('candidate_id',userId),
+
+      sb
+        .from('skipped_jobs')
         .select('job_id')
         .eq('candidate_id',userId)
     ]);
@@ -3417,8 +3518,24 @@ async function loadRecommendedJobs(userId,preferences){
           .filter(Boolean)
     );
 
+    const skippedIds=new Set(
+      skippedResult.error
+        ?[]
+        :(skippedResult.data||[])
+          .map(row=>String(row.job_id||''))
+          .filter(Boolean)
+    );
+
     const available=(jobsResult.data||[])
-      .filter(job=>job?.id && !appliedIds.has(String(job.id)))
+      .filter(job=>{
+        const id=String(job?.id||'');
+
+        return(
+          id &&
+          !appliedIds.has(id) &&
+          !skippedIds.has(id)
+        );
+      })
       .map(job=>({
         ...job,
         _alygnnPreferenceFit:jobPreferenceFit(job,preferences)
