@@ -678,7 +678,7 @@ html[data-effective-theme="dark"] .salary-handle-max{
 <script src="app-candidate-theme.js"></script>
 <link rel="stylesheet" href="app-candidate-theme.css">
 </head>
-<body data-preferences-build="58">
+<body data-preferences-build="59">
 <div class="app">
   <header class="topbar">
     <button class="back" type="button" onclick="goBack()">← Back</button>
@@ -918,7 +918,7 @@ const COMPENSATION_CONFIG={
     periodLabel:'per year',
     min:10000,
     max:300000,
-    step:5000,
+    step:1000,
     defaultMin:40000,
     defaultMax:80000,
     floorLabel:'$10k',
@@ -1495,7 +1495,97 @@ $('locationInput').addEventListener('blur',()=>{
 });
 
 /* Compensation */
-function setCompensationType(type,preserveValues=false){
+const HOURS_PER_YEAR=2080;
+const MONTHS_PER_YEAR=12;
+
+function compensationToAnnual(value,type){
+  const amount=Number(value)||0;
+
+  if(type==='monthly'){
+    return amount*MONTHS_PER_YEAR;
+  }
+
+  if(type==='hourly'){
+    return amount*HOURS_PER_YEAR;
+  }
+
+  return amount;
+}
+
+function annualToCompensation(value,type){
+  const annual=Number(value)||0;
+
+  if(type==='monthly'){
+    return annual/MONTHS_PER_YEAR;
+  }
+
+  if(type==='hourly'){
+    return annual/HOURS_PER_YEAR;
+  }
+
+  return annual;
+}
+
+function snapCompensationValue(value,type){
+  const config=COMPENSATION_CONFIG[type];
+  const amount=Number(value);
+
+  if(!Number.isFinite(amount)){
+    return config.defaultMin;
+  }
+
+  const snapped=
+    Math.round(amount/config.step)*config.step;
+
+  const decimals=
+    String(config.step).includes('.')
+      ?String(config.step).split('.')[1].length
+      :0;
+
+  return Number(snapped.toFixed(decimals));
+}
+
+function clampCompensationRange(minValue,maxValue,type){
+  const config=COMPENSATION_CONFIG[type];
+
+  let min=snapCompensationValue(minValue,type);
+  let max=snapCompensationValue(maxValue,type);
+
+  min=Math.max(
+    config.min,
+    Math.min(config.max-config.step,min)
+  );
+
+  max=Math.max(
+    min+config.step,
+    Math.min(config.max,max)
+  );
+
+  if(max<=min){
+    max=Math.min(
+      config.max,
+      min+config.step
+    );
+  }
+
+  return {min,max};
+}
+
+function convertCompensationRange(minValue,maxValue,fromType,toType){
+  const annualMin=
+    compensationToAnnual(minValue,fromType);
+
+  const annualMax=
+    compensationToAnnual(maxValue,fromType);
+
+  return clampCompensationRange(
+    annualToCompensation(annualMin,toType),
+    annualToCompensation(annualMax,toType),
+    toType
+  );
+}
+
+function setCompensationType(type,preserveValues=false,convertedRange=null){
   compensationType=COMPENSATION_CONFIG[type]?type:'yearly';
   const config=COMPENSATION_CONFIG[compensationType];
   const minInput=$('salaryMin');
@@ -1513,21 +1603,29 @@ function setCompensationType(type,preserveValues=false){
   maxInput.max=config.max;
   maxInput.step=config.step;
 
-  if(!preserveValues){
+  if(convertedRange){
+    const range=clampCompensationRange(
+      convertedRange.min,
+      convertedRange.max,
+      compensationType
+    );
+
+    minInput.value=range.min;
+    maxInput.value=range.max;
+
+  }else if(!preserveValues){
     minInput.value=config.defaultMin;
     maxInput.value=config.defaultMax;
+
   }else{
-    let min=Number(minInput.value);
-    let max=Number(maxInput.value);
+    const range=clampCompensationRange(
+      Number(minInput.value),
+      Number(maxInput.value),
+      compensationType
+    );
 
-    if(!Number.isFinite(min))min=config.defaultMin;
-    if(!Number.isFinite(max))max=config.defaultMax;
-
-    min=Math.max(config.min,Math.min(config.max-config.step,min));
-    max=Math.max(min+config.step,Math.min(config.max,max));
-
-    minInput.value=min;
-    maxInput.value=max;
+    minInput.value=range.min;
+    maxInput.value=range.max;
   }
 
   $('compensationPeriod').textContent=config.periodLabel;
@@ -1538,6 +1636,38 @@ function setCompensationType(type,preserveValues=false){
   renderSalaryQuickChips(
     Number(minInput.value),
     Number(maxInput.value)
+  );
+}
+
+function switchCompensationType(nextType){
+  if(
+    !COMPENSATION_CONFIG[nextType] ||
+    nextType===compensationType
+  ){
+    return;
+  }
+
+  const previousType=compensationType;
+
+  const currentMin=Number(
+    $('salaryMin').value
+  );
+
+  const currentMax=Number(
+    $('salaryMax').value
+  );
+
+  const convertedRange=convertCompensationRange(
+    currentMin,
+    currentMax,
+    previousType,
+    nextType
+  );
+
+  setCompensationType(
+    nextType,
+    false,
+    convertedRange
   );
 }
 
@@ -1580,7 +1710,9 @@ function updateSalary(){
 
 document.querySelectorAll('#compTypeOptions .comp-type-btn').forEach(button=>{
   button.onclick=()=>{
-    setCompensationType(button.dataset.type,false);
+    switchCompensationType(
+      button.dataset.type
+    );
   };
 });
 
@@ -1827,6 +1959,18 @@ function collectPreferences(){
     pay_type:compensationType,
     salary_min:Number($('salaryMin').value),
     salary_max:Number($('salaryMax').value),
+    annual_salary_min:Math.round(
+      compensationToAnnual(
+        Number($('salaryMin').value),
+        compensationType
+      )
+    ),
+    annual_salary_max:Math.round(
+      compensationToAnnual(
+        Number($('salaryMax').value),
+        compensationType
+      )
+    ),
     workStyle:selectedWorkStyle(),
     jobType:jobTypes[0]||'',
     jobTypes,
