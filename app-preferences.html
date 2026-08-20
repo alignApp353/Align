@@ -678,7 +678,7 @@ html[data-effective-theme="dark"] .salary-handle-max{
 <script src="app-candidate-theme.js"></script>
 <link rel="stylesheet" href="app-candidate-theme.css">
 </head>
-<body>
+<body data-preferences-build="58">
 <div class="app">
   <header class="topbar">
     <button class="back" type="button" onclick="goBack()">← Back</button>
@@ -783,7 +783,16 @@ html[data-effective-theme="dark"] .salary-handle-max{
       <div class="card">
         <div class="field">
           <label class="label" for="locationInput">City / location</label>
-          <input id="locationInput" class="input" placeholder="e.g. Ral, Cha, Rem" autocomplete="off" autocorrect="off" spellcheck="false">
+          <input
+  id="locationInput"
+  class="input"
+  placeholder="e.g. Raleigh, Seven Springs, Remote"
+  autocomplete="off"
+  autocorrect="off"
+  spellcheck="false"
+  oninput="handleLocationPreferenceInput()"
+  onfocus="handleLocationPreferenceInput()"
+>
           <div id="locationSuggestions" class="suggestions"></div>
           <div id="locationError" class="field-error">Enter or choose a valid City, ST location.</div>
         </div>
@@ -899,6 +908,7 @@ let currentSession=null;
 let profile=null;
 let onboardingMode=true;
 let selectedLocation='';
+let locationStateHint='';
 let selectedRole='';
 const EDIT_MODE=new URLSearchParams(window.location.search).get('edit')==='1';
 
@@ -1038,7 +1048,7 @@ const CITIES=[
   'Jersey City, NJ','Newark, NJ','Knoxville, TN','Chattanooga, TN','Little Rock, AR',
   'Des Moines, IA','Madison, WI','Fort Lauderdale, FL','St. Petersburg, FL',
   'Tallahassee, FL','Savannah, GA','Myrtle Beach, SC',
-  'Aberdeen, NC','Ahoskie, NC','Albemarle, NC','Angier, NC','Apex, NC','Archdale, NC','Archer Lodge, NC','Asheboro, NC','Ayden, NC','Banner Elk, NC','Beaufort, NC','Belmont, NC','Benson, NC','Bermuda Run, NC','Bessemer City, NC','Black Mountain, NC','Blowing Rock, NC','Boone, NC','Brevard, NC','Burgaw, NC','Burlington, NC','Butner, NC','Calabash, NC','Cameron, NC','Canton, NC','Carrboro, NC','Chapel Hill, NC','Clayton, NC','Clemmons, NC','Clinton, NC','Cornelius, NC','Creedmoor, NC','Davidson, NC','Dunn, NC','Elizabeth City, NC','Elon, NC','Franklinton, NC','Fuquay-Varina, NC','Garner, NC','Gastonia, NC','Goldsboro, NC','Graham, NC','Havelock, NC','Henderson, NC','Hendersonville, NC','Hillsborough, NC','Holly Springs, NC','Hope Mills, NC','Huntersville, NC','Indian Trail, NC','Kannapolis, NC','Kernersville, NC','Kill Devil Hills, NC','Kings Mountain, NC','Kinston, NC','Knightdale, NC','Laurinburg, NC','Leland, NC','Lenoir, NC','Lexington, NC','Lillington, NC','Lincolnton, NC','Louisburg, NC','Lumberton, NC','Manteo, NC','Marion, NC','Matthews, NC','Mebane, NC','Mint Hill, NC','Monroe, NC','Mooresville, NC','Morehead City, NC','Morganton, NC','Morrisville, NC','Mount Airy, NC','New Bern, NC','Oxford, NC','Pinehurst, NC','Pittsboro, NC','Reidsville, NC','Roanoke Rapids, NC','Rockingham, NC','Rocky Mount, NC','Rolesville, NC','Roxboro, NC','Sanford, NC','Salisbury, NC','Selma, NC','Shelby, NC','Siler City, NC','Smithfield, NC','Southern Pines, NC','Spring Lake, NC','Statesville, NC','Tarboro, NC','Thomasville, NC','Wake Forest, NC','Washington, NC','Waynesville, NC','Wendell, NC','Wilson, NC','Youngsville, NC','Zebulon, NC',
+  'Aberdeen, NC','Ahoskie, NC','Albemarle, NC','Angier, NC','Apex, NC','Archdale, NC','Archer Lodge, NC','Asheboro, NC','Ayden, NC','Banner Elk, NC','Beaufort, NC','Belmont, NC','Benson, NC','Bermuda Run, NC','Bessemer City, NC','Black Mountain, NC','Blowing Rock, NC','Boone, NC','Brevard, NC','Burgaw, NC','Burlington, NC','Butner, NC','Calabash, NC','Cameron, NC','Canton, NC','Carrboro, NC','Chapel Hill, NC','Clayton, NC','Clemmons, NC','Clinton, NC','Cornelius, NC','Creedmoor, NC','Davidson, NC','Dunn, NC','Elizabeth City, NC','Elon, NC','Franklinton, NC','Fuquay-Varina, NC','Garner, NC','Gastonia, NC','Goldsboro, NC','Graham, NC','Havelock, NC','Henderson, NC','Hendersonville, NC','Hillsborough, NC','Holly Springs, NC','Hope Mills, NC','Huntersville, NC','Indian Trail, NC','Kannapolis, NC','Kernersville, NC','Kill Devil Hills, NC','Kings Mountain, NC','Kinston, NC','Knightdale, NC','Laurinburg, NC','Leland, NC','Lenoir, NC','Lexington, NC','Lillington, NC','Lincolnton, NC','Louisburg, NC','Lumberton, NC','Manteo, NC','Marion, NC','Matthews, NC','Mebane, NC','Mint Hill, NC','Monroe, NC','Mooresville, NC','Morehead City, NC','Morganton, NC','Morrisville, NC','Mount Airy, NC','New Bern, NC','Oxford, NC','Pinehurst, NC','Pittsboro, NC','Reidsville, NC','Roanoke Rapids, NC','Rockingham, NC','Rocky Mount, NC','Rolesville, NC','Roxboro, NC','Sanford, NC','Salisbury, NC','Selma, NC','Seven Springs, NC','Shelby, NC','Siler City, NC','Smithfield, NC','Southern Pines, NC','Spring Lake, NC','Statesville, NC','Tarboro, NC','Thomasville, NC','Wake Forest, NC','Washington, NC','Waynesville, NC','Wendell, NC','Wilson, NC','Youngsville, NC','Zebulon, NC',
   'Remote - United States'
 ];
 
@@ -1084,6 +1094,26 @@ function normalizeCustomLocation(value){
   if(!code)return '';
 
   return `${city}, ${code}`;
+}
+
+
+function titleCaseLocationName(value){
+  return String(value||'')
+    .trim()
+    .replace(/\s+/g,' ')
+    .toLowerCase()
+    .replace(/\b[a-z]/g,char=>char.toUpperCase());
+}
+
+function extractStateHint(value){
+  const match=String(value||'')
+    .trim()
+    .match(/,\s*([A-Za-z]{2})$/);
+
+  if(!match)return '';
+
+  const code=match[1].toUpperCase();
+  return STATE_CODES.has(code)?code:'';
 }
 
 function locationIsUsable(value){
@@ -1207,7 +1237,7 @@ function renderSuggestions(inputId,boxId,items,minChars,label,onSelect){
     .slice(0,8);
 
   if(!matches.length){
-    box.innerHTML='<div class="suggestion-empty">No recognized match found. Try a broader term.</div>';
+    box.innerHTML='<div class="suggestion-empty">No matching option found.</div>';
     box.classList.add('show');
     return;
   }
@@ -1239,42 +1269,220 @@ $('roleInput').addEventListener('input',()=>{
   });
 });
 
+
+function normalizeLocationSearch(value){
+  return String(value||'')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g,' ')
+    .trim()
+    .replace(/\s+/g,' ');
+}
+
+function singularizeLocationToken(token){
+  if(token.length>4 && token.endsWith('s')){
+    return token.slice(0,-1);
+  }
+  return token;
+}
+
+function locationSearchTokens(value){
+  return normalizeLocationSearch(value)
+    .split(' ')
+    .filter(Boolean)
+    .map(singularizeLocationToken);
+}
+
+function locationMatchesQuery(location,query){
+  const fullLocation=normalizeLocationSearch(location);
+  const fullQuery=normalizeLocationSearch(query);
+
+  if(!fullQuery)return false;
+
+  const cityPart=normalizeLocationSearch(
+    String(location||'').split(',')[0]
+  );
+
+  // Exact/partial city-name matching comes first.
+  if(
+    cityPart.includes(fullQuery) ||
+    cityPart.startsWith(fullQuery) ||
+    fullQuery.startsWith(cityPart)
+  ){
+    return true;
+  }
+
+  if(fullLocation.includes(fullQuery)){
+    return true;
+  }
+
+  // Tolerate singular/plural differences:
+  // Seven spring -> Seven Springs, NC
+  const locationTokens=locationSearchTokens(cityPart);
+  const queryTokens=locationSearchTokens(fullQuery);
+
+  if(!queryTokens.length)return false;
+
+  return queryTokens.every(queryToken=>
+    locationTokens.some(locationToken=>
+      locationToken===queryToken ||
+      locationToken.startsWith(queryToken) ||
+      queryToken.startsWith(locationToken)
+    )
+  );
+}
+
+function renderLocationSuggestions(){
+  const input=$('locationInput');
+  const box=$('locationSuggestions');
+  const raw=input.value.trim();
+
+  if(raw.length<3){
+    closeSuggestions('locationSuggestions');
+    return;
+  }
+
+  const matches=CITIES
+    .filter(location=>locationMatchesQuery(location,raw))
+    .sort((a,b)=>{
+      const aa=normalizeLocationSearch(a);
+      const bb=normalizeLocationSearch(b);
+      const qq=normalizeLocationSearch(raw);
+
+      const aStarts=aa.startsWith(qq)?0:1;
+      const bStarts=bb.startsWith(qq)?0:1;
+
+      return aStarts-bStarts || aa.localeCompare(bb);
+    })
+    .slice(0,10);
+
+  box.innerHTML='';
+
+  matches.forEach(location=>{
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='suggestion';
+    button.innerHTML=
+      `${location}<small>Use this location</small>`;
+
+    button.onclick=()=>{
+      input.value=location;
+      selectedLocation=location;
+      locationStateHint=
+        extractStateHint(location) ||
+        locationStateHint;
+
+      input.dataset.lastLocation=location;
+
+      closeSuggestions('locationSuggestions');
+      $('locationError').classList.remove('show');
+      updateProgress();
+    };
+
+    box.appendChild(button);
+  });
+
+  const custom=normalizeCustomLocation(raw);
+
+  if(
+    custom &&
+    !matches.some(
+      location=>
+        normalizeLocationSearch(location)===
+        normalizeLocationSearch(custom)
+    )
+  ){
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='suggestion custom-location-suggestion';
+    button.innerHTML=
+      `${custom}<small>Use this city</small>`;
+
+    button.onclick=()=>{
+      input.value=custom;
+      selectedLocation=custom;
+      locationStateHint=
+        extractStateHint(custom) ||
+        locationStateHint;
+
+      input.dataset.lastLocation=custom;
+
+      closeSuggestions('locationSuggestions');
+      $('locationError').classList.remove('show');
+      updateProgress();
+    };
+
+    box.prepend(button);
+  }
+
+  /*
+   * If the user entered only a town name, infer the state only when:
+   * 1) there is a saved state hint, OR
+   * 2) exactly one known city match exists.
+   */
+  const cityOnly=
+    raw.length>=3 &&
+    !raw.includes(',') &&
+    /^[A-Za-z][A-Za-z .'-]{1,58}$/.test(raw);
+
+  if(cityOnly && !matches.length && locationStateHint){
+    const inferred=
+      `${titleCaseLocationName(raw)}, ${locationStateHint}`;
+
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='suggestion inferred-location-suggestion';
+    button.innerHTML=
+      `${inferred}<small>Use this city</small>`;
+
+    button.onclick=()=>{
+      input.value=inferred;
+      selectedLocation=inferred;
+      input.dataset.lastLocation=inferred;
+
+      closeSuggestions('locationSuggestions');
+      $('locationError').classList.remove('show');
+      updateProgress();
+    };
+
+    box.appendChild(button);
+  }
+
+  if(!box.children.length){
+    box.innerHTML=`
+      <div class="suggestion-empty">
+        No match yet. Try adding the state, for example: Seven Springs, NC.
+      </div>
+    `;
+  }
+
+  box.classList.add('show');
+}
+
 /* Location — suggest after 3 characters.
    Small towns are supported too. If a real City, ST is not in the local
    suggestion list, the candidate can still select their properly formatted
    location instead of being blocked by the old major-city-only list. */
-$('locationInput').addEventListener('input',()=>{
+function handleLocationPreferenceInput(){
+  const input=$('locationInput');
+
+  if(!input)return;
+
+  const previousLocation=
+    selectedLocation ||
+    input.dataset.lastLocation ||
+    '';
+
+  if(!locationStateHint){
+    locationStateHint=
+      extractStateHint(previousLocation);
+  }
+
   selectedLocation='';
   $('locationError').classList.remove('show');
 
-  const input=$('locationInput');
-  const box=$('locationSuggestions');
-  const custom=normalizeCustomLocation(input.value);
-
-  renderSuggestions('locationInput','locationSuggestions',CITIES,3,'Use this location',location=>{
-    $('locationInput').value=location;
-    selectedLocation=location;
-  });
-
-  if(custom && !CITIES.some(item=>normalize(item)===normalize(custom))){
-    const existing=box.innerHTML;
-    box.innerHTML=`
-      <button type="button" class="suggestion custom-location-suggestion">
-        ${custom}<small>Use this city</small>
-      </button>
-      ${existing}
-    `;
-    box.querySelector('.custom-location-suggestion').onclick=()=>{
-      input.value=custom;
-      selectedLocation=custom;
-      closeSuggestions('locationSuggestions');
-      updateProgress();
-    };
-    box.classList.add('show');
-  }
-
+  renderLocationSuggestions();
   updateProgress();
-});
+}
 
 $('locationInput').addEventListener('blur',()=>{
   const normalized=normalizeCustomLocation($('locationInput').value);
@@ -1644,11 +1852,15 @@ function prefill(saved){
 
   const location=saved.location || [saved.city,saved.state].filter(Boolean).join(', ');
   if(location){
+    locationStateHint=extractStateHint(location) || locationStateHint;
+    $('locationInput').dataset.lastLocation=location;
+
     const exact=CITIES.find(item=>normalize(item)===normalize(location));
+
     if(exact){
       selectedLocation=exact;
       $('locationInput').value=exact;
-    }else if(saved.city){
+    }else if(saved.city || normalizeCustomLocation(location)){
       // Preserve existing valid-looking saved data while the user edits it.
       selectedLocation=location;
       $('locationInput').value=location;
