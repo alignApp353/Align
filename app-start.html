@@ -227,5 +227,64 @@ candidateChoice.addEventListener('click',()=>chooseExperience('candidate'));
 employerChoice.addEventListener('click',()=>chooseExperience('employer'));
 document.getElementById('sign-in-link').addEventListener('click',()=>{localStorage.setItem('alygnn_account_type','candidate');window.location.href='app-login.html'});
 </script>
+
+<div id="theme-debug-panel" style="
+  position:fixed;
+  z-index:999999;
+  left:10px;
+  bottom:10px;
+  max-width:calc(100vw - 20px);
+  padding:8px 10px;
+  border-radius:10px;
+  background:rgba(0,0,0,.82);
+  color:#fff;
+  font:600 11px/1.35 monospace;
+  text-align:left;
+  pointer-events:none;
+">
+  Theme diagnostic loading…
+</div>
+
+<script>
+(function(){
+  const panel=document.getElementById('theme-debug-panel');
+
+  function renderThemeDebug(){
+    const mediaDark=
+      window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    const mediaLight=
+      window.matchMedia('(prefers-color-scheme: light)').matches;
+
+    const computedBg=
+      getComputedStyle(document.body).backgroundColor;
+
+    const storedCandidate=
+      localStorage.getItem('alygnn_candidate_theme');
+
+    const storedLegacy=
+      localStorage.getItem('alygnn-theme');
+
+    panel.textContent=
+      'WebView prefers dark: '+mediaDark+
+      ' | prefers light: '+mediaLight+
+      ' | body bg: '+computedBg+
+      ' | saved candidate: '+storedCandidate+
+      ' | saved legacy: '+storedLegacy;
+  }
+
+  renderThemeDebug();
+
+  const darkMedia=
+    window.matchMedia('(prefers-color-scheme: dark)');
+
+  darkMedia.addEventListener?.('change',renderThemeDebug);
+
+  window.addEventListener('pageshow',renderThemeDebug);
+  window.addEventListener('focus',renderThemeDebug);
+
+  setInterval(renderThemeDebug,500);
+})();
+</script>
 </body>
 </html>
