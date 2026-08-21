@@ -770,13 +770,6 @@ html[data-effective-theme="dark"] .existing-account-card{
         <span class="social-icon google-g">G</span>
         Continue with Google
       </button>
-
-      <button class="social-btn" id="apple-btn" type="button">
-        <svg class="social-icon apple-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M17.1 12.6c0-2.5 2-3.7 2.1-3.8-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-2-1-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.8 1.3 10.3.9 1.2 1.9 2.6 3.3 2.5 1.3-.1 1.8-.8 3.4-.8s2.1.8 3.5.8c1.4 0 2.4-1.3 3.2-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.2Zm-2.4-7.2c.7-.9 1.2-2.1 1-3.4-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2-1.1 3.2 1.2.1 2.5-.6 3.3-1.4Z"></path>
-        </svg>
-        Continue with Apple
-      </button>
     </div>
   </section>
 
@@ -842,6 +835,103 @@ const sb=supabase.createClient(
     }
   }
 );
+
+const ALYGNN_NATIVE_OAUTH_REDIRECT='alygnn://auth/callback';
+
+function isNativeCapacitor(){
+  try{
+    return !!(
+      window.Capacitor &&
+      typeof window.Capacitor.isNativePlatform==='function' &&
+      window.Capacitor.isNativePlatform()
+    );
+  }catch(_error){
+    return false;
+  }
+}
+
+function nativePlugin(name){
+  return window.Capacitor?.Plugins?.[name] || null;
+}
+
+function callbackParams(url){
+  const parsed=new URL(url);
+  const query=parsed.searchParams;
+  const hash=new URLSearchParams((parsed.hash||'').replace(/^#/,''));
+
+  return {
+    accessToken:hash.get('access_token')||query.get('access_token'),
+    refreshToken:hash.get('refresh_token')||query.get('refresh_token'),
+    code:query.get('code')||hash.get('code'),
+    error:query.get('error_description')||hash.get('error_description')||
+      query.get('error')||hash.get('error')
+  };
+}
+
+async function consumeNativeOAuthCallback(url){
+  if(!url || !url.startsWith(ALYGNN_NATIVE_OAUTH_REDIRECT)) return false;
+
+  const params=callbackParams(url);
+
+  if(params.error){
+    throw new Error(decodeURIComponent(params.error.replace(/\+/g,' ')));
+  }
+
+  if(params.accessToken && params.refreshToken){
+    const {error}=await sb.auth.setSession({
+      access_token:params.accessToken,
+      refresh_token:params.refreshToken
+    });
+    if(error) throw error;
+  }else if(params.code){
+    const {error}=await sb.auth.exchangeCodeForSession(params.code);
+    if(error) throw error;
+  }else{
+    throw new Error('Google sign-up returned to Alygnn without a session.');
+  }
+
+  try{
+    const Browser=nativePlugin('Browser');
+    if(Browser?.close) await Browser.close();
+  }catch(_error){}
+
+  return true;
+}
+
+async function finishGoogleSignup(url){
+  try{
+    const handled=await consumeNativeOAuthCallback(url);
+    if(!handled) return;
+
+    localStorage.setItem('alygnn_account_type','candidate');
+    localStorage.setItem('alygnn_google_auth_mode','signup');
+
+    location.replace('app-google-set-password.html');
+  }catch(error){
+    setSignupMessage(
+      error?.message || 'Unable to finish Google sign-up.',
+      'error'
+    );
+  }
+}
+
+async function setupNativeGoogleReturn(){
+  if(!isNativeCapacitor()) return;
+
+  const App=nativePlugin('App');
+  if(!App) return;
+
+  await App.addListener('appUrlOpen',({url})=>{
+    finishGoogleSignup(url);
+  });
+
+  const launch=await App.getLaunchUrl();
+
+  if(launch?.url){
+    await finishGoogleSignup(launch.url);
+  }
+}
+
 
 let pendingSignupEmail="";
 
@@ -1094,27 +1184,58 @@ async function resendVerificationCode(){
 async function googleSignup(){
   setSignupMessage("","");
 
-  const {error}=await sb.auth.signInWithOAuth({
-    provider:"google",
-    options:{
-      redirectTo:"https://alygnn.com/app-account.html",
-      queryParams:{
-        prompt:"select_account"
-      }
-    }
-  });
+  localStorage.setItem('alygnn_account_type','candidate');
+  localStorage.setItem('alygnn_google_auth_mode','signup');
 
-  if(error){
-    setSignupMessage(error.message||"Unable to continue with Google.","error");
+  try{
+    if(isNativeCapacitor()){
+      const {data,error}=await sb.auth.signInWithOAuth({
+        provider:'google',
+        options:{
+          redirectTo:ALYGNN_NATIVE_OAUTH_REDIRECT,
+          skipBrowserRedirect:true,
+          queryParams:{
+            prompt:'select_account'
+          }
+        }
+      });
+
+      if(error) throw error;
+      if(!data?.url) throw new Error('Unable to open Google sign-up.');
+
+      const Browser=nativePlugin('Browser');
+
+      if(Browser?.open){
+        await Browser.open({
+          url:data.url,
+          toolbarColor:'#071722'
+        });
+      }else{
+        window.location.href=data.url;
+      }
+
+      return;
+    }
+
+    const {error}=await sb.auth.signInWithOAuth({
+      provider:'google',
+      options:{
+        redirectTo:'https://alygnn.com/app-google-set-password.html',
+        queryParams:{
+          prompt:'select_account'
+        }
+      }
+    });
+
+    if(error) throw error;
+  }catch(error){
+    setSignupMessage(
+      error?.message || 'Unable to continue with Google.',
+      'error'
+    );
   }
 }
 
-function appleSignup(){
-  setSignupMessage(
-    "Apple sign-up is not connected yet. Use email or Google for now.",
-    "error"
-  );
-}
 
 document
   .getElementById("create-account-btn")
@@ -1138,9 +1259,8 @@ document
   .getElementById("google-btn")
   .addEventListener("click",googleSignup);
 
-document
-  .getElementById("apple-btn")
-  .addEventListener("click",appleSignup);
+setupNativeGoogleReturn();
+
 
 document
   .getElementById("verify-btn")
