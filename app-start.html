@@ -10,20 +10,10 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <script>
 (function(){
-  const preference=
-    localStorage.getItem('alygnn_candidate_theme') ||
-    localStorage.getItem('alygnn-theme') ||
-    'system';
-
   const media=window.matchMedia('(prefers-color-scheme: dark)');
 
-  function apply(){
-    const effective=
-      preference==='dark'
-        ?'dark'
-        :preference==='light'
-          ?'light'
-          :(media.matches?'dark':'light');
+  function applySystemTheme(){
+    const effective=media.matches?'dark':'light';
 
     document.documentElement.dataset.effectiveTheme=effective;
 
@@ -38,11 +28,8 @@
     }
   }
 
-  apply();
-
-  if(preference==='system'){
-    media.addEventListener?.('change',apply);
-  }
+  applySystemTheme();
+  media.addEventListener?.('change',applySystemTheme);
 })();
 </script>
 <style>
