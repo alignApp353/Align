@@ -39,6 +39,21 @@
       applySystemTheme();
     }
   });
+
+  // Cold-start safeguard:
+  // Some Android WebView versions report the old UI mode for the first
+  // few frames while the Activity finishes applying DayNight.
+  // Recheck briefly, then stop.
+  let coldStartChecks=0;
+
+  const coldStartThemeTimer=setInterval(()=>{
+    applySystemTheme();
+    coldStartChecks+=1;
+
+    if(coldStartChecks>=20){
+      clearInterval(coldStartThemeTimer);
+    }
+  },100);
 })();
 </script>
 <style>
@@ -155,6 +170,52 @@ html[data-effective-theme="dark"] .transition-icon.candidate{
 
 html[data-effective-theme="dark"] .transition-icon.employer{
   background:#1B3150;
+}
+
+
+@media (prefers-color-scheme: dark){
+  html:not([data-effective-theme="light"]){
+    --brand:#6E94BB;
+    --brand-dark:#82A7CE;
+    --sage:#8CB69B;
+    --bg:#071722;
+    --text:#F4F7FA;
+    --muted:#A3B1BF;
+    --border:#2A3B49;
+    --candidate:#2CB276;
+    --employer:#4E7ED8;
+  }
+
+  html:not([data-effective-theme="light"]) body{
+    background:
+      radial-gradient(circle at 15% 10%,rgba(140,182,155,.08),transparent 28%),
+      radial-gradient(circle at 90% 80%,rgba(93,127,163,.11),transparent 30%),
+      var(--bg);
+  }
+
+  html:not([data-effective-theme="light"]) .choice.candidate{
+    background:linear-gradient(
+      120deg,
+      rgba(18,54,41,.92),
+      rgba(15,32,44,.98)
+    );
+  }
+
+  html:not([data-effective-theme="light"]) .choice.employer{
+    background:linear-gradient(
+      120deg,
+      rgba(25,43,69,.96),
+      rgba(15,32,44,.98)
+    );
+  }
+
+  html:not([data-effective-theme="light"]) .choice-title{
+    color:#F4F7FA;
+  }
+
+  html:not([data-effective-theme="light"]) .choice-copy{
+    color:#A3B1BF;
+  }
 }
 
 </style>
