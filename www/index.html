@@ -269,6 +269,33 @@ function oauthShow(text,type='error'){
 }
 
 
+
+function isGoogleOnlyAccount(user){
+  if(!user) return false;
+
+  const primary=String(user.app_metadata?.provider||'').toLowerCase();
+  const providers=Array.isArray(user.app_metadata?.providers)
+    ? user.app_metadata.providers.map(v=>String(v).toLowerCase())
+    : [];
+
+  return primary==='google' ||
+    (providers.length===1 && providers[0]==='google');
+}
+
+function hasAlygnnPassword(user){
+  return user?.user_metadata?.alygnn_password_set===true;
+}
+
+function destinationAfterGoogle(session, fallback){
+  const user=session?.user;
+
+  if(isGoogleOnlyAccount(user) && !hasAlygnnPassword(user)){
+    return 'app-google-set-password.html';
+  }
+
+  return fallback;
+}
+
 const SPLASH_MIN_MS=1250;
 const splashStartedAt=Date.now();
 
@@ -307,10 +334,17 @@ if(isNativeCapacitor()){
               localStorage.getItem('alygnn_account_type')||
               'candidate';
 
-            window.location.replace(
+            const {data:sessionData}=await sb.auth.getSession();
+
+            const fallback=
               accountType==='employer'
                 ?'app-employer-dashboard.html'
-                :'app-account.html'
+                :'app-account.html';
+
+            window.location.replace(
+              accountType==='candidate'
+                ?destinationAfterGoogle(sessionData.session,fallback)
+                :fallback
             );
           }catch(error){
             console.error('OAuth callback error:',error);
@@ -342,10 +376,15 @@ if(isNativeCapacitor()){
         localStorage.getItem('alygnn_account_type') ||
         'candidate';
 
-      destination=
+      const fallback=
         accountType==='employer'
           ?'app-employer-dashboard.html'
           :'app-account.html';
+
+      destination=
+        accountType==='candidate'
+          ?destinationAfterGoogle(data.session,fallback)
+          :fallback;
     }
 
   }catch(err){
