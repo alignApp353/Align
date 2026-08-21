@@ -675,10 +675,12 @@ html[data-effective-theme="dark"] .salary-handle-max{
 
 
 
+
 /* =========================================================
-   V78 — Dedicated Android WebView scroll surface
-   Do not rely on document/body scrolling inside Capacitor.
-   .app is now the single vertical scroll container.
+   V79 — Stable Capacitor scroll layout
+   Header/progress and save button are layout rows.
+   ONLY <main> scrolls. No body scroll, no nested full-page
+   scroll surface, no sticky/fixed element fighting WebView.
    ========================================================= */
 
 html,
@@ -691,46 +693,79 @@ body{
 }
 
 body{
-  position:fixed!important;
-  inset:0!important;
+  padding-bottom:0!important;
 }
 
 .app{
-  position:relative;
   width:100%;
   max-width:560px;
   height:100dvh!important;
   min-height:0!important;
   margin:0 auto;
-  padding-bottom:calc(118px + env(safe-area-inset-bottom));
+  padding:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+
+/* These rows stay visible because main is the only scroll area. */
+.topbar{
+  position:relative!important;
+  top:auto!important;
+  flex:0 0 auto!important;
+}
+
+.stage{
+  flex:0 0 auto!important;
+}
+
+/* This is the ONE and ONLY vertical scroll container. */
+main{
+  display:block!important;
+  flex:1 1 auto!important;
+  min-height:0!important;
+  height:auto!important;
   overflow-x:hidden!important;
-  overflow-y:scroll!important;
+  overflow-y:auto!important;
   -webkit-overflow-scrolling:touch;
   overscroll-behavior-y:contain;
   touch-action:pan-y;
+  padding-bottom:26px!important;
   scrollbar-width:none;
 }
 
-.app::-webkit-scrollbar{
+main::-webkit-scrollbar{
   display:none;
 }
 
-main,
+/* Never turn content cards into competing scroll surfaces. */
 .intro,
 .section,
-.card{
+.card,
+.field,
+.choice-grid,
+.benefit-grid,
+.job-grid,
+.chips,
+.industry-search{
   overflow:visible;
 }
 
-/* Keep the save bar above the dedicated scroll surface. */
+/* The save bar is now the final flex row, not position:fixed. */
 .bottom-save{
-  position:fixed!important;
-  left:0;
-  right:0;
-  bottom:0;
+  position:relative!important;
+  left:auto!important;
+  right:auto!important;
+  bottom:auto!important;
+  flex:0 0 auto!important;
+  width:100%;
+  max-width:none!important;
+  margin:0!important;
+  z-index:120;
 }
 
-/* Do not let a generic component rule disable vertical page gestures. */
+/* Normal page swipes remain vertical. */
+main,
 .intro,
 .section,
 .card,
@@ -743,12 +778,19 @@ main,
   touch-action:pan-y;
 }
 
+/* Slider itself can own the drag gesture, but nowhere else. */
+.range-wrap,
+.range-inputs,
+.range-inputs input{
+  touch-action:none;
+}
+
 </style>
 
 <script src="app-candidate-theme.js"></script>
 <link rel="stylesheet" href="app-candidate-theme.css">
 </head>
-<body data-preferences-build="59">
+<body data-preferences-build="79">
 <div class="app">
   <header class="topbar">
     <button class="back" type="button" onclick="goBack()">← Back</button>
@@ -961,10 +1003,10 @@ main,
 
     <div id="message" class="message"></div>
   </main>
-</div>
 
-<div class="bottom-save">
-  <button id="saveBtn" class="save-btn" type="button">Save Preferences & Start Matching</button>
+  <div class="bottom-save">
+    <button id="saveBtn" class="save-btn" type="button">Save Preferences & Start Matching</button>
+  </div>
 </div>
 
 <script>
@@ -2278,34 +2320,31 @@ initialize();
 </script>
 
 
+
 <script>
 (function(){
-  const getScroller=()=>document.querySelector('.app');
+  function preparePreferencesScroll(){
+    const main=document.querySelector('main');
+    if(!main) return;
 
-  function resetPreferenceScroller(){
-    const scroller=getScroller();
-    if(!scroller) return;
+    main.style.setProperty('overflow-y','auto','important');
+    main.style.setProperty('overflow-x','hidden','important');
+    main.style.setProperty('-webkit-overflow-scrolling','touch');
+    main.style.setProperty('touch-action','pan-y');
 
-    /* These properties are also set in CSS, but applying them here protects
-       against Android WebView restoring a stale scroll-lock style. */
-    scroller.style.setProperty('height','100dvh','important');
-    scroller.style.setProperty('min-height','0','important');
-    scroller.style.setProperty('overflow-y','scroll','important');
-    scroller.style.setProperty('overflow-x','hidden','important');
-    scroller.style.setProperty('-webkit-overflow-scrolling','touch');
-    scroller.style.setProperty('touch-action','pan-y');
-
-    document.documentElement.style.setProperty('overflow','hidden','important');
-    document.body.style.setProperty('overflow','hidden','important');
+    /* Start at the top only when this document is first created.
+       Do not run on scroll/touch/pageshow, preventing snap-back. */
+    if(!main.dataset.scrollInitialized){
+      main.dataset.scrollInitialized='1';
+      main.scrollTop=0;
+    }
   }
 
   if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',resetPreferenceScroller,{once:true});
+    document.addEventListener('DOMContentLoaded',preparePreferencesScroll,{once:true});
   }else{
-    resetPreferenceScroller();
+    preparePreferencesScroll();
   }
-
-  window.addEventListener('pageshow',resetPreferenceScroller);
 })();
 </script>
 
