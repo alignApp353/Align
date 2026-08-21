@@ -9,6 +9,43 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  const preference=
+    localStorage.getItem('alygnn_candidate_theme') ||
+    localStorage.getItem('alygnn-theme') ||
+    'system';
+
+  const media=window.matchMedia('(prefers-color-scheme: dark)');
+
+  function apply(){
+    const effective=
+      preference==='dark'
+        ?'dark'
+        :preference==='light'
+          ?'light'
+          :(media.matches?'dark':'light');
+
+    document.documentElement.dataset.effectiveTheme=effective;
+
+    const meta=document.querySelector('meta[name="theme-color"]');
+    if(meta){
+      meta.setAttribute(
+        'content',
+        effective==='dark'
+          ?'#071722'
+          :'#F6F8F7'
+      );
+    }
+  }
+
+  apply();
+
+  if(preference==='system'){
+    media.addEventListener?.('change',apply);
+  }
+})();
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
 :root{--brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--text:#172333;--muted:#59697A;--border:#DDE3E8;--accent:#23A968;--accent-dark:#188B52;--accent-bg:#E8F7EF;--danger:#B64040;--danger-bg:#FCEDED;--success:#18794E;--success-bg:#E8F6EE}
@@ -53,6 +90,74 @@ input::placeholder{color:#98A2AD}
 .switch{margin-top:15px;text-align:center}
 .switch-btn{border:none;background:transparent;color:var(--brand);font-size:12px;font-weight:900}
 @media(max-height:760px){.login{justify-content:flex-start;padding-top:15px}.identity-icon{width:61px;height:61px}h1{font-size:27px;margin-top:13px}.form{margin-top:23px}.field{margin-top:13px}.input-wrap{min-height:51px}.primary{min-height:52px;margin-top:17px}.divider{margin:18px 0 11px}.social{min-height:49px;margin-top:8px}.signup{margin-top:17px}}
+
+html[data-effective-theme="dark"]{
+  --bg:#071722;
+  --text:#F4F7FA;
+  --muted:#A3B1BF;
+  --border:#2A3B49;
+  --accent:#2CB276;
+  --accent-dark:#59CC95;
+  --accent-bg:#123629;
+  --danger:#F3A4A4;
+  --danger-bg:#321D22;
+  --success:#74D5A5;
+  --success-bg:#123126;
+}
+
+html[data-effective-theme="dark"] body{
+  background:
+    radial-gradient(circle at 12% 8%,rgba(140,182,155,.09),transparent 28%),
+    radial-gradient(circle at 90% 84%,rgba(93,127,163,.12),transparent 31%),
+    var(--bg);
+}
+
+html[data-effective-theme="dark"] .back-btn,
+html[data-effective-theme="dark"] .input-wrap,
+html[data-effective-theme="dark"] .social{
+  background:#0F202C;
+  color:var(--text);
+}
+
+html[data-effective-theme="dark"] .input-wrap{
+  border-color:var(--border);
+}
+
+html[data-effective-theme="dark"] .input-wrap:focus-within{
+  border-color:#5E8AB7;
+  box-shadow:0 0 0 4px rgba(93,127,163,.16);
+}
+
+html[data-effective-theme="dark"] .field-icon,
+html[data-effective-theme="dark"] .show-btn{
+  color:#91A3B4;
+}
+
+html[data-effective-theme="dark"] input::placeholder{
+  color:#728597;
+}
+
+html[data-effective-theme="dark"] .divider{
+  color:#778A9A;
+}
+
+html[data-effective-theme="dark"] .social{
+  border-color:var(--border);
+}
+
+html[data-effective-theme="dark"] .identity-icon{
+  color:#6FD8A2;
+  background:#103327;
+}
+
+html[data-effective-theme="dark"] .primary{
+  background:#23A968;
+}
+
+html[data-effective-theme="dark"] .back-btn{
+  box-shadow:none;
+}
+
 </style>
 </head>
 <body>
