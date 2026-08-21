@@ -673,6 +673,66 @@ html[data-effective-theme="dark"] .salary-handle-max{
     0 4px 12px rgba(0,0,0,.34)!important;
 }
 
+
+/* =========================================================
+   V77 — Android WebView vertical scroll fix
+   Keep the fixed Save button, but make the document itself
+   the vertical scroll container.
+   ========================================================= */
+html{
+  height:100%;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior-y:auto;
+}
+
+body{
+  min-height:100%;
+  height:auto!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:auto;
+  touch-action:pan-y pinch-zoom;
+}
+
+.app{
+  min-height:100dvh;
+  height:auto!important;
+  overflow:visible!important;
+}
+
+main{
+  display:block;
+  min-height:max-content;
+  overflow:visible!important;
+  touch-action:pan-y;
+}
+
+/* Normal vertical gestures should always belong to the page. */
+.intro,
+.section,
+.card{
+  touch-action:pan-y;
+}
+
+/* Keep controls responsive without blocking a vertical page swipe. */
+button{
+  touch-action:manipulation;
+}
+
+/* The salary control owns its drag gesture only inside its slider area. */
+.range-wrap,
+.range-inputs,
+.range-inputs input{
+  touch-action:none;
+}
+
+/* Make sure the last preference can clear the fixed save bar. */
+main{
+  padding-bottom:28px;
+}
+
 </style>
 
 <script src="app-candidate-theme.js"></script>
@@ -2206,5 +2266,39 @@ $('saveBtn').addEventListener('click',savePreferences);
 
 initialize();
 </script>
+
+<script>
+/* Android WebView guard: if a previous page/plugin left scroll locking
+   styles behind, release them when Preferences opens. */
+(function ensurePreferencesCanScroll(){
+  const unlock=()=>{
+    document.documentElement.style.setProperty('overflow-y','auto','important');
+    document.documentElement.style.setProperty('overflow-x','hidden','important');
+
+    if(document.body){
+      document.body.style.setProperty('height','auto','important');
+      document.body.style.setProperty('overflow-y','auto','important');
+      document.body.style.setProperty('overflow-x','hidden','important');
+      document.body.style.setProperty('-webkit-overflow-scrolling','touch');
+      document.body.style.setProperty('touch-action','pan-y pinch-zoom');
+    }
+
+    const app=document.querySelector('.app');
+    if(app){
+      app.style.setProperty('height','auto','important');
+      app.style.setProperty('overflow','visible','important');
+    }
+  };
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',unlock,{once:true});
+  }else{
+    unlock();
+  }
+
+  window.addEventListener('pageshow',unlock);
+})();
+</script>
+
 </body>
 </html>
