@@ -254,15 +254,52 @@ function oauthShow(text,type='error'){
 
 
 const TARGET_PAGE='app-account.html';
+
+function isGoogleOnlyAccount(user){
+  if(!user) return false;
+
+  const primary=String(user.app_metadata?.provider||'').toLowerCase();
+  const providers=Array.isArray(user.app_metadata?.providers)
+    ? user.app_metadata.providers.map(v=>String(v).toLowerCase())
+    : [];
+
+  return primary==='google' ||
+    (providers.length===1 && providers[0]==='google');
+}
+
+function hasAlygnnPassword(user){
+  return user?.user_metadata?.alygnn_password_set===true;
+}
+
+function destinationAfterGoogle(session, fallback){
+  const user=session?.user;
+
+  if(isGoogleOnlyAccount(user) && !hasAlygnnPassword(user)){
+    return 'app-google-set-password.html';
+  }
+
+  return fallback;
+}
+
 function showMessage(text,type){const m=document.getElementById('message');m.textContent=text;m.className='message '+type}
 function setLoading(b,l,lt,nt){b.disabled=l;b.textContent=l?lt:nt}
 function friendlyError(error){const raw=String(error?.message||'').toLowerCase();if(raw.includes('invalid login credentials')||raw.includes('invalid credentials'))return'Incorrect email or password. Please try again.';if(raw.includes('email not confirmed')||raw.includes('confirm your email'))return'Please verify your email before signing in.';if(raw.includes('fetch')||raw.includes('network')||raw.includes('failed to fetch'))return'Unable to connect. Please check your internet connection.';if(raw.includes('too many requests')||raw.includes('rate limit'))return'Too many attempts. Please wait a few minutes and try again.';return error?.message||'Unable to sign in. Please try again.'}
-async function redirectIfLoggedIn(){const params=new URLSearchParams(location.search);if(params.has('logout'))return;const {data}=await sb.auth.getSession();if(data.session)location.replace(TARGET_PAGE)}
+async function redirectIfLoggedIn(){
+  const params=new URLSearchParams(location.search);
+  if(params.has('logout')) return;
+
+  const {data}=await sb.auth.getSession();
+
+  if(data.session){
+    location.replace(destinationAfterGoogle(data.session,TARGET_PAGE));
+  }
+}
 async function signIn(){const email=document.getElementById('email').value.trim().toLowerCase();const password=document.getElementById('password').value;const button=document.getElementById('sign-in-btn');if(!email){showMessage('Please enter your email address.','error');return}if(!password){showMessage('Please enter your password.','error');return}setLoading(button,true,'Signing in…','Sign in');const {error}=await sb.auth.signInWithPassword({email,password});if(error){showMessage(friendlyError(error),'error');setLoading(button,false,'Signing in…','Sign in');return}localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);showMessage('Welcome back. Redirecting…','success');setTimeout(()=>location.replace(TARGET_PAGE),450)}
 async function googleLogin(){
   const button=document.getElementById('google-btn');
   setLoading(button,true,'Opening Google…','Continue with Google');
   localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
+  localStorage.setItem('alygnn_google_auth_mode','signin');
 
   try{
     if(isNativeCapacitor()){
@@ -316,7 +353,7 @@ async function finishGoogleReturn(url){
     if(error) throw error;
     if(!data.session) throw new Error('Google sign-in completed, but no Alygnn session was created.');
 
-    location.replace(TARGET_PAGE);
+    location.replace(destinationAfterGoogle(data.session,TARGET_PAGE));
   }catch(error){
     showMessage(friendlyError(error),'error');
     const button=document.getElementById('google-btn');
