@@ -179,28 +179,174 @@ html[data-effective-theme="dark"] .back-btn{
 <button class="primary" id="sign-in-btn" type="button">Sign in</button>
 <div class="divider">or continue with</div>
 <button class="social" id="google-btn" type="button"><span class="google-mark">G</span><span>Continue with Google</span></button>
-<button class="social" id="apple-btn" type="button"><span class="apple-mark">●</span><span>Continue with Apple</span></button>
 <div class="signup">Don’t have an account? <a href="app-create-account.html">Create one</a></div>
 <div class="switch"><button class="switch-btn" id="switch-btn" type="button">Switch to employer sign in</button></div>
 </div></section></main>
 <script>
 const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const ACCOUNT_TYPE='candidate';
+
+const ALYGNN_NATIVE_OAUTH_REDIRECT='alygnn://auth/callback';
+
+function isNativeCapacitor(){
+  try{
+    return !!(
+      window.Capacitor &&
+      typeof window.Capacitor.isNativePlatform==='function' &&
+      window.Capacitor.isNativePlatform()
+    );
+  }catch(_error){
+    return false;
+  }
+}
+
+function nativePlugin(name){
+  return window.Capacitor?.Plugins?.[name] || null;
+}
+
+function callbackParams(url){
+  const parsed=new URL(url);
+  const query=parsed.searchParams;
+  const hash=new URLSearchParams((parsed.hash||'').replace(/^#/,''));
+
+  return {
+    accessToken:hash.get('access_token')||query.get('access_token'),
+    refreshToken:hash.get('refresh_token')||query.get('refresh_token'),
+    code:query.get('code')||hash.get('code'),
+    error:query.get('error_description')||hash.get('error_description')||
+      query.get('error')||hash.get('error')
+  };
+}
+
+async function consumeNativeOAuthCallback(url){
+  if(!url || !url.startsWith(ALYGNN_NATIVE_OAUTH_REDIRECT)) return false;
+
+  const params=callbackParams(url);
+
+  if(params.error){
+    throw new Error(decodeURIComponent(params.error.replace(/\+/g,' ')));
+  }
+
+  if(params.accessToken && params.refreshToken){
+    const {error}=await sb.auth.setSession({
+      access_token:params.accessToken,
+      refresh_token:params.refreshToken
+    });
+    if(error) throw error;
+  }else if(params.code){
+    const {error}=await sb.auth.exchangeCodeForSession(params.code);
+    if(error) throw error;
+  }else{
+    throw new Error('Google sign-in returned to Alygnn without a session.');
+  }
+
+  try{
+    const Browser=nativePlugin('Browser');
+    if(Browser?.close) await Browser.close();
+  }catch(_error){}
+
+  return true;
+}
+
+function oauthShow(text,type='error'){
+  if(typeof showMessage==='function') showMessage(text,type);
+}
+
+
 const TARGET_PAGE='app-account.html';
 function showMessage(text,type){const m=document.getElementById('message');m.textContent=text;m.className='message '+type}
 function setLoading(b,l,lt,nt){b.disabled=l;b.textContent=l?lt:nt}
 function friendlyError(error){const raw=String(error?.message||'').toLowerCase();if(raw.includes('invalid login credentials')||raw.includes('invalid credentials'))return'Incorrect email or password. Please try again.';if(raw.includes('email not confirmed')||raw.includes('confirm your email'))return'Please verify your email before signing in.';if(raw.includes('fetch')||raw.includes('network')||raw.includes('failed to fetch'))return'Unable to connect. Please check your internet connection.';if(raw.includes('too many requests')||raw.includes('rate limit'))return'Too many attempts. Please wait a few minutes and try again.';return error?.message||'Unable to sign in. Please try again.'}
 async function redirectIfLoggedIn(){const params=new URLSearchParams(location.search);if(params.has('logout'))return;const {data}=await sb.auth.getSession();if(data.session)location.replace(TARGET_PAGE)}
 async function signIn(){const email=document.getElementById('email').value.trim().toLowerCase();const password=document.getElementById('password').value;const button=document.getElementById('sign-in-btn');if(!email){showMessage('Please enter your email address.','error');return}if(!password){showMessage('Please enter your password.','error');return}setLoading(button,true,'Signing in…','Sign in');const {error}=await sb.auth.signInWithPassword({email,password});if(error){showMessage(friendlyError(error),'error');setLoading(button,false,'Signing in…','Sign in');return}localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);showMessage('Welcome back. Redirecting…','success');setTimeout(()=>location.replace(TARGET_PAGE),450)}
-async function googleLogin(){const button=document.getElementById('google-btn');setLoading(button,true,'Opening Google…','Continue with Google');localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);const redirectPage=ACCOUNT_TYPE==='employer'?'app-employer-dashboard.html':'app-account.html';const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:'https://alygnn.com/'+redirectPage}});if(error){showMessage(friendlyError(error),'error');setLoading(button,false,'Opening Google…','Continue with Google')}}
+async function googleLogin(){
+  const button=document.getElementById('google-btn');
+  setLoading(button,true,'Opening Google…','Continue with Google');
+  localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
+
+  try{
+    if(isNativeCapacitor()){
+      const {data,error}=await sb.auth.signInWithOAuth({
+        provider:'google',
+        options:{
+          redirectTo:ALYGNN_NATIVE_OAUTH_REDIRECT,
+          skipBrowserRedirect:true
+        }
+      });
+
+      if(error) throw error;
+      if(!data?.url) throw new Error('Unable to open Google sign-in.');
+
+      const Browser=nativePlugin('Browser');
+
+      if(Browser?.open){
+        await Browser.open({
+          url:data.url,
+          toolbarColor:'#071722'
+        });
+      }else{
+        window.location.href=data.url;
+      }
+
+      return;
+    }
+
+    const {error}=await sb.auth.signInWithOAuth({
+      provider:'google',
+      options:{redirectTo:'https://alygnn.com/app-account.html'}
+    });
+
+    if(error) throw error;
+
+  }catch(error){
+    showMessage(friendlyError(error),'error');
+    setLoading(button,false,'Opening Google…','Continue with Google');
+  }
+}
+
+async function finishGoogleReturn(url){
+  try{
+    const handled=await consumeNativeOAuthCallback(url);
+    if(!handled) return;
+
+    localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
+    showMessage('Google sign-in successful. Opening Alygnn…','success');
+
+    const {data,error}=await sb.auth.getSession();
+    if(error) throw error;
+    if(!data.session) throw new Error('Google sign-in completed, but no Alygnn session was created.');
+
+    location.replace(TARGET_PAGE);
+  }catch(error){
+    showMessage(friendlyError(error),'error');
+    const button=document.getElementById('google-btn');
+    setLoading(button,false,'Opening Google…','Continue with Google');
+  }
+}
+
+async function setupNativeGoogleReturn(){
+  if(!isNativeCapacitor()) return;
+
+  const App=nativePlugin('App');
+  if(!App) return;
+
+  await App.addListener('appUrlOpen',({url})=>{
+    finishGoogleReturn(url);
+  });
+
+  const launch=await App.getLaunchUrl();
+  if(launch?.url){
+    await finishGoogleReturn(launch.url);
+  }
+}
 document.getElementById('back-btn').addEventListener('click',()=>location.href='app-start.html');
 document.getElementById('show-btn').addEventListener('click',e=>{const i=document.getElementById('password');const s=i.type==='text';i.type=s?'password':'text';e.currentTarget.textContent=s?'Show':'Hide'});
 document.getElementById('forgot-btn').addEventListener('click',()=>location.href='app-forgot-password.html');
 document.getElementById('sign-in-btn').addEventListener('click',signIn);
 document.getElementById('google-btn').addEventListener('click',googleLogin);
-document.getElementById('apple-btn').addEventListener('click',()=>showMessage('Apple sign-in is not connected yet.','error'));
 document.getElementById('switch-btn').addEventListener('click',()=>location.href=ACCOUNT_TYPE==='employer'?'app-login.html':'app-employer-login.html');
 document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')signIn()});
+setupNativeGoogleReturn();
 redirectIfLoggedIn();
 </script>
 </body></html>
