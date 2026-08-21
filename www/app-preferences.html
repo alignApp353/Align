@@ -785,15 +785,39 @@ main,
   touch-action:none;
 }
 
+
+/* V80: Back is a real link, not JS-only navigation. */
+.back{
+  display:inline-flex;
+  align-items:center;
+  text-decoration:none;
+  touch-action:manipulation;
+}
+
+
+/* =========================================================
+   V80 — Android touch-scroll fallback
+   Native overflow scrolling remains enabled for wheel/mouse.
+   Touch drags are handled explicitly so Android WebView
+   cannot snap the page back to the top.
+   ========================================================= */
+main{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior-y:none!important;
+  -webkit-overflow-scrolling:auto!important;
+  touch-action:none!important;
+}
+
 </style>
 
 <script src="app-candidate-theme.js"></script>
 <link rel="stylesheet" href="app-candidate-theme.css">
 </head>
-<body data-preferences-build="79">
+<body data-preferences-build="80">
 <div class="app">
   <header class="topbar">
-    <button class="back" type="button" onclick="goBack()">← Back</button>
+    <a class="back" id="backLink" href="app-resume-preview.html">← Back</a>
     <div class="logo">Alygnn<span>.</span></div>
     <div class="header-spacer"></div>
   </header>
@@ -1023,6 +1047,11 @@ let selectedLocation='';
 let locationStateHint='';
 let selectedRole='';
 const EDIT_MODE=new URLSearchParams(window.location.search).get('edit')==='1';
+const backLink=document.getElementById('backLink');
+if(backLink && EDIT_MODE){
+  backLink.href='app-account.html';
+}
+
 
 const COMPENSATION_CONFIG={
   yearly:{
@@ -2310,10 +2339,6 @@ async function initialize(){
   updateProgress();
 }
 
-function goBack(){
-  window.location.href=onboardingMode?'app-resume-preview.html':'app-account.html';
-}
-
 $('saveBtn').addEventListener('click',savePreferences);
 
 initialize();
@@ -2321,30 +2346,68 @@ initialize();
 
 
 
+
 <script>
 (function(){
-  function preparePreferencesScroll(){
-    const main=document.querySelector('main');
-    if(!main) return;
+  const main=document.querySelector('main');
+  if(!main) return;
 
-    main.style.setProperty('overflow-y','auto','important');
-    main.style.setProperty('overflow-x','hidden','important');
-    main.style.setProperty('-webkit-overflow-scrolling','touch');
-    main.style.setProperty('touch-action','pan-y');
+  let startY=0;
+  let startScrollTop=0;
+  let dragging=false;
+  let moved=false;
 
-    /* Start at the top only when this document is first created.
-       Do not run on scroll/touch/pageshow, preventing snap-back. */
-    if(!main.dataset.scrollInitialized){
-      main.dataset.scrollInitialized='1';
-      main.scrollTop=0;
-    }
-  }
+  const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',preparePreferencesScroll,{once:true});
-  }else{
-    preparePreferencesScroll();
-  }
+  main.addEventListener('touchstart',event=>{
+    if(event.touches.length!==1) return;
+
+    startY=event.touches[0].clientY;
+    startScrollTop=main.scrollTop;
+    dragging=true;
+    moved=false;
+  },{passive:true});
+
+  main.addEventListener('touchmove',event=>{
+    if(!dragging || event.touches.length!==1) return;
+
+    const currentY=event.touches[0].clientY;
+    const deltaY=currentY-startY;
+
+    if(Math.abs(deltaY)<4) return;
+
+    moved=true;
+
+    const maxScroll=Math.max(0,main.scrollHeight-main.clientHeight);
+    main.scrollTop=clamp(startScrollTop-deltaY,0,maxScroll);
+
+    // Stop Android WebView from applying a second native scroll/bounce.
+    event.preventDefault();
+  },{passive:false});
+
+  const endDrag=()=>{
+    dragging=false;
+  };
+
+  main.addEventListener('touchend',endDrag,{passive:true});
+  main.addEventListener('touchcancel',endDrag,{passive:true});
+
+  // Keep the currently visible position stable after keyboard/focus changes.
+  main.addEventListener('focusin',event=>{
+    const field=event.target;
+    if(!field.matches('input,textarea,select')) return;
+
+    requestAnimationFrame(()=>{
+      const mainRect=main.getBoundingClientRect();
+      const fieldRect=field.getBoundingClientRect();
+
+      if(fieldRect.bottom>mainRect.bottom-18){
+        main.scrollTop += fieldRect.bottom-(mainRect.bottom-18);
+      }else if(fieldRect.top<mainRect.top+18){
+        main.scrollTop -= (mainRect.top+18)-fieldRect.top;
+      }
+    });
+  });
 })();
 </script>
 
