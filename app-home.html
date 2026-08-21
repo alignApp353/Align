@@ -2,114 +2,199 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F6F8F7">
 <title>Alygnn</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-*{box-sizing:border-box;font-family:'DM Sans',Arial,sans-serif!important}
-html,body{margin:0;min-height:100%;background:#05080D;color:#fff}
-body{display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at top,rgba(93,127,163,.28),transparent 34%),linear-gradient(180deg,#05080D,#0A0F17)}
-.loader{text-align:center;padding:30px}
-.logo{font-size:38px;font-weight:900;color:#5D7FA3;letter-spacing:-1px}
-.text{margin-top:12px;color:#A7B0BC;font-weight:700}
-.spinner{width:34px;height:34px;margin:22px auto 0;border:3px solid rgba(255,255,255,.12);border-top-color:#5D7FA3;border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
-<style id="candidate-portal-theme">
-
-html,body{background:#F5F8F8!important;color:#172333!important}
-body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparent 27%),#F5F8F8!important}
-.loader{
-  min-width:240px;padding:34px 30px!important;border:1px solid #DCE5EB;border-radius:28px;
-  background:#fff;box-shadow:0 18px 50px rgba(23,35,51,.06)
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
 }
-.logo{font-family:'DM Serif Display',Georgia,serif!important;font-size:40px!important;font-weight:400!important;letter-spacing:0!important;color:#5D7FA3!important}
-.logo span{color:#8CB69B}
-.text{color:#66788A!important;font-size:13px}
-.spinner{border-color:#E1E8ED!important;border-top-color:#35679A!important}
 
+:root{
+  --brand:#5D7FA3;
+  --sage:#8CB69B;
+  --bg:#F6F8F7;
+  --text:#172333;
+  --muted:#6E8092;
+  --track:#E2E9EE;
+  --glow:rgba(93,127,163,.12);
+}
+
+html[data-theme="dark"]{
+  --bg:#071722;
+  --text:#F6F8FA;
+  --muted:#9EACB9;
+  --track:#213342;
+  --glow:rgba(93,127,163,.18);
+}
+
+html,
+body{
+  width:100%;
+  min-height:100%;
+  background:var(--bg);
+}
+
+body{
+  min-height:100vh;
+  min-height:100dvh;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:
+    calc(24px + env(safe-area-inset-top))
+    24px
+    calc(24px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 50% 38%,var(--glow),transparent 34%),
+    var(--bg);
+  color:var(--text);
+  font-family:'DM Sans',Arial,sans-serif;
+  transition:background-color .2s ease,color .2s ease;
+}
+
+.splash{
+  width:min(360px,88vw);
+  text-align:center;
+  transform:translateY(-3vh);
+}
+
+.logo{
+  display:inline-block;
+  font-family:'DM Serif Display',Georgia,serif;
+  font-size:clamp(54px,15vw,72px);
+  line-height:.95;
+  letter-spacing:-2px;
+  color:var(--brand);
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+}
+
+.logo-dot{
+  color:var(--sage);
+}
+
+.tagline{
+  margin-top:18px;
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.45;
+  font-weight:700;
+  letter-spacing:.01em;
+}
+
+.loading-track{
+  position:relative;
+  width:116px;
+  height:3px;
+  margin:25px auto 0;
+  overflow:hidden;
+  border-radius:999px;
+  background:var(--track);
+}
+
+.loading-bar{
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:-48%;
+  width:48%;
+  border-radius:999px;
+  background:linear-gradient(
+    90deg,
+    var(--brand),
+    var(--sage)
+  );
+  animation:alygnn-loading 1.15s cubic-bezier(.4,0,.2,1) infinite;
+}
+
+@keyframes alygnn-loading{
+  0%{
+    transform:translateX(0);
+    opacity:.45;
+  }
+  45%{
+    opacity:1;
+  }
+  100%{
+    transform:translateX(310%);
+    opacity:.55;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .loading-bar{
+    left:0;
+    width:100%;
+    animation:none;
+    opacity:.8;
+  }
+}
 </style>
 </head>
 <body>
-<div class="loader">
-  <div class="logo">Alygnn<span>.</span></div>
-  <div class="text">Opening your candidate workspace…</div>
-  <div class="spinner"></div>
-</div>
+<main class="splash" aria-label="Alygnn is loading">
+  <div class="logo">Alygnn<span class="logo-dot">.</span></div>
+  <div class="tagline">Finding your fit.</div>
+  <div class="loading-track" aria-hidden="true">
+    <div class="loading-bar"></div>
+  </div>
+</main>
 <script>
-const sb=supabase.createClient(
-  "https://auth.alygnn.com",
-  "sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG",
-  {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
-);
+(function applySplashTheme(){
+  const saved=
+    localStorage.getItem('alygnn_candidate_theme') ||
+    localStorage.getItem('alygnn-theme') ||
+    'system';
 
-function parseProfileObject(value){
-  if(!value)return {};
-  if(typeof value==='object'&&!Array.isArray(value))return value;
-  if(typeof value==='string'){
-    try{
-      const parsed=JSON.parse(value);
-      return parsed&&typeof parsed==='object'?parsed:{};
-    }catch(_){return {}}
+  const systemDark=
+    window.matchMedia &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  const resolved=
+    saved==='dark'
+      ?'dark'
+      :saved==='light'
+        ?'light'
+        :(systemDark?'dark':'light');
+
+  document.documentElement.dataset.theme=resolved;
+
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta){
+    meta.setAttribute(
+      'content',
+      resolved==='dark'
+        ?'#071722'
+        :'#F6F8F7'
+    );
   }
-  return {};
-}
-function hasCandidateResume(profile){
-  const data=parseProfileObject(profile?.resume_data);
-  return Boolean(
-    profile?.resume_file_path||
-    profile?.resume_url||
-    profile?.resume_text||
-    Object.keys(data).length
-  );
-}
-function candidateResumePreviewReviewed(profile){
-  const data=parseProfileObject(profile?.resume_data);
-  const onboarding=parseProfileObject(data._alygnn_onboarding);
-  return onboarding.preview_reviewed===true;
-}
-function candidatePreferencesComplete(profile,user){
-  const p=parseProfileObject(profile?.preferences);
-  const meta=user?.user_metadata||{};
-  const hasRole=Boolean(String(p.query||'').trim());
-  const hasLocation=Boolean(String(p.location||p.city||p.state||p.country||'').trim());
-  const types=Array.isArray(p.jobTypes)?p.jobTypes:[];
-  const hasType=Boolean(types.length||String(p.jobType||'').trim());
-  return Boolean(
-    p.preferences_complete||
-    profile?.preferences_complete||
-    meta.preferences_complete||
-    (hasRole&&hasLocation&&hasType)
-  );
-}
-function onboardingDestination(profile,user){
-  if(!hasCandidateResume(profile))return 'app-align-upload.html';
+})();
 
-  const preferencesComplete=candidatePreferencesComplete(profile,user);
-  if(preferencesComplete)return 'app-account.html';
-
-  if(!candidateResumePreviewReviewed(profile))return 'app-resume-preview.html';
-  return 'app-preferences.html';
-}
-
+const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 (async function routeApp(){
   try{
     const {data,error}=await sb.auth.getSession();
-
     if(error||!data.session){
-      window.location.replace("app-login.html");
+      window.location.replace('app-start.html');
       return;
     }
-
-    // Always open the dashboard. app-account.html reads the candidate's
-    // Supabase profile and restores the correct locked/unlocked state.
-    window.location.replace("app-account.html");
-  }catch(error){
-    console.error(error);
-    window.location.replace("app-login.html");
+    const accountType=localStorage.getItem('alygnn_account_type')||'candidate';
+    if(accountType==='employer'){
+      window.location.replace('app-employer-dashboard.html');
+    }else{
+      window.location.replace('app-account.html');
+    }
+  }catch(err){
+    console.error(err);
+    window.location.replace('app-start.html');
   }
 })();
 </script>
