@@ -898,6 +898,15 @@ async function consumeNativeOAuthCallback(url){
   return true;
 }
 
+async function waitForGoogleSession(){
+  for(let attempt=0;attempt<10;attempt++){
+    const {data}=await sb.auth.getSession();
+    if(data?.session) return data.session;
+    await new Promise(resolve=>setTimeout(resolve,180));
+  }
+  return null;
+}
+
 async function finishGoogleSignup(url){
   try{
     const handled=await consumeNativeOAuthCallback(url);
@@ -905,6 +914,14 @@ async function finishGoogleSignup(url){
 
     localStorage.setItem('alygnn_account_type','candidate');
     localStorage.setItem('alygnn_google_auth_mode','signup');
+
+    const session=await waitForGoogleSession();
+
+    if(!session){
+      throw new Error(
+        'Google sign-up returned to Alygnn, but the session was not saved. Please try Google sign-up again.'
+      );
+    }
 
     location.replace('app-google-set-password.html');
   }catch(error){
