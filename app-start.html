@@ -3,62 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#F6F8F7">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F6F8F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#071722" media="(prefers-color-scheme: dark)">
 <title>Welcome to Alygnn</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
-<script>
-(function(){
-  const media=window.matchMedia('(prefers-color-scheme: dark)');
-
-  function applySystemTheme(){
-    const effective=media.matches?'dark':'light';
-
-    document.documentElement.dataset.effectiveTheme=effective;
-
-    const meta=document.querySelector('meta[name="theme-color"]');
-    if(meta){
-      meta.setAttribute(
-        'content',
-        effective==='dark'
-          ?'#071722'
-          :'#F6F8F7'
-      );
-    }
-  }
-
-  applySystemTheme();
-
-  media.addEventListener?.('change',applySystemTheme);
-  window.addEventListener('pageshow',applySystemTheme);
-  window.addEventListener('focus',applySystemTheme);
-
-  document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible'){
-      applySystemTheme();
-    }
-  });
-
-  // Cold-start safeguard:
-  // Some Android WebView versions report the old UI mode for the first
-  // few frames while the Activity finishes applying DayNight.
-  // Recheck briefly, then stop.
-  let coldStartChecks=0;
-
-  const coldStartThemeTimer=setInterval(()=>{
-    applySystemTheme();
-    coldStartChecks+=1;
-
-    if(coldStartChecks>=20){
-      clearInterval(coldStartThemeTimer);
-    }
-  },100);
-})();
-</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
-:root{--brand:#5D7FA3;--brand-dark:#345F91;--sage:#8CB69B;--bg:#F6F8F7;--text:#172333;--muted:#59697A;--border:#DDE3E8;--candidate:#23A968;--employer:#3568C0}
+:root{color-scheme:light;--brand:#5D7FA3;--brand-dark:#345F91;--sage:#8CB69B;--bg:#F6F8F7;--text:#172333;--muted:#59697A;--border:#DDE3E8;--candidate:#23A968;--employer:#3568C0}
 html,body{width:100%;min-height:100%}
 body{min-height:100vh;background:radial-gradient(circle at 15% 10%,rgba(140,182,155,.15),transparent 28%),radial-gradient(circle at 90% 80%,rgba(93,127,163,.14),transparent 30%),var(--bg);color:var(--text);overflow-x:hidden}
 button,a{font:inherit}
@@ -98,83 +52,9 @@ button,a{font:inherit}
 @media(max-height:720px){.hero{margin-top:42px}.choices{margin-top:25px}.choice{min-height:125px}.footer{padding-top:25px}}
 @media(max-width:360px){.page{padding-left:14px;padding-right:14px}.choice{grid-template-columns:54px 1fr 38px;padding:16px;gap:12px}.choice-icon{width:54px;height:54px}.arrow{width:38px;height:38px}}
 
-html[data-effective-theme="dark"]{
-  --brand:#6E94BB;
-  --brand-dark:#82A7CE;
-  --sage:#8CB69B;
-  --bg:#071722;
-  --text:#F4F7FA;
-  --muted:#A3B1BF;
-  --border:#2A3B49;
-  --candidate:#2CB276;
-  --employer:#4E7ED8;
-}
-
-html[data-effective-theme="dark"] body{
-  background:
-    radial-gradient(circle at 15% 10%,rgba(140,182,155,.08),transparent 28%),
-    radial-gradient(circle at 90% 80%,rgba(93,127,163,.11),transparent 30%),
-    var(--bg);
-}
-
-html[data-effective-theme="dark"] .choice{
-  border-color:var(--border);
-  box-shadow:0 11px 30px rgba(0,0,0,.10);
-}
-
-html[data-effective-theme="dark"] .choice.candidate{
-  background:linear-gradient(
-    120deg,
-    rgba(18,54,41,.92),
-    rgba(15,32,44,.98)
-  );
-}
-
-html[data-effective-theme="dark"] .choice.employer{
-  background:linear-gradient(
-    120deg,
-    rgba(25,43,69,.96),
-    rgba(15,32,44,.98)
-  );
-}
-
-html[data-effective-theme="dark"] .candidate .choice-icon{
-  background:#123A2C;
-  color:#6DD8A2;
-}
-
-html[data-effective-theme="dark"] .employer .choice-icon{
-  background:#1B3150;
-  color:#73A1F0;
-}
-
-html[data-effective-theme="dark"] .small-note{
-  color:#7F92A3;
-}
-
-html[data-effective-theme="dark"] .choice-title{
-  color:#F4F7FA;
-}
-
-html[data-effective-theme="dark"] .choice-copy{
-  color:#A3B1BF;
-}
-
-html[data-effective-theme="dark"] .transition-screen{
-  background:rgba(7,23,34,.985);
-}
-
-html[data-effective-theme="dark"] .transition-icon.candidate{
-  background:#123A2C;
-}
-
-html[data-effective-theme="dark"] .transition-icon.employer{
-  background:#1B3150;
-}
-
-
 @media (prefers-color-scheme: dark){
-  html:not([data-effective-theme="light"]){
+  :root{
+    color-scheme:dark;
     --brand:#6E94BB;
     --brand-dark:#82A7CE;
     --sage:#8CB69B;
@@ -186,34 +66,86 @@ html[data-effective-theme="dark"] .transition-icon.employer{
     --employer:#4E7ED8;
   }
 
-  html:not([data-effective-theme="light"]) body{
-    background:
-      radial-gradient(circle at 15% 10%,rgba(140,182,155,.08),transparent 28%),
-      radial-gradient(circle at 90% 80%,rgba(93,127,163,.11),transparent 30%),
-      var(--bg);
-  }
-
-  html:not([data-effective-theme="light"]) .choice.candidate{
-    background:linear-gradient(
-      120deg,
-      rgba(18,54,41,.92),
-      rgba(15,32,44,.98)
-    );
-  }
-
-  html:not([data-effective-theme="light"]) .choice.employer{
-    background:linear-gradient(
-      120deg,
-      rgba(25,43,69,.96),
-      rgba(15,32,44,.98)
-    );
-  }
-
-  html:not([data-effective-theme="light"]) .choice-title{
+  html,
+  body{
+    background:#071722 !important;
     color:#F4F7FA;
   }
 
-  html:not([data-effective-theme="light"]) .choice-copy{
+  body{
+    background:
+      radial-gradient(circle at 15% 10%,rgba(140,182,155,.08),transparent 28%),
+      radial-gradient(circle at 90% 80%,rgba(93,127,163,.11),transparent 30%),
+      #071722 !important;
+  }
+
+  .hero h1,
+  .choice-title{
+    color:#F4F7FA !important;
+  }
+
+  .hero p,
+  .choice-copy,
+  .footer{
+    color:#A3B1BF !important;
+  }
+
+  .choice{
+    border-color:#2A3B49;
+    box-shadow:0 11px 30px rgba(0,0,0,.10);
+  }
+
+  .choice.candidate{
+    background:linear-gradient(
+      120deg,
+      rgba(18,54,41,.94),
+      rgba(15,32,44,.99)
+    ) !important;
+  }
+
+  .choice.employer{
+    background:linear-gradient(
+      120deg,
+      rgba(25,43,69,.97),
+      rgba(15,32,44,.99)
+    ) !important;
+  }
+
+  .candidate .choice-icon{
+    background:#123A2C;
+    color:#6DD8A2;
+  }
+
+  .employer .choice-icon{
+    background:#1B3150;
+    color:#73A1F0;
+  }
+
+  .sign-in-link{
+    color:#82A7CE;
+  }
+
+  .small-note{
+    color:#7F92A3;
+  }
+
+  .transition-screen{
+    background:rgba(7,23,34,.99);
+  }
+
+  .transition-icon.candidate{
+    background:#123A2C;
+  }
+
+  .transition-icon.employer{
+    background:#1B3150;
+  }
+
+  .transition-title{
+    color:#F4F7FA;
+  }
+
+  .transition-copy{
     color:#A3B1BF;
   }
 }
