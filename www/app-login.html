@@ -273,8 +273,15 @@ function hasAlygnnPassword(user){
 
 function destinationAfterGoogle(session, fallback){
   const user=session?.user;
+  const mode=localStorage.getItem('alygnn_google_auth_mode');
 
-  if(isGoogleOnlyAccount(user) && !hasAlygnnPassword(user)){
+  // Only Google SIGN-UP should be forced through password creation.
+  // Normal "Continue with Google" sign-in must go straight to the account.
+  if(
+    mode==='signup' &&
+    isGoogleOnlyAccount(user) &&
+    !hasAlygnnPassword(user)
+  ){
     return 'app-google-set-password.html';
   }
 
@@ -347,6 +354,7 @@ async function finishGoogleReturn(url){
     if(!handled) return;
 
     localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
+    localStorage.setItem('alygnn_google_auth_mode','signin');
     showMessage('Google sign-in successful. Opening Alygnn…','success');
 
     const {data,error}=await sb.auth.getSession();
