@@ -72,6 +72,7 @@ input::placeholder{color:#98A2AD}
 .social:first-of-type{margin-top:0}
 .google-mark{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:16px;font-weight:900;color:#4285F4}
 .apple-mark{font-size:22px;line-height:1}
+[hidden]{display:none!important}
 .signup{margin-top:25px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
 .signup a{color:var(--accent-dark);text-decoration:none;font-weight:900}
 .switch{margin-top:15px;text-align:center}
@@ -179,6 +180,9 @@ html[data-effective-theme="dark"] .back-btn{
 <button class="primary" id="sign-in-btn" type="button">Sign in</button>
 <div class="divider">or continue with</div>
 <button class="social" id="google-btn" type="button"><span class="google-mark">G</span><span>Continue with Google</span></button>
+<button class="social" id="apple-btn" type="button" aria-label="Continue with Apple" hidden>
+  <span class="apple-mark" aria-hidden="true">●</span><span>Continue with Apple</span>
+</button>
 <div class="signup">Don’t have an account? <a href="app-create-account.html">Create one</a></div>
 <div class="switch"><button class="switch-btn" id="switch-btn" type="button">Switch to employer sign in</button></div>
 </div></section></main>
@@ -198,6 +202,19 @@ function isNativeCapacitor(){
   }catch(_error){
     return false;
   }
+}
+
+function capacitorPlatform(){
+  try{
+    if(window.Capacitor && typeof window.Capacitor.getPlatform==='function'){
+      return window.Capacitor.getPlatform();
+    }
+  }catch(_error){}
+  return 'web';
+}
+
+function isIOSCapacitor(){
+  return isNativeCapacitor() && capacitorPlatform()==='ios';
 }
 
 function nativePlugin(name){
@@ -304,6 +321,72 @@ async function googleLogin(){
   }
 }
 
+function randomNonce(length=32){
+  const chars='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._';
+  const bytes=new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes,b=>chars[b%chars.length]).join('');
+}
+
+async function sha256Hex(value){
+  const bytes=new TextEncoder().encode(value);
+  const digest=await crypto.subtle.digest('SHA-256',bytes);
+  return Array.from(new Uint8Array(digest))
+    .map(b=>b.toString(16).padStart(2,'0'))
+    .join('');
+}
+
+async function appleLogin(){
+  const button=document.getElementById('apple-btn');
+  setLoading(button,true,'Opening Apple…','Continue with Apple');
+  localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
+
+  try{
+    if(!isIOSCapacitor()){
+      throw new Error('Continue with Apple is only available in the Alygnn iOS app.');
+    }
+
+    const AppleSignIn=nativePlugin('AppleSignIn');
+    if(!AppleSignIn?.signIn){
+      throw new Error('Apple sign-in plugin is not installed. Run: npm install @capawesome/capacitor-apple-sign-in && npx cap sync ios');
+    }
+
+    // Supabase expects the raw nonce while Apple receives its SHA-256 hash.
+    const rawNonce=randomNonce();
+    const hashedNonce=await sha256Hex(rawNonce);
+
+    const result=await AppleSignIn.signIn({
+      scopes:['EMAIL','FULL_NAME'],
+      nonce:hashedNonce
+    });
+
+    if(!result?.idToken){
+      throw new Error('Apple did not return an identity token.');
+    }
+
+    const {data,error}=await sb.auth.signInWithIdToken({
+      provider:'apple',
+      token:result.idToken,
+      nonce:rawNonce
+    });
+    if(error) throw error;
+    if(!data?.session) throw new Error('Apple sign-in completed, but no Alygnn session was created.');
+
+    localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
+    showMessage('Apple sign-in successful. Opening Alygnn…','success');
+    setTimeout(()=>location.replace(TARGET_PAGE),350);
+  }catch(error){
+    const raw=String(error?.message||error||'');
+    const lower=raw.toLowerCase();
+    if(lower.includes('cancel') || lower.includes('canceled') || lower.includes('cancelled')){
+      showMessage('Apple sign-in was cancelled.','error');
+    }else{
+      showMessage(friendlyError(error),'error');
+    }
+    setLoading(button,false,'Opening Apple…','Continue with Apple');
+  }
+}
+
 async function finishGoogleReturn(url){
   try{
     const handled=await consumeNativeOAuthCallback(url);
@@ -344,6 +427,13 @@ document.getElementById('show-btn').addEventListener('click',e=>{const i=documen
 document.getElementById('forgot-btn').addEventListener('click',()=>location.href='app-forgot-password.html');
 document.getElementById('sign-in-btn').addEventListener('click',signIn);
 document.getElementById('google-btn').addEventListener('click',googleLogin);
+
+const appleButton=document.getElementById('apple-btn');
+if(appleButton && isIOSCapacitor()){
+  appleButton.hidden=false;
+  appleButton.addEventListener('click',appleLogin);
+}
+
 document.getElementById('switch-btn').addEventListener('click',()=>location.href=ACCOUNT_TYPE==='employer'?'app-login.html':'app-employer-login.html');
 document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')signIn()});
 setupNativeGoogleReturn();
