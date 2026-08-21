@@ -674,63 +674,73 @@ html[data-effective-theme="dark"] .salary-handle-max{
 }
 
 
+
 /* =========================================================
-   V77 — Android WebView vertical scroll fix
-   Keep the fixed Save button, but make the document itself
-   the vertical scroll container.
+   V78 — Dedicated Android WebView scroll surface
+   Do not rely on document/body scrolling inside Capacitor.
+   .app is now the single vertical scroll container.
    ========================================================= */
-html{
+
+html,
+body{
+  width:100%;
   height:100%;
-  overflow-x:hidden!important;
-  overflow-y:auto!important;
-  overscroll-behavior-y:auto;
+  min-height:100%;
+  margin:0;
+  overflow:hidden!important;
 }
 
 body{
-  min-height:100%;
-  height:auto!important;
-  overflow-x:hidden!important;
-  overflow-y:auto!important;
-  -webkit-overflow-scrolling:touch;
-  overscroll-behavior-y:auto;
-  touch-action:pan-y pinch-zoom;
+  position:fixed!important;
+  inset:0!important;
 }
 
 .app{
-  min-height:100dvh;
-  height:auto!important;
-  overflow:visible!important;
-}
-
-main{
-  display:block;
-  min-height:max-content;
-  overflow:visible!important;
+  position:relative;
+  width:100%;
+  max-width:560px;
+  height:100dvh!important;
+  min-height:0!important;
+  margin:0 auto;
+  padding-bottom:calc(118px + env(safe-area-inset-bottom));
+  overflow-x:hidden!important;
+  overflow-y:scroll!important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
   touch-action:pan-y;
+  scrollbar-width:none;
 }
 
-/* Normal vertical gestures should always belong to the page. */
+.app::-webkit-scrollbar{
+  display:none;
+}
+
+main,
 .intro,
 .section,
 .card{
+  overflow:visible;
+}
+
+/* Keep the save bar above the dedicated scroll surface. */
+.bottom-save{
+  position:fixed!important;
+  left:0;
+  right:0;
+  bottom:0;
+}
+
+/* Do not let a generic component rule disable vertical page gestures. */
+.intro,
+.section,
+.card,
+.field,
+.choice-grid,
+.benefit-grid,
+.job-grid,
+.chips,
+.industry-search{
   touch-action:pan-y;
-}
-
-/* Keep controls responsive without blocking a vertical page swipe. */
-button{
-  touch-action:manipulation;
-}
-
-/* The salary control owns its drag gesture only inside its slider area. */
-.range-wrap,
-.range-inputs,
-.range-inputs input{
-  touch-action:none;
-}
-
-/* Make sure the last preference can clear the fixed save bar. */
-main{
-  padding-bottom:28px;
 }
 
 </style>
@@ -2267,36 +2277,35 @@ $('saveBtn').addEventListener('click',savePreferences);
 initialize();
 </script>
 
+
 <script>
-/* Android WebView guard: if a previous page/plugin left scroll locking
-   styles behind, release them when Preferences opens. */
-(function ensurePreferencesCanScroll(){
-  const unlock=()=>{
-    document.documentElement.style.setProperty('overflow-y','auto','important');
-    document.documentElement.style.setProperty('overflow-x','hidden','important');
+(function(){
+  const getScroller=()=>document.querySelector('.app');
 
-    if(document.body){
-      document.body.style.setProperty('height','auto','important');
-      document.body.style.setProperty('overflow-y','auto','important');
-      document.body.style.setProperty('overflow-x','hidden','important');
-      document.body.style.setProperty('-webkit-overflow-scrolling','touch');
-      document.body.style.setProperty('touch-action','pan-y pinch-zoom');
-    }
+  function resetPreferenceScroller(){
+    const scroller=getScroller();
+    if(!scroller) return;
 
-    const app=document.querySelector('.app');
-    if(app){
-      app.style.setProperty('height','auto','important');
-      app.style.setProperty('overflow','visible','important');
-    }
-  };
+    /* These properties are also set in CSS, but applying them here protects
+       against Android WebView restoring a stale scroll-lock style. */
+    scroller.style.setProperty('height','100dvh','important');
+    scroller.style.setProperty('min-height','0','important');
+    scroller.style.setProperty('overflow-y','scroll','important');
+    scroller.style.setProperty('overflow-x','hidden','important');
+    scroller.style.setProperty('-webkit-overflow-scrolling','touch');
+    scroller.style.setProperty('touch-action','pan-y');
 
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',unlock,{once:true});
-  }else{
-    unlock();
+    document.documentElement.style.setProperty('overflow','hidden','important');
+    document.body.style.setProperty('overflow','hidden','important');
   }
 
-  window.addEventListener('pageshow',unlock);
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',resetPreferenceScroller,{once:true});
+  }else{
+    resetPreferenceScroller();
+  }
+
+  window.addEventListener('pageshow',resetPreferenceScroller);
 })();
 </script>
 
