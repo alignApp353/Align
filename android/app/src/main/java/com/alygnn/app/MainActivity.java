@@ -1,6 +1,10 @@
 package com.alygnn.app;
 
 import android.os.Bundle;
+import android.content.res.Configuration;
+import android.util.Log;
+import android.util.TypedValue;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.splashscreen.SplashScreen;
@@ -32,5 +36,41 @@ public class MainActivity extends BridgeActivity {
         SplashScreen.installSplashScreen(this);
 
         super.onCreate(savedInstanceState);
+
+        int nightMode =
+            getResources().getConfiguration().uiMode
+            & Configuration.UI_MODE_NIGHT_MASK;
+
+        String systemMode =
+            nightMode == Configuration.UI_MODE_NIGHT_YES
+                ? "DARK"
+                : nightMode == Configuration.UI_MODE_NIGHT_NO
+                    ? "LIGHT"
+                    : "UNDEFINED";
+
+        TypedValue isLightThemeValue = new TypedValue();
+        boolean resolved =
+            getTheme().resolveAttribute(
+                android.R.attr.isLightTheme,
+                isLightThemeValue,
+                true
+            );
+
+        String isLightTheme =
+            resolved
+                ? String.valueOf(isLightThemeValue.data != 0)
+                : "NOT_SET";
+
+        String debugMessage =
+            "Android uiMode: " + systemMode
+            + " | isLightTheme: " + isLightTheme;
+
+        Log.e("ALYGNN_THEME_DEBUG", debugMessage);
+
+        Toast.makeText(
+            this,
+            debugMessage,
+            Toast.LENGTH_LONG
+        ).show();
     }
 }
