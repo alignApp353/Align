@@ -128,6 +128,7 @@
   .job-card.is-dragging { transition: none; box-shadow: 0 16px 48px rgba(0,0,0,0.16); }
   .job-card.swipe-left { animation: swipeLeft 0.35s ease forwards; }
   .job-card.swipe-right { animation: swipeRight 0.35s ease forwards; }
+  .action-buttons button:disabled { pointer-events: none; }
 
   /* Behind cards */
   .job-card:nth-child(2) { transform: scale(0.96) translateY(8px); z-index: 1; }
@@ -358,6 +359,32 @@
   let currentX = 0;
   let activeCard = null;
   let activePointerId = null;
+
+  // Prevent double-swipes / rapid button taps from advancing the same card
+  // more than once while its 350ms exit animation is still running.
+  let swipeLocked = false;
+  let swipeFinishTimer = null;
+  let snapBackTimer = null;
+
+  function setSwipeControlsLocked(locked) {
+    document.querySelectorAll('.btn-undo, .btn-skip, .btn-apply').forEach(btn => {
+      btn.disabled = locked;
+      btn.setAttribute('aria-disabled', locked ? 'true' : 'false');
+    });
+  }
+
+  function resetSwipeInteractionState() {
+    clearTimeout(swipeFinishTimer);
+    clearTimeout(snapBackTimer);
+    swipeFinishTimer = null;
+    snapBackTimer = null;
+    isDragging = false;
+    activePointerId = null;
+    currentX = 0;
+    activeCard = null;
+    swipeLocked = false;
+    setSwipeControlsLocked(false);
+  }
 
   // Maps the checkbox values saved on preferences.html (FULLTIME, PARTTIME,
   // CONTRACTOR, INTERN) to how job_type is actually stored on the jobs table
@@ -599,6 +626,11 @@
 
   function renderCards() {
     const stack = document.getElementById('card-stack');
+
+    // Every render begins from a clean interaction state. This prevents a
+    // stale pointer capture, snap-back timeout, or swipe lock from leaving
+    // the next card unresponsive.
+    resetSwipeInteractionState();
     stack.innerHTML = '';
 
     const remaining = jobs.slice(currentIndex, currentIndex + 3);
@@ -713,7 +745,15 @@
   }
 
   function dragStart(e) {
+    if (swipeLocked || isDragging) return;
     if (e.target.closest('a')) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+    // A previous short drag may still have a snap-back timer pending.
+    // Cancel it so it cannot change transition styles in the middle of
+    // this new drag (the main cause of the intermittent "stuck" feeling).
+    clearTimeout(snapBackTimer);
+    snapBackTimer = null;
 
     setupTopCard();
 
@@ -738,11 +778,11 @@
 
     activeCard.addEventListener('pointermove', dragMove, { passive: false });
     activeCard.addEventListener('pointerup', dragEnd);
-    activeCard.addEventListener('pointercancel', dragEnd);
+    activeCard.addEventListener('pointercancel', dragCancel);
   }
 
   function dragMove(e) {
-    if (!isDragging || !activeCard) return;
+    if (swipeLocked || !isDragging || !activeCard) return;
     if (activePointerId !== null && e.pointerId !== activePointerId) return;
 
     e.preventDefault();
@@ -769,37 +809,81 @@
     }
   }
 
+  function detachDragListeners(card) {
+    if (!card) return;
+    card.removeEventListener('pointermove', dragMove);
+    card.removeEventListener('pointerup', dragEnd);
+    card.removeEventListener('pointercancel', dragCancel);
+  }
+
+  function releaseActivePointer(e) {
+    if (!activeCard) return;
+    try {
+      if (activePointerId !== null && activeCard.hasPointerCapture?.(activePointerId)) {
+        activeCard.releasePointerCapture(activePointerId);
+      } else if (e?.pointerId != null) {
+        activeCard.releasePointerCapture(e.pointerId);
+      }
+    } catch (err) {}
+  }
+
+  function resetCardToCenter(card) {
+    if (!card) return;
+    const applyStamp = card.querySelector('.stamp-apply');
+    const skipStamp = card.querySelector('.stamp-skip');
+    if (applyStamp) applyStamp.style.opacity = 0;
+    if (skipStamp) skipStamp.style.opacity = 0;
+
+    card.classList.remove('is-dragging');
+    card.style.transition = 'transform 0.25s ease';
+    card.style.transform = '';
+
+    clearTimeout(snapBackTimer);
+    snapBackTimer = setTimeout(() => {
+      // Only clear the transition if this is still the same live card and
+      // the user has not begun another drag or swipe.
+      if (card === activeCard && !isDragging && !swipeLocked) {
+        card.style.transition = '';
+      }
+      snapBackTimer = null;
+    }, 270);
+  }
+
+  function dragCancel(e) {
+    if (!isDragging || !activeCard) return;
+    if (activePointerId !== null && e.pointerId !== activePointerId) return;
+
+    const card = activeCard;
+    detachDragListeners(card);
+    releaseActivePointer(e);
+    isDragging = false;
+    activePointerId = null;
+    currentX = 0;
+    resetCardToCenter(card);
+  }
+
   function dragEnd(e) {
     if (!isDragging || !activeCard) return;
     if (activePointerId !== null && e.pointerId !== activePointerId) return;
 
+    const card = activeCard;
+    const releasedX = currentX;
+
+    detachDragListeners(card);
+    releaseActivePointer(e);
     isDragging = false;
-
-    activeCard.removeEventListener('pointermove', dragMove);
-    activeCard.removeEventListener('pointerup', dragEnd);
-    activeCard.removeEventListener('pointercancel', dragEnd);
-
-    activeCard.classList.remove('is-dragging');
-
-    try {
-      activeCard.releasePointerCapture(e.pointerId);
-    } catch (err) {}
-
     activePointerId = null;
+    card.classList.remove('is-dragging');
 
     const threshold = 70;
 
-    if (currentX > threshold) {
+    if (releasedX > threshold) {
       animateSwipe('right');
-    } else if (currentX < -threshold) {
+    } else if (releasedX < -threshold) {
       animateSwipe('left');
     } else {
-      activeCard.style.transition = 'transform 0.25s ease';
-      activeCard.style.transform = '';
-      const cardToReset = activeCard;
-      setTimeout(() => {
-        if (cardToReset) cardToReset.style.transition = '';
-      }, 250);
+      currentX = 0;
+      resetCardToCenter(card);
     }
   }
 
@@ -861,13 +945,40 @@
   }
 
   function animateSwipe(direction) {
+    // A swipe lasts 350ms. Without a lock, a fast double-click, held arrow
+    // key, or pointer-up + button click can advance currentIndex multiple
+    // times before renderCards() replaces the card.
+    if (swipeLocked) return;
+
     setupTopCard();
     if (!activeCard) return;
 
-    const job = jobs[parseInt(activeCard.dataset.index)];
-    activeCard.classList.add(direction === 'right' ? 'swipe-right' : 'swipe-left');
+    const cardToSwipe = activeCard;
+    const jobIndex = Number.parseInt(cardToSwipe.dataset.index, 10);
+    const job = jobs[jobIndex];
+    if (!job) {
+      renderCards();
+      return;
+    }
 
-    history.push({ job, direction, index: currentIndex });
+    swipeLocked = true;
+    setSwipeControlsLocked(true);
+    clearTimeout(snapBackTimer);
+    snapBackTimer = null;
+
+    // Make sure no leftover drag listeners/pointer state survive into the
+    // exit animation.
+    detachDragListeners(cardToSwipe);
+    isDragging = false;
+    activePointerId = null;
+    currentX = 0;
+    cardToSwipe.style.transition = '';
+    cardToSwipe.style.pointerEvents = 'none';
+
+    const historyIndex = currentIndex;
+    cardToSwipe.classList.add(direction === 'right' ? 'swipe-right' : 'swipe-left');
+
+    history.push({ job, direction, index: historyIndex });
 
     if (direction === 'right') {
       applied++;
@@ -879,25 +990,39 @@
       recordSkip(job);
     }
 
-    currentIndex++;
+    currentIndex = historyIndex + 1;
+    updateStats();
 
-    setTimeout(() => {
+    let finished = false;
+    const finishSwipe = (event) => {
+      if (finished) return;
+      if (event && event.target !== cardToSwipe) return;
+      finished = true;
+      cardToSwipe.removeEventListener('animationend', finishSwipe);
+      clearTimeout(swipeFinishTimer);
+      swipeFinishTimer = null;
       renderCards();
-    }, 350);
+    };
+
+    // Prefer the real CSS animation completion. The timeout is a safety net
+    // for browsers that drop animationend during tab switches / interrupted
+    // pointer sequences.
+    cardToSwipe.addEventListener('animationend', finishSwipe);
+    swipeFinishTimer = setTimeout(() => finishSwipe(null), 500);
   }
 
   function skipCurrent() {
+    if (swipeLocked || isDragging) return;
     setupTopCard();
     if (activeCard) {
-      currentX = -150;
       animateSwipe('left');
     }
   }
 
   function applyCurrent() {
+    if (swipeLocked || isDragging) return;
     setupTopCard();
     if (activeCard) {
-      currentX = 150;
       animateSwipe('right');
     }
   }
@@ -918,6 +1043,8 @@
   }
 
   function undo() {
+    if (swipeLocked || isDragging) return;
+
     if (!history.length) {
       showToast('Nothing to undo');
       return;
@@ -951,6 +1078,8 @@
   }
 
   document.addEventListener('keydown', e => {
+    // Do not let a held key auto-repeat multiple swipes during one animation.
+    if (e.repeat || swipeLocked || isDragging) return;
     if (e.key === 'ArrowLeft') skipCurrent();
     if (e.key === 'ArrowRight') applyCurrent();
     if (e.key === 'z' && (e.metaKey || e.ctrlKey)) undo();
