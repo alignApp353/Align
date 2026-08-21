@@ -228,63 +228,60 @@ employerChoice.addEventListener('click',()=>chooseExperience('employer'));
 document.getElementById('sign-in-link').addEventListener('click',()=>{localStorage.setItem('alygnn_account_type','candidate');window.location.href='app-login.html'});
 </script>
 
-<div id="theme-debug-panel" style="
+
+<div id="alygnn-theme-diagnostic" style="
   position:fixed;
-  z-index:999999;
-  left:10px;
-  bottom:10px;
-  max-width:calc(100vw - 20px);
+  z-index:2147483647;
+  top:0;
+  left:0;
+  right:0;
   padding:8px 10px;
-  border-radius:10px;
-  background:rgba(0,0,0,.82);
-  color:#fff;
-  font:600 11px/1.35 monospace;
-  text-align:left;
+  background:#B00020;
+  color:#FFFFFF;
+  font:700 11px/1.35 monospace;
+  text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.35);
   pointer-events:none;
 ">
-  Theme diagnostic loading…
+  ALYGNN BUILD V70 — checking WebView theme…
 </div>
 
 <script>
 (function(){
-  const panel=document.getElementById('theme-debug-panel');
+  const banner=document.getElementById('alygnn-theme-diagnostic');
 
-  function renderThemeDebug(){
-    const mediaDark=
+  function updateThemeDiagnostic(){
+    const dark=
       window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-    const mediaLight=
+    const light=
       window.matchMedia('(prefers-color-scheme: light)').matches;
 
-    const computedBg=
+    const bg=
       getComputedStyle(document.body).backgroundColor;
 
-    const storedCandidate=
-      localStorage.getItem('alygnn_candidate_theme');
+    banner.textContent=
+      'ALYGNN BUILD V70 | prefers-dark: '+dark+
+      ' | prefers-light: '+light+
+      ' | path: '+location.pathname+
+      ' | bg: '+bg;
 
-    const storedLegacy=
-      localStorage.getItem('alygnn-theme');
-
-    panel.textContent=
-      'WebView prefers dark: '+mediaDark+
-      ' | prefers light: '+mediaLight+
-      ' | body bg: '+computedBg+
-      ' | saved candidate: '+storedCandidate+
-      ' | saved legacy: '+storedLegacy;
+    banner.style.background=
+      dark ? '#087A45' : '#B00020';
   }
 
-  renderThemeDebug();
+  updateThemeDiagnostic();
 
-  const darkMedia=
-    window.matchMedia('(prefers-color-scheme: dark)');
+  window
+    .matchMedia('(prefers-color-scheme: dark)')
+    .addEventListener?.('change',updateThemeDiagnostic);
 
-  darkMedia.addEventListener?.('change',renderThemeDebug);
+  window.addEventListener('pageshow',updateThemeDiagnostic);
+  window.addEventListener('focus',updateThemeDiagnostic);
 
-  window.addEventListener('pageshow',renderThemeDebug);
-  window.addEventListener('focus',renderThemeDebug);
-
-  setInterval(renderThemeDebug,500);
+  setInterval(updateThemeDiagnostic,500);
 })();
 </script>
+
 </body>
 </html>
