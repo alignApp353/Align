@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Alygnn — Applied Jobs</title>
+<title>Alygnn — My Jobs</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -13,46 +13,735 @@ body{background:radial-gradient(circle at top,rgba(93,127,163,.27),transparent 3
 button{font:inherit;cursor:pointer}.app{width:100%;max-width:520px;min-height:100vh;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 20px calc(110px + env(safe-area-inset-bottom))}
 .topbar{display:flex;align-items:center;justify-content:space-between}.logo{font-size:28px;font-weight:900;color:var(--brand)}.profile-btn{width:42px;height:42px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);font-weight:900}
 .title{margin-top:28px;font-size:36px;font-weight:900}.subtitle{margin-top:10px;color:var(--muted);font-size:15px;line-height:1.55}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}.stat{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:15px;text-align:center}.stat-number{font-size:24px;font-weight:900}.stat-label{margin-top:4px;color:var(--muted);font-size:11px;font-weight:800}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:20px}.stat{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:13px 7px;text-align:center}.stat-number{font-size:24px;font-weight:900}.stat-label{margin-top:4px;color:var(--muted);font-size:10px;font-weight:800;line-height:1.2}
 .tabs{display:flex;gap:9px;overflow-x:auto;margin-top:20px;padding-bottom:8px}.tab{flex:0 0 auto;border:1px solid var(--border);background:rgba(255,255,255,.035);color:var(--muted);padding:10px 14px;border-radius:999px;font-size:13px;font-weight:900}.tab.active{background:var(--brand);border-color:var(--brand);color:white}
 .list{display:grid;gap:14px;margin-top:12px}.card{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:19px}.card-top{display:flex;justify-content:space-between;gap:12px}.job-title{font-size:19px;font-weight:900}.company{margin-top:5px;color:var(--muted);font-size:14px}
-.status{padding:7px 10px;border-radius:999px;font-size:11px;font-weight:900;height:max-content}.applied{color:var(--brand);background:rgba(93,127,163,.15)}.interview{color:var(--amber);background:rgba(231,184,110,.12)}.offer{color:var(--mint);background:rgba(111,191,143,.12)}.rejected{color:var(--rose);background:rgba(215,154,154,.11)}.withdrawn{color:var(--muted);background:rgba(255,255,255,.05)}
+.status{padding:7px 10px;border-radius:999px;font-size:11px;font-weight:900;height:max-content}.applied{color:var(--brand);background:rgba(93,127,163,.15)}.accepted{color:var(--mint);background:rgba(111,191,143,.12)}.not-selected{color:var(--rose);background:rgba(215,154,154,.11)}.skip{color:var(--muted);background:rgba(93,127,163,.12)}
 .meta{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:14px;color:var(--muted);font-size:13px}.match{margin-top:14px;padding:12px 14px;border-radius:16px;background:rgba(111,191,143,.08);color:var(--mint);font-size:13px;font-weight:900}
-.actions{display:grid;grid-template-columns:1.3fr 1fr;gap:10px;margin-top:16px}.btn{min-height:48px;border-radius:16px;font-size:14px;font-weight:900}.primary{border:none;background:var(--brand);color:white}.secondary{border:1px solid var(--border);background:transparent;color:var(--text)}
+.actions{display:grid;grid-template-columns:1.3fr 1fr;gap:10px;margin-top:16px}.actions.single{grid-template-columns:1fr}.btn{min-height:48px;border-radius:16px;font-size:14px;font-weight:900}.primary{border:none;background:var(--brand);color:white}.secondary{border:1px solid var(--border);background:transparent;color:var(--text)}
 .empty{margin-top:20px;padding:34px 22px;text-align:center;background:var(--card);border:1px solid var(--border);border-radius:26px}.empty-title{font-size:20px;font-weight:900}.empty-copy{margin-top:8px;color:var(--muted);font-size:14px;line-height:1.55}.empty .btn{width:100%;margin-top:18px}
 .message{display:none;margin-top:16px;padding:13px 15px;border-radius:16px;font-size:14px;font-weight:800}.message.error{display:block;background:rgba(215,154,154,.12);color:var(--rose)}.loading{text-align:center;color:var(--muted);padding:36px 10px}
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:auto;background:rgba(18,24,36,.98);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:12px 10px calc(18px + env(safe-area-inset-bottom))}.nav-item{color:var(--muted);font-size:13px;font-weight:800}.nav-item.active{color:var(--brand)}
+</style>
+
+<script src="app-candidate-theme.js"></script>
+<link rel="stylesheet" href="app-candidate-theme.css">
+
+<style id="my-jobs-nav-fix">
+.bottom-nav{
+  position:fixed!important;
+  left:0!important;
+  right:0!important;
+  bottom:0!important;
+  max-width:520px!important;
+  margin:0 auto!important;
+  min-height:72px!important;
+  padding:10px 12px calc(13px + env(safe-area-inset-bottom))!important;
+  display:grid!important;
+  grid-template-columns:repeat(4,1fr)!important;
+  backdrop-filter:blur(16px)!important;
+  -webkit-backdrop-filter:blur(16px)!important;
+  z-index:50!important;
+}
+
+.bottom-nav .nav-item{
+  position:relative;
+  min-height:54px;
+  border:0;
+  background:transparent!important;
+  color:#738394;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  padding:0;
+  font-size:9px;
+  font-weight:800;
+}
+
+.bottom-nav .nav-icon{
+  font-size:17px;
+  line-height:1;
+}
+
+.bottom-nav .nav-item.active{
+  color:#35679A!important;
+}
+
+.bottom-nav .nav-item.active::before{
+  content:'';
+  position:absolute;
+  top:-9px;
+  width:34px;
+  height:3px;
+  border-radius:999px;
+  background:#35679A;
+}
+
+html[data-effective-theme="dark"] .bottom-nav .nav-item{
+  color:#8293A2;
+}
+
+html[data-effective-theme="dark"] .bottom-nav .nav-item.active{
+  color:#73A4CE!important;
+}
+
+html[data-effective-theme="dark"] .bottom-nav .nav-item.active::before{
+  background:#73A4CE;
+}
 </style>
 </head>
 <body>
 <div class="app">
 <div class="topbar"><div class="logo">Alygnn.</div><button class="profile-btn" onclick="location.href='app-account.html'">A</button></div>
-<div class="title">Your Applications</div><div class="subtitle">Track every application, interview, and offer in one place.</div>
-<div class="stats"><div class="stat"><div id="totalCount" class="stat-number">0</div><div class="stat-label">Total</div></div><div class="stat"><div id="interviewCount" class="stat-number">0</div><div class="stat-label">Interviews</div></div><div class="stat"><div id="offerCount" class="stat-number">0</div><div class="stat-label">Offers</div></div></div>
-<div class="tabs"><button class="tab active" onclick="filterApps('all',this)">All</button><button class="tab" onclick="filterApps('applied',this)">Applied</button><button class="tab" onclick="filterApps('interview',this)">Interview</button><button class="tab" onclick="filterApps('offer',this)">Offer</button><button class="tab" onclick="filterApps('rejected',this)">Rejected</button></div>
+<div class="title">My Jobs</div><div class="subtitle">Track applications and revisit jobs you passed on.</div>
+<div class="stats">
+  <div class="stat"><div id="appliedCount" class="stat-number">0</div><div class="stat-label">Applied</div></div>
+  <div class="stat"><div id="acceptedCount" class="stat-number">0</div><div class="stat-label">Accepted</div></div>
+  <div class="stat"><div id="notSelectedCount" class="stat-number">0</div><div class="stat-label">Not Selected</div></div>
+  <div class="stat"><div id="skipCount" class="stat-number">0</div><div class="stat-label">Skip</div></div>
+</div>
+<div class="tabs">
+  <button class="tab active" id="appliedTab" onclick="filterApps('applied',this)">Applied</button>
+  <button class="tab" id="acceptedTab" onclick="filterApps('accepted',this)">Accepted</button>
+  <button class="tab" id="notSelectedTab" onclick="filterApps('not_selected',this)">Not Selected</button>
+  <button class="tab" id="skipTab" onclick="filterApps('skip',this)">Skip</button>
+</div>
 <div id="message" class="message"></div><div id="content"><div class="loading">Loading your applications...</div></div>
 </div>
-<div class="bottom-nav"><div class="nav-item" onclick="location.href='app-swipe.html'">Swipe</div><div class="nav-item active">Applied</div><div class="nav-item" onclick="location.href='app-account.html'">My Profile</div></div>
+<nav class="bottom-nav" aria-label="Candidate navigation">
+  <button class="nav-item" type="button" onclick="location.href='app-account.html'"><span class="nav-icon">◉</span><span>My Profile</span></button>
+  <button class="nav-item" type="button" onclick="location.href='app-swipe.html'"><span class="nav-icon">◇</span><span>Swipe</span></button>
+  <button class="nav-item active" type="button"><span class="nav-icon">▣</span><span>My Jobs</span></button>
+  <button class="nav-item" type="button" onclick="location.href='app-account.html#settings'"><span class="nav-icon">⚙</span><span>Settings</span></button>
+</nav>
 <script>
-const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-let apps=[],active='all';
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-const fmt=v=>{const d=new Date(v);return isNaN(d)?'Recently':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})};
-function filterApps(s,b){active=s;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');render()}
-function render(){
- const rows=active==='all'?apps:apps.filter(x=>x.status===active);
- document.getElementById('totalCount').textContent=apps.length;
- document.getElementById('interviewCount').textContent=apps.filter(x=>x.status==='interview').length;
- document.getElementById('offerCount').textContent=apps.filter(x=>x.status==='offer').length;
- if(!rows.length){document.getElementById('content').innerHTML=`<div class="empty"><div class="empty-title">No applications yet</div><div class="empty-copy">When you apply to jobs, they will appear here with their latest status.</div><button class="btn primary" onclick="location.href='app-swipe.html'">Find Jobs</button></div>`;return}
- document.getElementById('content').innerHTML=`<div class="list">${rows.map(x=>{const j=x.jobs||{};return `<div class="card"><div class="card-top"><div><div class="job-title">${esc(j.title||'Job Application')}</div><div class="company">${esc(j.company_name||j.company||'Employer')}</div></div><div class="status ${x.status}">${esc(x.status[0].toUpperCase()+x.status.slice(1))}</div></div><div class="meta"><span>${esc(j.location||'')}</span><span>Applied ${esc(fmt(x.applied_at))}</span></div>${x.match_score!=null?`<div class="match">${esc(x.match_score)}% Match</div>`:''}<div class="actions"><button class="btn primary" onclick="location.href='app-job-details.html?id=${encodeURIComponent(j.id||x.job_id)}'">View Job</button><button class="btn secondary" onclick="location.href='app-application-details.html?id=${encodeURIComponent(x.id)}'">Details</button></div></div>`}).join('')}</div>`;
+const sb=supabase.createClient(
+  'https://auth.alygnn.com',
+  'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+  {
+    auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true
+    }
+  }
+);
+
+let apps=[];
+let passedJobs=[];
+let active='applied';
+let currentUserId='';
+let jobsChannel=null;
+let applicationsChannel=null;
+let reloadTimer=null;
+
+const esc=value=>String(value??'').replace(
+  /[&<>"']/g,
+  char=>({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#039;'
+  })[char]
+);
+
+const fmt=value=>{
+  const date=new Date(value);
+
+  return isNaN(date)
+    ?'Recently'
+    :date.toLocaleDateString(
+      undefined,
+      {
+        month:'short',
+        day:'numeric',
+        year:'numeric'
+      }
+    );
+};
+
+function normalizeStatusValue(value){
+  return String(value||'')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g,'_');
 }
+
+/*
+ * Candidate My Jobs intentionally exposes only four states:
+ *
+ * Applied
+ * Accepted
+ * Not Selected
+ * Skip
+ *
+ * Employer workflow states such as reviewed/interview/shortlisted are still
+ * treated as Applied until the employer makes a final decision.
+ */
+function canonicalApplicationStatus(row){
+  const rawValues=[
+    row?.decision,
+    row?.outcome,
+    row?.candidate_status,
+    row?.application_status,
+    row?.status
+  ]
+    .map(normalizeStatusValue)
+    .filter(Boolean);
+
+  const acceptedValues=new Set([
+    'accepted',
+    'accept',
+    'selected',
+    'hired',
+    'hire',
+    'offer',
+    'offered'
+  ]);
+
+  const notSelectedValues=new Set([
+    'not_selected',
+    'notselected',
+    'rejected',
+    'reject',
+    'declined',
+    'decline',
+    'unsuccessful'
+  ]);
+
+  // Final employer decisions take priority over a stale generic "applied".
+  if(rawValues.some(value=>acceptedValues.has(value))){
+    return 'accepted';
+  }
+
+  if(rawValues.some(value=>notSelectedValues.has(value))){
+    return 'not_selected';
+  }
+
+  return 'applied';
+}
+
+function candidateStatusLabel(status){
+  if(status==='accepted')return 'Accepted';
+  if(status==='not_selected')return 'Not Selected';
+  return 'Applied';
+}
+
+function candidateStatusClass(status){
+  if(status==='accepted')return 'accepted';
+  if(status==='not_selected')return 'not-selected';
+  return 'applied';
+}
+
+function jobIsClosed(job){
+  const status=normalizeStatusValue(
+    job?.status ||
+    job?.job_status ||
+    job?.listing_status
+  );
+
+  return new Set([
+    'closed',
+    'deleted',
+    'paused',
+    'inactive',
+    'expired',
+    'archived',
+    'filled',
+    'cancelled',
+    'canceled'
+  ]).has(status);
+}
+
+function filterApps(status,button){
+  active=status;
+
+  document
+    .querySelectorAll('.tab')
+    .forEach(tab=>tab.classList.remove('active'));
+
+  button?.classList.add('active');
+  render();
+}
+
+function updateCounts(){
+  document.getElementById('appliedCount').textContent=
+    apps.filter(row=>row.canonical_status==='applied').length;
+
+  document.getElementById('acceptedCount').textContent=
+    apps.filter(row=>row.canonical_status==='accepted').length;
+
+  document.getElementById('notSelectedCount').textContent=
+    apps.filter(row=>row.canonical_status==='not_selected').length;
+
+  document.getElementById('skipCount').textContent=
+    passedJobs.length;
+
+  document.getElementById('appliedTab').textContent=
+    `Applied (${apps.filter(row=>row.canonical_status==='applied').length})`;
+
+  document.getElementById('acceptedTab').textContent=
+    `Accepted (${apps.filter(row=>row.canonical_status==='accepted').length})`;
+
+  document.getElementById('notSelectedTab').textContent=
+    `Not Selected (${apps.filter(row=>row.canonical_status==='not_selected').length})`;
+
+  document.getElementById('skipTab').textContent=
+    `Skip (${passedJobs.length})`;
+}
+
+function renderSkipped(){
+  if(!passedJobs.length){
+    document.getElementById('content').innerHTML=`
+      <div class="empty">
+        <div class="empty-title">No skipped jobs</div>
+        <div class="empty-copy">
+          Jobs you skip while swiping will stay here while the listing is still open,
+          so you can reconsider them later.
+        </div>
+        <button class="btn primary" onclick="location.href='app-swipe.html'">
+          Find Jobs
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  document.getElementById('content').innerHTML=`
+    <div class="list">
+      ${passedJobs.map(row=>{
+        const job=row.jobs||{};
+        const company=
+          job.company ||
+          job.company_name ||
+          job.employer_name ||
+          job.company_title ||
+          'Employer';
+
+        const skippedDate=
+          row.passed_at
+            ?`Skipped ${esc(fmt(row.passed_at))}`
+            :'Skipped previously';
+
+        return`
+          <div class="card">
+            <div class="card-top">
+              <div>
+                <div class="job-title">${esc(job.title||'Job Opportunity')}</div>
+                <div class="company">${esc(company)}</div>
+              </div>
+
+              <div class="status skip">Skip</div>
+            </div>
+
+            <div class="meta">
+              <span>${esc(
+                job.location ||
+                [job.city,job.state].filter(Boolean).join(', ') ||
+                ''
+              )}</span>
+              <span>${skippedDate}</span>
+            </div>
+
+            <div class="actions single">
+              <button
+                class="btn primary"
+                onclick="location.href='app-job-details.html?id=${encodeURIComponent(job.id||row.job_id)}&from=passed'"
+              >
+                View Job & Reconsider
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function render(){
+  updateCounts();
+
+  if(active==='skip'){
+    renderSkipped();
+    return;
+  }
+
+  const rows=apps.filter(
+    row=>row.canonical_status===active
+  );
+
+  if(!rows.length){
+    const title=
+      active==='accepted'
+        ?'No accepted jobs yet'
+        :active==='not_selected'
+          ?'No not selected jobs'
+          :'No active applications';
+
+    const copy=
+      active==='applied'
+        ?'Open jobs you applied to will appear here until the employer makes a final decision.'
+        :'Nothing is in this status yet.';
+
+    document.getElementById('content').innerHTML=`
+      <div class="empty">
+        <div class="empty-title">${esc(title)}</div>
+        <div class="empty-copy">${esc(copy)}</div>
+        <button class="btn primary" onclick="location.href='app-swipe.html'">
+          Find Jobs
+        </button>
+      </div>
+    `;
+
+    return;
+  }
+
+  document.getElementById('content').innerHTML=`
+    <div class="list">
+      ${rows.map(row=>{
+        const job=row.jobs||{};
+        const company=
+          job.company ||
+          job.company_name ||
+          job.employer_name ||
+          job.company_title ||
+          'Employer';
+
+        const status=row.canonical_status;
+
+        return`
+          <div class="card">
+            <div class="card-top">
+              <div>
+                <div class="job-title">${esc(job.title||'Job Application')}</div>
+                <div class="company">${esc(company)}</div>
+              </div>
+
+              <div class="status ${candidateStatusClass(status)}">
+                ${esc(candidateStatusLabel(status))}
+              </div>
+            </div>
+
+            <div class="meta">
+              <span>${esc(
+                job.location ||
+                [job.city,job.state].filter(Boolean).join(', ') ||
+                ''
+              )}</span>
+
+              <span>
+                Applied ${esc(fmt(row.applied_at))}
+              </span>
+            </div>
+
+            ${
+              row.match_score!=null
+                ?`<div class="match">${esc(row.match_score)}% Match</div>`
+                :''
+            }
+
+            <div class="actions">
+              <button
+                class="btn primary"
+                onclick="location.href='app-job-details.html?id=${encodeURIComponent(job.id||row.job_id)}&from=my-jobs'"
+              >
+                View Job
+              </button>
+
+              <button
+                class="btn secondary"
+                onclick="location.href='app-application-details.html?id=${encodeURIComponent(row.id)}'"
+              >
+                Details
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+async function loadApplications(userId){
+  let rows=[];
+  let nestedError=null;
+
+  {
+    const result=await sb
+      .from('applications')
+      .select('*,jobs(*)')
+      .eq('candidate_id',userId)
+      .order('applied_at',{ascending:false});
+
+    rows=result.data||[];
+    nestedError=result.error||null;
+  }
+
+  if(nestedError){
+    console.warn(
+      'Nested jobs query unavailable. Using fallback:',
+      nestedError
+    );
+
+    const applicationResult=await sb
+      .from('applications')
+      .select('*')
+      .eq('candidate_id',userId)
+      .order('applied_at',{ascending:false});
+
+    if(applicationResult.error){
+      throw applicationResult.error;
+    }
+
+    rows=applicationResult.data||[];
+
+    const jobIds=[
+      ...new Set(
+        rows
+          .map(row=>row.job_id)
+          .filter(Boolean)
+      )
+    ];
+
+    if(jobIds.length){
+      const jobResult=await sb
+        .from('jobs')
+        .select('*')
+        .in('id',jobIds);
+
+      if(jobResult.error){
+        console.warn(
+          'Could not load application jobs:',
+          jobResult.error
+        );
+      }else{
+        const jobsById=new Map(
+          (jobResult.data||[])
+            .map(job=>[String(job.id),job])
+        );
+
+        rows=rows.map(row=>({
+          ...row,
+          jobs:jobsById.get(String(row.job_id))||null
+        }));
+      }
+    }
+  }
+
+  /*
+   * Closed jobs should disappear from the still-pending Applied list.
+   * Accepted / Not Selected are final outcomes, so they stay as history.
+   */
+  apps=(rows||[])
+    .map(row=>({
+      ...row,
+      canonical_status:canonicalApplicationStatus(row)
+    }))
+    .filter(row=>{
+      const closed=jobIsClosed(row.jobs);
+
+      if(!closed)return true;
+
+      return row.canonical_status!=='applied';
+    });
+}
+
+async function loadSkippedJobs(userId){
+  try{
+    const skippedResult=await sb
+      .from('skipped_jobs')
+      .select('*')
+      .eq('candidate_id',userId);
+
+    if(skippedResult.error){
+      throw skippedResult.error;
+    }
+
+    const skippedRows=skippedResult.data||[];
+
+    const skippedJobIds=[
+      ...new Set(
+        skippedRows
+          .map(row=>row.job_id)
+          .filter(Boolean)
+      )
+    ];
+
+    if(!skippedJobIds.length){
+      passedJobs=[];
+      return;
+    }
+
+    const jobsResult=await sb
+      .from('jobs')
+      .select('*')
+      .in('id',skippedJobIds);
+
+    if(jobsResult.error){
+      throw jobsResult.error;
+    }
+
+    const jobsById=new Map(
+      (jobsResult.data||[])
+        .map(job=>[String(job.id),job])
+    );
+
+    // Closed skipped jobs are no longer actionable, so remove them from Skip.
+    passedJobs=skippedRows
+      .map(row=>({
+        job_id:row.job_id,
+        passed_at:
+          row.created_at ||
+          row.skipped_at ||
+          row.updated_at ||
+          null,
+        jobs:jobsById.get(String(row.job_id))||null
+      }))
+      .filter(row=>row.jobs && !jobIsClosed(row.jobs))
+      .sort(
+        (a,b)=>
+          new Date(b.passed_at||0)-
+          new Date(a.passed_at||0)
+      );
+
+  }catch(error){
+    console.warn(
+      'Could not load skipped jobs:',
+      error
+    );
+
+    passedJobs=[];
+  }
+}
+
+async function loadMyJobs(userId){
+  try{
+    await Promise.all([
+      loadApplications(userId),
+      loadSkippedJobs(userId)
+    ]);
+
+    document.getElementById('message').textContent='';
+    document.getElementById('message').className='message';
+
+    render();
+
+  }catch(error){
+    console.error(error);
+
+    document.getElementById('message').textContent=
+      'Your jobs could not be loaded right now.';
+
+    document.getElementById('message').className=
+      'message error';
+  }
+}
+
+function scheduleReload(){
+  clearTimeout(reloadTimer);
+
+  reloadTimer=setTimeout(()=>{
+    if(currentUserId){
+      loadMyJobs(currentUserId);
+    }
+  },180);
+}
+
+function startRealtimeSync(userId){
+  if(applicationsChannel){
+    sb.removeChannel(applicationsChannel);
+  }
+
+  if(jobsChannel){
+    sb.removeChannel(jobsChannel);
+  }
+
+  /*
+   * Employer decisions update applications.
+   * Listen to them so Accepted / Not Selected changes appear without the
+   * candidate having to sign out or manually refresh.
+   */
+  applicationsChannel=sb
+    .channel(`candidate-applications-${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event:'*',
+        schema:'public',
+        table:'applications',
+        filter:`candidate_id=eq.${userId}`
+      },
+      scheduleReload
+    )
+    .subscribe();
+
+  /*
+   * Job status changes (closed/paused/etc.) also refresh My Jobs so a closed
+   * still-pending application disappears.
+   */
+  jobsChannel=sb
+    .channel(`candidate-job-status-${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event:'*',
+        schema:'public',
+        table:'jobs'
+      },
+      scheduleReload
+    )
+    .subscribe();
+}
+
+document.addEventListener('visibilitychange',()=>{
+  if(
+    document.visibilityState==='visible' &&
+    currentUserId
+  ){
+    loadMyJobs(currentUserId);
+  }
+});
+
+window.addEventListener('pageshow',()=>{
+  if(currentUserId){
+    loadMyJobs(currentUserId);
+  }
+});
+
 (async()=>{
- const{data,error}=await sb.auth.getSession();if(error||!data.session){location.replace('app-login.html');return}
- const{data:rows,error:e}=await sb.from('applications').select('id,job_id,status,applied_at,match_score,jobs(id,title,company_name,company,location)').eq('candidate_id',data.session.user.id).order('applied_at',{ascending:false});
- if(e){console.error(e);document.getElementById('message').textContent=e.message||'Applications could not be loaded.';document.getElementById('message').className='message error';apps=[];render();return}
- apps=(rows||[]).map(x=>({...x,status:String(x.status||'applied').toLowerCase()}));render();
-})();
-</script>
+  const {data,error}=await sb.auth.getSession();
+
+  if(error || !data.session){
+    location.replace('app-login.html');
+    return;
+  }
+
+  currentUserId=data.session.user.id;
+
+  const requestedTab=
+    new URLSearchParams(window.location.search)
+      .get('tab');
+
+  if(
+    requestedTab==='skip' ||
+    requestedTab==='passed'
+  ){
+    active='skip';
+
+    document
+      .querySelectorAll('.tab')
+      .forEach(tab=>tab.classList.remove('active'));
+
+    document
+      .getElementById('skipTab')
+      ?.classList.add('active');
+  }
+
+  await loadMyJobs(currentUserId);
+  startRealtimeSync(currentUserId);
+})();</script>
 </body>
 </html>

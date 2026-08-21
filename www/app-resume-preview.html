@@ -678,7 +678,7 @@ html[data-effective-theme="dark"] .salary-handle-max{
 <script src="app-candidate-theme.js"></script>
 <link rel="stylesheet" href="app-candidate-theme.css">
 </head>
-<body data-preferences-build="59">
+<body>
 <div class="app">
   <header class="topbar">
     <button class="back" type="button" onclick="goBack()">← Back</button>
@@ -783,16 +783,7 @@ html[data-effective-theme="dark"] .salary-handle-max{
       <div class="card">
         <div class="field">
           <label class="label" for="locationInput">City / location</label>
-          <input
-  id="locationInput"
-  class="input"
-  placeholder="e.g. Raleigh, Seven Springs, Remote"
-  autocomplete="off"
-  autocorrect="off"
-  spellcheck="false"
-  oninput="handleLocationPreferenceInput()"
-  onfocus="handleLocationPreferenceInput()"
->
+          <input id="locationInput" class="input" placeholder="e.g. Ral, Cha, Rem" autocomplete="off" autocorrect="off" spellcheck="false">
           <div id="locationSuggestions" class="suggestions"></div>
           <div id="locationError" class="field-error">Enter or choose a valid City, ST location.</div>
         </div>
@@ -918,7 +909,7 @@ const COMPENSATION_CONFIG={
     periodLabel:'per year',
     min:10000,
     max:300000,
-    step:1000,
+    step:5000,
     defaultMin:40000,
     defaultMax:80000,
     floorLabel:'$10k',
@@ -1237,7 +1228,7 @@ function renderSuggestions(inputId,boxId,items,minChars,label,onSelect){
     .slice(0,8);
 
   if(!matches.length){
-    box.innerHTML='<div class="suggestion-empty">No matching option found.</div>';
+    box.innerHTML='<div class="suggestion-empty">No recognized match found. Try a broader term.</div>';
     box.classList.add('show');
     return;
   }
@@ -1269,128 +1260,81 @@ $('roleInput').addEventListener('input',()=>{
   });
 });
 
+/* Location — suggest after 3 characters.
+   Small towns are supported too. If a real City, ST is not in the local
+   suggestion list, the candidate can still select their properly formatted
+   location instead of being blocked by the old major-city-only list. */
+$('locationInput').addEventListener('input',()=>{
+  const previousLocation=selectedLocation || $('locationInput').dataset.lastLocation || '';
 
-function normalizeLocationSearch(value){
-  return String(value||'')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g,' ')
-    .trim()
-    .replace(/\s+/g,' ');
-}
-
-function singularizeLocationToken(token){
-  if(token.length>4 && token.endsWith('s')){
-    return token.slice(0,-1);
-  }
-  return token;
-}
-
-function locationSearchTokens(value){
-  return normalizeLocationSearch(value)
-    .split(' ')
-    .filter(Boolean)
-    .map(singularizeLocationToken);
-}
-
-function locationMatchesQuery(location,query){
-  const fullLocation=normalizeLocationSearch(location);
-  const fullQuery=normalizeLocationSearch(query);
-
-  if(!fullQuery)return false;
-
-  const cityPart=normalizeLocationSearch(
-    String(location||'').split(',')[0]
-  );
-
-  // Exact/partial city-name matching comes first.
-  if(
-    cityPart.includes(fullQuery) ||
-    cityPart.startsWith(fullQuery) ||
-    fullQuery.startsWith(cityPart)
-  ){
-    return true;
+  if(!locationStateHint){
+    locationStateHint=extractStateHint(previousLocation);
   }
 
-  if(fullLocation.includes(fullQuery)){
-    return true;
-  }
+  selectedLocation='';
+  $('locationError').classList.remove('show');
 
-  // Tolerate singular/plural differences:
-  // Seven spring -> Seven Springs, NC
-  const locationTokens=locationSearchTokens(cityPart);
-  const queryTokens=locationSearchTokens(fullQuery);
-
-  if(!queryTokens.length)return false;
-
-  return queryTokens.every(queryToken=>
-    locationTokens.some(locationToken=>
-      locationToken===queryToken ||
-      locationToken.startsWith(queryToken) ||
-      queryToken.startsWith(locationToken)
-    )
-  );
-}
-
-function renderLocationSuggestions(){
   const input=$('locationInput');
   const box=$('locationSuggestions');
   const raw=input.value.trim();
-
-  if(raw.length<3){
-    closeSuggestions('locationSuggestions');
-    return;
-  }
-
-  const matches=CITIES
-    .filter(location=>locationMatchesQuery(location,raw))
-    .sort((a,b)=>{
-      const aa=normalizeLocationSearch(a);
-      const bb=normalizeLocationSearch(b);
-      const qq=normalizeLocationSearch(raw);
-
-      const aStarts=aa.startsWith(qq)?0:1;
-      const bStarts=bb.startsWith(qq)?0:1;
-
-      return aStarts-bStarts || aa.localeCompare(bb);
-    })
-    .slice(0,10);
-
-  box.innerHTML='';
-
-  matches.forEach(location=>{
-    const button=document.createElement('button');
-    button.type='button';
-    button.className='suggestion';
-    button.innerHTML=
-      `${location}<small>Use this location</small>`;
-
-    button.onclick=()=>{
-      input.value=location;
-      selectedLocation=location;
-      locationStateHint=
-        extractStateHint(location) ||
-        locationStateHint;
-
-      input.dataset.lastLocation=location;
-
-      closeSuggestions('locationSuggestions');
-      $('locationError').classList.remove('show');
-      updateProgress();
-    };
-
-    box.appendChild(button);
-  });
-
   const custom=normalizeCustomLocation(raw);
 
-  if(
-    custom &&
-    !matches.some(
-      location=>
-        normalizeLocationSearch(location)===
-        normalizeLocationSearch(custom)
-    )
-  ){
+  renderSuggestions(
+    'locationInput',
+    'locationSuggestions',
+    CITIES,
+    3,
+    'Use this location',
+    location=>{
+      input.value=location;
+      selectedLocation=location;
+      locationStateHint=extractStateHint(location) || locationStateHint;
+      input.dataset.lastLocation=location;
+    }
+  );
+
+  // If the user types only the town name and we know their current state,
+  // offer that smaller town even when it is not in the old major-city list.
+  const cityOnly=
+    raw.length>=3 &&
+    !raw.includes(',') &&
+    /^[A-Za-z][A-Za-z .'-]{1,58}$/.test(raw);
+
+  if(cityOnly && locationStateHint){
+    const inferred=
+      `${titleCaseLocationName(raw)}, ${locationStateHint}`;
+
+    const alreadyShown=CITIES.some(
+      item=>normalize(item)===normalize(inferred)
+    );
+
+    if(!alreadyShown){
+      const empty=box.querySelector('.suggestion-empty');
+      if(empty)empty.remove();
+
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='suggestion inferred-location-suggestion';
+      button.innerHTML=
+        `${inferred}<small>Use this city</small>`;
+
+      button.onclick=()=>{
+        input.value=inferred;
+        selectedLocation=inferred;
+        input.dataset.lastLocation=inferred;
+        closeSuggestions('locationSuggestions');
+        updateProgress();
+      };
+
+      box.prepend(button);
+      box.classList.add('show');
+    }
+  }
+
+  if(custom && !CITIES.some(item=>normalize(item)===normalize(custom))){
+    const empty=box.querySelector('.suggestion-empty');
+    if(empty)empty.remove();
+
     const button=document.createElement('button');
     button.type='button';
     button.className='suggestion custom-location-suggestion';
@@ -1400,89 +1344,18 @@ function renderLocationSuggestions(){
     button.onclick=()=>{
       input.value=custom;
       selectedLocation=custom;
-      locationStateHint=
-        extractStateHint(custom) ||
-        locationStateHint;
-
+      locationStateHint=extractStateHint(custom) || locationStateHint;
       input.dataset.lastLocation=custom;
-
       closeSuggestions('locationSuggestions');
-      $('locationError').classList.remove('show');
       updateProgress();
     };
 
     box.prepend(button);
+    box.classList.add('show');
   }
 
-  /*
-   * If the user entered only a town name, infer the state only when:
-   * 1) there is a saved state hint, OR
-   * 2) exactly one known city match exists.
-   */
-  const cityOnly=
-    raw.length>=3 &&
-    !raw.includes(',') &&
-    /^[A-Za-z][A-Za-z .'-]{1,58}$/.test(raw);
-
-  if(cityOnly && !matches.length && locationStateHint){
-    const inferred=
-      `${titleCaseLocationName(raw)}, ${locationStateHint}`;
-
-    const button=document.createElement('button');
-    button.type='button';
-    button.className='suggestion inferred-location-suggestion';
-    button.innerHTML=
-      `${inferred}<small>Use this city</small>`;
-
-    button.onclick=()=>{
-      input.value=inferred;
-      selectedLocation=inferred;
-      input.dataset.lastLocation=inferred;
-
-      closeSuggestions('locationSuggestions');
-      $('locationError').classList.remove('show');
-      updateProgress();
-    };
-
-    box.appendChild(button);
-  }
-
-  if(!box.children.length){
-    box.innerHTML=`
-      <div class="suggestion-empty">
-        No match yet. Try adding the state, for example: Seven Springs, NC.
-      </div>
-    `;
-  }
-
-  box.classList.add('show');
-}
-
-/* Location — suggest after 3 characters.
-   Small towns are supported too. If a real City, ST is not in the local
-   suggestion list, the candidate can still select their properly formatted
-   location instead of being blocked by the old major-city-only list. */
-function handleLocationPreferenceInput(){
-  const input=$('locationInput');
-
-  if(!input)return;
-
-  const previousLocation=
-    selectedLocation ||
-    input.dataset.lastLocation ||
-    '';
-
-  if(!locationStateHint){
-    locationStateHint=
-      extractStateHint(previousLocation);
-  }
-
-  selectedLocation='';
-  $('locationError').classList.remove('show');
-
-  renderLocationSuggestions();
   updateProgress();
-}
+});
 
 $('locationInput').addEventListener('blur',()=>{
   const normalized=normalizeCustomLocation($('locationInput').value);
@@ -1495,97 +1368,7 @@ $('locationInput').addEventListener('blur',()=>{
 });
 
 /* Compensation */
-const HOURS_PER_YEAR=2080;
-const MONTHS_PER_YEAR=12;
-
-function compensationToAnnual(value,type){
-  const amount=Number(value)||0;
-
-  if(type==='monthly'){
-    return amount*MONTHS_PER_YEAR;
-  }
-
-  if(type==='hourly'){
-    return amount*HOURS_PER_YEAR;
-  }
-
-  return amount;
-}
-
-function annualToCompensation(value,type){
-  const annual=Number(value)||0;
-
-  if(type==='monthly'){
-    return annual/MONTHS_PER_YEAR;
-  }
-
-  if(type==='hourly'){
-    return annual/HOURS_PER_YEAR;
-  }
-
-  return annual;
-}
-
-function snapCompensationValue(value,type){
-  const config=COMPENSATION_CONFIG[type];
-  const amount=Number(value);
-
-  if(!Number.isFinite(amount)){
-    return config.defaultMin;
-  }
-
-  const snapped=
-    Math.round(amount/config.step)*config.step;
-
-  const decimals=
-    String(config.step).includes('.')
-      ?String(config.step).split('.')[1].length
-      :0;
-
-  return Number(snapped.toFixed(decimals));
-}
-
-function clampCompensationRange(minValue,maxValue,type){
-  const config=COMPENSATION_CONFIG[type];
-
-  let min=snapCompensationValue(minValue,type);
-  let max=snapCompensationValue(maxValue,type);
-
-  min=Math.max(
-    config.min,
-    Math.min(config.max-config.step,min)
-  );
-
-  max=Math.max(
-    min+config.step,
-    Math.min(config.max,max)
-  );
-
-  if(max<=min){
-    max=Math.min(
-      config.max,
-      min+config.step
-    );
-  }
-
-  return {min,max};
-}
-
-function convertCompensationRange(minValue,maxValue,fromType,toType){
-  const annualMin=
-    compensationToAnnual(minValue,fromType);
-
-  const annualMax=
-    compensationToAnnual(maxValue,fromType);
-
-  return clampCompensationRange(
-    annualToCompensation(annualMin,toType),
-    annualToCompensation(annualMax,toType),
-    toType
-  );
-}
-
-function setCompensationType(type,preserveValues=false,convertedRange=null){
+function setCompensationType(type,preserveValues=false){
   compensationType=COMPENSATION_CONFIG[type]?type:'yearly';
   const config=COMPENSATION_CONFIG[compensationType];
   const minInput=$('salaryMin');
@@ -1603,29 +1386,21 @@ function setCompensationType(type,preserveValues=false,convertedRange=null){
   maxInput.max=config.max;
   maxInput.step=config.step;
 
-  if(convertedRange){
-    const range=clampCompensationRange(
-      convertedRange.min,
-      convertedRange.max,
-      compensationType
-    );
-
-    minInput.value=range.min;
-    maxInput.value=range.max;
-
-  }else if(!preserveValues){
+  if(!preserveValues){
     minInput.value=config.defaultMin;
     maxInput.value=config.defaultMax;
-
   }else{
-    const range=clampCompensationRange(
-      Number(minInput.value),
-      Number(maxInput.value),
-      compensationType
-    );
+    let min=Number(minInput.value);
+    let max=Number(maxInput.value);
 
-    minInput.value=range.min;
-    maxInput.value=range.max;
+    if(!Number.isFinite(min))min=config.defaultMin;
+    if(!Number.isFinite(max))max=config.defaultMax;
+
+    min=Math.max(config.min,Math.min(config.max-config.step,min));
+    max=Math.max(min+config.step,Math.min(config.max,max));
+
+    minInput.value=min;
+    maxInput.value=max;
   }
 
   $('compensationPeriod').textContent=config.periodLabel;
@@ -1636,38 +1411,6 @@ function setCompensationType(type,preserveValues=false,convertedRange=null){
   renderSalaryQuickChips(
     Number(minInput.value),
     Number(maxInput.value)
-  );
-}
-
-function switchCompensationType(nextType){
-  if(
-    !COMPENSATION_CONFIG[nextType] ||
-    nextType===compensationType
-  ){
-    return;
-  }
-
-  const previousType=compensationType;
-
-  const currentMin=Number(
-    $('salaryMin').value
-  );
-
-  const currentMax=Number(
-    $('salaryMax').value
-  );
-
-  const convertedRange=convertCompensationRange(
-    currentMin,
-    currentMax,
-    previousType,
-    nextType
-  );
-
-  setCompensationType(
-    nextType,
-    false,
-    convertedRange
   );
 }
 
@@ -1710,9 +1453,7 @@ function updateSalary(){
 
 document.querySelectorAll('#compTypeOptions .comp-type-btn').forEach(button=>{
   button.onclick=()=>{
-    switchCompensationType(
-      button.dataset.type
-    );
+    setCompensationType(button.dataset.type,false);
   };
 });
 
@@ -1959,18 +1700,6 @@ function collectPreferences(){
     pay_type:compensationType,
     salary_min:Number($('salaryMin').value),
     salary_max:Number($('salaryMax').value),
-    annual_salary_min:Math.round(
-      compensationToAnnual(
-        Number($('salaryMin').value),
-        compensationType
-      )
-    ),
-    annual_salary_max:Math.round(
-      compensationToAnnual(
-        Number($('salaryMax').value),
-        compensationType
-      )
-    ),
     workStyle:selectedWorkStyle(),
     jobType:jobTypes[0]||'',
     jobTypes,

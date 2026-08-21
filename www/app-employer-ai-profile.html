@@ -1,0 +1,5143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1,viewport-fit=cover"
+>
+
+<meta
+  name="theme-color"
+  content="#F6F8F7"
+>
+
+<title>Company AI Profile | Alygnn</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link
+  href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap"
+  rel="stylesheet"
+>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:'DM Sans',Arial,sans-serif!important;
+}
+
+:root{
+  --brand:#5D7FA3;
+  --brand-dark:#345F91;
+  --sage:#8CB69B;
+
+  --bg:#F6F8F7;
+  --card:#FFFFFF;
+
+  --text:#172333;
+  --muted:#59697A;
+
+  --border:#D8E1E8;
+  --soft:#EDF3F8;
+
+  --success:#18794E;
+  --success-bg:#E8F6EE;
+
+  --danger:#B64040;
+  --danger-bg:#FCEDED;
+}
+
+[hidden]{
+  display:none!important;
+}
+
+html,
+body{
+  width:100%;
+  min-height:100%;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+}
+
+button,
+input,
+textarea{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+
+/* =============================================
+   HEADER
+============================================= */
+
+.header{
+  position:sticky;
+  top:0;
+  z-index:50;
+
+  min-height:78px;
+
+  padding:
+    calc(12px + env(safe-area-inset-top))
+    16px
+    12px;
+
+  display:grid;
+  grid-template-columns:46px 1fr 46px;
+  align-items:center;
+
+  background:rgba(246,248,247,.97);
+
+  border-bottom:1px solid var(--border);
+
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+
+.back{
+  width:43px;
+  height:43px;
+
+  border:1px solid var(--border);
+  border-radius:50%;
+
+  background:#fff;
+  color:var(--text);
+
+  font-size:20px;
+}
+
+.logo{
+  text-align:center;
+
+  font-family:
+    'DM Serif Display',
+    Georgia,
+    serif!important;
+
+  font-size:29px;
+
+  color:var(--brand);
+}
+
+.logo span{
+  color:var(--sage);
+}
+
+
+/* =============================================
+   PAGE
+============================================= */
+
+.page{
+  width:100%;
+  max-width:620px;
+
+  margin:auto;
+
+  padding:
+    23px
+    16px
+    calc(35px + env(safe-area-inset-bottom));
+}
+
+
+/* =============================================
+   STEP HEADER
+============================================= */
+
+.step-header{
+  margin-bottom:17px;
+}
+
+.step-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+  gap:15px;
+}
+
+.step-name{
+  color:#445466;
+
+  font-size:10px;
+  font-weight:900;
+
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+}
+
+.step-percent{
+  color:#445466;
+
+  font-size:11px;
+  font-weight:900;
+}
+
+.progress-track{
+  height:7px;
+
+  margin-top:10px;
+
+  overflow:hidden;
+
+  border-radius:999px;
+
+  background:#DDE4EA;
+}
+
+.progress-fill{
+  width:14%;
+
+  height:100%;
+
+  border-radius:999px;
+
+  background:var(--brand);
+
+  transition:width .25s ease;
+}
+
+
+/* =============================================
+   SETUP CARD
+============================================= */
+
+.setup-card{
+  padding:
+    27px
+    21px
+    23px;
+
+  border:1px solid var(--border);
+
+  border-radius:27px;
+
+  background:var(--card);
+
+  box-shadow:
+    0 18px 55px
+    rgba(23,35,51,.06);
+}
+
+.eyebrow{
+  color:var(--brand);
+
+  font-size:10px;
+  font-weight:900;
+
+  letter-spacing:1.5px;
+
+  text-transform:uppercase;
+}
+
+h1{
+  margin-top:10px;
+
+  font-size:30px;
+  line-height:1.12;
+
+  letter-spacing:-.7px;
+}
+
+.intro{
+  margin-top:12px;
+
+  color:var(--muted);
+
+  font-size:13px;
+  line-height:1.6;
+}
+
+
+/* =============================================
+   WELCOME
+============================================= */
+
+.benefits{
+  display:grid;
+  gap:10px;
+
+  margin-top:24px;
+}
+
+.benefit{
+  min-height:62px;
+
+  padding:16px;
+
+  display:flex;
+  align-items:center;
+
+  border:1px solid var(--border);
+  border-radius:16px;
+
+  color:var(--text);
+
+  font-size:12px;
+  font-weight:700;
+}
+
+
+/* =============================================
+   FIELDS
+============================================= */
+
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:17px;
+
+  margin-top:24px;
+}
+
+.field{
+  min-width:0;
+}
+
+.field.full{
+  grid-column:1 / -1;
+}
+
+label{
+  display:block;
+
+  margin-bottom:8px;
+
+  font-size:11px;
+  font-weight:900;
+}
+
+.required{
+  color:#CB7B7B;
+}
+
+.input,
+.textarea{
+  width:100%;
+
+  border:1px solid var(--border);
+  border-radius:16px;
+
+  background:#fff;
+  color:var(--text);
+
+  outline:none;
+
+  font-size:14px;
+}
+
+.input{
+  min-height:54px;
+  padding:0 14px;
+}
+
+.textarea{
+  min-height:135px;
+
+  padding:14px;
+
+  resize:vertical;
+
+  line-height:1.55;
+}
+
+.input:focus,
+.textarea:focus{
+  border-color:var(--brand-dark);
+
+  box-shadow:
+    0 0 0 4px
+    rgba(52,95,145,.09);
+}
+
+.input[readonly]{
+  background:#F4F6F8;
+  color:#677585;
+}
+
+.helper{
+  margin-top:7px;
+
+  color:var(--muted);
+
+  font-size:9px;
+  line-height:1.45;
+}
+
+.imported{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+
+  margin-top:11px;
+
+  padding:6px 9px;
+
+  border-radius:999px;
+
+  background:var(--success-bg);
+  color:var(--success);
+
+  font-size:9px;
+  font-weight:900;
+}
+
+.imported:before{
+  content:"";
+
+  width:7px;
+  height:7px;
+
+  border-radius:50%;
+
+  background:var(--success);
+}
+
+
+/* =============================================
+   OPTIONS
+============================================= */
+
+.section-label{
+  margin-top:23px;
+
+  font-size:12px;
+  font-weight:900;
+}
+
+.selection-line{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  gap:12px;
+}
+
+.count{
+  color:var(--muted);
+
+  font-size:9px;
+  font-weight:900;
+}
+
+.options{
+  display:flex;
+  flex-wrap:wrap;
+
+  gap:9px;
+
+  margin-top:11px;
+}
+
+.chip{
+  min-height:44px;
+
+  padding:10px 14px;
+
+  border:1px solid var(--border);
+  border-radius:999px;
+
+  background:#fff;
+  color:var(--text);
+
+  font-size:12px;
+  font-weight:900;
+}
+
+.chip.selected{
+  border-color:var(--brand-dark);
+
+  background:var(--soft);
+  color:var(--brand-dark);
+
+  box-shadow:
+    0 0 0 2px
+    rgba(52,95,145,.06);
+}
+
+.chip:disabled:not(.selected){
+  opacity:.38;
+}
+
+
+/* =============================================
+   AUTOCOMPLETE
+============================================= */
+
+.suggest-wrap,
+.search-wrap{
+  position:relative;
+}
+
+.suggestions{
+  display:none;
+
+  position:absolute;
+
+  z-index:100;
+
+  top:calc(100% + 7px);
+
+  left:0;
+  right:0;
+
+  max-height:220px;
+
+  overflow:auto;
+
+  border:1px solid var(--border);
+  border-radius:15px;
+
+  background:var(--card);
+
+  box-shadow:
+    0 20px 45px
+    rgba(20,35,50,.16);
+}
+
+.suggestions.show{
+  display:block;
+}
+
+.suggestion{
+  width:100%;
+
+  min-height:46px;
+
+  padding:11px 14px;
+
+  border:0;
+  border-bottom:1px solid var(--border);
+
+  background:var(--card);
+  color:var(--text);
+
+  text-align:left;
+
+  font-size:12px;
+  font-weight:800;
+}
+
+.suggestion:last-child{
+  border-bottom:0;
+}
+
+.suggestion:hover{
+  background:var(--soft);
+}
+
+.search-box{
+  position:relative;
+
+  margin-top:18px;
+}
+
+.search-box .input{
+  padding-right:52px;
+}
+
+.add-button{
+  position:absolute;
+
+  right:8px;
+  bottom:8px;
+
+  width:38px;
+  height:38px;
+
+  border:0;
+  border-radius:12px;
+
+  background:var(--brand-dark);
+  color:#fff;
+
+  font-size:20px;
+}
+
+
+/* =============================================
+   AI SUMMARY
+============================================= */
+
+.ai-summary{
+  margin-top:24px;
+
+  padding:17px;
+
+  border:1px solid #CCD9E4;
+  border-radius:17px;
+
+  background:#F0F5F9;
+}
+
+.ai-summary-label{
+  color:var(--brand-dark);
+
+  font-size:9px;
+  font-weight:900;
+
+  letter-spacing:.8px;
+  text-transform:uppercase;
+}
+
+.ai-summary-copy{
+  margin-top:7px;
+
+  color:#425B73;
+
+  font-size:11px;
+  line-height:1.55;
+
+  font-weight:700;
+}
+
+
+/* =============================================
+   REVIEW
+============================================= */
+
+.review{
+  display:grid;
+  gap:11px;
+
+  margin-top:22px;
+}
+
+.review-row{
+  padding:14px;
+
+  border:1px solid var(--border);
+  border-radius:15px;
+
+  background:#FAFBFC;
+}
+
+.review-label{
+  color:var(--muted);
+
+  font-size:9px;
+  font-weight:900;
+
+  letter-spacing:.7px;
+  text-transform:uppercase;
+}
+
+.review-value{
+  margin-top:5px;
+
+  font-size:12px;
+  font-weight:800;
+
+  line-height:1.5;
+
+  word-break:break-word;
+}
+
+
+/* =============================================
+   BUTTONS
+============================================= */
+
+.actions{
+  display:grid;
+
+  grid-template-columns:110px 1fr;
+
+  gap:12px;
+
+  margin-top:25px;
+}
+
+.actions.single{
+  grid-template-columns:1fr;
+}
+
+.action{
+  min-height:54px;
+
+  border-radius:17px;
+
+  font-size:13px;
+  font-weight:900;
+}
+
+.secondary{
+  border:1px solid var(--border);
+
+  background:#fff;
+  color:var(--text);
+}
+
+.primary{
+  border:0;
+
+  background:#5F86AD;
+  color:#fff;
+}
+
+.primary:disabled{
+  opacity:.55;
+}
+
+
+/* =============================================
+   MESSAGE
+============================================= */
+
+.message{
+  display:none;
+
+  margin-top:15px;
+
+  padding:12px 14px;
+
+  border-radius:14px;
+
+  font-size:11px;
+  font-weight:800;
+
+  line-height:1.45;
+}
+
+.message.error{
+  display:block;
+
+  color:var(--danger);
+  background:var(--danger-bg);
+}
+
+
+/* =============================================
+   LOADING
+============================================= */
+
+.loading{
+  position:fixed;
+  inset:0;
+
+  z-index:200;
+
+  display:grid;
+  place-items:center;
+
+  background:rgba(246,248,247,.98);
+}
+
+.spinner{
+  width:42px;
+  height:42px;
+
+  margin:auto;
+
+  border:4px solid #E1E7EB;
+  border-top-color:var(--brand-dark);
+
+  border-radius:50%;
+
+  animation:spin .75s linear infinite;
+}
+
+@keyframes spin{
+  to{
+    transform:rotate(360deg);
+  }
+}
+
+.loading-copy{
+  margin-top:12px;
+
+  color:var(--muted);
+
+  font-size:11px;
+  font-weight:800;
+}
+
+
+/* =============================================
+   SUCCESS
+============================================= */
+
+.success-screen{
+  min-height:70vh;
+
+  display:grid;
+  place-items:center;
+}
+
+.success-card{
+  width:100%;
+
+  padding:31px 23px;
+
+  text-align:center;
+
+  border:1px solid var(--border);
+  border-radius:27px;
+
+  background:var(--card);
+}
+
+.success-mark{
+  width:68px;
+  height:68px;
+
+  margin:auto;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:22px;
+
+  background:var(--success-bg);
+  color:var(--success);
+
+  font-size:31px;
+  font-weight:900;
+}
+
+.success-card p{
+  margin-top:10px;
+
+  color:var(--muted);
+
+  font-size:13px;
+  line-height:1.55;
+}
+
+
+/* =============================================
+   DARK
+============================================= */
+
+html[data-theme="dark"]{
+  --bg:#07121D;
+  --card:#101C29;
+  --text:#F5F7FA;
+  --muted:#AAB6C4;
+  --border:#2B3A4B;
+  --soft:#15283A;
+
+  --danger:#FF9B9B;
+  --danger-bg:#321C22;
+
+  --success:#7AD5A5;
+  --success-bg:#102C22;
+}
+
+html[data-theme="dark"] .header{
+  background:rgba(7,18,29,.96);
+}
+
+html[data-theme="dark"] .back,
+html[data-theme="dark"] .input,
+html[data-theme="dark"] .textarea,
+html[data-theme="dark"] .chip,
+html[data-theme="dark"] .secondary{
+  background:var(--card);
+  color:var(--text);
+}
+
+html[data-theme="dark"] .review-row{
+  background:#0D1722;
+}
+
+html[data-theme="dark"] .input[readonly]{
+  background:#0D1722;
+}
+
+html[data-theme="dark"] .ai-summary{
+  background:#102131;
+  border-color:#29465E;
+}
+
+html[data-theme="dark"] .loading{
+  background:rgba(7,18,29,.98);
+}
+
+
+/* =============================================
+   MOBILE
+============================================= */
+
+@media(max-width:520px){
+
+  .form-grid{
+    grid-template-columns:1fr;
+  }
+
+  .field.full{
+    grid-column:auto;
+  }
+
+  h1{
+    font-size:27px;
+  }
+
+  .setup-card{
+    padding:23px 17px 20px;
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+
+<div
+  class="loading"
+  id="loading"
+>
+  <div>
+    <div class="spinner"></div>
+
+    <div class="loading-copy">
+      Preparing your company profile…
+    </div>
+  </div>
+</div>
+
+
+<header class="header">
+
+<button
+  class="back"
+  id="page-back"
+  type="button"
+>
+←
+</button>
+
+<div class="logo">
+Alygnn<span>.</span>
+</div>
+
+<div></div>
+
+</header>
+
+
+<main class="page">
+
+
+<div id="profile-view">
+
+
+<div class="step-header">
+
+<div class="step-top">
+
+<div
+  class="step-name"
+  id="step-name"
+>
+Welcome
+</div>
+
+<div
+  class="step-percent"
+  id="step-percent"
+>
+14%
+</div>
+
+</div>
+
+
+<div class="progress-track">
+
+<div
+  class="progress-fill"
+  id="progress-fill"
+></div>
+
+</div>
+
+</div>
+
+
+
+<!-- ===========================================
+     STEP 1 — WELCOME
+=========================================== -->
+
+<section
+  class="setup-card"
+  data-step="0"
+>
+
+<div class="eyebrow">
+Welcome to Alygnn
+</div>
+
+
+<h1>
+Build a hiring experience that sounds like your company.
+</h1>
+
+
+<p class="intro">
+Show Alygnn what matters to your team. Your answers personalize job writing, candidate matching, and hiring recommendations.
+</p>
+
+
+<div class="benefits">
+
+<div class="benefit">
+Create hiring content using your company voice
+</div>
+
+<div class="benefit">
+Highlight what makes your company stand out
+</div>
+
+<div class="benefit">
+Recommend candidates using your hiring priorities
+</div>
+
+</div>
+
+
+<div class="actions">
+
+<button
+  class="action secondary"
+  type="button"
+  id="welcome-back"
+>
+Back
+</button>
+
+<button
+  class="action primary"
+  type="button"
+  data-next
+>
+Get Started
+</button>
+
+</div>
+
+</section>
+
+
+
+<!-- ===========================================
+     STEP 2 — COMPANY INFORMATION
+=========================================== -->
+
+<section
+  class="setup-card"
+  data-step="1"
+  hidden
+>
+
+<div class="eyebrow">
+Company information
+</div>
+
+
+<h1>
+Tell Alygnn about your company.
+</h1>
+
+
+<p class="intro">
+Review the information already connected to your company workspace and fill in anything that is missing.
+</p>
+
+
+<div class="imported">
+Imported from Company Setup
+</div>
+
+
+<div class="form-grid">
+
+
+<div class="field">
+
+<label for="company-name">
+Company name
+<span class="required">*</span>
+</label>
+
+<input
+  class="input"
+  id="company-name"
+  readonly
+>
+
+</div>
+
+
+
+<div class="field">
+
+<label for="website">
+Company website
+<span class="required">*</span>
+</label>
+
+<input
+  class="input"
+  id="website"
+  inputmode="url"
+  placeholder="https://yourcompany.com"
+>
+
+</div>
+
+
+
+<div class="field suggest-wrap">
+
+<label for="industry">
+Industry
+<span class="required">*</span>
+</label>
+
+<input
+  class="input"
+  id="industry"
+  autocomplete="off"
+  placeholder="Start typing an industry"
+>
+
+
+<div
+  class="suggestions"
+  id="industry-suggestions"
+></div>
+
+
+<div class="helper">
+Suggestions appear after 3 letters.
+</div>
+
+</div>
+
+
+
+<div class="field full">
+
+<label for="description">
+Company description
+<span class="required">*</span>
+</label>
+
+<textarea
+  class="textarea"
+  id="description"
+  maxlength="1400"
+  placeholder="Tell Alygnn what your company does, who you serve, and what makes your business different."
+></textarea>
+
+</div>
+
+
+</div>
+
+
+<div class="actions">
+
+<button
+  class="action secondary"
+  type="button"
+  data-back
+>
+Back
+</button>
+
+
+<button
+  class="action primary"
+  type="button"
+  data-next
+>
+Continue
+</button>
+
+</div>
+
+</section>
+
+
+
+<!-- ===========================================
+     STEP 3 — COMPANY PERSONALITY
+=========================================== -->
+
+<section
+  class="setup-card"
+  data-step="2"
+  hidden
+>
+
+<div class="eyebrow">
+Company personality
+</div>
+
+
+<h1>
+How should Alygnn represent your company?
+</h1>
+
+
+<p class="intro">
+Choose the voice and strengths that best reflect your workplace. Selected answers stay highlighted.
+</p>
+
+
+<div class="selection-line section-label">
+
+<span>
+Company voice
+</span>
+
+<span
+  class="count"
+  id="voice-count"
+>
+0 of 3
+</span>
+
+</div>
+
+
+<div
+  class="options"
+  id="voice-options"
+></div>
+
+
+<div class="search-box search-wrap">
+
+<label for="voice-search">
+Don't see the right voice?
+</label>
+
+<input
+  class="input"
+  id="voice-search"
+  autocomplete="off"
+  maxlength="70"
+  placeholder="Add another company voice..."
+>
+
+<button
+  class="add-button"
+  id="voice-add"
+  type="button"
+  aria-label="Add company voice"
+>
++
+</button>
+
+<div
+  class="suggestions"
+  id="voice-suggestions"
+></div>
+
+</div>
+
+
+<div class="helper">
+Alygnn will suggest matching company voices as you type.
+</div>
+
+
+<input
+  type="hidden"
+  id="voice"
+>
+
+
+
+<div class="selection-line section-label">
+
+<span>
+What makes your company stand out?
+</span>
+
+<span
+  class="count"
+  id="strength-count"
+>
+0 of 5
+</span>
+
+</div>
+
+
+<div
+  class="options"
+  id="strength-options"
+></div>
+
+
+<div class="search-box search-wrap">
+
+<label for="strength-search">
+Don't see the right strength?
+</label>
+
+<input
+  class="input"
+  id="strength-search"
+  autocomplete="off"
+  maxlength="70"
+  placeholder="Add another company strength..."
+>
+
+<button
+  class="add-button"
+  id="strength-add"
+  type="button"
+  aria-label="Add company strength"
+>
++
+</button>
+
+<div
+  class="suggestions"
+  id="strength-suggestions"
+></div>
+
+</div>
+
+
+<div class="helper">
+Alygnn will suggest matching company strengths as you type.
+</div>
+
+
+<input
+  type="hidden"
+  id="strengths"
+>
+
+
+<div class="actions">
+
+<button
+  class="action secondary"
+  type="button"
+  data-back
+>
+Back
+</button>
+
+
+<button
+  class="action primary"
+  type="button"
+  data-next
+>
+Continue
+</button>
+
+</div>
+
+</section>
+
+
+
+<!-- ===========================================
+     STEP 4 — HIRING PRIORITIES
+=========================================== -->
+
+<section
+  class="setup-card"
+  data-step="3"
+  hidden
+>
+
+<div class="eyebrow">
+Hiring priorities
+</div>
+
+
+<h1>
+What matters most when you hire?
+</h1>
+
+
+<p class="intro">
+Choose up to five. Alygnn will use these signals when ranking candidates and generating hiring recommendations.
+</p>
+
+
+<div class="selection-line section-label">
+
+<span>
+Hiring priorities
+</span>
+
+<span
+  class="count"
+  id="priority-count"
+>
+0 of 5
+</span>
+
+</div>
+
+
+<div
+  class="options"
+  id="priority-options"
+></div>
+
+
+<div class="search-box search-wrap">
+
+<label for="priority-search">
+Don't see the right priority?
+</label>
+
+<input
+  class="input"
+  id="priority-search"
+  autocomplete="off"
+  maxlength="70"
+  placeholder="Add another hiring priority..."
+>
+
+<button
+  class="add-button"
+  id="priority-add"
+  type="button"
+  aria-label="Add hiring priority"
+>
++
+</button>
+
+<div
+  class="suggestions"
+  id="priority-suggestions"
+></div>
+
+</div>
+
+
+<div class="helper">
+Alygnn will suggest matching hiring priorities as you type.
+</div>
+
+
+<input
+  type="hidden"
+  id="priorities"
+>
+
+
+<input
+  type="hidden"
+  id="ai-summary"
+>
+
+
+<div
+  class="ai-summary"
+  id="ai-summary-box"
+>
+
+<div class="ai-summary-label">
+How Alygnn will use this
+</div>
+
+<div
+  class="ai-summary-copy"
+  id="ai-summary-copy"
+>
+Choose your priorities and Alygnn will build your hiring profile automatically.
+</div>
+
+</div>
+
+
+<div class="actions">
+
+<button
+  class="action secondary"
+  type="button"
+  data-back
+>
+Back
+</button>
+
+
+<button
+  class="action primary"
+  type="button"
+  data-next
+>
+Continue
+</button>
+
+</div>
+
+</section>
+
+
+
+<!-- ===========================================
+     STEP 5 — SUCCESSFUL QUALITIES
+=========================================== -->
+
+<section
+  class="setup-card"
+  data-step="4"
+  hidden
+>
+
+<div class="eyebrow">
+Successful employees
+</div>
+
+
+<h1>
+Who tends to succeed at your company?
+</h1>
+
+
+<p class="intro">
+Choose up to five qualities. We only show five recommendations at first. If the right answer is missing, start typing below.
+</p>
+
+
+<div class="selection-line section-label">
+
+<span>
+Recommended qualities
+</span>
+
+<span
+  class="count"
+  id="success-count"
+>
+0 of 5
+</span>
+
+</div>
+
+
+<div
+  class="options"
+  id="success-options"
+></div>
+
+
+
+<div class="search-box search-wrap">
+
+<label for="success-search">
+Add another quality
+</label>
+
+<input
+  class="input"
+  id="success-search"
+  autocomplete="off"
+  maxlength="70"
+  placeholder="Add another quality..."
+>
+
+
+<button
+  class="add-button"
+  id="success-add"
+  type="button"
+>
++
+</button>
+
+
+<div
+  class="suggestions"
+  id="success-suggestions"
+></div>
+
+</div>
+
+
+<div class="helper">
+Alygnn will suggest matching qualities as you type. Custom answers appear as highlighted chips above.
+</div>
+
+
+<input
+  type="hidden"
+  id="success-qualities"
+>
+
+
+<div class="actions">
+
+<button
+  class="action secondary"
+  type="button"
+  data-back
+>
+Back
+</button>
+
+
+<button
+  class="action primary"
+  type="button"
+  data-next
+>
+Continue
+</button>
+
+</div>
+
+</section>
+
+
+
+<!-- ===========================================
+     STEP 6 — UNSUCCESSFUL QUALITIES
+=========================================== -->
+
+<section
+  class="setup-card"
+  data-step="5"
+  hidden
+>
+
+<div class="eyebrow">
+Poor fit signals
+</div>
+
+
+<h1>
+Who usually struggles at your company?
+</h1>
+
+
+<p class="intro">
+Choose up to five qualities or behaviors that usually indicate someone may not be a strong fit.
+</p>
+
+
+<div class="selection-line section-label">
+
+<span>
+Recommended qualities
+</span>
+
+<span
+  class="count"
+  id="unsuccessful-count"
+>
+0 of 5
+</span>
+
+</div>
+
+
+<div
+  class="options"
+  id="unsuccessful-options"
+></div>
+
+
+
+<div class="search-box search-wrap">
+
+<label for="unsuccessful-search">
+Add another quality
+</label>
+
+<input
+  class="input"
+  id="unsuccessful-search"
+  autocomplete="off"
+  maxlength="70"
+  placeholder="Add another quality..."
+>
+
+
+<button
+  class="add-button"
+  id="unsuccessful-add"
+  type="button"
+>
++
+</button>
+
+
+<div
+  class="suggestions"
+  id="unsuccessful-suggestions"
+></div>
+
+</div>
+
+
+<div class="helper">
+Selected and custom answers stay highlighted above.
+</div>
+
+
+<input
+  type="hidden"
+  id="unsuccessful-qualities"
+>
+
+
+<div class="actions">
+
+<button
+  class="action secondary"
+  type="button"
+  data-back
+>
+Back
+</button>
+
+
+<button
+  class="action primary"
+  type="button"
+  data-next
+>
+Review
+</button>
+
+</div>
+
+</section>
+
+
+
+<!-- ===========================================
+     STEP 7 — REVIEW
+=========================================== -->
+
+<section
+  class="setup-card"
+  data-step="6"
+  hidden
+>
+
+<div class="eyebrow">
+Review
+</div>
+
+
+<h1>
+Your Company AI Profile is ready.
+</h1>
+
+
+<p class="intro">
+Review everything below before Alygnn starts using this profile throughout your hiring experience.
+</p>
+
+
+<div
+  class="review"
+  id="review"
+></div>
+
+
+<div class="actions">
+
+<button
+  class="action secondary"
+  type="button"
+  data-back
+>
+Back
+</button>
+
+
+<button
+  class="action primary"
+  type="button"
+  id="save"
+>
+Confirm & Finish
+</button>
+
+</div>
+
+</section>
+
+
+
+<div
+  class="message"
+  id="message"
+></div>
+
+
+</div>
+
+
+
+<section
+  class="success-screen"
+  id="success-screen"
+  hidden
+>
+
+<div class="success-card">
+
+<div class="success-mark">
+✓
+</div>
+
+
+<h1 id="success-title">
+Your AI Company Profile is Ready!
+</h1>
+
+
+<p id="success-copy">
+Alygnn now understands your company and will use this profile throughout your hiring process.
+</p>
+
+
+<div class="actions single">
+
+<button
+  class="action primary"
+  id="continue"
+  type="button"
+>
+Continue to Post a Job →
+</button>
+
+</div>
+
+</div>
+
+</section>
+
+
+</main>
+
+
+
+<script>
+
+const sb=
+  supabase.createClient(
+    'https://auth.alygnn.com',
+    'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+    {
+      auth:{
+        persistSession:true,
+        autoRefreshToken:true,
+        detectSessionInUrl:true
+      }
+    }
+  );
+
+
+const $=
+  id=>
+    document.getElementById(id);
+
+
+let session=null;
+
+let currentStep=0;
+
+
+const steps=[
+  ...document.querySelectorAll(
+    '[data-step]'
+  )
+];
+
+
+const STEP_NAMES=[
+  'Welcome',
+  'Company information',
+  'Company personality',
+  'Hiring priorities',
+  'Successful employees',
+  'Poor fit signals',
+  'Review'
+];
+
+
+const INDUSTRIES=[
+  'Accounting',
+  'Advertising and Marketing',
+  'Agriculture',
+  'Architecture and Design',
+  'Automotive',
+  'Banking',
+  'Biotechnology',
+  'Construction',
+  'Consulting',
+  'Consumer Services',
+  'Education',
+  'Energy and Utilities',
+  'Engineering',
+  'Entertainment and Media',
+  'Financial Services',
+  'Food and Beverage',
+  'Government',
+  'Healthcare',
+  'Hospitality',
+  'Human Resources and Staffing',
+  'Insurance',
+  'Legal Services',
+  'Logistics and Transportation',
+  'Manufacturing',
+  'Nonprofit',
+  'Pharmaceuticals',
+  'Professional Services',
+  'Real Estate',
+  'Retail',
+  'Software and Technology',
+  'Telecommunications',
+  'Travel and Tourism',
+  'Wholesale',
+  'Wireless Services',
+  'Internet Service Provider',
+  'Fiber Optics',
+  'Network Infrastructure',
+  'Telecommunications Equipment'
+];
+
+
+const CHOICES={
+
+  voice:[
+    'Professional',
+    'Friendly',
+    'Modern',
+    'Direct',
+    'Formal',
+    'Energetic'
+  ],
+
+  strengths:[
+    'Career Growth',
+    'Company Culture',
+    'Learning & Development',
+    'Competitive Pay',
+    'Performance & Recognition',
+    'Meaningful Work',
+    'Innovation',
+    'Work-Life Balance'
+  ],
+
+  priorities:[
+    'Communication',
+    'Culture Fit',
+    'Experience',
+    'Reliability',
+    'Leadership'
+  ]
+
+};
+
+
+const LIMITS={
+  voice:3,
+  strengths:5,
+  priorities:5
+};
+
+
+/*
+ * Additional recommendations remain hidden until
+ * the employer begins typing.
+ *
+ * Existing recommended chips stay exactly as they are.
+ */
+const VOICE_LIBRARY=[
+  'Approachable',
+  'Authentic',
+  'Bold',
+  'Casual',
+  'Confident',
+  'Conversational',
+  'Direct',
+  'Educational',
+  'Energetic',
+  'Formal',
+  'Friendly',
+  'Helpful',
+  'Inspirational',
+  'Modern',
+  'Professional',
+  'Straightforward',
+  'Supportive',
+  'Warm'
+];
+
+
+const STRENGTH_LIBRARY=[
+  'Benefits',
+  'Career Growth',
+  'Collaborative Team',
+  'Company Culture',
+  'Competitive Pay',
+  'Employee Recognition',
+  'Flexible Scheduling',
+  'Innovation',
+  'Leadership Development',
+  'Learning & Development',
+  'Meaningful Work',
+  'Mentorship',
+  'Performance & Recognition',
+  'Professional Development',
+  'Promotion Opportunities',
+  'Purpose-Driven Work',
+  'Supportive Leadership',
+  'Training',
+  'Work-Life Balance'
+];
+
+
+/*
+ * Only five hiring priorities are displayed automatically.
+ * The rest are recommendation options that appear as
+ * the employer begins typing.
+ */
+const PRIORITY_LIBRARY=[
+  'Adaptability',
+  'Availability',
+  'Coachability',
+  'Collaboration',
+  'Communication',
+  'Culture Fit',
+  'Customer Service',
+  'Dependability',
+  'Detail Orientation',
+  'Experience',
+  'Initiative',
+  'Leadership',
+  'Learning Ability',
+  'Problem Solving',
+  'Professionalism',
+  'Project Management',
+  'Reliability',
+  'Results Orientation',
+  'Sales Ability',
+  'Soft Skills',
+  'Teamwork',
+  'Technical Skills',
+  'Time Management',
+  'Work Ethic'
+];
+
+
+const FEATURED={
+
+  success:[
+    'Coachable',
+    'Reliable',
+    'Strong communicator',
+    'Team-oriented',
+    'Problem solver'
+  ],
+
+  unsuccessful:[
+    'Poor communication',
+    'Low accountability',
+    'Unreliable',
+    'Resistant to feedback',
+    'Lacks initiative'
+  ]
+
+};
+
+
+const QUALITY_LIBRARY={
+
+  success:[
+    'Accountable',
+    'Adaptable',
+    'Ambitious',
+    'Analytical',
+    'Attentive',
+    'Coachable',
+    'Collaborative',
+    'Competitive',
+    'Confident',
+    'Consistent',
+    'Creative',
+    'Dependable',
+    'Detail-oriented',
+    'Disciplined',
+    'Efficient',
+    'Energetic',
+    'Flexible',
+    'Friendly',
+    'Goal-oriented',
+    'Growth-minded',
+    'Hard-working',
+    'Independent',
+    'Innovative',
+    'Leadership',
+    'Motivated',
+    'Organized',
+    'Positive attitude',
+    'Problem solver',
+    'Professional',
+    'Proactive',
+    'Reliable',
+    'Resourceful',
+    'Results-driven',
+    'Self-motivated',
+    'Strong communicator',
+    'Team-oriented',
+    'Trustworthy',
+    'Willing to learn'
+  ],
+
+  unsuccessful:[
+    'Avoids responsibility',
+    'Disorganized',
+    'Inconsistent',
+    'Inflexible',
+    'Lacks accountability',
+    'Lacks initiative',
+    'Low accountability',
+    'Misses deadlines',
+    'Negative attitude',
+    'Not coachable',
+    'Poor communication',
+    'Poor follow-through',
+    'Poor teamwork',
+    'Resistant to feedback',
+    'Unprepared',
+    'Unprofessional',
+    'Unreliable',
+    'Unwilling to learn'
+  ]
+
+};
+
+
+const selected={
+  voice:new Set(),
+  strengths:new Set(),
+  priorities:new Set(),
+  success:new Set(),
+  unsuccessful:new Set()
+};
+
+
+
+function asArray(value){
+
+  if(
+    Array.isArray(value)
+  ){
+
+    return value
+      .map(
+        value=>
+          String(value).trim()
+      )
+      .filter(Boolean);
+
+  }
+
+
+  if(
+    typeof value==='string'
+  ){
+
+    return value
+      .split(/\n|,/)
+      .map(
+        value=>
+          value.trim()
+      )
+      .filter(Boolean);
+
+  }
+
+
+  return [];
+
+}
+
+
+
+function first(...values){
+
+  return(
+    values.find(
+      value=>
+        value!==undefined
+        &&
+        value!==null
+        &&
+        String(value).trim()!==''
+    )
+    ||
+    ''
+  );
+
+}
+
+
+
+function esc(value){
+
+  const div=
+    document.createElement('div');
+
+
+  div.textContent=
+    String(value??'');
+
+
+  return div.innerHTML;
+
+}
+
+
+
+function clearMessage(){
+
+  $('message').textContent='';
+
+  $('message').className='message';
+
+}
+
+
+
+function showMessage(text){
+
+  $('message').textContent=text;
+
+  $('message').className=
+    'message error';
+
+
+  $('message').scrollIntoView({
+    behavior:'smooth',
+    block:'center'
+  });
+
+}
+
+
+
+/* =========================================
+   STEPS
+========================================= */
+
+function showStep(index){
+
+  currentStep=
+    Math.max(
+      0,
+      Math.min(
+        steps.length-1,
+        index
+      )
+    );
+
+
+  steps.forEach(
+    (step,i)=>{
+
+      step.hidden=
+        i!==currentStep;
+
+    }
+  );
+
+
+  const percent=
+    Math.round(
+      (
+        (
+          currentStep+1
+        )
+        /
+        steps.length
+      )
+      *
+      100
+    );
+
+
+  $('step-name').textContent=
+    STEP_NAMES[currentStep];
+
+
+  $('step-percent').textContent=
+    percent+'%';
+
+
+  $('progress-fill').style.width=
+    percent+'%';
+
+
+  if(
+    currentStep===6
+  ){
+
+    renderReview();
+
+  }
+
+
+  clearMessage();
+
+
+  window.scrollTo({
+    top:0,
+    behavior:'smooth'
+  });
+
+}
+
+
+
+function normalizeUrl(value){
+
+  const raw=
+    String(value||'').trim();
+
+
+  if(!raw){
+    return '';
+  }
+
+
+  try{
+
+    const url=
+      new URL(
+        /^https?:\/\//i.test(raw)
+          ?raw
+          :'https://'+raw
+      );
+
+
+    if(
+      !url.hostname.includes('.')
+    ){
+
+      return '';
+
+    }
+
+
+    return url.toString();
+
+  }catch{
+
+    return '';
+
+  }
+
+}
+
+
+
+function validateStep(step){
+
+  if(
+    step===1
+  ){
+
+    if(
+      !$('company-name').value.trim()
+    ){
+
+      showMessage(
+        'A company workspace is required.'
+      );
+
+      return false;
+
+    }
+
+
+    if(
+      !$('industry').value.trim()
+    ){
+
+      showMessage(
+        'Enter your company industry.'
+      );
+
+      return false;
+
+    }
+
+
+    const website=
+      normalizeUrl(
+        $('website').value
+      );
+
+
+    if(!website){
+
+      showMessage(
+        'Enter a complete company website.'
+      );
+
+      return false;
+
+    }
+
+
+    $('website').value=
+      website;
+
+
+    if(
+      !$('description').value.trim()
+    ){
+
+      showMessage(
+        'Add a short company description.'
+      );
+
+      return false;
+
+    }
+
+  }
+
+
+  if(
+    step===2
+  ){
+
+    if(
+      !selected.voice.size
+    ){
+
+      showMessage(
+        'Choose at least one company voice.'
+      );
+
+      return false;
+
+    }
+
+
+    if(
+      !selected.strengths.size
+    ){
+
+      showMessage(
+        'Choose at least one company strength.'
+      );
+
+      return false;
+
+    }
+
+  }
+
+
+  if(
+    step===3
+    &&
+    !selected.priorities.size
+  ){
+
+    showMessage(
+      'Choose at least one hiring priority.'
+    );
+
+    return false;
+
+  }
+
+
+  if(
+    step===4
+    &&
+    !selected.success.size
+  ){
+
+    showMessage(
+      'Choose at least one quality that makes someone successful.'
+    );
+
+    return false;
+
+  }
+
+
+  if(
+    step===5
+    &&
+    !selected.unsuccessful.size
+  ){
+
+    showMessage(
+      'Choose at least one poor-fit quality.'
+    );
+
+    return false;
+
+  }
+
+
+  return true;
+
+}
+
+
+
+document.addEventListener(
+  'click',
+  event=>{
+
+    const next=
+      event.target.closest(
+        '[data-next]'
+      );
+
+
+    if(next){
+
+      if(
+        validateStep(currentStep)
+      ){
+
+        showStep(
+          currentStep+1
+        );
+
+      }
+
+      return;
+
+    }
+
+
+    const back=
+      event.target.closest(
+        '[data-back]'
+      );
+
+
+    if(back){
+
+      showStep(
+        currentStep-1
+      );
+
+    }
+
+  }
+);
+
+
+
+$('welcome-back').onclick=
+  ()=>{
+
+    location.href=
+      aiProfileReturnTo();
+
+  };
+
+
+$('page-back').onclick=
+  ()=>{
+
+    if(
+      currentStep>0
+    ){
+
+      showStep(
+        currentStep-1
+      );
+
+    }else{
+
+      location.href=
+        aiProfileReturnTo();
+
+    }
+
+  };
+
+
+
+/* =========================================
+   STANDARD OPTIONS
+========================================= */
+
+function renderStandard(key){
+
+  const containerId=
+    key==='voice'
+      ?'voice-options'
+      :key==='strengths'
+        ?'strength-options'
+        :'priority-options';
+
+
+  const countId=
+    key==='voice'
+      ?'voice-count'
+      :key==='strengths'
+        ?'strength-count'
+        :'priority-count';
+
+
+  const fieldId=
+    key==='voice'
+      ?'voice'
+      :key==='strengths'
+        ?'strengths'
+        :'priorities';
+
+
+  const limit=
+    LIMITS[key];
+
+
+  const reached=
+    selected[key].size>=limit;
+
+
+  let visibleChoices=[
+    ...CHOICES[key]
+  ];
+
+
+  /*
+   * Custom answers appear directly beside Alygnn's
+   * existing recommended chips and stay highlighted.
+   */
+  if(
+    key==='voice'
+    ||
+    key==='strengths'
+    ||
+    key==='priorities'
+  ){
+
+    const custom=[
+      ...selected[key]
+    ].filter(
+      value=>
+        !CHOICES[key].some(
+          option=>
+            option.toLowerCase()===
+            String(value).toLowerCase()
+        )
+    );
+
+
+    visibleChoices=[
+      ...CHOICES[key],
+      ...custom
+    ];
+  }
+
+
+  $(containerId).innerHTML=
+    visibleChoices
+      .map(
+        value=>{
+
+          const active=
+            selected[key].has(value);
+
+
+          return`
+            <button
+              type="button"
+              class="chip${active?' selected':''}"
+              data-choice="${key}"
+              data-value="${esc(value)}"
+              ${
+                reached&&!active
+                  ?'disabled'
+                  :''
+              }
+            >
+              ${esc(value)}
+            </button>
+          `;
+
+        }
+      )
+      .join('');
+
+
+  $(countId).textContent=
+    `${selected[key].size} of ${limit}`;
+
+
+  $(fieldId).value=
+    [...selected[key]].join(', ');
+
+
+  updateAiSummary();
+
+}
+
+
+
+function setStandard(key,values){
+
+  selected[key].clear();
+
+
+  asArray(values)
+    .forEach(
+      value=>{
+
+        const match=
+          CHOICES[key]
+            .find(
+              option=>
+                option.toLowerCase()
+                ===
+                value.toLowerCase()
+            );
+
+
+        if(
+          selected[key].size
+            <
+          LIMITS[key]
+        ){
+
+          if(match){
+
+            selected[key].add(match);
+
+          }else if(
+            (
+              key==='voice'
+              ||
+              key==='strengths'
+              ||
+              key==='priorities'
+            )
+            &&
+            String(value).trim()
+          ){
+
+            selected[key].add(
+              String(value).trim()
+            );
+
+          }
+
+        }
+
+      }
+    );
+
+
+  renderStandard(key);
+
+}
+
+
+
+document.addEventListener(
+  'click',
+  event=>{
+
+    const button=
+      event.target.closest(
+        '[data-choice]'
+      );
+
+
+    if(!button){
+      return;
+    }
+
+
+    const key=
+      button.dataset.choice;
+
+
+    const value=
+      button.dataset.value;
+
+
+    if(
+      selected[key].has(value)
+    ){
+
+      selected[key].delete(value);
+
+    }else if(
+      selected[key].size
+        <
+      LIMITS[key]
+    ){
+
+      selected[key].add(value);
+
+    }
+
+
+    renderStandard(key);
+
+  }
+);
+
+
+
+
+
+/* =========================================
+   VOICE + COMPANY STRENGTH SEARCH
+========================================= */
+
+function standardSelected(
+  key,
+  value
+){
+
+  return[
+    ...selected[key]
+  ].some(
+    item=>
+      String(item).toLowerCase()===
+      String(value).toLowerCase()
+  );
+
+}
+
+
+function standardLibrary(
+  key
+){
+
+  if(key==='voice'){
+    return VOICE_LIBRARY;
+  }
+
+
+  if(key==='strengths'){
+    return STRENGTH_LIBRARY;
+  }
+
+
+  return [];
+
+}
+
+
+function canonicalStandardValue(
+  key,
+  value
+){
+
+  const clean=
+    String(value||'')
+      .trim()
+      .replace(/\s+/g,' ');
+
+
+  const library=
+    standardLibrary(key);
+
+
+  const match=
+    library.find(
+      option=>
+        option.toLowerCase()===
+        clean.toLowerCase()
+    );
+
+
+  return match||clean;
+
+}
+
+
+function addStandardCustom(
+  key,
+  value
+){
+
+  clearMessage();
+
+
+  const clean=
+    canonicalStandardValue(
+      key,
+      value
+    );
+
+
+  /*
+   * Suggestions do not appear until two characters,
+   * but we do not show technical instructions to the
+   * employer in the UI.
+   */
+  if(clean.length<2){
+    return false;
+  }
+
+
+  if(
+    standardSelected(
+      key,
+      clean
+    )
+  ){
+    return true;
+  }
+
+
+  if(
+    selected[key].size
+    >=
+    LIMITS[key]
+  ){
+
+    showMessage(
+      key==='voice'
+        ?'Choose up to three company voices.'
+        :'Choose up to five company strengths.'
+    );
+
+    return false;
+  }
+
+
+  selected[key].add(clean);
+
+
+  renderStandard(key);
+
+
+  return true;
+
+}
+
+
+function setupStandardSearch(
+  key
+){
+
+  const input=
+    $(key+'-search');
+
+
+  const box=
+    $(key+'-suggestions');
+
+
+  const addButton=
+    $(key+'-add');
+
+
+  if(
+    !input
+    ||
+    !box
+    ||
+    !addButton
+  ){
+    return;
+  }
+
+
+  const closeSuggestions=()=>{
+
+    box.classList.remove(
+      'show'
+    );
+
+    box.innerHTML='';
+
+  };
+
+
+  const renderSuggestions=()=>{
+
+    const query=
+      input.value
+        .trim()
+        .toLowerCase();
+
+
+    /*
+     * Suggestions quietly begin after 2 characters.
+     */
+    if(query.length<2){
+
+      closeSuggestions();
+
+      return;
+    }
+
+
+    const matches=
+      standardLibrary(key)
+        .filter(
+          value=>
+            value
+              .toLowerCase()
+              .includes(query)
+            &&
+            !standardSelected(
+              key,
+              value
+            )
+        )
+        .slice(0,5);
+
+
+    if(!matches.length){
+
+      closeSuggestions();
+
+      return;
+    }
+
+
+    box.innerHTML=
+      matches
+        .map(
+          value=>`
+            <button
+              type="button"
+              class="suggestion"
+              data-standard-suggestion="${key}"
+              data-value="${esc(value)}"
+            >
+              ${esc(value)}
+            </button>
+          `
+        )
+        .join('');
+
+
+    box.classList.add(
+      'show'
+    );
+
+  };
+
+
+  const addTyped=()=>{
+
+    const value=
+      input.value.trim();
+
+
+    if(!value){
+      return;
+    }
+
+
+    if(
+      addStandardCustom(
+        key,
+        value
+      )
+    ){
+
+      input.value='';
+
+      closeSuggestions();
+
+    }
+
+  };
+
+
+  input.addEventListener(
+    'input',
+    renderSuggestions
+  );
+
+
+  input.addEventListener(
+    'keydown',
+    event=>{
+
+      if(event.key==='Enter'){
+
+        event.preventDefault();
+
+        addTyped();
+
+      }
+
+
+      if(event.key==='Escape'){
+
+        closeSuggestions();
+
+      }
+
+    }
+  );
+
+
+  addButton.addEventListener(
+    'click',
+    addTyped
+  );
+
+
+  box.addEventListener(
+    'click',
+    event=>{
+
+      const button=
+        event.target.closest(
+          `[data-standard-suggestion="${key}"]`
+        );
+
+
+      if(!button){
+        return;
+      }
+
+
+      if(
+        addStandardCustom(
+          key,
+          button.dataset.value
+        )
+      ){
+
+        input.value='';
+
+        closeSuggestions();
+
+      }
+
+    }
+  );
+
+}
+
+/* =========================================
+   HIRING PRIORITY SEARCH
+========================================= */
+
+function prioritySelected(value){
+
+  return[
+    ...selected.priorities
+  ].some(
+    item=>
+      String(item).toLowerCase()===
+      String(value).toLowerCase()
+  );
+
+}
+
+
+function canonicalPriority(value){
+
+  const clean=
+    String(value||'')
+      .trim()
+      .replace(/\s+/g,' ');
+
+
+  const match=
+    PRIORITY_LIBRARY.find(
+      option=>
+        option.toLowerCase()===
+        clean.toLowerCase()
+    );
+
+
+  return match||clean;
+
+}
+
+
+function addPriority(value){
+
+  clearMessage();
+
+
+  const clean=
+    canonicalPriority(value);
+
+
+  if(clean.length<2){
+    return false;
+  }
+
+
+  if(prioritySelected(clean)){
+    return true;
+  }
+
+
+  if(selected.priorities.size>=5){
+
+    showMessage(
+      'Choose up to five hiring priorities.'
+    );
+
+    return false;
+  }
+
+
+  selected.priorities.add(clean);
+
+
+  renderStandard('priorities');
+
+
+  return true;
+
+}
+
+
+function setupPrioritySearch(){
+
+  const input=
+    $('priority-search');
+
+
+  const box=
+    $('priority-suggestions');
+
+
+  const addButton=
+    $('priority-add');
+
+
+  if(!input||!box||!addButton){
+    return;
+  }
+
+
+  const closeSuggestions=()=>{
+
+    box.classList.remove('show');
+
+    box.innerHTML='';
+
+  };
+
+
+  const showSuggestions=()=>{
+
+    const query=
+      input.value
+        .trim()
+        .toLowerCase();
+
+
+    /*
+     * Suggestions begin silently after two characters.
+     * We do not show instructional copy saying
+     * "Type at least 2 letters."
+     */
+    if(query.length<2){
+
+      closeSuggestions();
+
+      return;
+    }
+
+
+    const matches=
+      PRIORITY_LIBRARY
+        .filter(
+          value=>
+            value
+              .toLowerCase()
+              .includes(query)
+            &&
+            !prioritySelected(value)
+        )
+        .slice(0,5);
+
+
+    if(!matches.length){
+
+      closeSuggestions();
+
+      return;
+    }
+
+
+    box.innerHTML=
+      matches
+        .map(
+          value=>`
+            <button
+              type="button"
+              class="suggestion"
+              data-priority-suggestion="${esc(value)}"
+            >
+              ${esc(value)}
+            </button>
+          `
+        )
+        .join('');
+
+
+    box.classList.add('show');
+
+  };
+
+
+  const addTypedPriority=()=>{
+
+    const value=
+      input.value.trim();
+
+
+    if(!value){
+      return;
+    }
+
+
+    if(addPriority(value)){
+
+      input.value='';
+
+      closeSuggestions();
+
+    }
+
+  };
+
+
+  input.addEventListener(
+    'input',
+    showSuggestions
+  );
+
+
+  input.addEventListener(
+    'keydown',
+    event=>{
+
+      if(event.key==='Enter'){
+
+        event.preventDefault();
+
+        addTypedPriority();
+
+      }
+
+
+      if(event.key==='Escape'){
+
+        closeSuggestions();
+
+      }
+
+    }
+  );
+
+
+  addButton.addEventListener(
+    'click',
+    addTypedPriority
+  );
+
+
+  box.addEventListener(
+    'click',
+    event=>{
+
+      const button=
+        event.target.closest(
+          '[data-priority-suggestion]'
+        );
+
+
+      if(!button){
+        return;
+      }
+
+
+      if(
+        addPriority(
+          button.dataset.prioritySuggestion
+        )
+      ){
+
+        input.value='';
+
+        closeSuggestions();
+
+      }
+
+    }
+  );
+
+
+  document.addEventListener(
+    'click',
+    event=>{
+
+      if(
+        !event.target.closest(
+          '.search-wrap'
+        )
+      ){
+
+        closeSuggestions();
+
+      }
+
+    }
+  );
+
+}
+
+
+/* =========================================
+   AI SUMMARY
+========================================= */
+
+function createAiSummary(){
+
+  const voices=[
+    ...selected.voice
+  ];
+
+
+  const strengths=[
+    ...selected.strengths
+  ];
+
+
+  const priorities=[
+    ...selected.priorities
+  ];
+
+
+  if(
+    !voices.length
+    &&
+    !strengths.length
+    &&
+    !priorities.length
+  ){
+
+    return '';
+
+  }
+
+
+  return(
+    `Alygnn will represent your company with ${
+      voices.slice(0,3).join(', ').toLowerCase()
+      ||
+      'a professional'
+    } voice, highlight ${
+      strengths.slice(0,3).join(', ').toLowerCase()
+      ||
+      'your company strengths'
+    }, and prioritize candidates with ${
+      priorities.slice(0,3).join(', ').toLowerCase()
+      ||
+      'your preferred hiring qualities'
+    }.`
+  );
+
+}
+
+
+
+function updateAiSummary(){
+
+  const value=
+    createAiSummary();
+
+
+  $('ai-summary').value=
+    value;
+
+
+  if(
+    $('ai-summary-copy')
+  ){
+
+    $('ai-summary-copy').textContent=
+      value
+      ||
+      'Choose your priorities and Alygnn will build your hiring profile automatically.';
+
+  }
+
+}
+
+
+
+/* =========================================
+   QUALITY OPTIONS
+========================================= */
+
+function qualitySelected(key,value){
+
+  return[
+    ...selected[key]
+  ]
+  .some(
+    item=>
+      item.toLowerCase()
+      ===
+      String(value).toLowerCase()
+  );
+
+}
+
+
+
+function canonicalQuality(key,value){
+
+  const clean=
+    String(value||'')
+      .trim()
+      .replace(/\s+/g,' ');
+
+
+  const existing=
+    QUALITY_LIBRARY[key]
+      .find(
+        quality=>
+          quality.toLowerCase()
+          ===
+          clean.toLowerCase()
+      );
+
+
+  return existing||clean;
+
+}
+
+
+
+function renderQuality(key){
+
+  const custom=[
+    ...selected[key]
+  ]
+  .filter(
+    value=>
+      !FEATURED[key]
+        .some(
+          defaultValue=>
+            defaultValue.toLowerCase()
+            ===
+            value.toLowerCase()
+        )
+  );
+
+
+  const visible=[
+    ...FEATURED[key],
+    ...custom
+  ];
+
+
+  const reached=
+    selected[key].size>=5;
+
+
+  $(key+'-options').innerHTML=
+    visible
+      .map(
+        value=>{
+
+          const active=
+            qualitySelected(
+              key,
+              value
+            );
+
+
+          return`
+            <button
+              type="button"
+              class="chip${active?' selected':''}"
+              data-quality="${key}"
+              data-value="${esc(value)}"
+              ${
+                reached&&!active
+                  ?'disabled'
+                  :''
+              }
+            >
+              ${esc(value)}
+            </button>
+          `;
+
+        }
+      )
+      .join('');
+
+
+  $(key+'-count').textContent=
+    `${selected[key].size} of 5`;
+
+
+  $(key+'-qualities').value=
+    [...selected[key]].join(', ');
+
+}
+
+
+
+function addQuality(key,value){
+
+  const clean=
+    canonicalQuality(
+      key,
+      value
+    );
+
+
+  if(
+    clean.length<2
+  ){
+
+    showMessage(
+      'Type at least 2 letters.'
+    );
+
+    return false;
+
+  }
+
+
+  if(
+    qualitySelected(
+      key,
+      clean
+    )
+  ){
+
+    return true;
+
+  }
+
+
+  if(
+    selected[key].size>=5
+  ){
+
+    showMessage(
+      'Choose up to five qualities.'
+    );
+
+    return false;
+
+  }
+
+
+  selected[key].add(clean);
+
+
+  renderQuality(key);
+
+
+  return true;
+
+}
+
+
+
+function removeQuality(key,value){
+
+  const match=[
+    ...selected[key]
+  ]
+  .find(
+    item=>
+      item.toLowerCase()
+      ===
+      String(value).toLowerCase()
+  );
+
+
+  if(match){
+
+    selected[key].delete(match);
+
+  }
+
+
+  renderQuality(key);
+
+}
+
+
+
+document.addEventListener(
+  'click',
+  event=>{
+
+    const button=
+      event.target.closest(
+        '[data-quality]'
+      );
+
+
+    if(!button){
+      return;
+    }
+
+
+    const key=
+      button.dataset.quality;
+
+
+    const value=
+      button.dataset.value;
+
+
+    if(
+      qualitySelected(
+        key,
+        value
+      )
+    ){
+
+      removeQuality(
+        key,
+        value
+      );
+
+    }else{
+
+      addQuality(
+        key,
+        value
+      );
+
+    }
+
+  }
+);
+
+
+
+function setQuality(key,values){
+
+  selected[key].clear();
+
+
+  asArray(values)
+    .slice(0,5)
+    .forEach(
+      value=>{
+
+        const clean=
+          canonicalQuality(
+            key,
+            value
+          );
+
+
+        if(clean){
+
+          selected[key].add(clean);
+
+        }
+
+      }
+    );
+
+
+  renderQuality(key);
+
+}
+
+
+
+/* =========================================
+   QUALITY SEARCH
+========================================= */
+
+function setupQualitySearch(key){
+
+  const input=
+    $(key+'-search');
+
+
+  const box=
+    $(key+'-suggestions');
+
+
+  const add=
+    $(key+'-add');
+
+
+  const close=
+    ()=>{
+
+      box.classList.remove('show');
+
+      box.innerHTML='';
+
+    };
+
+
+  const render=
+    ()=>{
+
+      const query=
+        input.value
+          .trim()
+          .toLowerCase();
+
+
+      if(
+        query.length<2
+      ){
+
+        close();
+
+        return;
+
+      }
+
+
+      const matches=
+        QUALITY_LIBRARY[key]
+          .filter(
+            quality=>
+              quality
+                .toLowerCase()
+                .includes(query)
+              &&
+              !qualitySelected(
+                key,
+                quality
+              )
+          )
+          .slice(0,5);
+
+
+      if(!matches.length){
+
+        close();
+
+        return;
+
+      }
+
+
+      box.innerHTML=
+        matches
+          .map(
+            quality=>`
+              <button
+                type="button"
+                class="suggestion"
+                data-quality-suggestion="${key}"
+                data-value="${esc(quality)}"
+              >
+                ${esc(quality)}
+              </button>
+            `
+          )
+          .join('');
+
+
+      box.classList.add('show');
+
+    };
+
+
+  const addTyped=
+    ()=>{
+
+      const value=
+        input.value.trim();
+
+
+      if(
+        addQuality(
+          key,
+          value
+        )
+      ){
+
+        input.value='';
+
+        close();
+
+      }
+
+    };
+
+
+  input.addEventListener(
+    'input',
+    render
+  );
+
+
+  input.addEventListener(
+    'keydown',
+    event=>{
+
+      if(
+        event.key==='Enter'
+      ){
+
+        event.preventDefault();
+
+        addTyped();
+
+      }
+
+    }
+  );
+
+
+  add.addEventListener(
+    'click',
+    addTyped
+  );
+
+
+  box.addEventListener(
+    'click',
+    event=>{
+
+      const button=
+        event.target.closest(
+          '[data-quality-suggestion]'
+        );
+
+
+      if(!button){
+        return;
+      }
+
+
+      addQuality(
+        key,
+        button.dataset.value
+      );
+
+
+      input.value='';
+
+      close();
+
+    }
+  );
+
+}
+
+
+
+/* =========================================
+   INDUSTRY SEARCH
+========================================= */
+
+function setupIndustry(){
+
+  const input=
+    $('industry');
+
+
+  const box=
+    $('industry-suggestions');
+
+
+  const close=
+    ()=>{
+
+      box.classList.remove('show');
+
+      box.innerHTML='';
+
+    };
+
+
+  const render=
+    ()=>{
+
+      const query=
+        input.value
+          .trim()
+          .toLowerCase();
+
+
+      if(
+        query.length<3
+      ){
+
+        close();
+
+        return;
+
+      }
+
+
+      const matches=
+        INDUSTRIES
+          .filter(
+            industry=>
+              industry
+                .toLowerCase()
+                .includes(query)
+          )
+          .slice(0,8);
+
+
+      if(!matches.length){
+
+        close();
+
+        return;
+
+      }
+
+
+      box.innerHTML=
+        matches
+          .map(
+            industry=>`
+              <button
+                type="button"
+                class="suggestion"
+                data-industry="${esc(industry)}"
+              >
+                ${esc(industry)}
+              </button>
+            `
+          )
+          .join('');
+
+
+      box.classList.add('show');
+
+    };
+
+
+  input.addEventListener(
+    'input',
+    render
+  );
+
+
+  box.addEventListener(
+    'click',
+    event=>{
+
+      const button=
+        event.target.closest(
+          '[data-industry]'
+        );
+
+
+      if(!button){
+        return;
+      }
+
+
+      input.value=
+        button.dataset.industry;
+
+
+      close();
+
+    }
+  );
+
+}
+
+
+
+/* =========================================
+   COMPANY DATA
+========================================= */
+
+function normalizedName(value){
+
+  return String(value||'')
+    .trim()
+    .toLowerCase()
+    .replace(
+      /[^a-z0-9]+/g,
+      ' '
+    );
+
+}
+
+
+
+function recordForCurrentCompany(
+  record,
+  companyId,
+  companyName
+){
+
+  if(
+    !record
+    ||
+    typeof record!=='object'
+  ){
+
+    return {};
+
+  }
+
+
+  if(
+    record.user_id
+    &&
+    String(record.user_id)
+    !==
+    String(session.user.id)
+  ){
+
+    return {};
+
+  }
+
+
+  if(
+    companyId
+    &&
+    record.company_id
+    &&
+    String(record.company_id)
+    !==
+    String(companyId)
+  ){
+
+    return {};
+
+  }
+
+
+  if(
+    companyName
+    &&
+    record.company_name
+    &&
+    normalizedName(
+      record.company_name
+    )
+    !==
+    normalizedName(
+      companyName
+    )
+  ){
+
+    return {};
+
+  }
+
+
+  return record;
+
+}
+
+
+
+async function loadCompanyData(){
+
+  const result={
+    profile:null,
+    company:null,
+    verification:null,
+    companyId:''
+  };
+
+
+  const {
+    data:profile
+  }=
+    await sb
+      .from('profiles')
+      .select('*')
+      .eq(
+        'id',
+        session.user.id
+      )
+      .maybeSingle();
+
+
+  result.profile=
+    profile||null;
+
+
+  const {
+    data:verification
+  }=
+    await sb
+      .from('employer_verifications')
+      .select('*')
+      .eq(
+        'user_id',
+        session.user.id
+      )
+      .maybeSingle();
+
+
+  result.verification=
+    verification||null;
+
+
+  const {
+    data:membership
+  }=
+    await sb
+      .from('company_members')
+      .select(
+        'company_id,companies(*)'
+      )
+      .eq(
+        'user_id',
+        session.user.id
+      )
+      .eq(
+        'membership_status',
+        'active'
+      )
+      .limit(1)
+      .maybeSingle();
+
+
+  if(membership){
+
+    result.companyId=
+      membership.company_id||'';
+
+
+    result.company=
+      Array.isArray(
+        membership.companies
+      )
+      ?membership.companies[0]
+      :membership.companies;
+
+  }
+
+
+  if(
+    !result.companyId
+    &&
+    verification?.company_id
+  ){
+
+    result.companyId=
+      verification.company_id;
+
+  }
+
+
+  return result;
+
+}
+
+
+
+function applyData(data){
+
+  const meta=
+    session.user.user_metadata
+    ||
+    {};
+
+
+  const companyId=
+    first(
+      data.companyId,
+      data.verification?.company_id,
+      localStorage.getItem(
+        'alygnn_company_id'
+      ),
+      sessionStorage.getItem(
+        'alygnn_company_id'
+      )
+    );
+
+
+  const companyName=
+    first(
+      data.company?.company_name,
+      data.company?.legal_name,
+      data.verification?.company_name,
+      data.profile?.company_name,
+      meta
+        .onboarding_company_profile
+        ?.company_name,
+      meta
+        .employer_ai_profile
+        ?.company_name,
+      meta.company_name
+    );
+
+
+  const saved=
+    recordForCurrentCompany(
+      meta.employer_ai_profile,
+      companyId,
+      companyName
+    );
+
+
+  const setup=
+    recordForCurrentCompany(
+      meta.onboarding_company_profile,
+      companyId,
+      companyName
+    );
+
+
+  const verification=
+    recordForCurrentCompany(
+      data.verification,
+      companyId,
+      companyName
+    );
+
+
+  $('company-name').value=
+    first(
+      companyName,
+      saved.company_name,
+      setup.company_name,
+      verification.company_name
+    );
+
+
+  $('website').value=
+    first(
+      saved.website,
+      setup.website,
+      verification.website,
+      data.company?.website
+    );
+
+
+  $('industry').value=
+    first(
+      saved.industry,
+      setup.industry,
+      verification.industry,
+      data.company?.industry
+    );
+
+
+  $('description').value=
+    first(
+      saved.company_description,
+      saved.company_summary,
+      setup.company_description,
+      verification.company_description,
+      data.company?.company_description,
+      data.company?.description
+    );
+
+
+  setStandard(
+    'voice',
+    first(
+      saved.company_voice,
+      saved.voice,
+      setup.company_voice,
+      verification.company_voice
+    )
+  );
+
+
+  setStandard(
+    'strengths',
+    first(
+      saved.company_strengths,
+      saved.company_priorities,
+      setup.company_priorities,
+      verification.company_priorities
+    )
+  );
+
+
+  setStandard(
+    'priorities',
+    first(
+      saved.hiring_priorities,
+      saved.candidate_priorities,
+      setup.candidate_priorities,
+      verification.candidate_priorities
+    )
+  );
+
+
+  setQuality(
+    'success',
+    first(
+      saved.success_qualities,
+      saved.ideal_candidate
+    )
+  );
+
+
+  setQuality(
+    'unsuccessful',
+    first(
+      saved.unsuccessful_qualities,
+      saved.deal_breakers
+    )
+  );
+
+
+  window.currentEmployerCompanyId=
+    companyId||'';
+
+
+  updateAiSummary();
+
+}
+
+
+
+/* =========================================
+   REVIEW
+========================================= */
+
+function renderReview(){
+
+  const rows=[
+    [
+      'Company',
+      $('company-name').value.trim()
+    ],
+    [
+      'Website',
+      $('website').value.trim()
+    ],
+    [
+      'Industry',
+      $('industry').value.trim()
+    ],
+    [
+      'Company description',
+      $('description').value.trim()
+    ],
+    [
+      'Company voice',
+      [...selected.voice].join(' • ')
+    ],
+    [
+      'Company strengths',
+      [...selected.strengths].join(' • ')
+    ],
+    [
+      'Hiring priorities',
+      [...selected.priorities].join(' • ')
+    ],
+    [
+      'Successful qualities',
+      [...selected.success].join(' • ')
+    ],
+    [
+      'Poor-fit qualities',
+      [...selected.unsuccessful].join(' • ')
+    ]
+  ];
+
+
+  $('review').innerHTML=
+    rows
+      .map(
+        ([label,value])=>`
+          <div class="review-row">
+
+            <div class="review-label">
+              ${esc(label)}
+            </div>
+
+            <div class="review-value">
+              ${esc(value||'Not added')}
+            </div>
+
+          </div>
+        `
+      )
+      .join('');
+
+}
+
+
+
+/* =========================================
+   COLLECT
+========================================= */
+
+function collect(){
+
+  return{
+
+    company_name:
+      $('company-name').value.trim(),
+
+    website:
+      $('website').value.trim(),
+
+    industry:
+      $('industry').value.trim(),
+
+    company_description:
+      $('description').value.trim(),
+
+    company_voice:
+      [...selected.voice],
+
+    company_strengths:
+      [...selected.strengths],
+
+    hiring_priorities:
+      [...selected.priorities],
+
+    ai_summary:
+      createAiSummary(),
+
+    success_qualities:
+      [...selected.success],
+
+    unsuccessful_qualities:
+      [...selected.unsuccessful],
+
+    user_id:
+      session.user.id,
+
+    company_id:
+      window.currentEmployerCompanyId
+      ||
+      '',
+
+    profile_complete:true,
+
+    completed_at:
+      new Date().toISOString(),
+
+    updated_at:
+      new Date().toISOString()
+
+  };
+
+}
+
+
+
+/* =========================================
+   ROUTING
+========================================= */
+
+function aiProfileReturnTo(){
+
+  const params=
+    new URLSearchParams(
+      location.search
+    );
+
+
+  const requested=
+    params.get('return_to')
+    ||
+    sessionStorage.getItem(
+      'alygnnAiProfileReturnTo'
+    );
+
+
+  const allowed=
+    new Set([
+      'app-post-job.html',
+      'app-employer-dashboard.html'
+    ]);
+
+
+  return(
+    allowed.has(requested)
+      ?requested
+      :'app-employer-dashboard.html'
+  );
+
+}
+
+
+
+async function resolveCompany(){
+
+  try{
+
+    const response=
+      await fetch(
+        'https://alygnn.com/api/company/resolve-company',
+        {
+          cache:'no-store',
+          headers:{
+            Authorization:
+              'Bearer '+
+              session.access_token
+          }
+        }
+      );
+
+
+    const result=
+      await response.json();
+
+
+    if(
+      response.ok
+      &&
+      result?.company
+    ){
+
+      return result.company;
+
+    }
+
+  }catch(error){
+
+    console.warn(
+      'Company status lookup failed:',
+      error
+    );
+
+  }
+
+
+  return null;
+
+}
+
+
+
+async function getNextRoute(companyId){
+
+  const company=
+    await resolveCompany();
+
+
+  const id=
+    company?.id
+    ||
+    companyId
+    ||
+    localStorage.getItem(
+      'alygnn_company_id'
+    )
+    ||
+    '';
+
+
+  const verificationStatus=
+    String(
+      company?.verificationStatus
+      ||
+      'pending_review'
+    )
+    .toLowerCase();
+
+
+  const accountStatus=
+    String(
+      company?.accountStatus
+      ||
+      'active'
+    )
+    .toLowerCase();
+
+
+  if(
+    accountStatus==='deactivated'
+  ){
+
+    return{
+      state:'deactivated',
+      route:
+        'app-employer-deactivated.html'
+    };
+
+  }
+
+
+  if(
+    verificationStatus==='approved'
+  ){
+
+    return{
+      state:'approved',
+      route:
+        aiProfileReturnTo()
+    };
+
+  }
+
+
+  if(id){
+
+    const {
+      data:document
+    }=
+      await sb
+        .from(
+          'employer_verification_documents'
+        )
+        .select(
+          'id,review_status,created_at'
+        )
+        .eq(
+          'company_id',
+          id
+        )
+        .order(
+          'created_at',
+          {
+            ascending:false
+          }
+        )
+        .limit(1)
+        .maybeSingle();
+
+
+    if(document){
+
+      if(
+        verificationStatus==='rejected'
+        ||
+        String(
+          document.review_status||''
+        )
+        .toLowerCase()
+        ===
+        'rejected'
+      ){
+
+        return{
+          state:'rejected',
+          route:
+            `app-employer-document-upload.html?company_id=${encodeURIComponent(id)}&return_to=${encodeURIComponent(aiProfileReturnTo())}`
+        };
+
+      }
+
+
+      return{
+        state:'pending',
+        route:
+          'app-employer-verification-status.html'
+      };
+
+    }
+
+  }
+
+
+  return{
+    state:'not_submitted',
+    route:
+      `app-employer-document-upload.html?company_id=${encodeURIComponent(id)}&return_to=${encodeURIComponent(aiProfileReturnTo())}`
+  };
+
+}
+
+
+
+/* =========================================
+   SAVE
+========================================= */
+
+$('save').onclick=
+  async()=>{
+
+    clearMessage();
+
+
+    for(
+      let i=1;
+      i<=5;
+      i++
+    ){
+
+      if(
+        !validateStep(i)
+      ){
+
+        showStep(i);
+
+        return;
+
+      }
+
+    }
+
+
+    const profile=
+      collect();
+
+
+    const button=
+      $('save');
+
+
+    button.disabled=true;
+
+    button.textContent=
+      'Saving…';
+
+
+    try{
+
+      const currentMeta=
+        session.user.user_metadata
+        ||
+        {};
+
+
+      const {
+        data:userResult,
+        error:userError
+      }=
+        await sb.auth
+          .updateUser({
+            data:{
+              ...currentMeta,
+
+              employer_ai_profile:
+                profile,
+
+              employer_ai_profile_complete:
+                true,
+
+              employer_ai_profile_complete_company_id:
+                profile.company_id
+                ||
+                ''
+            }
+          });
+
+
+      if(userError){
+        throw userError;
+      }
+
+
+      if(
+        userResult?.user
+      ){
+
+        session={
+          ...session,
+          user:userResult.user
+        };
+
+      }
+
+
+      const {
+        error:verificationError
+      }=
+        await sb
+          .from(
+            'employer_verifications'
+          )
+          .update({
+            company_id:
+              profile.company_id
+              ||
+              null,
+
+            profile_complete:true,
+
+            blueprint_complete:true,
+
+            updated_at:
+              new Date()
+                .toISOString()
+          })
+          .eq(
+            'user_id',
+            session.user.id
+          );
+
+
+      if(
+        verificationError
+      ){
+
+        throw verificationError;
+
+      }
+
+
+      const next=
+        await getNextRoute(
+          profile.company_id
+        );
+
+
+      window.nextEmployerRoute=
+        next.route;
+
+
+      if(
+        next.state==='approved'
+      ){
+
+        $('success-title').textContent=
+          'Your AI Company Profile is Ready!';
+
+        $('success-copy').textContent=
+          'Alygnn now understands your company. You can continue building your job post.';
+
+        $('continue').textContent=
+          'Continue to Post a Job →';
+
+      }else if(
+        next.state==='pending'
+      ){
+
+        $('success-title').textContent=
+          'AI Profile Complete';
+
+        $('success-copy').textContent=
+          'Your AI profile has been saved. Your company verification is still under review.';
+
+        $('continue').textContent=
+          'View Verification Status →';
+
+      }else if(
+        next.state==='rejected'
+      ){
+
+        $('success-title').textContent=
+          'AI Profile Complete';
+
+        $('success-copy').textContent=
+          'Your profile is saved, but your company verification needs a new document.';
+
+        $('continue').textContent=
+          'Resubmit Verification →';
+
+      }else if(
+        next.state==='deactivated'
+      ){
+
+        $('success-title').textContent=
+          'AI Profile Saved';
+
+        $('success-copy').textContent=
+          'Your company account is currently deactivated.';
+
+        $('continue').textContent=
+          'View Account Status →';
+
+      }else{
+
+        $('success-title').textContent=
+          'AI Profile Complete';
+
+        $('success-copy').textContent=
+          'Your profile has been saved. Complete company verification before publishing jobs.';
+
+        $('continue').textContent=
+          'Continue to Verification →';
+
+      }
+
+
+      $('profile-view').hidden=true;
+
+      $('success-screen').hidden=false;
+
+
+      window.scrollTo({
+        top:0,
+        behavior:'smooth'
+      });
+
+
+    }catch(error){
+
+      console.error(error);
+
+
+      showMessage(
+        error.message
+        ||
+        'Could not save your Company AI Profile.'
+      );
+
+
+      button.disabled=false;
+
+      button.textContent=
+        'Confirm & Finish';
+
+    }
+
+  };
+
+
+
+$('continue').onclick=
+  ()=>{
+
+    const route=
+      window.nextEmployerRoute
+      ||
+      aiProfileReturnTo();
+
+
+    location.href=
+      route;
+
+  };
+
+
+
+/* =========================================
+   INITIALIZE
+========================================= */
+
+(async()=>{
+
+  try{
+
+    renderStandard('voice');
+
+    renderStandard('strengths');
+
+    renderStandard('priorities');
+
+    renderQuality('success');
+
+    renderQuality('unsuccessful');
+
+
+    setupIndustry();
+
+    setupStandardSearch('voice');
+
+    setupStandardSearch('strengths');
+
+    setupPrioritySearch();
+
+    setupQualitySearch('success');
+
+    setupQualitySearch(
+      'unsuccessful'
+    );
+
+
+    const {
+      data,
+      error
+    }=
+      await sb.auth
+        .getSession();
+
+
+    if(
+      error
+      ||
+      !data.session
+    ){
+
+      location.replace(
+        'app-employer-login.html'
+      );
+
+      return;
+
+    }
+
+
+    session=
+      data.session;
+
+
+    const {
+      data:userData
+    }=
+      await sb.auth
+        .getUser();
+
+
+    if(
+      userData?.user
+    ){
+
+      session={
+        ...session,
+        user:userData.user
+      };
+
+    }
+
+
+    const companyData=
+      await loadCompanyData();
+
+
+    applyData(
+      companyData
+    );
+
+
+    showStep(0);
+
+
+  }catch(error){
+
+    console.error(error);
+
+
+    showMessage(
+      'Could not load your saved company information.'
+    );
+
+
+  }finally{
+
+    $('loading').hidden=true;
+
+  }
+
+})();
+
+</script>
+
+</body>
+</html>

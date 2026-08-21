@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alygnn — Employer Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --brand: #5D7FA3; --sage: #8CB69B; --bg: #F0F3F2;
+    --card-bg: #FCFCFA; --text: #1A2530; --border: #DDE3E8;
+    --mint: #6FBF8F; --rose: #D79A9A; --text-muted: #4A5968;
+    --brand-light: rgba(93,127,163,0.08);
+    --mint-light: rgba(111,191,143,0.1);
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  nav {
+    background: rgba(246,248,247,0.95); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 5%; display: flex; align-items: center;
+    justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--brand); letter-spacing: -0.5px; text-decoration: none; }
+  .logo span { color: var(--sage); }
+  .nav-right { display: flex; align-items: center; gap: 16px; }
+  .nav-user { font-size: 13px; color: var(--text-muted); }
+  .btn-logout { font-size: 13px; color: var(--text-muted); background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 14px; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+  .btn-logout:hover { border-color: var(--rose); color: var(--rose); }
+
+  .layout { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 64px); }
+
+  .sidebar {
+    background: var(--card-bg); border-right: 1px solid var(--border);
+    padding: 32px 20px; position: sticky; top: 64px;
+    height: calc(100vh - 64px); overflow-y: auto;
+  }
+  .sidebar-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); font-weight: 500; margin-bottom: 10px; padding: 0 8px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px;
+    cursor: pointer; transition: all 0.2s;
+    font-size: 14px; color: var(--text-muted); margin-bottom: 2px;
+    border: none; background: none; width: 100%; text-align: left;
+    font-family: 'DM Sans', sans-serif; text-decoration: none;
+  }
+  .nav-item:hover { background: var(--brand-light); color: var(--text); }
+  .nav-item.active { background: var(--brand-light); color: var(--brand); font-weight: 500; }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+  .nav-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+  .main { padding: 40px 5%; }
+
+  .panel { display: none; animation: fadeUp 0.4s ease both; }
+  .panel.active { display: block; }
+
+  .page-header { margin-bottom: 32px; }
+  .page-title { font-family: 'DM Serif Display', serif; font-size: 32px; color: var(--text); letter-spacing: -0.5px; margin-bottom: 6px; }
+  .page-sub { font-size: 14px; color: var(--text-muted); }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px; }
+  .stat-val { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--text); letter-spacing: -1px; line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 12px; color: var(--text-muted); }
+
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .section-title { font-size: 16px; font-weight: 500; color: var(--text); }
+  .btn-primary {
+    background: var(--brand); color: white; border: none;
+    border-radius: 100px; padding: 10px 22px; font-size: 13px;
+    font-weight: 500; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+
+  .job-row {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 20px;
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 10px; transition: box-shadow 0.2s;
+  }
+  .job-row:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+  .job-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .job-status.active { background: var(--mint); }
+  .job-status.paused { background: var(--rose); }
+  .job-info { flex: 1; }
+  .job-title-text { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+  .job-meta { font-size: 12px; color: var(--text-muted); }
+  .job-stats { display: flex; gap: 20px; text-align: center; }
+  .js-val { font-size: 16px; font-weight: 500; color: var(--text); }
+  .js-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+  .btn-view { font-size: 12px; color: var(--brand); background: var(--brand-light); border: none; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+  .btn-view:hover { opacity: 0.8; }
+
+  .candidates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .candidate-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 24px; transition: all 0.2s; }
+  .candidate-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+  .candidate-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .candidate-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--brand-light); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; border: 1px solid var(--border); }
+  .candidate-name { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+  .candidate-role { font-size: 12px; color: var(--text-muted); }
+  .candidate-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .tag { font-size: 11px; padding: 3px 10px; border-radius: 100px; border: 1px solid var(--border); color: var(--text-muted); }
+  .candidate-actions { display: flex; gap: 8px; }
+  .btn-accept { flex: 1; background: var(--mint); color: white; border: none; border-radius: 8px; padding: 9px; font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+  .btn-accept:hover { opacity: 0.85; }
+  .btn-pass { flex: 1; background: white; color: var(--text-muted); border: 1px solid var(--border); border-radius: 8px; padding: 9px; font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+  .btn-pass:hover { border-color: var(--rose); color: var(--rose); }
+
+  .form-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 36px; max-width: 640px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); font-weight: 500; }
+  .form-input { background: white; border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 16px; font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--text); outline: none; transition: border-color 0.2s; width: 100%; }
+  .form-input:focus { border-color: var(--brand); }
+  .form-input::placeholder { color: #aab4bc; }
+  textarea.form-input { resize: vertical; min-height: 120px; }
+  select.form-input { cursor: pointer; }
+  .btn-post { background: var(--brand); color: white; border: none; border-radius: 12px; padding: 14px 32px; font-size: 15px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
+  .btn-post:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-post.locked, .btn-primary.locked { opacity: .45; cursor: not-allowed; transform: none; }
+  .verification-lock {
+    background: rgba(231,184,109,0.12);
+    border: 1px solid rgba(231,184,109,0.4);
+    color: #7a5a1a;
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .job-actions { display:flex; gap:8px; align-items:center; }
+  .btn-danger { font-size: 12px; color: #a05858; background: rgba(215,154,154,0.15); border: none; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+  .btn-danger:hover { opacity: .8; }
+
+  .empty-state { background: var(--card-bg); border: 1px dashed var(--border); border-radius: 14px; padding: 40px 28px; text-align: center; color: var(--text-muted); font-size: 14px; }
+  .empty-state .empty-icon { font-size: 32px; margin-bottom: 12px; }
+  .empty-state .empty-title { font-weight: 500; color: var(--text); margin-bottom: 6px; font-size: 15px; }
+
+  .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--text); color: white; padding: 10px 20px; border-radius: 100px; font-size: 13px; font-weight: 500; transition: transform 0.3s ease; z-index: 200; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">Alygnn<span>.</span></a>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user-name"></span>
+    <button class="btn-logout" onclick="logout()">Sign out</button>
+  </div>
+</nav>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-label">Employer</div>
+    <button class="nav-item active" onclick="showPanel('overview', this)">
+      <span class="nav-icon">📊</span> Overview
+    </button>
+    <button class="nav-item" onclick="showPanel('jobs', this)">
+      <span class="nav-icon">💼</span> My Jobs
+    </button>
+    <button class="nav-item" onclick="showPanel('candidates', this)">
+      <span class="nav-icon">👥</span> Candidates
+    </button>
+    <button class="nav-item" onclick="showPanel('post', this)">
+      <span class="nav-icon">➕</span> Post a Job
+    </button>
+    <hr class="nav-divider">
+    <a href="employer-account.html" class="nav-item">
+      <span class="nav-icon">←</span> My account
+    </a>
+  </aside>
+
+  <main class="main">
+
+    <!-- OVERVIEW -->
+    <div class="panel active" id="panel-overview">
+      <div class="page-header">
+        <div class="page-title" id="employer-greeting">Dashboard</div>
+        <div class="page-sub" id="employer-message">Here's how your listings are performing</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val" id="stat-active">0</div><div class="stat-label">Active jobs</div></div>
+        <div class="stat-card"><div class="stat-val" id="stat-views">0</div><div class="stat-label">Total views</div></div>
+        <div class="stat-card"><div class="stat-val" id="stat-swipes">0</div><div class="stat-label">Right swipes</div></div>
+        <div class="stat-card"><div class="stat-val" id="stat-candidates">0</div><div class="stat-label">New candidates</div></div>
+      </div>
+      <div class="section-header">
+        <div class="section-title">Recent activity</div>
+      </div>
+      <div id="overview-jobs">
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <div class="empty-title">No jobs posted yet</div>
+          Post your first job to start seeing activity here.
+        </div>
+      </div>
+    </div>
+
+    <!-- MY JOBS -->
+    <div class="panel" id="panel-jobs">
+      <div class="page-header">
+        <div class="page-title">My Jobs</div>
+        <div class="page-sub">Manage your job listings</div>
+      </div>
+      <div class="section-header">
+        <div class="section-title">Active listings</div>
+        <button class="btn-primary" onclick="showPanel('post', this)">+ Post new job</button>
+      </div>
+      <div id="jobs-list">
+        <div class="empty-state">
+          <div class="empty-icon">💼</div>
+          <div class="empty-title">No active listings</div>
+          Post your first job to start receiving candidates.
+        </div>
+      </div>
+    </div>
+
+    <!-- CANDIDATES -->
+    <div class="panel" id="panel-candidates">
+      <div class="page-header">
+        <div class="page-title">Candidates</div>
+        <div class="page-sub">Job seekers who swiped right on your listings</div>
+      </div>
+      <div id="candidates-grid" class="candidates-grid">
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="empty-icon">👥</div>
+          <div class="empty-title">No candidates yet</div>
+          Once job seekers apply to your listings, they'll appear here.
+        </div>
+      </div>
+    </div>
+
+    <!-- POST JOB -->
+    <div class="panel" id="panel-post">
+      <div class="page-header">
+        <div class="page-title" id="post-form-title">Post a Job</div>
+        <div class="page-sub">Fill in the details and start finding candidates</div>
+      </div>
+      <div class="verification-lock" id="verification-lock" style="display:none;">
+        Your business must be approved by Alygnn before you can post jobs.
+      </div>
+      <div class="form-card">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Job title</label>
+            <input type="text" class="form-input" id="f-title" placeholder="e.g. Senior Designer">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Company name</label>
+            <input type="text" class="form-input" id="f-company" placeholder="Your company">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Location</label>
+            <input type="text" class="form-input" id="f-location" placeholder="e.g. New York, NY">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Job type</label>
+            <select class="form-input" id="f-type">
+              <option>Full-time</option>
+              <option>Part-time</option>
+              <option>Contract</option>
+              <option>Internship</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Work style</label>
+            <select class="form-input" id="f-style">
+              <option>Remote</option>
+              <option>Hybrid</option>
+              <option>On-site</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Salary range</label>
+            <input type="text" class="form-input" id="f-salary" placeholder="e.g. $80k–$110k">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Job description</label>
+            <textarea class="form-input" id="f-desc" placeholder="Describe the role, responsibilities, and what you're looking for..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Requirements (one per line)</label>
+            <textarea class="form-input" id="f-reqs" placeholder="3+ years of experience&#10;Proficiency in React&#10;Strong communication skills" style="min-height:90px"></textarea>
+          </div>
+        </div>
+        <button class="btn-post" id="post-job-btn" onclick="postJob()">Post job →</button>
+        <button class="btn-view" id="cancel-edit-btn" onclick="cancelEdit()" style="display:none; margin-left:8px;">Cancel edit</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const SUPABASE_URL = 'https://auth.alygnn.com';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let jobs = [];
+  let employerVerified = false;
+  let currentProfile = null;
+  let currentUser = null;
+  let editingJobId = null;
+
+
+  let activeEmployerName = '';
+  let employerMessageBucket = '';
+  let employerMessageText = '';
+
+  const ALYGNN_EMPLOYER_MESSAGES = {
+    late: [
+      "Late-night recruiting? Your next great hire can wait until morning. Your job post won't.",
+      "Still building the team? Alygnn's keeping the lights on.",
+      "Quiet inbox. Big hiring plans.",
+      "Midnight strategy session? We respect the commitment.",
+      "Candidates are probably sleeping. Your listings are still working.",
+      "One last dashboard check, then call it a night.",
+      "Late hours, early advantage."
+    ],
+    morning: [
+      "Coffee first. Great hires second.",
+      "New day, new candidates.",
+      "A strong team starts with one good hire.",
+      "Your next great candidate may already be looking.",
+      "Morning meetings can wait a minute. Check the talent first.",
+      "Fresh day. Fresh applicant pool.",
+      "Build the team before the inbox takes over."
+    ],
+    afternoon: [
+      "Your next strong candidate could be checking jobs right now.",
+      "Plenty of day left to make a great hire.",
+      "The right candidate can change the rest of the week.",
+      "Afternoon check-in: any future top performers in the queue?",
+      "Your listings are working while you are.",
+      "A better candidate pipeline beats another meeting.",
+      "Keep the hiring momentum moving."
+    ],
+    evening: [
+      "The office may be closed. Recruiting doesn't have to be.",
+      "Your next hire might be job hunting after work.",
+      "Evening check-in: see who showed up today.",
+      "Tomorrow's team can start with tonight's candidate.",
+      "The workday ended. The talent search didn't.",
+      "One good candidate can make tomorrow a lot easier.",
+      "Before you sign off, see who found you today."
+    ]
+  };
+
+  function getEmployerTimeContext() {
+    const now = new Date();
+
+    let timeZone = 'UTC';
+    try {
+      timeZone =
+        Intl.DateTimeFormat()
+          .resolvedOptions()
+          .timeZone || 'UTC';
+    } catch (_) {}
+
+    let hour = now.getHours();
+
+    try {
+      const hourPart =
+        new Intl.DateTimeFormat('en-US', {
+          timeZone,
+          hour: '2-digit',
+          hourCycle: 'h23'
+        })
+        .formatToParts(now)
+        .find(part => part.type === 'hour');
+
+      if (hourPart) {
+        const parsed = Number(hourPart.value);
+        if (Number.isFinite(parsed)) hour = parsed;
+      }
+    } catch (_) {}
+
+    let greeting = 'Welcome back';
+    let bucket = 'late';
+
+    if (hour >= 5 && hour < 12) {
+      greeting = 'Good morning';
+      bucket = 'morning';
+    } else if (hour >= 12 && hour < 17) {
+      greeting = 'Good afternoon';
+      bucket = 'afternoon';
+    } else if (hour >= 17) {
+      greeting = 'Good evening';
+      bucket = 'evening';
+    }
+
+    return { timeZone, hour, greeting, bucket };
+  }
+
+  function pickEmployerMessage(bucket, timeZone) {
+    const pool =
+      ALYGNN_EMPLOYER_MESSAGES[bucket] ||
+      ALYGNN_EMPLOYER_MESSAGES.afternoon;
+
+    if (
+      employerMessageBucket === bucket &&
+      employerMessageText
+    ) {
+      return employerMessageText;
+    }
+
+    const storageKey =
+      `alygnn_employer_message_${timeZone}_${bucket}`;
+
+    let saved = '';
+
+    try {
+      saved = sessionStorage.getItem(storageKey) || '';
+    } catch (_) {}
+
+    if (saved && pool.includes(saved)) {
+      employerMessageBucket = bucket;
+      employerMessageText = saved;
+      return saved;
+    }
+
+    const next =
+      pool[Math.floor(Math.random() * pool.length)];
+
+    employerMessageBucket = bucket;
+    employerMessageText = next;
+
+    try {
+      sessionStorage.setItem(storageKey, next);
+    } catch (_) {}
+
+    return next;
+  }
+
+  function refreshEmployerGreeting() {
+    const title =
+      document.getElementById('employer-greeting');
+
+    const message =
+      document.getElementById('employer-message');
+
+    if (!title || !message) return;
+
+    const context =
+      getEmployerTimeContext();
+
+    const firstName =
+      String(activeEmployerName || '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)[0];
+
+    title.textContent =
+      firstName
+        ? `${context.greeting}, ${firstName}`
+        : context.greeting;
+
+    message.textContent =
+      pickEmployerMessage(
+        context.bucket,
+        context.timeZone
+      );
+  }
+
+  async function checkAuth() {
+    const { data, error } = await sb.auth.getUser();
+    const authedUser = data && data.user;
+
+    if (error || !authedUser) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    currentUser = authedUser;
+
+    const role = String(authedUser.user_metadata?.role || '').toLowerCase();
+    if (role === 'seeker' || role === 'job_seeker') {
+      window.location.href = 'account.html';
+      return;
+    }
+
+    const { data: profile, error: profileError } = await sb
+      .from('profiles')
+      .select('company_name, full_name, employer_verified, verification_status')
+      .eq('id', authedUser.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Failed to load employer profile:', profileError);
+    }
+
+    currentProfile = profile || {};
+    employerVerified =
+      profile?.employer_verified === true &&
+      profile?.verification_status === 'approved';
+
+    const displayName =
+      profile?.company_name ||
+      profile?.full_name ||
+      authedUser.user_metadata?.full_name ||
+      authedUser.user_metadata?.name ||
+      authedUser.email || '';
+
+    activeEmployerName =
+      profile?.full_name ||
+      authedUser.user_metadata?.full_name ||
+      authedUser.user_metadata?.name ||
+      profile?.company_name ||
+      '';
+
+    document.getElementById('nav-user-name').textContent = displayName;
+
+    refreshEmployerGreeting();
+
+    const companyInput = document.getElementById('f-company');
+    if (companyInput && profile?.company_name) {
+      companyInput.value = profile.company_name;
+    }
+
+    updateVerificationUI();
+    await loadJobs();
+  }
+
+  checkAuth();
+
+  function updateVerificationUI() {
+    const lockBox = document.getElementById('verification-lock');
+    const postBtn = document.getElementById('post-job-btn');
+
+    if (employerVerified) {
+      if (lockBox) lockBox.style.display = 'none';
+      if (postBtn) {
+        postBtn.classList.remove('locked');
+        postBtn.disabled = false;
+      }
+      return;
+    }
+
+    const status = currentProfile?.verification_status || 'not_submitted';
+
+    if (lockBox) {
+      lockBox.style.display = 'block';
+      lockBox.innerHTML = `
+        <strong>Business verification required</strong><br>
+        Current status: <strong>${escapeHtml(status)}</strong>. Your business must be approved by Alygnn before you can post jobs.
+        <br><br>
+        <a href="employer-account.html" style="color:#5D7FA3; font-weight:500;">Go to employer account →</a>
+      `;
+    }
+
+    if (postBtn) {
+      postBtn.classList.add('locked');
+      postBtn.disabled = true;
+    }
+  }
+
+  function showPanel(name, trigger) {
+    if (name === 'post' && !employerVerified) {
+      showToast('Your business must be approved by Alygnn before posting jobs.');
+    }
+
+    const targetPanel = document.getElementById('panel-' + name);
+    if (!targetPanel) return;
+
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+    targetPanel.classList.add('active');
+
+    const navButton = trigger && trigger.classList && trigger.classList.contains('nav-item')
+      ? trigger
+      : document.querySelector(`.nav-item[onclick*="${name}"]`);
+
+    if (navButton) navButton.classList.add('active');
+    updateVerificationUI();
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  async function loadJobs() {
+    if (!currentUser) return;
+
+    const { data, error } = await sb
+      .from('jobs')
+      .select('*')
+      .eq('employer_id', currentUser.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to load jobs:', error);
+      showToast('Could not load jobs from Supabase.');
+      return;
+    }
+
+    jobs = data || [];
+    renderJobs();
+  }
+
+  function renderJobs() {
+    const jobsList = document.getElementById('jobs-list');
+    const overviewJobs = document.getElementById('overview-jobs');
+
+    document.getElementById('stat-active').textContent = jobs.filter(job => job.status !== 'deleted').length;
+    document.getElementById('stat-views').textContent = jobs.reduce((sum, job) => sum + (job.views || 0), 0);
+    document.getElementById('stat-swipes').textContent = jobs.reduce((sum, job) => sum + (job.applied || 0), 0);
+    document.getElementById('stat-candidates').textContent = jobs.reduce((sum, job) => sum + (job.applied || 0), 0);
+
+    if (jobs.length === 0) {
+      jobsList.innerHTML = `<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">No active listings</div>Post your first job to start receiving candidates.</div>`;
+      overviewJobs.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No jobs posted yet</div>Post your first job to start seeing activity here.</div>`;
+      return;
+    }
+
+    const jobRows = jobs.map(job => `
+      <div class="job-row">
+        <div class="job-status active"></div>
+        <div class="job-info">
+          <div class="job-title-text">${escapeHtml(job.title)}</div>
+          <div class="job-meta">${escapeHtml(job.job_type || '')} · ${escapeHtml(job.work_style || '')}${job.salary ? ' · ' + escapeHtml(job.salary) : ''}${job.location ? ' · ' + escapeHtml(job.location) : ''}</div>
+        </div>
+        <div class="job-stats">
+          <div><div class="js-val">${job.views || 0}</div><div class="js-label">Views</div></div>
+          <div><div class="js-val">${job.applied || 0}</div><div class="js-label">Applied</div></div>
+        </div>
+        <div class="job-actions">
+          <button class="btn-view" onclick="editJob('${job.id}')">Edit</button>
+          <button class="btn-danger" onclick="deleteJob('${job.id}')">Delete</button>
+        </div>
+      </div>
+    `).join('');
+
+    jobsList.innerHTML = jobRows;
+    overviewJobs.innerHTML = jobRows;
+  }
+
+  function collectJobForm() {
+    return {
+      title: document.getElementById('f-title').value.trim(),
+      company: document.getElementById('f-company').value.trim(),
+      location: document.getElementById('f-location').value.trim(),
+      job_type: document.getElementById('f-type').value,
+      work_style: document.getElementById('f-style').value,
+      salary: document.getElementById('f-salary').value.trim(),
+      description: document.getElementById('f-desc').value.trim(),
+      requirements: document.getElementById('f-reqs').value.trim()
+    };
+  }
+
+  function fillJobForm(job) {
+    document.getElementById('f-title').value = job.title || '';
+    document.getElementById('f-company').value = job.company || currentProfile?.company_name || '';
+    document.getElementById('f-location').value = job.location || '';
+    document.getElementById('f-type').value = job.job_type || 'Full-time';
+    document.getElementById('f-style').value = job.work_style || 'Remote';
+    document.getElementById('f-salary').value = job.salary || '';
+    document.getElementById('f-desc').value = job.description || '';
+    document.getElementById('f-reqs').value = job.requirements || '';
+  }
+
+  function clearJobForm() {
+    ['f-title','f-location','f-salary','f-desc','f-reqs'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+
+    document.getElementById('f-company').value = currentProfile?.company_name || '';
+    document.getElementById('f-type').value = 'Full-time';
+    document.getElementById('f-style').value = 'Remote';
+  }
+
+
+  function normalizeText(value) {
+    return String(value || '').trim().replace(/\s+/g, ' ');
+  }
+
+  function countRealWords(value) {
+    const words = normalizeText(value).match(/[A-Za-z][A-Za-z'-]{2,}/g) || [];
+    return words.length;
+  }
+
+  function hasRepeatedJunk(value) {
+    const clean = normalizeText(value).toLowerCase();
+    if (!clean) return true;
+    if (/^(.)\1{3,}$/.test(clean.replace(/\s/g, ''))) return true;
+    if (/^[a-z]{1,3}(\s+[a-z]{1,3}){0,4}$/.test(clean)) return true;
+    if (/^[^a-zA-Z0-9]+$/.test(clean)) return true;
+    return false;
+  }
+
+  function containsBlockedJunk(value) {
+    const text = normalizeText(value).toLowerCase();
+    const blocked = [
+      'test', 'asdf', 'qwerty', 'fake', 'random', 'dummy', 'sample',
+      'lorem ipsum', 'abc', '123', 'sklcnsa', 'slkcnsa', 'aaa', 'zzz'
+    ];
+    return blocked.some(word => text.includes(word));
+  }
+
+  function isValidJobTitle(title) {
+    const clean = normalizeText(title);
+    if (clean.length < 6 || clean.length > 80) return false;
+    if (containsBlockedJunk(clean) || hasRepeatedJunk(clean)) return false;
+    if (countRealWords(clean) < 2) return false;
+    return /^[A-Za-z0-9&.,'’()\-/ ]+$/.test(clean);
+  }
+
+  function isValidCompanyName(company) {
+    const clean = normalizeText(company);
+    if (clean.length < 3 || clean.length > 80) return false;
+    if (containsBlockedJunk(clean) || hasRepeatedJunk(clean)) return false;
+    return /^[A-Za-z0-9&.,'’()\-/ ]+$/.test(clean);
+  }
+
+  function isValidLocation(location, workStyle) {
+    const clean = normalizeText(location);
+    if (clean.length < 4 || clean.length > 80) return false;
+    if (containsBlockedJunk(clean) || hasRepeatedJunk(clean)) return false;
+
+    if (workStyle === 'Remote') {
+      return /remote|united states|usa|u\.s\.|[A-Za-z]{3,}/i.test(clean);
+    }
+
+    // Requires something that looks like City, ST or City State.
+    return /^[A-Za-z .'-]{3,},?\s+[A-Za-z]{2,}(\s+[A-Za-z]{2,})*$/.test(clean);
+  }
+
+  function isValidSalary(salary) {
+    const clean = normalizeText(salary).toLowerCase();
+    if (clean.length < 4 || clean.length > 60) return false;
+    if (containsBlockedJunk(clean) || hasRepeatedJunk(clean)) return false;
+    if (!/\d/.test(clean)) return false;
+    return /(\$|k\b|hour|hr|year|yr|salary|annually|per)/i.test(clean);
+  }
+
+  function isValidDescription(description) {
+    const clean = normalizeText(description);
+    if (clean.length < 180) return false;
+    if (containsBlockedJunk(clean) || hasRepeatedJunk(clean)) return false;
+    if (countRealWords(clean) < 35) return false;
+
+    const roleSignals = ['responsibilities', 'role', 'team', 'customer', 'training', 'schedule', 'experience', 'skills', 'work', 'position'];
+    const foundSignals = roleSignals.filter(word => clean.toLowerCase().includes(word)).length;
+    return foundSignals >= 2;
+  }
+
+  function validateJob(job) {
+    if (!isValidJobTitle(job.title)) {
+      return 'Enter a real job title, like "Customer Service Representative" or "Sales Account Manager".';
+    }
+
+    if (!isValidCompanyName(job.company)) {
+      return 'Enter a real company name.';
+    }
+
+    if (!isValidLocation(job.location, job.work_style)) {
+      return job.work_style === 'Remote'
+        ? 'Enter a valid location, like "Remote - United States".'
+        : 'Enter a real location, like "Raleigh, NC".';
+    }
+
+    if (!isValidSalary(job.salary)) {
+      return 'Enter a real salary, like "$18/hour", "$45,000-$60,000", or "$55k/year".';
+    }
+
+    if (!isValidDescription(job.description)) {
+      return 'Job description must be at least 180 characters and explain the real role, responsibilities, and work.';
+    }
+
+    const requirements = job.requirements
+      .split('\n')
+      .map(r => normalizeText(r))
+      .filter(Boolean);
+
+    if (requirements.length < 3) {
+      return 'Add at least 3 real requirements, one per line.';
+    }
+
+    if (requirements.some(req => req.length < 12 || countRealWords(req) < 2 || containsBlockedJunk(req) || hasRepeatedJunk(req))) {
+      return 'Each requirement must be a real sentence or phrase, not random text.';
+    }
+
+    return '';
+  }
+
+  async function postJob() {
+    if (!employerVerified) {
+      showToast('Your business must be approved by Alygnn before posting jobs.');
+      updateVerificationUI();
+      return;
+    }
+
+    const job = collectJobForm();
+
+    const validationError = validateJob(job);
+    if (validationError) {
+      showToast(validationError);
+      return;
+    }
+
+    if (editingJobId) {
+      const { error } = await sb
+        .from('jobs')
+        .update({
+          ...job,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingJobId)
+        .eq('employer_id', currentUser.id);
+
+      if (error) {
+        console.error('Failed to update job:', error);
+        showToast('Could not update job.');
+        return;
+      }
+
+      showToast('Job updated successfully!');
+      cancelEdit(false);
+    } else {
+      const { error } = await sb
+        .from('jobs')
+        .insert({
+          employer_id: currentUser.id,
+          ...job,
+          status: 'active'
+        });
+
+      if (error) {
+        console.error('Failed to post job:', error);
+        showToast('Could not post job. Check Supabase jobs table.');
+        return;
+      }
+
+      showToast('🎉 Job posted successfully!');
+      clearJobForm();
+    }
+
+    await loadJobs();
+    setTimeout(() => showPanel('jobs'), 500);
+  }
+
+  function editJob(jobId) {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+
+    editingJobId = jobId;
+    fillJobForm(job);
+
+    document.getElementById('post-form-title').textContent = 'Edit Job';
+    document.getElementById('post-job-btn').textContent = 'Save changes →';
+    document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+
+    showPanel('post');
+  }
+
+  function cancelEdit(clearForm = true) {
+    editingJobId = null;
+
+    document.getElementById('post-form-title').textContent = 'Post a Job';
+    document.getElementById('post-job-btn').textContent = 'Post job →';
+    document.getElementById('cancel-edit-btn').style.display = 'none';
+
+    if (clearForm) clearJobForm();
+    updateVerificationUI();
+  }
+
+  async function deleteJob(jobId) {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+
+    if (!confirm(`Delete "${job.title}"?`)) return;
+
+    const { error } = await sb
+      .from('jobs')
+      .delete()
+      .eq('id', jobId)
+      .eq('employer_id', currentUser.id);
+
+    if (error) {
+      console.error('Failed to delete job:', error);
+      showToast('Could not delete job.');
+      return;
+    }
+
+    if (editingJobId === jobId) cancelEdit();
+    await loadJobs();
+    showToast('Job deleted.');
+  }
+
+  async function logout() {
+    await sb.auth.signOut();
+    window.location.href = 'index.html';
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+
+  window.addEventListener('pageshow', () => {
+    refreshEmployerGreeting();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      refreshEmployerGreeting();
+    }
+  });
+
+  setInterval(() => {
+    refreshEmployerGreeting();
+  }, 60 * 1000);
+
+</script>
+</body>
+</html>

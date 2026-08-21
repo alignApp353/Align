@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F6F8F7">
+<title>Employer Setup | Alygnn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
+:root{--brand:#5D7FA3;--dark:#345F91;--sage:#8CB69B;--bg:#F6F8F7;--card:#FCFCFA;--text:#172333;--muted:#5D6C7C;--border:#DDE3E8;--danger:#B64040;--danger-bg:#FCEDED;--success:#18794E;--success-bg:#E8F6EE;--shadow:0 18px 55px rgba(23,35,51,.08)}
+html{background:var(--bg)}
+body{min-height:100vh;background:radial-gradient(circle at 10% 5%,rgba(140,182,155,.16),transparent 28%),radial-gradient(circle at 90% 90%,rgba(93,127,163,.15),transparent 30%),var(--bg);color:var(--text)}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.shell{width:100%;max-width:720px;min-height:100vh;margin:auto;padding:calc(20px + env(safe-area-inset-top)) 20px calc(34px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{font-family:'DM Serif Display',Georgia,serif!important;font-size:31px;color:var(--brand)}.brand span{color:var(--sage)}
+.secure{font-size:11px;font-weight:900;color:var(--success);background:var(--success-bg);padding:8px 11px;border-radius:999px}
+.progress-copy{margin-top:30px;display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px;font-weight:900;letter-spacing:.45px;text-transform:uppercase}
+.progress{height:9px;margin-top:9px;border-radius:999px;background:#E5EAEF;overflow:hidden}.progress>div{height:100%;width:16.67%;border-radius:inherit;background:linear-gradient(90deg,var(--dark),var(--sage));transition:width .3s ease}
+.card{margin-top:21px;padding:28px;border:1px solid var(--border);border-radius:28px;background:rgba(252,252,250,.97);box-shadow:var(--shadow)}
+.step{display:none}.step.active{display:block;animation:enter .22s ease}@keyframes enter{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.eyebrow{color:var(--dark);font-size:11px;font-weight:900;letter-spacing:.9px;text-transform:uppercase}
+h1{margin-top:9px;font-size:31px;line-height:1.1;letter-spacing:-.8px;font-weight:900}.intro{margin-top:12px;color:var(--muted);font-size:14px;line-height:1.65}
+.value-list{display:grid;gap:11px;margin-top:22px}.value{padding:13px 14px;border:1px solid var(--border);border-radius:15px;background:#fff;font-size:13px;font-weight:800;line-height:1.45}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:22px}.field{margin-top:16px}.grid .field{margin-top:0}label,.field-label{display:block;margin-bottom:8px;font-size:12px;font-weight:900}.required:after{content:' *';color:var(--danger)}
+input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--border);border-radius:15px;background:#fff;color:var(--text);outline:none}input:focus,select:focus{border-color:var(--dark);box-shadow:0 0 0 4px rgba(93,127,163,.11)}
+.inline-check{display:flex;align-items:flex-start;gap:10px;margin-top:17px}.inline-check input{width:18px;height:18px;min-height:18px;margin-top:1px}.inline-check label{margin:0;line-height:1.45}.conditional{display:none}.conditional.show{display:block}.helper{margin-top:7px;color:var(--muted);font-size:11px;line-height:1.5}
+.suggest-wrap{position:relative}.suggestions{display:none;position:absolute;z-index:60;top:calc(100% + 7px);left:0;right:0;max-height:235px;overflow:auto;border:1px solid var(--border);border-radius:15px;background:#fff;box-shadow:0 16px 38px rgba(23,35,51,.16)}.suggestions.show{display:block}.suggestion{width:100%;min-height:47px;padding:11px 14px;border:0;border-bottom:1px solid var(--border);border-radius:0;background:#fff;color:var(--text);text-align:left;font-size:13px;font-weight:700}.suggestion:last-child{border-bottom:0}.suggestion:hover{background:#EDF3F8;color:var(--dark)}
+.choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:21px}.voice{min-height:66px;padding:14px;border:1px solid var(--border);border-radius:17px;background:#fff;color:var(--text);text-align:left;font-size:13px;font-weight:900;transition:.18s ease}.voice:hover{border-color:#AFC0D2;transform:translateY(-1px)}.voice.selected{border-color:var(--dark);background:#EDF3F8;color:var(--dark);box-shadow:0 0 0 2px rgba(52,95,145,.08)}.voice:disabled:not(.selected){opacity:.45;cursor:not-allowed;transform:none}
+.selection-box{margin-top:18px;padding:15px;border:1px solid var(--border);border-radius:17px;background:#fff}.selection-title{font-size:10px;font-weight:900;color:var(--muted);letter-spacing:.65px;text-transform:uppercase}.selection-value{margin-top:7px;font-size:13px;font-weight:900;line-height:1.5}.counter{margin-top:10px;color:var(--muted);font-size:11px;font-weight:800}
+.rank-list{display:grid;gap:10px;margin-top:21px}.rank-item{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;min-height:61px;padding:10px 11px;border:1px solid var(--border);border-radius:17px;background:#fff;box-shadow:0 3px 10px rgba(23,35,51,.03);touch-action:none}.rank-item.sortable-ghost{opacity:.3}.rank-item.sortable-chosen{border-color:var(--dark);box-shadow:0 12px 28px rgba(23,35,51,.12)}.rank-number{width:32px;height:32px;display:grid;place-items:center;border-radius:10px;background:#EDF3F8;color:var(--dark);font-size:12px;font-weight:900}.rank-name{font-size:13px;font-weight:900}.rank-tools{display:flex;align-items:center;gap:6px}.move{min-width:38px;height:34px;padding:0 8px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--muted);font-size:10px;font-weight:900}.drag-handle{width:24px;height:34px;border:0;background:transparent;display:grid;place-items:center;cursor:grab}.drag-handle:before{content:'';width:14px;height:18px;background:radial-gradient(circle,#8190A0 1.35px,transparent 1.6px);background-size:7px 6px}.drag-handle:active{cursor:grabbing}.rank-note{margin-top:12px;color:var(--muted);font-size:11px;line-height:1.5}
+.overview-grid{display:grid;gap:13px;margin-top:21px}.overview-card{padding:17px;border:1px solid var(--border);border-radius:18px;background:#fff}.overview-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.overview-head h2{font-size:14px}.edit{border:0;background:transparent;color:var(--dark);font-size:11px;font-weight:900}.overview-content{margin-top:10px;color:var(--text);font-size:13px;font-weight:800;line-height:1.65}.ordered{padding-left:20px}.ai-summary{padding:18px;border:1px solid #C9D8E5;border-radius:18px;background:#EDF3F8}.ai-summary h2{font-size:14px;color:var(--dark)}.ai-summary p{margin-top:9px;color:#34475B;font-size:13px;line-height:1.65}.authorization{margin-top:18px;padding:15px;border:1px solid var(--border);border-radius:17px;background:#fff}
+.message{display:none;margin-top:16px;padding:13px 14px;border-radius:14px;font-size:12px;font-weight:800;line-height:1.5}.message.error{display:block;background:var(--danger-bg);color:var(--danger)}.message.success{display:block;background:var(--success-bg);color:var(--success)}
+.actions{display:flex;gap:10px;margin-top:25px}.btn{min-height:54px;border-radius:16px;font-size:13px;font-weight:900}.back{width:120px;border:1px solid var(--border);background:#fff;color:var(--text)}.next{flex:1;border:0;background:var(--dark);color:#fff}.btn:disabled{opacity:.6;cursor:not-allowed}
+@media(max-width:590px){.shell{padding-left:14px;padding-right:14px}.card{padding:21px;border-radius:23px}.grid,.choice-grid{grid-template-columns:1fr}.actions{position:sticky;bottom:8px;z-index:30;padding:10px;background:rgba(246,248,247,.94);backdrop-filter:blur(14px);border:1px solid rgba(221,227,232,.75);border-radius:18px}.back{width:92px}h1{font-size:27px}.secure{font-size:10px}.rank-item{grid-template-columns:32px 1fr auto}.move{display:none}}
+</style>
+</head>
+<body>
+<main class="shell">
+<header class="top"><div class="brand">Alygnn<span>.</span></div><div class="secure">Employer setup</div></header>
+<div class="progress-copy"><span id="progress-label">Welcome</span><span id="progress-percent">17%</span></div>
+<div class="progress"><div id="progress-fill"></div></div>
+<section class="card">
+<form id="onboarding-form" novalidate>
+<div class="step active" data-title="Welcome">
+  <div class="eyebrow">Welcome to Alygnn</div>
+  <h1>Build a hiring experience that sounds like your company.</h1>
+  <p class="intro">Set up your business and show Alygnn what matters to your team. Your answers will personalize job writing, hiring communication, and candidate recommendations.</p>
+  <div class="value-list"><div class="value">Create hiring content using your company voice</div><div class="value">Highlight what makes your company stand out</div><div class="value">Recommend candidates using your ranked priorities</div></div>
+</div>
+
+<div class="step" data-title="Business Verification">
+  <div class="eyebrow">Business verification</div><h1>Tell us about your company.</h1>
+  <p class="intro">This information helps Alygnn protect candidates and maintain trusted employer accounts.</p>
+  <div class="grid"><div class="field"><label class="required" for="company-name">Legal company name</label><input id="company-name" name="company_name" required autocomplete="organization"><p class="helper"><strong>This will also be your employer display name shown to candidates.</strong> If you use a DBA or trade name, select the option below. The display name is locked after the workspace is created.</p></div><div class="field"><label class="required" for="website">Company website</label><input id="website" name="website" required placeholder="https://yourcompany.com" inputmode="url"></div></div>
+  <div class="inline-check"><input id="has-dba" name="has_dba" type="checkbox"><label for="has-dba">This company operates under a DBA or trade name</label></div>
+  <div class="field conditional" id="dba-field"><label class="required" for="dba-name">DBA / trade name</label><input id="dba-name" name="dba_name" placeholder="Public-facing business name"><p class="helper">If entered, this is the name Alygnn should show publicly to candidates instead of the legal company name.</p></div>
+  <div class="grid">
+    <div class="field"><label class="required" for="business-phone">Business phone number</label><input id="business-phone" name="business_phone" required type="tel" inputmode="tel" placeholder="(919) 555-0123"></div>
+    <div class="field suggest-wrap"><label class="required" for="industry">Industry</label><input id="industry" name="industry" required autocomplete="off" placeholder="Start typing an industry"><div id="industry-suggestions" class="suggestions"></div></div>
+    <div class="field"><label class="required" for="company-size">Company size</label><select id="company-size" name="company_size" required><option value="">Select size</option><option>1–10</option><option>11–50</option><option>51–200</option><option>201–500</option><option>501–1,000</option><option>1,001+</option></select></div>
+    <div class="field suggest-wrap"><label class="required" for="headquarters">Headquarters</label><input id="headquarters" name="headquarters" required autocomplete="off" placeholder="Start typing a city"><div id="city-suggestions" class="suggestions"></div></div>
+  </div>
+  <div class="field"><label class="required" for="ein">Federal EIN</label><input id="ein" name="ein" required inputmode="numeric" maxlength="10" autocomplete="off" placeholder="12-3456789"><p class="helper">Your EIN is used only for business verification and is transmitted securely to Alygnn.</p></div>
+</div>
+
+<div class="step" data-title="Company Voice">
+  <div class="eyebrow">Company voice</div><h1>Choose your Company Voice.</h1>
+  <p class="intro">Choose up to 3 voices that best represent your company. Alygnn will use them when writing job posts, emails, and hiring communications.</p>
+  <div class="choice-grid" id="voice-options"></div>
+  <div class="selection-box"><div class="selection-title">Your Company Voice</div><div class="selection-value" id="voice-preview">No voices selected</div><div class="counter" id="voice-counter">0 of 3 selected</div></div>
+</div>
+
+<div class="step" data-title="Company Strengths">
+  <div class="eyebrow">Company strengths</div><h1>What makes your company stand out?</h1>
+  <p class="intro">Rank the reasons someone would choose to work for your company. Alygnn will emphasize the highest-ranked items first.</p>
+  <div class="rank-list" id="company-priorities"></div><p class="rank-note">Drag the cards to reorder them. On desktop, you can also use the Up and Down buttons.</p>
+</div>
+
+<div class="step" data-title="Hiring Priorities">
+  <div class="eyebrow">Hiring priorities</div><h1>What matters most when hiring?</h1>
+  <p class="intro">Rank what your hiring team values most when evaluating candidates. Alygnn will turn this order into matching weights automatically.</p>
+  <div class="rank-list" id="candidate-priorities"></div><p class="rank-note">Put the most important factor at the top.</p>
+</div>
+
+<div class="step" data-title="Overview">
+  <div class="eyebrow">Overview</div><h1>Review your hiring preferences.</h1>
+  <p class="intro">Confirm the information below before creating your company workspace.</p>
+  <div class="overview-grid">
+    <div class="overview-card"><div class="overview-head"><h2>Company Voice</h2><button class="edit" type="button" data-go="2">Edit</button></div><div class="overview-content" id="overview-voice"></div></div>
+    <div class="overview-card"><div class="overview-head"><h2>What Makes Your Company Stand Out</h2><button class="edit" type="button" data-go="3">Edit</button></div><ol class="overview-content ordered" id="overview-company"></ol></div>
+    <div class="overview-card"><div class="overview-head"><h2>What Matters Most When Hiring</h2><button class="edit" type="button" data-go="4">Edit</button></div><ol class="overview-content ordered" id="overview-candidate"></ol></div>
+    <div class="ai-summary"><h2>AI Summary</h2><p id="ai-summary"></p></div>
+  </div>
+  <div class="authorization"><div class="inline-check" style="margin-top:0"><input id="authorization" type="checkbox" required><label for="authorization">I am authorized to recruit and post jobs on behalf of this company, and the information provided is accurate.</label></div></div>
+  <p class="helper">You can update these preferences later from your AI Hiring Blueprint.</p>
+</div>
+
+<div id="message" class="message" aria-live="polite"></div>
+<div class="actions"><button class="btn back" id="back-button" type="button" hidden>Back</button><button class="btn next" id="next-button" type="button">Get Started</button></div>
+</form>
+</section>
+</main>
+<script>
+const SUPABASE_URL='https://auth.alygnn.com';
+const SUPABASE_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+const VOICES=['Professional','Friendly','Modern','Direct','Formal','Energetic'];
+const DEFAULT_COMPANY=['Career Growth','Competitive Pay','Company Culture','Learning & Development','Performance & Recognition','Meaningful Work','Innovation','Work-Life Balance'];
+const DEFAULT_CANDIDATE=['Technical Skills','Soft Skills','Experience','Communication','Culture Fit','Reliability','Leadership','Availability'];
+const INDUSTRIES=['Accounting','Advertising and Marketing','Agriculture','Architecture and Design','Automotive','Banking','Biotechnology','Construction','Consulting','Consumer Services','Education','Energy and Utilities','Engineering','Entertainment and Media','Financial Services','Food and Beverage','Government','Healthcare','Hospitality','Human Resources and Staffing','Insurance','Legal Services','Logistics and Transportation','Manufacturing','Nonprofit','Pharmaceuticals','Professional Services','Real Estate','Retail','Software and Technology','Telecommunications','Travel and Tourism','Wholesale','Wireless Services','Internet Service Provider','Fiber Optics','Network Infrastructure','Telecommunications Equipment'];
+const US_CITIES=['Albuquerque, NM','Alexandria, VA','Anaheim, CA','Anchorage, AK','Arlington, TX','Arlington, VA','Atlanta, GA','Augusta, GA','Austin, TX','Baltimore, MD','Baton Rouge, LA','Birmingham, AL','Boise, ID','Boston, MA','Buffalo, NY','Burlington, VT','Cary, NC','Charleston, SC','Charlotte, NC','Chattanooga, TN','Chicago, IL','Cincinnati, OH','Cleveland, OH','Colorado Springs, CO','Columbia, SC','Columbus, OH','Dallas, TX','Denver, CO','Des Moines, IA','Detroit, MI','Durham, NC','El Paso, TX','Fayetteville, NC','Fort Lauderdale, FL','Fort Worth, TX','Fresno, CA','Greensboro, NC','Greenville, SC','Hartford, CT','Henderson, NV','Honolulu, HI','Houston, TX','Indianapolis, IN','Irvine, CA','Jackson, MS','Jacksonville, FL','Kansas City, MO','Knoxville, TN','Las Vegas, NV','Lexington, KY','Little Rock, AR','Long Beach, CA','Los Angeles, CA','Louisville, KY','Madison, WI','Memphis, TN','Mesa, AZ','Miami, FL','Milwaukee, WI','Minneapolis, MN','Nashville, TN','New Orleans, LA','New York, NY','Newark, NJ','Norfolk, VA','Oakland, CA','Oklahoma City, OK','Omaha, NE','Orlando, FL','Philadelphia, PA','Phoenix, AZ','Pittsburgh, PA','Plano, TX','Portland, ME','Portland, OR','Providence, RI','Raleigh, NC','Reno, NV','Richmond, VA','Rochester, NY','Sacramento, CA','Salt Lake City, UT','San Antonio, TX','San Diego, CA','San Francisco, CA','San Jose, CA','Savannah, GA','Seattle, WA','St. Louis, MO','St. Petersburg, FL','Syracuse, NY','Tallahassee, FL','Tampa, FL','Toledo, OH','Tucson, AZ','Tulsa, OK','Virginia Beach, VA','Washington, DC','Wilmington, NC','Winston-Salem, NC'];
+const steps=[...document.querySelectorAll('.step')];let current=0;const selectedVoices=new Set();
+const form=document.getElementById('onboarding-form'),message=document.getElementById('message'),nextButton=document.getElementById('next-button'),backButton=document.getElementById('back-button');
+let currentUserId='';
+function draftKey(){
+  return currentUserId?`alygnn_employer_onboarding_draft:${currentUserId}`:'';
+}
+
+function saveDraft(){
+  const key=draftKey();
+  if(!key)return;
+
+  const draft={
+    user_id:currentUserId,
+    company_id:localStorage.getItem('alygnn_company_id')||'',
+    current,
+    company_name:document.getElementById('company-name').value,
+    website:document.getElementById('website').value,
+    business_phone:document.getElementById('business-phone').value,
+    industry:document.getElementById('industry').value,
+    company_size:document.getElementById('company-size').value,
+    headquarters:document.getElementById('headquarters').value,
+    has_dba:document.getElementById('has-dba').checked,
+    dba_name:document.getElementById('dba-name').value,
+    ein:document.getElementById('ein').value,
+    company_voice:[...selectedVoices],
+    company_priorities:getRanking('company-priorities'),
+    candidate_priorities:getRanking('candidate-priorities')
+  };
+  localStorage.setItem(key,JSON.stringify(draft));
+}
+
+function restoreDraft(){
+  const key=draftKey();
+  if(!key)return false;
+
+  let draft;
+  try{draft=JSON.parse(localStorage.getItem(key)||'null')}catch{return false}
+  if(!draft||draft.user_id!==currentUserId)return false;
+
+  document.getElementById('company-name').value=draft.company_name||'';
+  document.getElementById('website').value=draft.website||'';
+  document.getElementById('business-phone').value=draft.business_phone||'';
+  document.getElementById('industry').value=draft.industry||'';
+  document.getElementById('company-size').value=draft.company_size||'';
+  document.getElementById('headquarters').value=draft.headquarters||'';
+  document.getElementById('has-dba').checked=!!draft.has_dba;
+  document.getElementById('dba-name').value=draft.dba_name||'';
+  document.getElementById('ein').value=draft.ein||'';
+
+  dbaField.classList.toggle('show',!!draft.has_dba);
+  dbaName.required=!!draft.has_dba;
+
+  selectedVoices.clear();
+  (draft.company_voice||[]).forEach(v=>selectedVoices.add(v));
+  renderVoiceState();
+
+  if(Array.isArray(draft.company_priorities)&&draft.company_priorities.length){
+    renderRankList('company-priorities',draft.company_priorities);
+  }
+  if(Array.isArray(draft.candidate_priorities)&&draft.candidate_priorities.length){
+    renderRankList('candidate-priorities',draft.candidate_priorities);
+  }
+
+  const requestedStep=new URLSearchParams(location.search).get('step');
+  const restoredStep=requestedStep!==null
+    ? Number(requestedStep)
+    : Number(draft.current||0);
+
+  showStep(Math.max(0,Math.min(steps.length-1,restoredStep)));
+  return true;
+}
+function escapeHtml(value){const div=document.createElement('div');div.textContent=String(value??'');return div.innerHTML}
+function showMessage(text,type='error'){message.textContent=text;message.className='message '+type}
+function clearMessage(){message.className='message';message.textContent=''}
+function showStep(index){current=index;steps.forEach((s,i)=>s.classList.toggle('active',i===index));const pct=Math.round(((index+1)/steps.length)*100);document.getElementById('progress-fill').style.width=pct+'%';document.getElementById('progress-percent').textContent=pct+'%';document.getElementById('progress-label').textContent=steps[index].dataset.title;backButton.hidden=index===0;nextButton.textContent=index===0?'Get Started':index===steps.length-1?'Finish Setup':'Continue';clearMessage();if(index===steps.length-1)buildOverview();window.scrollTo({top:0,behavior:'smooth'})}
+function renderVoices(){const box=document.getElementById('voice-options');box.innerHTML=VOICES.map(v=>`<button type="button" class="voice" data-voice="${v}">${v}</button>`).join('');box.onclick=e=>{const b=e.target.closest('.voice');if(!b)return;const v=b.dataset.voice;if(selectedVoices.has(v))selectedVoices.delete(v);else if(selectedVoices.size<3)selectedVoices.add(v);renderVoiceState()};renderVoiceState()}
+function renderVoiceState(){document.querySelectorAll('.voice').forEach(b=>{const on=selectedVoices.has(b.dataset.voice);b.classList.toggle('selected',on);b.disabled=!on&&selectedVoices.size>=3});document.getElementById('voice-preview').textContent=selectedVoices.size?[...selectedVoices].join(' • '):'No voices selected';document.getElementById('voice-counter').textContent=`${selectedVoices.size} of 3 selected`}
+function renderRankList(id,items){const list=document.getElementById(id);list.innerHTML=items.map((name,i)=>rankTemplate(name,i)).join('');new Sortable(list,{animation:180,handle:'.drag-handle',ghostClass:'sortable-ghost',chosenClass:'sortable-chosen',onEnd:()=>renumber(list)});list.addEventListener('click',e=>{const btn=e.target.closest('.move');if(!btn)return;const item=btn.closest('.rank-item');if(btn.dataset.dir==='up'&&item.previousElementSibling)list.insertBefore(item,item.previousElementSibling);if(btn.dataset.dir==='down'&&item.nextElementSibling)list.insertBefore(item.nextElementSibling,item);renumber(list)})}
+function rankTemplate(name,i){return `<div class="rank-item" data-value="${escapeHtml(name)}"><div class="rank-number">${i+1}</div><div class="rank-name">${escapeHtml(name)}</div><div class="rank-tools"><button class="move" type="button" data-dir="up">Up</button><button class="move" type="button" data-dir="down">Down</button><button class="drag-handle" type="button" aria-label="Drag ${escapeHtml(name)}"></button></div></div>`}
+function renumber(list){[...list.children].forEach((item,i)=>item.querySelector('.rank-number').textContent=i+1)}
+function getRanking(id){return [...document.getElementById(id).children].map(x=>x.dataset.value)}
+function setupSuggestions(inputId,boxId,values){const input=document.getElementById(inputId),box=document.getElementById(boxId);function close(){box.classList.remove('show');box.innerHTML=''}function render(){const q=input.value.trim().toLowerCase();if(q.length<2)return close();const matches=values.filter(v=>v.toLowerCase().includes(q)).slice(0,8);if(!matches.length)return close();box.innerHTML=matches.map(v=>`<button class="suggestion" type="button" data-value="${escapeHtml(v)}">${escapeHtml(v)}</button>`).join('');box.classList.add('show')}input.addEventListener('input',render);box.addEventListener('click',e=>{const b=e.target.closest('.suggestion');if(!b)return;input.value=b.dataset.value;close();input.focus()});document.addEventListener('click',e=>{if(!e.target.closest('.suggest-wrap'))close()});input.addEventListener('keydown',e=>{if(e.key==='Escape')close()})}
+function validateCurrent(){if(current===1){for(const field of steps[current].querySelectorAll('input[required],select[required]')){if(!field.checkValidity()){field.reportValidity();return false}}const websiteField=document.getElementById('website');try{const url=new URL(/^https?:\/\//i.test(websiteField.value.trim())?websiteField.value.trim():'https://'+websiteField.value.trim());const host=url.hostname.toLowerCase().replace(/^www\./,'');const labels=host.split('.');if(labels.length<2||!labels.every(l=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(l))||!/^[a-z]{2,63}$/i.test(labels.at(-1)))throw new Error();url.hash='';websiteField.value=url.toString()}catch{websiteField.focus();showMessage('Enter a complete business website, such as https://yourcompany.com.');return false}const phone=document.getElementById('business-phone').value.replace(/\D/g,'');if(phone.length<10){showMessage('Enter a valid business phone number.');return false}const ein=document.getElementById('ein').value.replace(/\D/g,'');if(!/^\d{9}$/.test(ein)){showMessage('Enter a valid 9-digit EIN.');return false}if(document.getElementById('has-dba').checked&&!document.getElementById('dba-name').value.trim()){showMessage('Enter the DBA or trade name.');return false}}if(current===2&&selectedVoices.size===0){showMessage('Choose at least one Company Voice.');return false}if(current===5&&!document.getElementById('authorization').checked){showMessage('Confirm that you are authorized to recruit for this company.');return false}return true}
+function aiSummary(){const v=[...selectedVoices],c=getRanking('company-priorities').slice(0,3),h=getRanking('candidate-priorities').slice(0,3);return `Your company emphasizes ${joinWords(c).toLowerCase()}. Alygnn will write hiring content in a ${joinWords(v).toLowerCase()} voice while prioritizing candidates who demonstrate ${joinWords(h).toLowerCase()}.`}
+function joinWords(values){if(values.length<=1)return values[0]||'';if(values.length===2)return values.join(' and ');return values.slice(0,-1).join(', ')+', and '+values.at(-1)}
+function buildOverview(){const voices=[...selectedVoices],company=getRanking('company-priorities'),candidate=getRanking('candidate-priorities');document.getElementById('overview-voice').textContent=voices.join(' • ');document.getElementById('overview-company').innerHTML=company.slice(0,3).map(v=>`<li>${escapeHtml(v)}</li>`).join('');document.getElementById('overview-candidate').innerHTML=candidate.slice(0,3).map(v=>`<li>${escapeHtml(v)}</li>`).join('');document.getElementById('ai-summary').textContent=aiSummary()}
+function payload(){const ein=document.getElementById('ein').value.replace(/\D/g,'');return{company_name:document.getElementById('company-name').value.trim(),website:document.getElementById('website').value.trim(),business_phone:document.getElementById('business-phone').value.trim(),industry:document.getElementById('industry').value.trim(),company_size:document.getElementById('company-size').value,headquarters:document.getElementById('headquarters').value.trim(),has_dba:document.getElementById('has-dba').checked,dba_name:document.getElementById('has-dba').checked?document.getElementById('dba-name').value.trim():'',ein,ein_last4:ein.slice(-4),company_voice:[...selectedVoices],company_priorities:getRanking('company-priorities'),candidate_priorities:getRanking('candidate-priorities'),ai_summary:aiSummary(),authorized:document.getElementById('authorization').checked}}
+async function submit(){
+  nextButton.disabled=true;
+  nextButton.textContent='Creating company…';
+  clearMessage();
+  saveDraft();
+
+  try{
+    const{data:{session},error}=await sb.auth.getSession();
+    if(error)throw error;
+    if(!session){
+      location.href='app-employer-login.html';
+      return;
+    }
+
+    const response=await fetch('https://alygnn.com/api/company/create-company',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+session.access_token
+      },
+      body:JSON.stringify(payload())
+    });
+
+    const result=await response.json().catch(()=>({}));
+
+    if(!response.ok){
+      throw new Error(result.error||'Unable to create your company workspace.');
+    }
+
+    const companyId=
+      result.company?.id||
+      result.company_id||
+      result.companyId||
+      result.id||
+      '';
+
+    if(!companyId){
+      console.error('create-company returned no company ID:',result);
+      throw new Error('Your company was not fully created because the server did not return a company ID. Please update the create-company API and try again.');
+    }
+
+    try{
+      const key=draftKey();
+      const existingDraft=JSON.parse(localStorage.getItem(key)||'{}')||{};
+      localStorage.setItem(key,JSON.stringify({
+        ...existingDraft,
+        user_id:session.user.id,
+        company_id:companyId
+      }));
+    }catch(error){
+      console.warn('Could not attach company ID to onboarding draft:',error);
+    }
+
+    // Preserve the answers from Company Setup so the Company AI Profile can
+    // prefill them later instead of asking the employer the same questions again.
+    const setupProfile=payload();
+    const existingMetadata=session.user.user_metadata||{};
+    const {error:metadataError}=await sb.auth.updateUser({
+      data:{
+        ...existingMetadata,
+        company_name:setupProfile.company_name,
+        onboarding_company_profile:{
+          user_id:session.user.id,
+          company_id:companyId,
+          company_name:setupProfile.company_name,
+          website:setupProfile.website,
+          business_phone:setupProfile.business_phone,
+          industry:setupProfile.industry,
+          company_size:setupProfile.company_size,
+          headquarters:setupProfile.headquarters,
+          company_voice:setupProfile.company_voice,
+          company_priorities:setupProfile.company_priorities,
+          candidate_priorities:setupProfile.candidate_priorities,
+          ai_summary:setupProfile.ai_summary,
+          saved_at:new Date().toISOString()
+        }
+      }
+    });
+    if(metadataError){
+      // Company creation succeeded, so do not block onboarding if metadata sync fails.
+      console.error('Could not cache onboarding answers for AI Profile:',metadataError);
+    }
+
+    const status=
+      result.company?.verificationStatus||
+      result.company?.verification_status||
+      result.verification_status||
+      'pending_review';
+
+    const accountNumber=
+      result.company?.accountNumber||
+      result.company?.account_number||
+      result.account_number||
+      '';
+
+    localStorage.setItem('alygnn_employer_verification_status',status);
+    localStorage.setItem('alygnn_company_id',companyId);
+    sessionStorage.setItem('alygnn_company_id',companyId);
+    if(accountNumber){
+      localStorage.setItem('alygnn_company_account_number',accountNumber);
+    }
+
+    showMessage('Your company profile is saved.','success');
+
+    setTimeout(()=>{
+      if(status==='approved'){
+        location.href='app-employer-dashboard.html';
+      }else{
+        location.href=`app-employer-document-upload.html?company_id=${encodeURIComponent(companyId)}`;
+      }
+    },650);
+  }catch(error){
+    console.error(error);
+    showMessage(error.message||'Unable to finish setup.');
+    nextButton.disabled=false;
+    nextButton.textContent='Finish Setup';
+  }
+}
+nextButton.addEventListener('click',()=>{if(!validateCurrent())return;saveDraft();if(current<steps.length-1)showStep(current+1);else submit()});backButton.addEventListener('click',()=>{saveDraft();if(current>0)showStep(current-1)});document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>showStep(Number(b.dataset.go))));
+const hasDba=document.getElementById('has-dba'),dbaField=document.getElementById('dba-field'),dbaName=document.getElementById('dba-name');hasDba.addEventListener('change',()=>{dbaField.classList.toggle('show',hasDba.checked);dbaName.required=hasDba.checked;if(!hasDba.checked)dbaName.value=''})
+document.getElementById('ein').addEventListener('input',e=>{const d=e.target.value.replace(/\D/g,'').slice(0,9);e.target.value=d.length>2?d.slice(0,2)+'-'+d.slice(2):d});
+form.addEventListener('input',saveDraft);
+form.addEventListener('change',saveDraft);
+window.addEventListener('beforeunload',saveDraft);
+
+(async()=>{
+  renderVoices();
+  renderRankList('company-priorities',DEFAULT_COMPANY);
+  renderRankList('candidate-priorities',DEFAULT_CANDIDATE);
+  setupSuggestions('industry','industry-suggestions',INDUSTRIES);
+  setupSuggestions('headquarters','city-suggestions',US_CITIES);
+
+  const{data:{session}}=await sb.auth.getSession();
+
+  if(!session){
+    location.replace('app-employer-login.html');
+    return;
+  }
+
+  currentUserId=session.user.id;
+
+  // Delete the legacy global key so information from a different account
+  // cannot be restored into this employer's setup.
+  localStorage.removeItem('alygnn_employer_onboarding_draft');
+
+  if(!restoreDraft()){
+    document.getElementById('company-name').value=session.user.user_metadata?.company_name||'';
+    showStep(0);
+  }
+
+  const{data:membership,error}=await sb
+    .from('company_members')
+    .select('company_id,companies(account_number,verification_status)')
+    .eq('user_id',session.user.id)
+    .eq('membership_status','active')
+    .limit(1)
+    .maybeSingle();
+
+  if(!error&&membership?.company_id){
+    const company=Array.isArray(membership.companies)?membership.companies[0]:membership.companies;
+    localStorage.setItem('alygnn_company_id',membership.company_id);
+
+    if(company?.account_number){
+      localStorage.setItem('alygnn_company_account_number',company.account_number);
+    }
+
+    const status=company?.verification_status||'pending_review';
+    localStorage.setItem('alygnn_employer_verification_status',status);
+
+    if(status==='approved'){
+      location.replace('app-employer-dashboard.html');
+    }else if(localStorage.getItem('alygnn_verification_document_submitted')==='true'){
+      location.replace('app-employer-verification-status.html');
+    }else{
+      location.replace('app-employer-document-upload.html');
+    }
+  }
+})();
+</script>
+</body>
+</html>

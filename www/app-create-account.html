@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F6F8F7">
+<title>Create Account | Alygnn</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+(function(){
+  const preference=
+    localStorage.getItem('alygnn_candidate_theme') ||
+    localStorage.getItem('alygnn-theme') ||
+    'system';
+
+  const effective=
+    preference==='dark'
+      ?'dark'
+      :preference==='light'
+        ?'light'
+        :(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+
+  document.documentElement.dataset.effectiveTheme=effective;
+})();
+</script>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+:root{
+  --brand:#5D7FA3;
+  --brand-dark:#35679A;
+  --sage:#8CB69B;
+  --bg:#F6F8F7;
+  --surface:#FFFFFF;
+  --surface-soft:#FBFCFC;
+  --text:#172333;
+  --muted:#687B8E;
+  --muted-2:#8B9AA8;
+  --border:#DDE5EB;
+  --border-strong:#CBD8E2;
+  --success:#27855A;
+  --success-bg:#E9F6EE;
+  --danger:#B34848;
+  --danger-bg:#FCECEC;
+  --shadow:0 18px 50px rgba(31,51,70,.08);
+}
+
+html,
+body{
+  width:100%;
+  min-height:100%;
+}
+
+body{
+  margin:0;
+  background:
+    radial-gradient(circle at 14% 6%,rgba(140,182,155,.11),transparent 25%),
+    radial-gradient(circle at 91% 87%,rgba(93,127,163,.11),transparent 30%),
+    var(--bg);
+  color:var(--text);
+  font-family:'DM Sans',Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+button,
+input,
+a{
+  font:inherit;
+}
+
+button{
+  -webkit-tap-highlight-color:transparent;
+}
+
+.page{
+  width:100%;
+  max-width:540px;
+  min-height:100vh;
+  margin:0 auto;
+  padding:
+    calc(28px + env(safe-area-inset-top))
+    22px
+    calc(28px + env(safe-area-inset-bottom));
+}
+
+.brand-wrap{
+  text-align:center;
+}
+
+.brand{
+  display:inline-flex;
+  align-items:flex-end;
+  justify-content:center;
+  font-family:'DM Serif Display',Georgia,serif;
+  font-size:55px;
+  line-height:.95;
+  font-weight:400;
+  letter-spacing:-1.8px;
+  color:var(--brand);
+}
+
+.brand-dot{
+  width:8px;
+  height:8px;
+  margin:0 0 5px 3px;
+  border-radius:50%;
+  background:var(--sage);
+}
+
+.hero{
+  padding:34px 0 24px;
+  text-align:center;
+}
+
+.hero h1{
+  margin:0;
+  color:var(--text);
+  font-size:34px;
+  line-height:1.08;
+  letter-spacing:-1px;
+  font-weight:900;
+}
+
+.hero p{
+  max-width:360px;
+  margin:11px auto 0;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.55;
+}
+
+.form-card,
+.state-card{
+  width:100%;
+  padding:24px;
+  border:1px solid rgba(221,229,235,.94);
+  border-radius:28px;
+  background:rgba(255,255,255,.94);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+
+.name-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.field{
+  margin-top:17px;
+}
+
+.field:first-child{
+  margin-top:0;
+}
+
+.name-grid .field{
+  margin-top:0;
+}
+
+.field-label{
+  display:block;
+  margin:0 0 8px 2px;
+  color:var(--text);
+  font-size:12px;
+  font-weight:800;
+}
+
+.input-shell{
+  position:relative;
+  min-height:58px;
+  display:flex;
+  align-items:center;
+  border:1px solid var(--border-strong);
+  border-radius:18px;
+  background:var(--surface-soft);
+  transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;
+}
+
+.input-shell:focus-within{
+  border-color:var(--brand-dark);
+  background:var(--surface);
+  box-shadow:0 0 0 3px rgba(53,103,154,.10);
+}
+
+.field-icon{
+  position:absolute;
+  left:17px;
+  top:50%;
+  width:21px;
+  height:21px;
+  transform:translateY(-50%);
+  color:#708396;
+  pointer-events:none;
+}
+
+.input-shell input{
+  width:100%;
+  height:56px;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:var(--text);
+  padding:0 47px 0 50px;
+  font-size:15px;
+  font-weight:600;
+}
+
+.input-shell input::placeholder{
+  color:#9AA8B5;
+  font-weight:500;
+}
+
+.eye-btn{
+  position:absolute;
+  right:8px;
+  top:50%;
+  width:42px;
+  height:42px;
+  transform:translateY(-50%);
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  color:#718397;
+  cursor:pointer;
+}
+
+.eye-btn:active{
+  background:rgba(93,127,163,.10);
+}
+
+.eye-btn svg{
+  width:21px;
+  height:21px;
+}
+
+.password-eye .eye-slash{
+  display:none;
+}
+
+.eye-btn.is-visible .password-eye .eye-slash{
+  display:block;
+}
+
+.password-help{
+  margin:8px 2px 0;
+  color:var(--muted-2);
+  font-size:10px;
+  line-height:1.5;
+  font-weight:650;
+}
+
+.message{
+  display:none;
+  margin:15px 0 0;
+  padding:12px 14px;
+  border-radius:14px;
+  font-size:12px;
+  line-height:1.45;
+  font-weight:750;
+}
+
+.message.show{
+  display:block;
+}
+
+.message.error{
+  color:var(--danger);
+  background:var(--danger-bg);
+}
+
+.message.success{
+  color:var(--success);
+  background:var(--success-bg);
+}
+
+.primary-btn,
+.social-btn,
+.secondary-btn{
+  width:100%;
+  min-height:56px;
+  border-radius:17px;
+  cursor:pointer;
+  font-weight:900;
+}
+
+.primary-btn{
+  margin-top:20px;
+  border:0;
+  background:linear-gradient(135deg,#4B78A6,#35679A);
+  color:#fff;
+  font-size:15px;
+  box-shadow:0 10px 24px rgba(53,103,154,.22);
+}
+
+.primary-btn:disabled{
+  opacity:.62;
+}
+
+.divider{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin:22px 0 14px;
+  color:#8A98A7;
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+}
+
+.divider::before,
+.divider::after{
+  content:'';
+  flex:1;
+  height:1px;
+  background:var(--border);
+}
+
+.social-stack{
+  display:grid;
+  gap:10px;
+}
+
+.social-btn{
+  position:relative;
+  border:1px solid var(--border-strong);
+  background:#fff;
+  color:var(--text);
+  font-size:14px;
+}
+
+.social-icon{
+  position:absolute;
+  left:19px;
+  top:50%;
+  transform:translateY(-50%);
+  width:22px;
+  height:22px;
+  display:grid;
+  place-items:center;
+}
+
+.google-g{
+  font-size:21px;
+  line-height:1;
+  font-weight:900;
+  color:#4285F4;
+}
+
+.apple-icon{
+  width:21px;
+  height:23px;
+  color:#111;
+}
+
+.signin{
+  margin-top:22px;
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.signin a{
+  color:var(--brand-dark);
+  text-decoration:none;
+  font-weight:900;
+}
+
+.legal{
+  max-width:370px;
+  margin:20px auto 0;
+  text-align:center;
+  color:#8292A2;
+  font-size:10px;
+  line-height:1.55;
+}
+
+.legal a{
+  color:var(--brand-dark);
+  text-decoration:none;
+  font-weight:800;
+}
+
+.existing-account-card{
+  margin-top:16px;
+  padding:18px;
+  border:1px solid #CFE0ED;
+  border-radius:20px;
+  background:#F2F7FB;
+}
+
+.existing-account-top{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+}
+
+.existing-account-icon{
+  width:38px;
+  height:38px;
+  flex:0 0 38px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:var(--success-bg);
+  color:var(--success);
+  font-size:18px;
+  font-weight:900;
+}
+
+.existing-account-copy strong{
+  display:block;
+  color:var(--text);
+  font-size:14px;
+  line-height:1.3;
+}
+
+.existing-account-copy span{
+  display:block;
+  margin-top:4px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.5;
+}
+
+.existing-account-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+  margin-top:14px;
+}
+
+.existing-account-actions .primary-btn,
+.existing-account-actions .secondary-btn{
+  margin:0;
+  min-height:46px;
+  font-size:12px;
+  box-shadow:none;
+}
+
+.secondary-btn{
+  border:1px solid var(--border-strong);
+  background:#fff;
+  color:var(--brand-dark);
+}
+
+.state-card{
+  display:none;
+}
+
+.state-card.show{
+  display:block;
+}
+
+.state-icon{
+  width:62px;
+  height:62px;
+  margin:0 auto 16px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#EAF2F9;
+  color:var(--brand-dark);
+}
+
+.state-icon svg{
+  width:30px;
+  height:30px;
+}
+
+.state-title{
+  margin:0;
+  text-align:center;
+  color:var(--text);
+  font-size:27px;
+  line-height:1.1;
+  font-weight:900;
+  letter-spacing:-.6px;
+}
+
+.state-copy{
+  margin:10px 0 18px;
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.55;
+}
+
+.state-copy strong{
+  color:var(--text);
+}
+
+.code-input{
+  width:100%;
+  min-height:62px;
+  border:1px solid var(--border-strong);
+  border-radius:18px;
+  outline:0;
+  background:var(--surface-soft);
+  color:var(--text);
+  text-align:center;
+  font-size:25px;
+  font-weight:900;
+  letter-spacing:7px;
+}
+
+.code-input:focus{
+  border-color:var(--brand-dark);
+  box-shadow:0 0 0 3px rgba(53,103,154,.10);
+}
+
+.verify-actions{
+  display:grid;
+  gap:10px;
+  margin-top:16px;
+}
+
+.verify-actions .primary-btn{
+  margin:0;
+}
+
+.verify-actions .secondary-btn{
+  min-height:52px;
+}
+
+.form-hidden{
+  display:none!important;
+}
+
+/* Dark mode */
+html[data-effective-theme="dark"]{
+  --bg:#081721;
+  --surface:#101E28;
+  --surface-soft:#0E1B25;
+  --text:#F3F7FA;
+  --muted:#A6B4C0;
+  --muted-2:#8999A6;
+  --border:#263845;
+  --border-strong:#314552;
+  --shadow:0 18px 52px rgba(0,0,0,.28);
+}
+
+html[data-effective-theme="dark"] body{
+  background:
+    radial-gradient(circle at 14% 6%,rgba(140,182,155,.08),transparent 25%),
+    radial-gradient(circle at 91% 87%,rgba(93,127,163,.10),transparent 30%),
+    var(--bg);
+}
+
+html[data-effective-theme="dark"] .form-card,
+html[data-effective-theme="dark"] .state-card{
+  background:rgba(13,27,37,.96);
+  border-color:var(--border);
+}
+
+html[data-effective-theme="dark"] .social-btn,
+html[data-effective-theme="dark"] .secondary-btn{
+  background:#101E28;
+  border-color:var(--border-strong);
+  color:var(--text);
+}
+
+html[data-effective-theme="dark"] .apple-icon{
+  color:#fff;
+}
+
+html[data-effective-theme="dark"] .existing-account-card{
+  background:#102331;
+  border-color:#294356;
+}
+
+@media(max-width:390px){
+  .page{
+    padding-left:17px;
+    padding-right:17px;
+  }
+
+  .brand{
+    font-size:49px;
+  }
+
+  .hero{
+    padding-top:28px;
+  }
+
+  .hero h1{
+    font-size:30px;
+  }
+
+  .form-card,
+  .state-card{
+    padding:19px;
+    border-radius:24px;
+  }
+
+  .name-grid{
+    grid-template-columns:1fr;
+  }
+
+  .name-grid .field + .field{
+    margin-top:17px;
+  }
+}
+
+@media(max-height:760px){
+  .page{
+    padding-top:calc(18px + env(safe-area-inset-top));
+  }
+
+  .brand{
+    font-size:46px;
+  }
+
+  .hero{
+    padding:23px 0 18px;
+  }
+
+  .hero h1{
+    font-size:29px;
+  }
+
+  .form-card,
+  .state-card{
+    padding:20px;
+  }
+
+  .input-shell{
+    min-height:54px;
+  }
+
+  .input-shell input{
+    height:52px;
+  }
+
+  .field{
+    margin-top:13px;
+  }
+
+  .primary-btn,
+  .social-btn{
+    min-height:51px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<main class="page">
+
+  <div class="brand-wrap" aria-label="Alygnn">
+    <div class="brand">Alygnn<span class="brand-dot" aria-hidden="true"></span></div>
+  </div>
+
+  <section class="hero" id="signup-hero">
+    <h1>Create your account</h1>
+    <p>Start finding better job matches.</p>
+  </section>
+
+  <section class="form-card" id="signup-fields">
+
+    <div class="name-grid">
+      <div class="field">
+        <label class="field-label" for="firstName">First name</label>
+        <div class="input-shell">
+          <svg class="field-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8"></circle>
+            <path d="M5.5 20c.6-4 2.8-6 6.5-6s5.9 2 6.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+          <input id="firstName" type="text" placeholder="First name" autocomplete="given-name">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="lastName">Last name</label>
+        <div class="input-shell">
+          <svg class="field-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8"></circle>
+            <path d="M5.5 20c.6-4 2.8-6 6.5-6s5.9 2 6.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+          <input id="lastName" type="text" placeholder="Last name" autocomplete="family-name">
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="email">Email</label>
+      <div class="input-shell">
+        <svg class="field-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="3.5" y="5" width="17" height="14" rx="2.2" stroke="currentColor" stroke-width="1.8"></rect>
+          <path d="m4.5 7 7.5 5.5L19.5 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="password">Password</label>
+      <div class="input-shell">
+        <svg class="field-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.8"></rect>
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+        </svg>
+        <input id="password" type="password" placeholder="Create a password" autocomplete="new-password">
+        <button class="eye-btn" id="toggle-password" type="button" aria-label="Show password" aria-pressed="false">
+          <svg class="password-eye" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+            <circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.8"></circle>
+            <path class="eye-slash" d="M4 4l16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="password-help">Use at least 8 characters with a mix of letters and numbers.</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="confirm-password">Confirm password</label>
+      <div class="input-shell">
+        <svg class="field-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.8"></rect>
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+        </svg>
+        <input id="confirm-password" type="password" placeholder="Confirm your password" autocomplete="new-password">
+        <button class="eye-btn" id="toggle-confirm-password" type="button" aria-label="Show confirm password" aria-pressed="false">
+          <svg class="password-eye" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+            <circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.8"></circle>
+            <path class="eye-slash" d="M4 4l16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="signup-message" class="message" aria-live="polite"></div>
+
+    <div id="existing-account-card" class="existing-account-card" hidden>
+      <div class="existing-account-top">
+        <div class="existing-account-icon">✓</div>
+        <div class="existing-account-copy">
+          <strong>You already have an Alygnn account.</strong>
+          <span>Sign in with this email, or reset your password if you don’t remember it.</span>
+        </div>
+      </div>
+
+      <div class="existing-account-actions">
+        <button type="button" class="primary-btn" id="existing-signin-btn">Sign in</button>
+        <button type="button" class="secondary-btn" id="existing-reset-btn">Reset password</button>
+      </div>
+    </div>
+
+    <button id="create-account-btn" class="primary-btn" type="button">Create Account</button>
+
+    <div class="divider">or</div>
+
+    <div class="social-stack">
+      <button class="social-btn" id="google-btn" type="button">
+        <span class="social-icon google-g">G</span>
+        Continue with Google
+      </button>
+
+      <button class="social-btn" id="apple-btn" type="button">
+        <svg class="social-icon apple-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M17.1 12.6c0-2.5 2-3.7 2.1-3.8-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-2-1-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.8 1.3 10.3.9 1.2 1.9 2.6 3.3 2.5 1.3-.1 1.8-.8 3.4-.8s2.1.8 3.5.8c1.4 0 2.4-1.3 3.2-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.2Zm-2.4-7.2c.7-.9 1.2-2.1 1-3.4-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2-1.1 3.2 1.2.1 2.5-.6 3.3-1.4Z"></path>
+        </svg>
+        Continue with Apple
+      </button>
+    </div>
+  </section>
+
+  <section id="verify-card" class="state-card" aria-live="polite">
+    <div class="state-icon">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="3.5" y="5" width="17" height="14" rx="2.2" stroke="currentColor" stroke-width="1.8"></rect>
+        <path d="m4.5 7 7.5 5.5L19.5 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    </div>
+
+    <h2 class="state-title">Check your email</h2>
+
+    <p class="state-copy">
+      We sent a verification code to
+      <strong id="verify-email"></strong>.
+      Enter it below to confirm your Alygnn account.
+    </p>
+
+    <input
+      id="verification-code"
+      class="code-input"
+      type="text"
+      inputmode="numeric"
+      autocomplete="one-time-code"
+      placeholder="Code"
+      maxlength="8"
+    >
+
+    <div class="verify-actions">
+      <button id="verify-btn" class="primary-btn" type="button">Verify email</button>
+      <button id="resend-btn" class="secondary-btn" type="button">Resend code</button>
+    </div>
+
+    <div id="verify-message" class="message" aria-live="polite"></div>
+  </section>
+
+  <div class="signin" id="signin-row">
+    Already have an account?
+    <a href="app-login.html">Sign in</a>
+  </div>
+
+  <div class="legal" id="legal-row">
+    By creating an account, you agree to Alygnn’s
+    <a href="terms.html">Terms</a> and
+    <a href="privacy.html">Privacy Policy</a>.
+  </div>
+
+</main>
+
+<script>
+const SUPABASE_URL="https://auth.alygnn.com";
+const SUPABASE_KEY="sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG";
+
+const sb=supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  {
+    auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true
+    }
+  }
+);
+
+let pendingSignupEmail="";
+
+function setSignupMessage(text,type){
+  const box=document.getElementById("signup-message");
+  box.textContent=text||"";
+  box.className=text?"message show "+type:"message";
+}
+
+function setVerifyMessage(text,type){
+  const box=document.getElementById("verify-message");
+  box.textContent=text||"";
+  box.className=text?"message show "+type:"message";
+}
+
+function hideExistingAccountCard(){
+  document.getElementById("existing-account-card").hidden=true;
+}
+
+function showExistingAccountCard(email){
+  pendingSignupEmail=String(email||"").trim().toLowerCase();
+  setSignupMessage("","");
+  document.getElementById("existing-account-card").hidden=false;
+
+  const button=document.getElementById("create-account-btn");
+  button.disabled=false;
+  button.textContent="Create Account";
+}
+
+function signupLooksLikeExistingAccount(data){
+  const user=data?.user;
+  if(!user)return false;
+
+  if(Array.isArray(user.identities) && user.identities.length===0){
+    return true;
+  }
+
+  const createdAt=Date.parse(user.created_at||"");
+  if(Number.isFinite(createdAt)){
+    const ageMs=Date.now()-createdAt;
+    if(ageMs>90*1000){
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function showVerificationStep(email){
+  pendingSignupEmail=String(email||"").trim().toLowerCase();
+
+  document.getElementById("signup-fields").classList.add("form-hidden");
+  document.getElementById("signup-hero").classList.add("form-hidden");
+  document.getElementById("verify-card").classList.add("show");
+  document.getElementById("signin-row").classList.add("form-hidden");
+  document.getElementById("legal-row").classList.add("form-hidden");
+
+  document.getElementById("verify-email").textContent=pendingSignupEmail;
+  document.getElementById("verification-code").focus();
+}
+
+function togglePasswordField(inputId,buttonId){
+  const input=document.getElementById(inputId);
+  const button=document.getElementById(buttonId);
+  const willShow=input.type==="password";
+
+  input.type=willShow?"text":"password";
+  button.classList.toggle("is-visible",willShow);
+  button.setAttribute("aria-pressed",String(willShow));
+  button.setAttribute(
+    "aria-label",
+    willShow?"Hide password":"Show password"
+  );
+}
+
+async function signup(){
+  const firstName=document.getElementById("firstName").value.trim();
+  const lastName=document.getElementById("lastName").value.trim();
+  const email=document.getElementById("email").value.trim().toLowerCase();
+  const password=document.getElementById("password").value;
+  const confirmPassword=document.getElementById("confirm-password").value;
+  const button=document.getElementById("create-account-btn");
+
+  hideExistingAccountCard();
+  setSignupMessage("","");
+
+  if(!firstName || !lastName || !email || !password || !confirmPassword){
+    setSignupMessage("Please complete all fields.","error");
+    return;
+  }
+
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){
+    setSignupMessage("Please enter a valid email address.","error");
+    return;
+  }
+
+  if(password.length<8){
+    setSignupMessage("Password must be at least 8 characters.","error");
+    return;
+  }
+
+  if(!/[A-Za-z]/.test(password) || !/\d/.test(password)){
+    setSignupMessage("Use at least one letter and one number in your password.","error");
+    return;
+  }
+
+  if(password!==confirmPassword){
+    setSignupMessage("Your passwords do not match.","error");
+    return;
+  }
+
+  button.disabled=true;
+  button.textContent="Creating account…";
+
+  try{
+    const {data,error}=await sb.auth.signUp({
+      email,
+      password,
+      options:{
+        data:{
+          first_name:firstName,
+          last_name:lastName,
+          full_name:`${firstName} ${lastName}`.trim(),
+          name:`${firstName} ${lastName}`.trim(),
+          account_type:"candidate",
+          EmailFlow:"app"
+        }
+      }
+    });
+
+    if(error){
+      const raw=String(error.message||"").toLowerCase();
+
+      if(
+        raw.includes("already registered") ||
+        raw.includes("already exists") ||
+        raw.includes("user already")
+      ){
+        showExistingAccountCard(email);
+        return;
+      }
+
+      throw error;
+    }
+
+    if(signupLooksLikeExistingAccount(data)){
+      showExistingAccountCard(email);
+      return;
+    }
+
+    if(data?.session){
+      window.location.href="app-account.html";
+      return;
+    }
+
+    showVerificationStep(email);
+
+  }catch(error){
+    setSignupMessage(
+      error?.message || "Unable to create your Alygnn account.",
+      "error"
+    );
+  }finally{
+    button.disabled=false;
+    button.textContent="Create Account";
+  }
+}
+
+async function verifyEmailCode(){
+  const token=document
+    .getElementById("verification-code")
+    .value
+    .replace(/\s+/g,"")
+    .trim();
+
+  const button=document.getElementById("verify-btn");
+
+  if(!pendingSignupEmail){
+    setVerifyMessage("Please create your account again.","error");
+    return;
+  }
+
+  if(token.length<6){
+    setVerifyMessage("Enter the verification code from your email.","error");
+    return;
+  }
+
+  button.disabled=true;
+  button.textContent="Verifying…";
+
+  try{
+    const {data,error}=await sb.auth.verifyOtp({
+      email:pendingSignupEmail,
+      token,
+      type:"email"
+    });
+
+    if(error)throw error;
+
+    setVerifyMessage("Email confirmed. Continuing…","success");
+
+    setTimeout(()=>{
+      window.location.href=
+        data?.session
+          ?"app-account.html"
+          :"app-login.html";
+    },600);
+
+  }catch(error){
+    setVerifyMessage(
+      "That code is invalid or expired. Check the email and try again.",
+      "error"
+    );
+  }finally{
+    button.disabled=false;
+    button.textContent="Verify email";
+  }
+}
+
+async function resendVerificationCode(){
+  if(!pendingSignupEmail){
+    setVerifyMessage("Please create your account again.","error");
+    return;
+  }
+
+  const button=document.getElementById("resend-btn");
+  button.disabled=true;
+  button.textContent="Sending…";
+
+  try{
+    const {error}=await sb.auth.resend({
+      type:"signup",
+      email:pendingSignupEmail
+    });
+
+    if(error)throw error;
+
+    setVerifyMessage("A new verification code was sent.","success");
+  }catch(error){
+    setVerifyMessage(
+      error?.message || "Unable to resend the verification code.",
+      "error"
+    );
+  }finally{
+    button.disabled=false;
+    button.textContent="Resend code";
+  }
+}
+
+async function googleSignup(){
+  setSignupMessage("","");
+
+  const {error}=await sb.auth.signInWithOAuth({
+    provider:"google",
+    options:{
+      redirectTo:"https://alygnn.com/app-account.html",
+      queryParams:{
+        prompt:"select_account"
+      }
+    }
+  });
+
+  if(error){
+    setSignupMessage(error.message||"Unable to continue with Google.","error");
+  }
+}
+
+function appleSignup(){
+  setSignupMessage(
+    "Apple sign-up is not connected yet. Use email or Google for now.",
+    "error"
+  );
+}
+
+document
+  .getElementById("create-account-btn")
+  .addEventListener("click",signup);
+
+document
+  .getElementById("toggle-password")
+  .addEventListener(
+    "click",
+    ()=>togglePasswordField("password","toggle-password")
+  );
+
+document
+  .getElementById("toggle-confirm-password")
+  .addEventListener(
+    "click",
+    ()=>togglePasswordField("confirm-password","toggle-confirm-password")
+  );
+
+document
+  .getElementById("google-btn")
+  .addEventListener("click",googleSignup);
+
+document
+  .getElementById("apple-btn")
+  .addEventListener("click",appleSignup);
+
+document
+  .getElementById("verify-btn")
+  .addEventListener("click",verifyEmailCode);
+
+document
+  .getElementById("resend-btn")
+  .addEventListener("click",resendVerificationCode);
+
+document
+  .getElementById("existing-signin-btn")
+  .addEventListener("click",()=>{
+    if(pendingSignupEmail){
+      try{
+        sessionStorage.setItem(
+          "alygnn_prefill_login_email",
+          pendingSignupEmail
+        );
+      }catch(_){}
+    }
+
+    window.location.href="app-login.html";
+  });
+
+document
+  .getElementById("existing-reset-btn")
+  .addEventListener("click",()=>{
+    if(pendingSignupEmail){
+      try{
+        sessionStorage.setItem(
+          "alygnn_prefill_reset_email",
+          pendingSignupEmail
+        );
+      }catch(_){}
+    }
+
+    window.location.href="app-forgot-password.html";
+  });
+
+document
+  .getElementById("email")
+  .addEventListener("input",()=>{
+    hideExistingAccountCard();
+    setSignupMessage("","");
+  });
+
+document
+  .getElementById("confirm-password")
+  .addEventListener("keydown",event=>{
+    if(event.key==="Enter"){
+      signup();
+    }
+  });
+
+document
+  .getElementById("verification-code")
+  .addEventListener("keydown",event=>{
+    if(event.key==="Enter"){
+      verifyEmailCode();
+    }
+  });
+</script>
+
+</body>
+</html>

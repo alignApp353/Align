@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F6F8F7">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>Employer Account | Alygnn App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root{
+    --brand:#5D7FA3; --sage:#8CB69B; --mint:#6FBF8F; --rose:#D79A9A;
+    --bg:#F6F8F7; --card-bg:#FCFCFA; --text:#1A2530; --text-muted:#4A5968;
+    --border:#DDE3E8; --brand-tint:rgba(93,127,163,0.1);
+    --mint-tint:rgba(111,191,143,0.15); --rose-tint:rgba(215,154,154,0.15);
+  }
+  body{ font-family:'DM Sans', sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  nav{
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(246,248,247,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 5%; display:flex; align-items:center; justify-content:space-between; height: 64px;
+  }
+  .logo{ font-family:'DM Serif Display',serif; font-size:22px; color:var(--brand); letter-spacing:-0.5px; text-decoration:none; }
+  .logo span{ color:var(--sage); }
+  .nav-links{ display:flex; gap:24px; align-items:center; }
+  .nav-links a{ text-decoration:none; color:var(--text-muted); font-size:14px; padding:6px 0; border-bottom:2px solid transparent; transition:color .2s, border-color .2s; }
+  .nav-links a.active{ color:var(--text); border-bottom-color:var(--brand); }
+  .nav-links a:hover{ color:var(--text); }
+  .nav-home{ font-size:14px; color:var(--text-muted); text-decoration:none; transition:color .2s; }
+  .nav-home:hover{ color:var(--brand); }
+  .nav-right{ display:flex; align-items:center; gap:16px; }
+  .nav-name{ font-size:14px; color:var(--text-muted); }
+  .nav-signout{ font-size:13px; color:var(--text-muted); background:none; border:1px solid var(--border); border-radius:100px; padding:6px 14px; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .2s; }
+  .nav-signout:hover{ border-color:var(--brand); color:var(--brand); }
+  .nav-cta{ background:var(--brand); color:white; border:none; border-radius:100px; padding:9px 22px; font-size:14px; font-family:'DM Sans',sans-serif; cursor:pointer; transition:opacity 0.2s; }
+  .nav-cta:hover{ opacity:0.88; }
+
+  .page{ max-width:880px; margin:0 auto; padding:56px 6% 100px; }
+
+  /* Verification status banner */
+  .verify-banner{
+    border-radius:14px; padding:16px 20px; margin-bottom:28px;
+    display:flex; align-items:center; gap:14px; display:none;
+  }
+  .verify-banner.incomplete{
+    background:rgba(231,184,109,0.12); border:1px solid rgba(231,184,109,0.4);
+  }
+  .verify-banner.complete{
+    background:var(--mint-tint); border:1px solid rgba(111,191,143,0.4);
+  }
+  .verify-icon{ font-size:20px; flex-shrink:0; }
+  .verify-text{ flex:1; }
+  .verify-title{ font-size:14px; font-weight:500; margin-bottom:2px; }
+  .verify-title.incomplete{ color:#7a5a1a; }
+  .verify-title.complete{ color:#1a5c35; }
+  .verify-sub{ font-size:12px; color:var(--text-muted); }
+  .verify-steps{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .verify-step{
+    font-size:11px; padding:3px 10px; border-radius:100px;
+    display:flex; align-items:center; gap:4px;
+  }
+  .verify-step.done{ background:var(--mint-tint); color:#2d8a57; }
+  .verify-step.todo{ background:rgba(231,184,109,0.15); color:#7a5a1a; }
+
+  /* Small, quiet badge shown next to the company name once approved —
+     replaces the big banner so a verified employer isn't stuck staring
+     at a giant green box every time they visit. */
+  .verified-badge{
+    display:none; align-items:center; gap:4px;
+    font-size:12px; font-weight:500; color:#2d8a57;
+    background:var(--mint-tint); border-radius:100px;
+    padding:3px 10px; margin-top:6px; width:fit-content;
+  }
+  .verified-badge.show{ display:inline-flex; }
+
+  .profile-card{ display:flex; align-items:flex-start; gap:22px; background:var(--card-bg); border:1px solid var(--border); border-radius:20px; padding:32px; margin-bottom:28px; min-width:0; }
+  .avatar{ width:76px; height:76px; border-radius:16px; background:var(--brand); display:flex; align-items:center; justify-content:center; font-family:'DM Serif Display',serif; font-size:1.7rem; color:white; flex-shrink:0; overflow:hidden; cursor:pointer; position:relative; }
+  .avatar img{ width:100%; height:100%; object-fit:cover; }
+  .profile-info{ min-width:0; flex:1; }
+  .profile-info h1{ font-family:'DM Serif Display',serif; font-size:1.6rem; letter-spacing:-0.5px; color:var(--text); margin-bottom:4px; word-wrap:break-word; overflow-wrap:break-word; white-space:normal; }
+  .profile-info p{ color:var(--text-muted); font-size:14px; font-weight:300; word-wrap:break-word; overflow-wrap:break-word; white-space:normal; }
+  .headline-empty{ color:#9BA8B3; font-style:italic; }
+  [contenteditable="true"]{ outline:none; border-radius:6px; transition:background .15s; }
+  [contenteditable="true"]:hover{ background:rgba(93,127,163,0.06); }
+  [contenteditable="true"]:focus{ background:rgba(93,127,163,0.08); }
+  [contenteditable="true"]:empty::before{ content:attr(data-placeholder); color:#9BA8B3; font-style:italic; }
+  #company-name:empty::before{ font-style:normal; font-family:'DM Serif Display',serif; }
+
+  /* Inline editable fields for website and phone */
+  .company-fields{ display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+  .company-field-row{ display:flex; align-items:center; gap:8px; }
+  .field-icon{ font-size:13px; color:var(--text-muted); flex-shrink:0; width:16px; }
+  .field-input{
+    flex:1; font-size:13px; font-family:'DM Sans',sans-serif; color:var(--text);
+    border:none; background:transparent; outline:none; padding:4px 8px; border-radius:6px;
+    transition:background .15s;
+  }
+  .field-input:hover{ background:rgba(93,127,163,0.06); }
+  .field-input:focus{ background:rgba(93,127,163,0.08); }
+  .field-input::placeholder{ color:#9BA8B3; font-style:italic; }
+
+  .section{ margin-bottom:40px; }
+  .section-header{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:16px; }
+  .section-header h2{ font-family:'DM Serif Display',serif; font-size:1.15rem; letter-spacing:-0.3px; color:var(--text); }
+  .section-link{ font-size:13px; color:var(--brand); text-decoration:none; }
+  .section-link:hover{ text-decoration:underline; }
+  .empty-state{ background:var(--card-bg); border:1px dashed var(--border); border-radius:14px; padding:28px; text-align:center; color:var(--text-muted); font-size:14px; }
+  .links-row{ display:flex; gap:14px; flex-wrap:wrap; }
+  .link-card{ flex:1; min-width:200px; background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:20px; text-decoration:none; color:var(--text); transition:border-color .2s, transform .2s; }
+  .link-card:hover{ border-color:var(--brand); transform:translateY(-2px); }
+  .link-card .icon{ font-size:1.3rem; margin-bottom:8px; display:block; }
+  .link-card .label{ font-weight:500; font-size:15px; }
+  .link-card .sub{ font-size:13px; color:var(--text-muted); margin-top:2px; font-weight:300; }
+  .account-job-row{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:18px 20px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:10px;
+  }
+  .account-job-dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--mint);
+    flex-shrink:0;
+  }
+  .account-job-info{ flex:1; min-width:0; }
+  .account-job-title{
+    font-size:15px;
+    font-weight:500;
+    color:var(--text);
+    margin-bottom:3px;
+  }
+  .account-job-meta{
+    font-size:12px;
+    color:var(--text-muted);
+  }
+  .verification-note{
+    margin-top:12px;
+    font-size:12px;
+    color:var(--text-muted);
+    line-height:1.5;
+  }
+  .nav-cta.locked{
+    opacity:.45;
+    cursor:not-allowed;
+  }
+
+
+  /* ===== Alygnn employer account: mobile app shell ===== */
+  *, *::before, *::after { font-family:'DM Sans',Arial,sans-serif !important; }
+  body { padding-bottom:calc(84px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color:transparent; }
+  nav { display:none !important; }
+  .page { max-width:560px; margin:0 auto; padding:calc(88px + env(safe-area-inset-top)) 16px 30px; }
+  .app-topbar { position:fixed; z-index:180; top:0; left:0; right:0; height:calc(68px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 18px 0; display:grid; grid-template-columns:44px 1fr 44px; align-items:center; background:rgba(246,248,247,.94); backdrop-filter:blur(18px); border-bottom:1px solid var(--border); }
+  .app-back { width:42px; height:42px; border:1px solid var(--border); border-radius:50%; background:var(--card-bg); color:var(--text); font-size:20px; display:grid; place-items:center; }
+  .app-logo { text-align:center; font-family:'DM Serif Display',Georgia,serif !important; font-size:25px; color:var(--brand); }
+  .app-logo span { color:var(--sage); }
+  .profile-card { display:block; padding:22px 18px; border-radius:20px; margin-bottom:18px; }
+  .avatar { width:82px; height:82px; border-radius:22px; margin:0 auto 18px; }
+  .profile-info { text-align:center; }
+  .profile-info h1 { font-size:1.55rem; }
+  .company-fields { margin-top:19px; text-align:left; gap:10px; }
+  .company-field-row { min-height:52px; padding:0 13px; border:1px solid var(--border); border-radius:14px; background:#fff; }
+  .field-input { min-height:48px; font-size:16px; }
+  .verify-banner { align-items:flex-start; border-radius:17px; padding:16px; }
+  .verify-steps { gap:6px; }
+  .verify-step { line-height:1.35; }
+  .section { margin-bottom:24px; }
+  .section-header { align-items:center; }
+  .account-job-row { align-items:flex-start; flex-wrap:wrap; padding:16px; border-radius:16px; }
+  .account-job-info { min-width:calc(100% - 30px); }
+  .account-job-row .section-link { margin-left:22px; }
+  .links-row { display:grid; grid-template-columns:1fr; gap:10px; }
+  .link-card { min-width:0; min-height:96px; border-radius:16px; }
+  .empty-state { padding:25px 17px; }
+  .app-bottom-nav { position:fixed; z-index:190; left:0; right:0; bottom:0; min-height:calc(70px + env(safe-area-inset-bottom)); padding:7px 10px env(safe-area-inset-bottom); display:grid; grid-template-columns:repeat(3,1fr); gap:4px; background:rgba(252,252,250,.96); backdrop-filter:blur(18px); border-top:1px solid var(--border); }
+  .app-tab { min-height:55px; border:0; border-radius:14px; background:transparent; color:var(--text-muted); text-decoration:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-size:10px; font-weight:800; }
+  .app-tab svg { width:21px; height:21px; }
+  .app-tab.active { color:var(--brand); background:var(--brand-tint); }
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="app-topbar">
+  <button class="app-back" type="button" onclick="window.location.href='app-employer-dashboard.html'" aria-label="Back">←</button>
+  <div class="app-logo">Alygnn<span>.</span></div>
+  <div></div>
+</div>
+
+
+<nav>
+  <a href="employers.html" class="logo">Alygnn<span>.</span></a>
+  <div class="nav-links">
+    <a href="employers.html" class="nav-home">← Home</a>
+    <a href="app-employer-account.html" class="active">Account</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-name" id="nav-name"></span>
+    <button class="nav-cta" id="dashboard-btn" onclick="goToDashboard()">Dashboard</button>
+    <button class="nav-signout" onclick="signOut()">Sign out</button>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- Verification status banner: only shown while NOT yet approved -->
+  <div class="verify-banner" id="verify-banner">
+    <div class="verify-icon" id="verify-icon"></div>
+    <div class="verify-text">
+      <div class="verify-title" id="verify-title"></div>
+      <div class="verify-steps" id="verify-steps"></div>
+    </div>
+  </div>
+
+  <div class="profile-card">
+    <div class="avatar" id="avatar" onclick="document.getElementById('photo-input').click()" title="Click to add a logo">
+      <span id="avatar-initials">C</span>
+      <img id="avatar-img" style="display:none;">
+    </div>
+    <input type="file" id="photo-input" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)">
+    <div class="profile-info">
+      <h1 id="company-name" data-placeholder="Company name"></h1>
+      <p style="font-size:12px; color:var(--text-muted); margin-top:-8px; margin-bottom:12px;">Need to change your company name? <a href="contact.html" style="color:var(--brand);">Contact support</a>.</p>
+      <p id="company-headline" contenteditable="true" class="headline-empty" data-placeholder="Add a company description" onblur="saveField('companyHeadline', this)" onfocus="clearPlaceholder(this)"></p>
+
+      <!-- Small quiet confirmation shown once the business is approved -->
+      <div class="verified-badge" id="verified-badge">✓ Verified business</div>
+
+      <div class="company-fields">
+        <div class="company-field-row">
+          <span class="field-icon">🌐</span>
+          <input type="url" class="field-input" id="company-website" placeholder="Website (e.g. https://acmecorp.com)"
+            onblur="saveInputField('companyWebsite', this)" />
+        </div>
+        <div class="company-field-row">
+          <span class="field-icon">📞</span>
+          <input type="tel" class="field-input" id="company-phone" placeholder="Business phone number"
+            onblur="saveInputField('companyPhone', this)" />
+        </div>
+        <div class="company-field-row">
+          <span class="field-icon">📧</span>
+          <input type="email" class="field-input" id="business-email" placeholder="Business email (e.g. admin@company.com)"
+            onblur="saveInputField('businessEmail', this)" />
+        </div>
+        <div class="company-field-row">
+          <span class="field-icon">📍</span>
+          <input type="text" class="field-input" id="business-address" placeholder="Business address"
+            onblur="saveInputField('businessAddress', this)" />
+        </div>
+        <p class="verification-note">Alygnn can auto-approve companies when the business email domain matches the website domain. Otherwise, the account stays pending for review.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <h2>Posted jobs</h2>
+      <a href="app-employer-dashboard.html" class="section-link">Post a job →</a>
+    </div>
+    <div id="posted-jobs-list">
+      <div class="empty-state">No jobs posted yet. Once you post a role, it'll show up here.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header"><h2>Candidates</h2></div>
+    <div class="empty-state">No candidates yet. Once people apply to your jobs, you'll see them here.</div>
+  </div>
+
+  <div class="section">
+    <div class="section-header"><h2>Settings</h2></div>
+    <div class="links-row">
+      <a href="app-employer-dashboard.html" class="link-card">
+        <span class="icon">📋</span>
+        <div class="label">Manage job posts</div>
+        <div class="sub">Edit or close active listings</div>
+      </a>
+      <a href="app-account-settings.html" class="link-card">
+        <span class="icon">🔒</span>
+        <div class="label">Account settings</div>
+        <div class="sub">Password, linked accounts, sign out</div>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://auth.alygnn.com';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let currentUserId = null;
+  let currentProfile = null;
+
+  async function waitForSession(maxWaitMs = 5000) {
+    const started = Date.now();
+    let result = await sb.auth.getSession();
+    let session = result.data.session;
+    while (!session && Date.now() - started < maxWaitMs) {
+      await new Promise(resolve => setTimeout(resolve, 400));
+      result = await sb.auth.getSession();
+      session = result.data.session;
+    }
+    return session;
+  }
+
+  function getInitials(name) {
+    if (!name) return 'C';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  }
+
+  function handlePhotoUpload(event){
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e){
+      const dataUrl = e.target.result;
+      localStorage.setItem('companyLogo', dataUrl);
+      showPhoto(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function showPhoto(dataUrl){
+    document.getElementById('avatar-img').src = dataUrl;
+    document.getElementById('avatar-img').style.display = 'block';
+    document.getElementById('avatar-initials').style.display = 'none';
+  }
+
+  function isValidCompanyName(value) {
+    const cleaned = value.trim();
+    return cleaned.length >= 2 && /[a-zA-Z]/.test(cleaned);
+  }
+
+  function isValidWebsite(value) {
+    const cleaned = value.trim();
+
+    try {
+      const url = new URL(cleaned);
+      const hostname = url.hostname.toLowerCase();
+
+      return (
+        url.protocol === 'https:' &&
+        hostname.includes('.') &&
+        !hostname.includes(' ') &&
+        !hostname.endsWith('.')
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  function isValidPhone(value) {
+    const numbersOnly = value.replace(/\D/g, '');
+    return numbersOnly.length >= 10 && numbersOnly.length <= 15;
+  }
+
+  function isValidBusinessEmail(value) {
+    const cleaned = value.trim();
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleaned);
+  }
+
+  function isValidAddress(value) {
+    const cleaned = value.trim();
+    return cleaned.length >= 5;
+  }
+
+  function getDomainFromWebsite(value) {
+    try {
+      const url = new URL(value.trim());
+      return url.hostname.toLowerCase().replace(/^www\./, '');
+    } catch {
+      return '';
+    }
+  }
+
+  function getDomainFromEmail(value) {
+    const cleaned = value.trim().toLowerCase();
+    const parts = cleaned.split('@');
+    return parts.length === 2 ? parts[1] : '';
+  }
+
+  async function saveEmployerProfile(payload){
+    if (!currentUserId) return false;
+
+    const { error: updateError } = await sb
+      .from('profiles')
+      .update(payload)
+      .eq('id', currentUserId);
+
+    if (!updateError) return true;
+
+    console.error('Profile update failed:', updateError);
+
+    const { error: insertError } = await sb
+      .from('profiles')
+      .insert({
+        id: currentUserId,
+        role: 'employer',
+        ...payload
+      });
+
+    if (insertError) {
+      console.error('Profile insert failed:', insertError);
+      alert('Profile did not save. Check Supabase: profiles table needs company_name, company_headline, company_website, company_phone, business_email, business_address columns, and RLS policies must allow users to select/update/insert their own row.');
+      return false;
+    }
+
+    return true;
+  }
+
+  // Checks all fields, decides approval, and writes verification status to Supabase
+  async function runAutoVerification(){
+    if (!currentUserId) return;
+
+    const profile = getCurrentBusinessProfileFromPage();
+
+    const allFieldsValid =
+      isValidCompanyName(profile.company_name) &&
+      isValidWebsite(profile.company_website) &&
+      isValidPhone(profile.company_phone) &&
+      isValidBusinessEmail(profile.business_email) &&
+      isValidAddress(profile.business_address);
+
+    const websiteDomain = getDomainFromWebsite(profile.company_website);
+    const emailDomain = getDomainFromEmail(profile.business_email);
+    const domainsMatch = !!websiteDomain && !!emailDomain && websiteDomain === emailDomain;
+
+    let employer_verified = false;
+    let verification_status = 'not_submitted';
+
+    if (allFieldsValid) {
+      verification_status = domainsMatch ? 'approved' : 'pending';
+      employer_verified = domainsMatch;
+    }
+
+    const { error } = await sb
+      .from('profiles')
+      .update({ employer_verified, verification_status })
+      .eq('id', currentUserId);
+
+    if (error) {
+      console.error('Auto-verification update failed:', error);
+      return;
+    }
+
+    currentProfile = { ...currentProfile, employer_verified, verification_status };
+  }
+
+  // Saves contenteditable fields (company name, headline)
+  async function saveField(key, el){
+    const value = el.textContent.trim();
+    if (!currentUserId) return;
+
+    if (key === 'companyName' && !isValidCompanyName(value)) {
+      alert('Please enter a valid company name with at least 2 letters.');
+      updateVerificationBanner();
+      return;
+    }
+
+    const column = key === 'companyName' ? 'company_name' : 'company_headline';
+    const saved = await saveEmployerProfile({ [column]: value });
+
+    if (!saved) return;
+
+    if (key === 'companyName') {
+      document.getElementById('avatar-initials').textContent = getInitials(value);
+      document.getElementById('nav-name').textContent = value;
+    }
+
+    await runAutoVerification();
+    updateVerificationBanner();
+  }
+
+  // Saves regular input fields (website, phone, business email, business address)
+  async function saveInputField(key, el){
+    const value = el.value.trim();
+    if (!currentUserId) return;
+
+    if (key === 'companyWebsite' && !isValidWebsite(value)) {
+      alert('Please enter a valid website starting with https:// and using a real domain, like https://company.com');
+      updateVerificationBanner();
+      return;
+    }
+
+    if (key === 'companyPhone' && !isValidPhone(value)) {
+      alert('Please enter a valid business phone number with 10 to 15 digits.');
+      updateVerificationBanner();
+      return;
+    }
+
+    if (key === 'businessEmail' && value && !isValidBusinessEmail(value)) {
+      alert('Please enter a valid business email address.');
+      updateVerificationBanner();
+      return;
+    }
+
+    if (key === 'businessAddress' && value && !isValidAddress(value)) {
+      alert('Please enter a valid business address.');
+      updateVerificationBanner();
+      return;
+    }
+
+    const columnMap = {
+      companyWebsite: 'company_website',
+      companyPhone: 'company_phone',
+      businessEmail: 'business_email',
+      businessAddress: 'business_address'
+    };
+    const column = columnMap[key];
+    const saved = await saveEmployerProfile({ [column]: value });
+
+    if (!saved) return;
+
+    await runAutoVerification();
+    updateVerificationBanner();
+  }
+
+  function clearPlaceholder(el){ el.classList.remove('headline-empty'); }
+
+  function limitLength(el, max){
+    el.addEventListener('input', function(){
+      if (el.textContent.length > max){
+        el.textContent = el.textContent.slice(0, max);
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    });
+  }
+
+  limitLength(document.getElementById('company-name'), 60);
+  limitLength(document.getElementById('company-headline'), 200);
+
+  function getCurrentBusinessProfileFromPage() {
+    return {
+      company_name: document.getElementById('company-name')?.textContent.trim() || '',
+      company_headline: document.getElementById('company-headline')?.textContent.trim() || '',
+      company_website: document.getElementById('company-website')?.value.trim() || '',
+      company_phone: document.getElementById('company-phone')?.value.trim() || '',
+      business_email: document.getElementById('business-email')?.value.trim() || '',
+      business_address: document.getElementById('business-address')?.value.trim() || ''
+    };
+  }
+
+  // Shows the verification banner based on field validation and auto-approval status.
+  // Once approved, the big banner is hidden entirely and a small quiet badge
+  // next to the company name takes its place instead.
+  function updateVerificationBanner(){
+    const profile = getCurrentBusinessProfileFromPage();
+
+    const banner  = document.getElementById('verify-banner');
+    const icon    = document.getElementById('verify-icon');
+    const title   = document.getElementById('verify-title');
+    const steps   = document.getElementById('verify-steps');
+    const badge   = document.getElementById('verified-badge');
+    const dashboardBtn = document.getElementById('dashboard-btn');
+
+    const fields = [
+      { label: 'Company name', done: isValidCompanyName(profile.company_name) },
+      { label: 'Website', done: isValidWebsite(profile.company_website) },
+      { label: 'Phone number', done: isValidPhone(profile.company_phone) },
+      { label: 'Business email', done: isValidBusinessEmail(profile.business_email) },
+      { label: 'Business address', done: isValidAddress(profile.business_address) },
+      {
+        label: 'Email matches website',
+        done: getDomainFromWebsite(profile.company_website) === getDomainFromEmail(profile.business_email)
+      }
+    ];
+
+    const approved = currentProfile?.employer_verified === true;
+    const status = currentProfile?.verification_status || 'not_submitted';
+
+    if (approved) {
+      // Hide the big banner now that there's nothing left to do — show the
+      // small quiet badge next to the company name instead.
+      banner.style.display = 'none';
+      if (badge) badge.classList.add('show');
+      if (dashboardBtn) dashboardBtn.classList.remove('locked');
+      return;
+    }
+
+    if (badge) badge.classList.remove('show');
+    banner.style.display = 'flex';
+    banner.className = 'verify-banner incomplete';
+    icon.textContent = fields.every(f => f.done) ? '⏳' : '⚠️';
+    title.className = 'verify-title incomplete';
+    title.textContent = fields.every(f => f.done)
+      ? 'Business verification pending — Alygnn review may be needed'
+      : 'Complete your business profile to unlock posting';
+    if (dashboardBtn) dashboardBtn.classList.add('locked');
+
+    steps.innerHTML = fields.map(f =>
+      `<span class="verify-step ${f.done ? 'done' : 'todo'}">${f.done ? '✓' : '○'} ${f.label}</span>`
+    ).join('') + `<span class="verify-step todo">○ Status: ${status}</span>`;
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  async function loadEmployerJobs() {
+    if (!currentUserId) return;
+
+    const jobsBox = document.getElementById('posted-jobs-list');
+    if (!jobsBox) return;
+
+    const { data: jobs, error } = await sb
+      .from('jobs')
+      .select('id, title, location, job_type, work_style, salary, status, created_at')
+      .eq('employer_id', currentUserId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to load employer jobs:', error);
+      jobsBox.innerHTML = '<div class="empty-state">Could not load jobs right now. Open the console for the Supabase error.</div>';
+      return;
+    }
+
+    if (!jobs || jobs.length === 0) {
+      jobsBox.innerHTML = '<div class="empty-state">No jobs posted yet. Once you post a role, it\'ll show up here.</div>';
+      return;
+    }
+
+    jobsBox.innerHTML = jobs.map(job => `
+      <div class="account-job-row">
+        <div class="account-job-dot"></div>
+        <div class="account-job-info">
+          <div class="account-job-title">${escapeHtml(job.title)}</div>
+          <div class="account-job-meta">${escapeHtml(job.job_type || '')} · ${escapeHtml(job.work_style || '')}${job.location ? ' · ' + escapeHtml(job.location) : ''}${job.salary ? ' · ' + escapeHtml(job.salary) : ''}</div>
+        </div>
+        <a href="app-employer-dashboard.html" class="section-link">Manage →</a>
+      </div>
+    `).join('');
+  }
+
+  function goToDashboard() {
+    window.location.href = 'app-employer-dashboard.html';
+  }
+
+  async function signOut() {
+    await sb.auth.signOut();
+    window.location.href = 'app-employer-login.html?logout=1';
+  }
+
+  async function initEmployerAccountPage(){
+    const session = await waitForSession();
+    if (!session) { window.location.href = 'app-employer-login.html'; return; }
+
+    currentUserId = session.user.id;
+
+    const savedLogo = localStorage.getItem('companyLogo');
+    if (savedLogo) showPhoto(savedLogo);
+
+    const { data: profile, error } = await sb
+      .from('profiles')
+      .select('company_name, company_headline, company_website, company_phone, business_email, business_address, verification_status, employer_verified, full_name')
+      .eq('id', currentUserId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') console.error('Failed to load employer profile', error);
+    currentProfile = profile || {
+      employer_verified: false,
+      verification_status: 'not_submitted'
+    };
+
+    const companyNameEl = document.getElementById('company-name');
+    const headlineEl    = document.getElementById('company-headline');
+    const websiteEl     = document.getElementById('company-website');
+    const phoneEl       = document.getElementById('company-phone');
+    const businessEmailEl = document.getElementById('business-email');
+    const businessAddressEl = document.getElementById('business-address');
+
+    const companyName = profile?.company_name || session.user.user_metadata?.company_name || '';
+    const displayName = companyName || profile?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+
+    if (companyName) {
+      companyNameEl.textContent = companyName;
+      document.getElementById('avatar-initials').textContent = getInitials(companyName);
+    }
+    if (profile?.company_headline) {
+      headlineEl.textContent = profile.company_headline;
+      headlineEl.classList.remove('headline-empty');
+    }
+    if (profile?.company_website) websiteEl.value = profile.company_website;
+    if (profile?.company_phone)   phoneEl.value   = profile.company_phone;
+    if (profile?.business_email) businessEmailEl.value = profile.business_email;
+    if (profile?.business_address) businessAddressEl.value = profile.business_address;
+
+    document.getElementById('nav-name').textContent = displayName;
+
+    updateVerificationBanner();
+    await loadEmployerJobs();
+  }
+
+  initEmployerAccountPage();
+</script>
+
+<div class="app-bottom-nav" aria-label="Employer app navigation">
+  <a class="app-tab" href="app-employer-dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 13h6V4H4v9Zm10 7h6V11h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z"/></svg><span>Dashboard</span></a>
+  <a class="app-tab active" href="app-employer-account.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c.7-4.1 3.2-6.2 7.5-6.2s6.8 2.1 7.5 6.2"/></svg><span>Company</span></a>
+  <a class="app-tab" href="app-account-settings.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9A1.7 1.7 0 0 0 21 10h.1v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg><span>Settings</span></a>
+</div>
+
+</body>
+</html>

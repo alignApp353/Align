@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F6F8F7">
+<title>Post a Job | Alygnn</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  const preference =
+    localStorage.getItem('alygnnEmployerTheme') ||
+    localStorage.getItem('alygnnTheme') ||
+    'auto';
+  const dark = preference === 'dark' ||
+    (preference === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  document.querySelector('meta[name="theme-color"]')?.setAttribute(
+    'content',
+    dark ? '#07121D' : '#F6F8F7'
+  );
+})();
+</script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
+:root{
+  --brand:#5D7FA3;--brand-dark:#345F91;--sage:#8CB69B;--bg:#F6F8F7;
+  --card:#fff;--text:#172333;--muted:#59697A;--border:#DDE3E8;
+  --danger:#B64040;--danger-bg:#FCEDED;--success:#18794E;--success-bg:#E8F6EE;
+}
+[hidden]{display:none!important}
+html,body{width:100%;min-height:100%}
+body{min-height:100vh;background:var(--bg);color:var(--text);padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.header{
+  position:sticky;top:0;z-index:30;
+  padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
+  display:grid;grid-template-columns:46px 1fr 46px;align-items:center;
+  background:rgba(246,248,247,.96);backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--border)
+}
+.back{
+  width:42px;height:42px;border:1px solid var(--border);border-radius:50%;
+  background:#fff;color:var(--text);font-size:20px
+}
+.logo{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:27px;color:var(--brand)}
+.logo span{color:var(--sage)}
+.page{max-width:560px;margin:0 auto;padding:22px 16px 24px}
+.progress-wrap{margin-bottom:22px}
+.progress-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.step-label{font-size:12px;font-weight:900;color:var(--brand-dark)}
+.step-name{font-size:12px;color:var(--muted)}
+.progress{height:7px;background:#E6EBEF;border-radius:999px;overflow:hidden}
+.progress-bar{height:100%;width:20%;background:var(--brand-dark);border-radius:999px;transition:width .25s ease}
+.hero{margin-bottom:20px}
+.hero h1{font-size:28px;line-height:1.15;font-weight:900;letter-spacing:-.4px}
+.hero p{margin-top:7px;color:var(--muted);font-size:14px;line-height:1.5}
+.card{background:#fff;border:1px solid var(--border);border-radius:22px;padding:20px 17px}
+.step{display:none}
+.step.active{display:block;animation:fade .2s ease}
+@keyframes fade{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.field{margin-top:17px}.field:first-child{margin-top:0}
+label{display:block;margin-bottom:8px;font-size:13px;font-weight:900}
+.input,.select,.textarea{
+  width:100%;border:1px solid var(--border);border-radius:16px;background:#fff;color:var(--text);
+  outline:none;font-size:15px
+}
+.input,.select{min-height:55px;padding:0 14px}
+.textarea{min-height:150px;padding:14px;resize:vertical;line-height:1.55}
+.input:focus,.select:focus,.textarea:focus{border-color:var(--brand-dark);box-shadow:0 0 0 4px rgba(52,95,145,.1)}
+.help{margin-top:7px;color:var(--muted);font-size:11px;line-height:1.45}
+.company-box{padding:14px;border:1px solid var(--border);border-radius:16px;background:#F8FAFA}
+.company-name{font-size:15px;font-weight:900}
+.company-note{margin-top:4px;color:var(--muted);font-size:11px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice{
+  min-height:72px;border:1px solid var(--border);border-radius:16px;background:#fff;
+  color:var(--text);font-size:13px;font-weight:800;padding:12px;text-align:left
+}
+.choice.active{border-color:var(--brand-dark);background:#EDF3F9;color:var(--brand-dark)}
+.pay-prefix{position:relative}
+.pay-prefix span{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.pay-prefix input{padding-left:29px}
+.preview{display:grid;gap:13px}
+.preview-row{padding-bottom:13px;border-bottom:1px solid var(--border)}
+.preview-row:last-child{border-bottom:0;padding-bottom:0}
+.preview-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:900}
+.preview-value{margin-top:5px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.message{display:none;margin-top:15px;padding:12px 14px;border-radius:14px;font-size:12px;font-weight:800;line-height:1.45}
+.message.error{display:block;background:var(--danger-bg);color:var(--danger)}
+.message.success{display:block;background:var(--success-bg);color:var(--success)}
+.footer{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.97);backdrop-filter:blur(18px);border-top:1px solid var(--border)
+}
+.footer-inner{max-width:560px;margin:0 auto;display:grid;grid-template-columns:1fr 1.7fr;gap:10px}
+.secondary,.primary{min-height:54px;border-radius:16px;font-size:14px;font-weight:900}
+.secondary{border:1px solid var(--border);background:#fff;color:var(--text)}
+.primary{border:none;background:var(--brand-dark);color:#fff}
+.primary:disabled,.secondary:disabled{opacity:.55}
+.lock{margin-bottom:16px;padding:14px;border:1px solid #F0D39C;border-radius:16px;background:#FFF8E8;color:#765615;font-size:12px;line-height:1.5;font-weight:700}
+.loading{position:fixed;inset:0;z-index:100;background:rgba(246,248,247,.96);display:grid;place-items:center}
+.loading-box{text-align:center}
+.spinner{width:42px;height:42px;margin:0 auto 13px;border:4px solid #E2E7EA;border-top-color:var(--brand-dark);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:360px){.grid2,.choice-grid{grid-template-columns:1fr}}
+
+.suggest-wrap{position:relative}
+.suggest-list{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:25;max-height:230px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 14px 32px rgba(23,35,51,.12);display:none}
+.suggest-list.show{display:block}
+.suggest-item{width:100%;border:0;border-bottom:1px solid var(--border);background:#fff;padding:13px 14px;text-align:left;font-size:13px;font-weight:700;color:var(--text);touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.suggest-item:last-child{border-bottom:0}
+.suggestion-section{margin-top:18px}
+.suggestion-title{font-size:12px;font-weight:900;color:var(--text);margin-bottom:9px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--border);background:#fff;color:var(--text);border-radius:999px;padding:8px 12px;font-size:11px;font-weight:800}
+.chip.selected{background:#EDF3F9;border-color:var(--brand-dark);color:var(--brand-dark)}
+.quick-note{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.45}
+.selection-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
+.selection-head label{margin:0}
+.selection-count{color:var(--muted);font-size:10px;font-weight:800;white-space:nowrap}
+.selection-help{margin-bottom:12px;color:var(--muted);font-size:11px;line-height:1.45}
+.company-ai-link{width:100%;margin-top:10px;min-height:44px;border:1px solid rgba(52,95,145,.25);border-radius:14px;background:#EDF3F9;color:var(--brand-dark);font-size:12px;font-weight:900}
+.market-pay-card{margin-top:16px;padding:14px;border:1px solid #C9D9E8;border-radius:16px;background:#F2F7FB}
+.market-pay-title{font-size:12px;font-weight:900;color:var(--brand-dark)}
+.market-pay-range{margin-top:5px;font-size:20px;font-weight:900;color:var(--text)}
+.market-pay-note{margin-top:5px;font-size:10px;line-height:1.45;color:var(--muted)}
+.market-pay-button{width:100%;min-height:48px;margin-top:16px;border:1px solid rgba(52,95,145,.28);border-radius:15px;background:#EDF3F9;color:var(--brand-dark);font-size:12px;font-weight:900}
+.market-pay-button:disabled{opacity:.55}
+
+
+.suggest-empty{padding:14px;color:var(--muted);font-size:12px;line-height:1.45}
+.catalog-result{display:flex;flex-direction:column;gap:3px}
+.suggest-main{font-size:13px;font-weight:900;color:var(--text)}
+.suggest-sub{font-size:10px;font-weight:600;color:var(--muted)}
+
+
+html[data-theme="dark"]{
+  --bg:#07121D;--card:#101C29;--text:#F5F7FA;--muted:#AAB6C4;--border:#2B3A4B;
+  --danger:#FF9B9B;--danger-bg:#321C22;--success:#7AD5A5;--success-bg:#102C22;
+}
+html[data-theme="dark"] body{background:var(--bg);color:var(--text)}
+html[data-theme="dark"] .header{background:rgba(7,18,29,.96)}
+html[data-theme="dark"] .footer{background:rgba(7,18,29,.97)}
+html[data-theme="dark"] .back,
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .input,
+html[data-theme="dark"] .select,
+html[data-theme="dark"] .textarea,
+html[data-theme="dark"] .choice,
+html[data-theme="dark"] .secondary,
+html[data-theme="dark"] .suggest-list,
+html[data-theme="dark"] .suggest-item,
+html[data-theme="dark"] .chip{
+  background:var(--card);color:var(--text)
+}
+html[data-theme="dark"] .company-box{background:#0C1722}
+html[data-theme="dark"] .choice.active,
+html[data-theme="dark"] .chip.selected,
+html[data-theme="dark"] .company-ai-link,
+html[data-theme="dark"] .market-pay-button{background:#15283A;color:#8EB5DF}
+html[data-theme="dark"] .market-pay-card{background:#102131;border-color:#29465E}
+html[data-theme="dark"] .lock{background:#2B2414;border-color:#6D5729;color:#F3D58F}
+html[data-theme="dark"] .loading{background:rgba(7,18,29,.97)}
+html[data-theme="dark"] .progress{background:#263545}
+html[data-theme="dark"] .spinner{border-color:#2B3A4B;border-top-color:#8EB5DF}
+
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <div style="font-size:13px;font-weight:800;color:var(--muted)">Preparing your job post…</div>
+  </div>
+</div>
+
+<header class="header">
+  <button class="back" id="back-btn" type="button">←</button>
+  <div class="logo">Alygnn<span>.</span></div>
+  <div></div>
+</header>
+
+<main class="page">
+  <div class="progress-wrap">
+    <div class="progress-top">
+      <span class="step-label" id="step-label">Step 1 of 5</span>
+      <span class="step-name" id="step-name">Role</span>
+    </div>
+    <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+  </div>
+
+  <div class="hero">
+    <h1 id="heading">What role are you hiring for?</h1>
+    <p id="subheading">Start with the basic details candidates will see first.</p>
+  </div>
+
+  <div class="lock" id="verification-lock" hidden></div>
+
+  <section class="card">
+    <div class="step active" data-step="1">
+      <div class="field">
+        <label>Company</label>
+        <div class="company-box">
+          <div class="company-name" id="company-name">Loading company…</div>
+          <div class="company-note">Pulled from your employer profile</div>
+        </div>
+        <button type="button" class="company-ai-link" id="company-ai-link" hidden>Complete Company AI Profile</button>
+      </div>
+
+      <div class="field">
+        <label for="title">Job title</label>
+        <div class="suggest-wrap">
+<input class="input" id="title" type="text" maxlength="90" placeholder="e.g. Sales Account Manager" autocomplete="off">
+<div class="suggest-list" id="title-suggestions"></div>
+</div>
+      </div>
+<div class="field">
+        <label for="location">Location</label>
+        <div class="suggest-wrap">
+<input class="input" id="location" type="text" maxlength="120" placeholder="e.g. Raleigh, NC" autocomplete="off">
+<div class="suggest-list" id="location-suggestions"></div>
+</div>
+<div class="help">Start typing a U.S. city, then select it from the suggestions.</div>
+      </div>
+    </div>
+
+    <div class="step" data-step="2">
+      <div class="field">
+        <label>Job type</label>
+        <div class="choice-grid" id="job-type-options">
+          <button class="choice active" type="button" data-value="Full-time">Full-time</button>
+          <button class="choice" type="button" data-value="Part-time">Part-time</button>
+          <button class="choice" type="button" data-value="Contract">Contract</button>
+          <button class="choice" type="button" data-value="Internship">Internship</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Work style</label>
+        <div class="choice-grid" id="work-style-options">
+          <button class="choice active" type="button" data-value="On-site">In person</button>
+          <button class="choice" type="button" data-value="Hybrid">Hybrid</button>
+          <button class="choice" type="button" data-value="Remote">Remote</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" data-step="3">
+      <div class="field">
+        <label for="pay-period">Pay period</label>
+        <select class="select" id="pay-period">
+          <option value="hour">Per hour</option>
+          <option value="year">Per year</option>
+          <option value="week">Per week</option>
+          <option value="month">Per month</option>
+        </select>
+      </div>
+
+      <div class="grid2 field">
+        <div>
+          <label for="pay-min">Minimum pay</label>
+          <div class="pay-prefix"><span>$</span><input class="input" id="pay-min" type="number" min="0" step="1" placeholder="20"></div>
+        </div>
+        <div>
+          <label for="pay-max">Maximum pay</label>
+          <div class="pay-prefix"><span>$</span><input class="input" id="pay-max" type="number" min="0" step="1" placeholder="28"></div>
+        </div>
+      </div>
+      <div class="help">Enter a real pay range. The maximum must be equal to or higher than the minimum.</div>
+
+      <button class="market-pay-button" id="suggest-pay-btn" type="button">
+        ✨ Suggest market pay
+      </button>
+
+      <div class="market-pay-card" id="market-pay-card" hidden>
+        <div class="market-pay-title">Suggested market range</div>
+        <div class="market-pay-range" id="market-pay-range"></div>
+        <div class="market-pay-note" id="market-pay-note"></div>
+      </div>
+    </div>
+
+    <div class="step" data-step="4">
+      <button class="company-ai-link" id="use-role-data-btn" type="button">
+        ✨ Build from verified occupation data
+      </button>
+
+      <div class="field">
+        <label for="description">Job description</label>
+        <textarea class="textarea" id="description" maxlength="5000" placeholder="Explain the role, responsibilities, schedule, team, and what a successful candidate will do."></textarea>
+        <div class="help"><span id="description-count">0</span>/5000 characters · minimum 180</div>
+      </div>
+
+      <div class="field">
+        <div class="selection-head">
+          <label>Requirements and skills</label>
+          <span class="selection-count" id="skills-count">0 selected</span>
+        </div>
+        <div class="selection-help">Tap every skill that applies. Selected buttons will appear in the candidate preview.</div>
+        <div class="chips" id="skill-chips"></div>
+        <input type="hidden" id="requirements">
+      </div>
+
+      <div class="field">
+        <div class="selection-head">
+          <label>Benefits</label>
+          <span class="selection-count" id="benefits-count">0 selected</span>
+        </div>
+        <div class="selection-help">Tap the benefits this job actually offers.</div>
+        <div class="chips" id="benefit-chips"></div>
+        <input type="hidden" id="benefits">
+      </div>
+    </div>
+
+    <div class="step" data-step="5">
+      <div class="preview">
+        <div class="preview-row"><div class="preview-label">Job title</div><div class="preview-value" id="pv-title"></div></div>
+        <div class="preview-row"><div class="preview-label">Company</div><div class="preview-value" id="pv-company"></div></div>
+        <div class="preview-row"><div class="preview-label">Location and schedule</div><div class="preview-value" id="pv-meta"></div></div>
+        <div class="preview-row"><div class="preview-label">Pay</div><div class="preview-value" id="pv-pay"></div></div>
+        <div class="preview-row"><div class="preview-label">Description</div><div class="preview-value" id="pv-description"></div></div>
+        <div class="preview-row"><div class="preview-label">Requirements</div><div class="preview-value" id="pv-requirements"></div></div>
+        <div class="preview-row"><div class="preview-label">Benefits</div><div class="preview-value" id="pv-benefits"></div></div>
+      </div>
+    </div>
+
+    <div id="message" class="message" aria-live="polite"></div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <button class="secondary" id="previous-btn" type="button">Cancel</button>
+    <button class="primary" id="next-btn" type="button">Continue</button>
+  </div>
+</footer>
+
+<script>
+const sb = supabase.createClient(
+  'https://auth.alygnn.com',
+  'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+  {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
+);
+
+const stepCopy = [
+  null,
+  ['Role','What role are you hiring for?','Start with the basic details candidates will see first.'],
+  ['Schedule','How will this job work?','Choose the employment type and where the work takes place.'],
+  ['Pay','What does this role pay?','Clear pay information helps candidates make better decisions.'],
+  ['Details','Describe the opportunity','Give candidates enough information to understand the actual role.'],
+  ['Preview','See it like a candidate','Review the card, then open the full ad before publishing.']
+];
+
+let currentStep = 1;
+let session = null;
+let profile = null;
+let jobType = 'Full-time';
+let workStyle = 'On-site';
+let employerVerified = false;
+let aiProfileComplete = false;
+let verificationStatus = 'not_submitted';
+let verificationDocumentSubmitted = false;
+let currentCompanyId = '';
+let currentCompany = null;
+
+
+let titleSearchTimer=null;
+let locationSearchTimer=null;
+let selectedOnetCode='';
+let selectedLocation=null;
+let currentOccupationProfile=null;
+const selectedSkills=new Set();
+const selectedBenefits=new Set();
+
+async function searchJobTitleCatalog(query){
+  const clean=String(query||'').trim();
+  if(clean.length<2)return[];
+
+  const {data,error}=await sb.rpc('search_job_titles',{
+    search_query:clean,
+    result_limit:12
+  });
+
+  if(error){
+    console.error('Job title search failed:',error);
+    showMessage(`Job-title search is unavailable: ${error.message||'database error'}`);
+    return[];
+  }
+
+  return data||[];
+}
+
+async function searchLocationCatalog(query){
+  const clean=String(query||'').trim();
+  if(clean.length<2)return[];
+
+  const {data,error}=await sb.rpc('search_us_locations',{
+    search_query:clean,
+    result_limit:12
+  });
+
+  if(error){
+    console.error('Location search failed:',error);
+    showMessage(`Location search is unavailable: ${error.message||'database error'}`);
+    return[];
+  }
+
+  return data||[];
+}
+const BASE_SKILLS=['Communication skills','Customer service','Time management','Problem solving','Teamwork','Attention to detail','Microsoft Office','Organization','Reliable transportation','High school diploma or equivalent'];
+
+const ROLE_SKILLS={
+sales:['Sales experience','Lead generation','Cold calling','CRM experience','Negotiation','Relationship building','Goal-oriented mindset','Presentation skills'],
+customer:['Customer support experience','Conflict resolution','Phone etiquette','Data entry','Active listening','Multitasking'],
+manager:['Leadership experience','Team coaching','Performance management','Scheduling','Hiring and training','KPI management'],
+admin:['Calendar management','Email management','Document preparation','Data entry','Office administration','Scheduling'],
+analyst:['Excel','Data analysis','Reporting','SQL','Dashboard creation','Critical thinking','Research skills'],
+marketing:['Content creation','Social media management','Campaign reporting','Copywriting','Canva','Digital marketing']
+};
+
+const BENEFITS=['Health insurance','Dental insurance','Vision insurance','Paid time off','401(k)','Flexible schedule','Employee discount','Professional development','Paid training','Referral bonus','Performance bonus','Mileage reimbursement','Work from home','Career advancement opportunities'];
+
+
+function roleCategory(title){
+ const v=String(title||'').toLowerCase();
+ if(/sales|account|business development|territory|representative/.test(v))return'sales';
+ if(/customer|support|call center|client/.test(v))return'customer';
+ if(/manager|lead|supervisor|director/.test(v))return'manager';
+ if(/admin|coordinator|assistant|office/.test(v))return'admin';
+ if(/analyst|data|research/.test(v))return'analyst';
+ if(/marketing|social media|content/.test(v))return'marketing';
+ return'';
+}
+
+
+function closeSuggestionBox(box){
+  box.innerHTML='';
+  box.classList.remove('show');
+}
+
+function renderCatalogResults(box,rows,onSelect,emptyText='No matches. You can keep your custom entry.'){
+  if(!rows.length){
+    box.innerHTML=`<div class="suggest-empty">${emptyText}</div>`;
+    box.classList.add('show');
+    return;
+  }
+
+  box.innerHTML=rows.map((row,index)=>{
+    const title=row.job_title||row.display_name||'';
+    const sub=row.occupation_title||row.location_type||'';
+    return `
+      <button type="button" class="suggest-item catalog-result" data-index="${index}">
+        <span class="suggest-main">${escapeHtml(title)}</span>
+        ${sub?`<span class="suggest-sub">${escapeHtml(sub)}</span>`:''}
+      </button>
+    `;
+  }).join('');
+
+  box.classList.add('show');
+
+  box.querySelectorAll('.catalog-result').forEach(button=>{
+    let startX=0;
+    let startY=0;
+    let moved=false;
+
+    button.addEventListener('pointerdown',event=>{
+      startX=event.clientX;
+      startY=event.clientY;
+      moved=false;
+    });
+
+    button.addEventListener('pointermove',event=>{
+      if(
+        Math.abs(event.clientX-startX)>8 ||
+        Math.abs(event.clientY-startY)>8
+      ){
+        moved=true;
+      }
+    });
+
+    button.addEventListener('pointerup',event=>{
+      if(moved)return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const row=rows[Number(button.dataset.index)];
+      if(!row)return;
+
+      onSelect(row);
+      closeSuggestionBox(box);
+    });
+
+    button.addEventListener('pointercancel',()=>{
+      moved=true;
+    });
+  });
+}
+
+function debounceCatalogSearch(timerName,callback,delay=250){
+  clearTimeout(window[timerName]);
+  window[timerName]=setTimeout(callback,delay);
+}
+
+
+function syncSelectedValues(){
+  el('requirements').value=[...selectedSkills].join('\n');
+  el('benefits').value=[...selectedBenefits].join('\n');
+  el('skills-count').textContent=`${selectedSkills.size} selected`;
+  el('benefits-count').textContent=`${selectedBenefits.size} selected`;
+}
+
+function renderSelectableChips(containerId,values,selectedSet){
+  const container=el(containerId);
+  if(!container)return;
+
+  const uniqueValues=[...new Set([...(values||[]),...selectedSet].map(value=>String(value||'').trim()).filter(Boolean))];
+
+  container.innerHTML=uniqueValues.map((value,index)=>`
+    <button class="chip${selectedSet.has(value)?' selected':''}" type="button" data-chip-index="${index}">
+      ${escapeHtml(value)}
+    </button>
+  `).join('');
+
+  container.querySelectorAll('.chip').forEach(button=>{
+    button.addEventListener('click',()=>{
+      const value=uniqueValues[Number(button.dataset.chipIndex)];
+
+      if(selectedSet.has(value)){
+        selectedSet.delete(value);
+        button.classList.remove('selected');
+      }else{
+        selectedSet.add(value);
+        button.classList.add('selected');
+      }
+
+      syncSelectedValues();
+    });
+  });
+
+  syncSelectedValues();
+}
+
+function renderBenefitSuggestions(){
+  renderSelectableChips('benefit-chips',BENEFITS,selectedBenefits);
+}
+
+function refreshRoleSuggestions(){
+  const occupationSkills=occupationSkillNames();
+
+  if(occupationSkills.length){
+    renderSelectableChips('skill-chips',occupationSkills,selectedSkills);
+    return;
+  }
+
+  const category=roleCategory(el('title').value);
+  renderSelectableChips(
+    'skill-chips',
+    [...BASE_SKILLS,...(ROLE_SKILLS[category]||[])],
+    selectedSkills
+  );
+}
+
+async function loadOccupationProfile(onetCode){
+  currentOccupationProfile=null;
+
+  if(!onetCode){
+    refreshRoleSuggestions();
+    return;
+  }
+
+  const {data,error}=await sb.rpc('get_occupation_ai_profile',{
+    occupation_code:onetCode
+  });
+
+  if(error){
+    console.error('Occupation profile load failed:',error);
+    refreshRoleSuggestions();
+    return;
+  }
+
+  currentOccupationProfile=Array.isArray(data)?data[0]:data;
+  refreshRoleSuggestions();
+}
+
+function occupationSkillNames(){
+  const profileSkills=Array.isArray(currentOccupationProfile?.skills)
+    ? currentOccupationProfile.skills.map(item=>item.name).filter(Boolean)
+    : [];
+
+  const softwareSkills=Array.isArray(currentOccupationProfile?.software)
+    ? currentOccupationProfile.software
+        .filter(item=>item.in_demand||item.hot)
+        .map(item=>item.name)
+        .filter(Boolean)
+    : [];
+
+  return [...new Set([...profileSkills,...softwareSkills])].slice(0,24);
+}
+
+function applyOccupationProfileToForm(){
+  if(!currentOccupationProfile)return;
+
+  const taskLines=(currentOccupationProfile.tasks||[])
+    .map(item=>item.task)
+    .filter(Boolean)
+    .slice(0,8);
+
+  const skillLines=occupationSkillNames().slice(0,12);
+
+  if(!el('description').value.trim()){
+    const intro=currentOccupationProfile.description||
+      `We are hiring a ${el('title').value.trim()} to support our team.`;
+
+    const responsibilities=taskLines.length
+      ? '\n\nKey responsibilities:\n'+taskLines.map(task=>`• ${task}`).join('\n')
+      : '';
+
+    el('description').value=intro+responsibilities;
+    el('description').dispatchEvent(new Event('input'));
+  }
+
+  if(!selectedSkills.size&&skillLines.length){
+    skillLines.forEach(skill=>selectedSkills.add(skill));
+    refreshRoleSuggestions();
+  }
+}
+
+function setupSuggestions(){
+  const titleInput=el('title');
+  const titleBox=el('title-suggestions');
+  const locationInput=el('location');
+  const locationBox=el('location-suggestions');
+
+  async function runTitleSearch(){
+    clearMessage();
+    const query=titleInput.value.trim();
+    selectedOnetCode='';
+
+    if(query.length<2){
+      closeSuggestionBox(titleBox);
+      return;
+    }
+
+    titleBox.innerHTML='<div class="suggest-empty">Searching job titles…</div>';
+    titleBox.classList.add('show');
+
+    const rows=await searchJobTitleCatalog(query);
+
+    if(titleInput.value.trim()!==query)return;
+
+    renderCatalogResults(titleBox,rows,row=>{
+      titleInput.value=row.job_title;
+      selectedOnetCode=row.onet_soc_code||'';
+      loadOccupationProfile(selectedOnetCode);
+    });
+  }
+
+  async function runLocationSearch(){
+    clearMessage();
+    const query=locationInput.value.trim();
+    selectedLocation=null;
+
+    if(query.length<2){
+      closeSuggestionBox(locationBox);
+      return;
+    }
+
+    locationBox.innerHTML='<div class="suggest-empty">Searching U.S. locations…</div>';
+    locationBox.classList.add('show');
+
+    const rows=await searchLocationCatalog(query);
+
+    if(locationInput.value.trim()!==query)return;
+
+    renderCatalogResults(locationBox,rows,row=>{
+      locationInput.value=row.display_name;
+      selectedLocation=row;
+    });
+  }
+
+  titleInput.addEventListener('input',()=>{
+    clearTimeout(titleSearchTimer);
+    titleSearchTimer=setTimeout(runTitleSearch,250);
+    refreshRoleSuggestions();
+  });
+
+  titleInput.addEventListener('focus',()=>{
+    if(titleInput.value.trim().length>=2)runTitleSearch();
+  });
+
+  titleInput.addEventListener('blur',()=>{
+    setTimeout(()=>closeSuggestionBox(titleBox),160);
+  });
+
+  locationInput.addEventListener('input',()=>{
+    clearTimeout(locationSearchTimer);
+    locationSearchTimer=setTimeout(runLocationSearch,250);
+  });
+
+  locationInput.addEventListener('focus',()=>{
+    if(locationInput.value.trim().length>=2)runLocationSearch();
+  });
+
+  locationInput.addEventListener('blur',()=>{
+    setTimeout(()=>closeSuggestionBox(locationBox),160);
+  });
+
+  renderBenefitSuggestions();
+  refreshRoleSuggestions();
+}
+
+
+async function resolveCompanyLive(){
+  try{
+    if(!session?.access_token)return null;
+
+    const response=await fetch(
+      'https://alygnn.com/api/company/resolve-company',
+      {
+        method:'GET',
+        headers:{
+          Authorization:'Bearer '+session.access_token
+        },
+        cache:'no-store'
+      }
+    );
+
+    const result=await response.json().catch(()=>({}));
+
+    if(!response.ok||!result?.company){
+      console.warn('Live company lookup failed:',response.status,result);
+      return null;
+    }
+
+    console.log('LIVE COMPANY STATUS:',result.company);
+    return result.company;
+  }catch(error){
+    console.warn('Could not resolve live company:',error);
+    return null;
+  }
+}
+
+const el = id => document.getElementById(id);
+function escapeHtml(value){
+  return String(value||'').replace(/[&<>"']/g,char=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  })[char]);
+}
+
+
+function showMessage(text,type='error'){
+  const box = el('message');
+  box.textContent = text;
+  box.className = 'message ' + type;
+}
+
+function clearMessage(){
+  el('message').className = 'message';
+  el('message').textContent = '';
+}
+
+function hideLoading(){
+  el('loading').hidden = true;
+}
+
+function choose(containerId, callback){
+  el(containerId).addEventListener('click', event => {
+    const button = event.target.closest('.choice');
+    if(!button) return;
+    el(containerId).querySelectorAll('.choice').forEach(item => item.classList.remove('active'));
+    button.classList.add('active');
+    callback(button.dataset.value);
+  });
+}
+
+choose('job-type-options', value => jobType = value);
+choose('work-style-options', value => workStyle = value);
+
+
+function roundedPay(value,period){
+  const number=Number(value);
+  if(!Number.isFinite(number))return null;
+
+  if(period==='hour')return Math.round(number*2)/2;
+  if(period==='week')return Math.round(number/50)*50;
+  if(period==='month')return Math.round(number/100)*100;
+  return Math.round(number/1000)*1000;
+}
+
+function salaryValuesForPeriod(profile,period){
+  if(period==='hour'){
+    return {
+      min:roundedPay(profile.hourly_25,'hour'),
+      median:roundedPay(profile.hourly_median,'hour'),
+      max:roundedPay(profile.hourly_75,'hour')
+    };
+  }
+
+  const annual25=Number(profile.annual_25);
+  const annualMedian=Number(profile.annual_median);
+  const annual75=Number(profile.annual_75);
+
+  if(![annual25,annual75].every(Number.isFinite))return null;
+
+  if(period==='week'){
+    return {
+      min:roundedPay(annual25/52,'week'),
+      median:roundedPay(annualMedian/52,'week'),
+      max:roundedPay(annual75/52,'week')
+    };
+  }
+
+  if(period==='month'){
+    return {
+      min:roundedPay(annual25/12,'month'),
+      median:roundedPay(annualMedian/12,'month'),
+      max:roundedPay(annual75/12,'month')
+    };
+  }
+
+  return {
+    min:roundedPay(annual25,'year'),
+    median:roundedPay(annualMedian,'year'),
+    max:roundedPay(annual75,'year')
+  };
+}
+
+function marketPayLabel(value,period){
+  if(value===null||value===undefined)return'';
+  const maximumFractionDigits=period==='hour'?2:0;
+  return Number(value).toLocaleString('en-US',{
+    style:'currency',
+    currency:'USD',
+    minimumFractionDigits:0,
+    maximumFractionDigits
+  });
+}
+
+async function suggestMarketPay(){
+  clearMessage();
+
+  if(!selectedOnetCode){
+    showMessage('Select a suggested job title first so Alygnn can match the correct occupation.');
+    showStep(1);
+    el('title').focus();
+    return;
+  }
+
+  const button=el('suggest-pay-btn');
+  button.disabled=true;
+  button.textContent='Finding market pay…';
+
+  const locationType=selectedLocation?.location_type||'';
+  const stateCode=
+    locationType==='remote'
+      ? null
+      : (selectedLocation?.state_code||null);
+
+  const areaCode=
+    locationType==='metro'
+      ? (selectedLocation?.source_id||null)
+      : null;
+
+  const {data,error}=await sb.rpc('suggest_market_pay',{
+    occupation_code_input:selectedOnetCode,
+    state_code_input:stateCode,
+    area_code_input:areaCode
+  });
+
+  button.disabled=false;
+  button.textContent='✨ Suggest market pay';
+
+  if(error){
+    console.error('Market-pay suggestion failed:',error);
+    showMessage(`Market pay is unavailable: ${error.message||'database error'}`);
+    return;
+  }
+
+  const profile=Array.isArray(data)?data[0]:data;
+
+  if(!profile){
+    showMessage('No reliable wage estimate was available for this occupation. Enter the range manually.');
+    return;
+  }
+
+  const period=el('pay-period').value;
+  const values=salaryValuesForPeriod(profile,period);
+
+  if(!values||values.min===null||values.max===null){
+    showMessage('This occupation does not have a usable range for the selected pay period.');
+    return;
+  }
+
+  el('pay-min').value=values.min;
+  el('pay-max').value=values.max;
+
+  const periodText={
+    hour:'hour',
+    week:'week',
+    month:'month',
+    year:'year'
+  }[period];
+
+  el('market-pay-range').textContent=
+    `${marketPayLabel(values.min,period)}–${marketPayLabel(values.max,period)} per ${periodText}`;
+
+  const sourceLabel={
+    metro:'metro-area',
+    state:'state',
+    national:'national'
+  }[profile.geographic_level]||profile.geographic_level;
+
+  el('market-pay-note').textContent=
+    `Based on the ${profile.source_year} BLS OEWS ${sourceLabel} estimate for ${profile.occupation_title} in ${profile.area_title}. This is guidance, not a required rate.`;
+
+  el('market-pay-card').hidden=false;
+  showMessage('The suggested range was added. You can edit it before publishing.','success');
+}
+
+function buildSalary(){
+  const min = Number(el('pay-min').value);
+  const max = Number(el('pay-max').value);
+  const periodLabels = {hour:'hour',year:'year',week:'week',month:'month'};
+
+  if(!min || !max) return '';
+  return `$${min.toLocaleString()} - $${max.toLocaleString()} per ${periodLabels[el('pay-period').value]}`;
+}
+
+function getJob(){
+  return {
+    title: el('title').value.trim(),
+    company:
+      currentCompany?.company_name ||
+      currentCompany?.legal_name ||
+      currentCompany?.name ||
+      profile?.company_name ||
+      session?.user?.user_metadata?.company_name ||
+      '',
+    location: el('location').value.trim(),
+    job_type: jobType,
+    work_style: workStyle,
+    salary: buildSalary(),
+    description: el('description').value.trim(),
+    requirements: el('requirements').value.trim(),
+    benefits: el('benefits').value.trim(),
+    onet_soc_code: selectedOnetCode || null,
+    location_city: selectedLocation?.city || null,
+    location_state: selectedLocation?.state_code || null,
+    location_postal_code: selectedLocation?.postal_code || null,
+    location_latitude: selectedLocation?.latitude ?? null,
+    location_longitude: selectedLocation?.longitude ?? null
+  };
+}
+
+function validateStep(step){
+  const job = getJob();
+
+  if(step === 1){
+    if(job.title.length < 3 || !/[a-z]/i.test(job.title)){
+      return 'Enter a real job title.';
+    }
+    if(job.location.length < 3){
+      return 'Enter a valid job location.';
+    }
+  }
+
+  if(step === 3){
+    const min = Number(el('pay-min').value);
+    const max = Number(el('pay-max').value);
+    if(!min || !max || min <= 0 || max <= 0){
+      return 'Enter both the minimum and maximum pay.';
+    }
+    if(max < min){
+      return 'Maximum pay cannot be lower than minimum pay.';
+    }
+  }
+
+  if(step === 4){
+    if(job.description.length < 180){
+      return 'The job description must be at least 180 characters.';
+    }
+    if(!selectedSkills.size){
+      return 'Select at least one required skill.';
+    }
+    if(!selectedBenefits.size){
+      return 'Select at least one benefit.';
+    }
+  }
+
+  return '';
+}
+
+function updatePreview(){
+  const job = getJob();
+  el('pv-title').textContent = job.title || 'Untitled position';
+  el('pv-company').textContent = job.company || 'Company';
+  el('pv-meta').textContent = [job.location,job.job_type,job.work_style].filter(Boolean).join(' · ');
+  el('pv-pay').textContent = job.salary || 'Pay not entered';
+  el('pv-description').textContent = job.description || 'No description entered';
+  el('pv-requirements').textContent = job.requirements || 'No requirements entered';
+  el('pv-benefits').textContent = job.benefits || 'No benefits entered';
+}
+
+function showStep(step){
+  currentStep = step;
+  document.querySelectorAll('.step').forEach(section => {
+    section.classList.toggle('active', Number(section.dataset.step) === step);
+  });
+
+  const copy = stepCopy[step];
+  el('step-label').textContent = `Step ${step} of 5`;
+  el('step-name').textContent = copy[0];
+  el('heading').textContent = copy[1];
+  el('subheading').textContent = copy[2];
+  el('progress-bar').style.width = `${step * 20}%`;
+  el('previous-btn').textContent = step === 1 ? 'Cancel' : 'Back';
+  el('next-btn').textContent = step === 5 ? 'Preview as Candidate' : 'Continue';
+
+  if(step === 5) updatePreview();
+  clearMessage();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function saveCurrentJobDraft(){
+  if(!session?.user)return;
+
+  const job=getJob();
+  const metadata=session.user.user_metadata||{};
+  const aiProfile=metadata.employer_ai_profile||{};
+
+  const draft={
+    ...job,
+    employer_id:session.user.id,
+    company_id:currentCompanyId||null,
+    company_logo:profile?.company_logo||profile?.logo_url||localStorage.getItem('companyLogo')||'',
+    company_headline:profile?.company_headline||'',
+    company_website:
+      aiProfile.website ||
+      currentCompany?.website ||
+      profile?.company_website ||
+      '',
+    pay_period:el('pay-period').value,
+    pay_min:Number(el('pay-min').value)||null,
+    pay_max:Number(el('pay-max').value)||null,
+    employer_verified:employerVerified,
+    verification_status:verificationStatus,
+    created_at:new Date().toISOString()
+  };
+
+  sessionStorage.setItem('alygnnJobDraft',JSON.stringify(draft));
+}
+
+function saveDraftAndOpenPreview(){
+  if(!aiProfileComplete){
+    showMessage('Complete your Company AI Profile before previewing this job.');
+    el('verification-lock').textContent=
+      'Complete your Company AI Profile before publishing a job.';
+    el('verification-lock').hidden=false;
+    el('company-ai-link').hidden=false;
+    return;
+  }
+
+  saveCurrentJobDraft();
+  location.href='app-job-preview.html';
+}
+
+function restoreDraft(){
+  const raw = sessionStorage.getItem('alygnnJobDraft');
+  if(!raw) return;
+
+  try{
+    const draft = JSON.parse(raw);
+    if(draft.title) el('title').value = draft.title;
+    if(draft.location) el('location').value = draft.location;
+    if(draft.description) el('description').value = draft.description;
+
+    selectedSkills.clear();
+    String(draft.requirements||'')
+      .split('\n')
+      .map(value=>value.trim())
+      .filter(Boolean)
+      .forEach(value=>selectedSkills.add(value));
+
+    selectedBenefits.clear();
+    String(draft.benefits||'')
+      .split('\n')
+      .map(value=>value.trim())
+      .filter(Boolean)
+      .forEach(value=>selectedBenefits.add(value));
+
+    if(draft.pay_period) el('pay-period').value = draft.pay_period;
+    if(draft.pay_min != null) el('pay-min').value = draft.pay_min;
+    if(draft.pay_max != null) el('pay-max').value = draft.pay_max;
+
+    if(draft.job_type){
+      jobType = draft.job_type;
+      document.querySelectorAll('#job-type-options .choice').forEach(button => {
+        button.classList.toggle('active', button.dataset.value === jobType);
+      });
+    }
+
+    if(draft.work_style){
+      workStyle = draft.work_style;
+      document.querySelectorAll('#work-style-options .choice').forEach(button => {
+        button.classList.toggle('active', button.dataset.value === workStyle);
+      });
+    }
+
+    selectedOnetCode = draft.onet_soc_code || '';
+    selectedLocation = draft.location_city ? {
+      city: draft.location_city,
+      state_code: draft.location_state || null,
+      postal_code: draft.location_postal_code || null,
+      latitude: draft.location_latitude ?? null,
+      longitude: draft.location_longitude ?? null
+    } : null;
+
+    el('description-count').textContent = el('description').value.length;
+    refreshRoleSuggestions();
+    renderBenefitSuggestions();
+    syncSelectedValues();
+  }catch(error){
+    console.warn('Could not restore saved job draft:', error);
+  }
+}
+
+el('next-btn').addEventListener('click', async () => {
+  clearMessage();
+
+  if(currentStep < 5){
+    const error = validateStep(currentStep);
+    if(error){
+      showMessage(error);
+      return;
+    }
+    showStep(currentStep + 1);
+    return;
+  }
+
+  saveDraftAndOpenPreview();
+});
+
+el('previous-btn').addEventListener('click', () => {
+  if(currentStep === 1){
+    location.href = 'app-employer-dashboard.html';
+  }else{
+    showStep(currentStep - 1);
+  }
+});
+
+el('back-btn').addEventListener('click', () => {
+  if(currentStep === 1) location.href = 'app-employer-dashboard.html';
+  else showStep(currentStep - 1);
+});
+
+el('company-ai-link').addEventListener('click',()=>{
+  saveCurrentJobDraft();
+
+  if(aiProfileComplete){
+    if(currentCompanyId){
+      localStorage.setItem('alygnn_company_id',currentCompanyId);
+    }
+
+    const params=new URLSearchParams({
+      return_to:'app-post-job.html'
+    });
+    if(currentCompanyId)params.set('company_id',currentCompanyId);
+
+    location.href=
+      'app-employer-document-upload.html' +
+      (params.toString()?`?${params.toString()}`:'');
+    return;
+  }
+
+  sessionStorage.setItem('alygnnAiProfileReturnTo','app-post-job.html');
+  const params=new URLSearchParams({
+    return_to:'app-post-job.html'
+  });
+  if(currentCompanyId)params.set('company_id',currentCompanyId);
+  location.href=`app-employer-ai-profile.html?${params.toString()}`;
+});
+
+
+el('use-role-data-btn').addEventListener('click',()=>{
+  if(!currentOccupationProfile){
+    showMessage('Choose a suggested job title first so Alygnn can load verified occupation data.');
+    return;
+  }
+
+  applyOccupationProfileToForm();
+  showMessage(
+    'Role-specific responsibilities were added and matching skill buttons were selected. Review them before publishing.',
+    'success'
+  );
+});
+
+
+el('suggest-pay-btn').addEventListener('click',suggestMarketPay);
+
+el('pay-period').addEventListener('change',()=>{
+  el('market-pay-card').hidden=true;
+});
+
+el('description').addEventListener('input', () => {
+  el('description-count').textContent = el('description').value.length;
+});
+
+(async function init(){
+  try{
+    const {data:sessionData,error:sessionError}=await sb.auth.getSession();
+
+    if(sessionError||!sessionData.session){
+      location.replace('app-employer-login.html');
+      return;
+    }
+
+    session=sessionData.session;
+
+    // Refresh the Auth user so recently saved Company AI Profile metadata is
+    // available immediately instead of using a stale cached session object.
+    const {data:userData,error:userError}=await sb.auth.getUser();
+    if(!userError&&userData?.user){
+      session={...session,user:userData.user};
+    }
+
+    const userId=session.user.id;
+
+    // Use the server-resolved company as the source of truth for
+    // approval / pending / rejected / deactivated status.
+    const liveCompany=await resolveCompanyLive();
+
+    const [
+      profileResult,
+      verificationResult,
+      membershipResult
+    ]=await Promise.all([
+      sb.from('profiles').select('*').eq('id',userId).maybeSingle(),
+      sb.from('employer_verifications').select('*').eq('user_id',userId).maybeSingle(),
+      sb.from('company_members')
+        .select('company_id,companies(*)')
+        .eq('user_id',userId)
+        .eq('membership_status','active')
+        .limit(1)
+        .maybeSingle()
+    ]);
+
+    if(profileResult.error)console.warn('Profile load failed:',profileResult.error);
+    if(verificationResult.error)console.warn('Verification load failed:',verificationResult.error);
+    if(membershipResult.error)console.warn('Company membership load failed:',membershipResult.error);
+
+    profile=profileResult.data||{};
+    const verification=verificationResult.data||{};
+    const membership=membershipResult.data||null;
+
+    currentCompanyId=
+      liveCompany?.id ||
+      membership?.company_id ||
+      verification.company_id ||
+      sessionStorage.getItem('alygnn_company_id') ||
+      '';
+
+    currentCompany=membership
+      ? (Array.isArray(membership.companies)?membership.companies[0]:membership.companies)
+      : null;
+
+    if(liveCompany){
+      currentCompany={
+        ...(currentCompany||{}),
+        id:liveCompany.id||currentCompany?.id||currentCompanyId,
+        company_name:
+          liveCompany.name ||
+          currentCompany?.company_name ||
+          currentCompany?.legal_name ||
+          currentCompany?.name ||
+          null,
+        verification_status:
+          liveCompany.verificationStatus ||
+          currentCompany?.verification_status ||
+          null,
+        account_status:
+          liveCompany.accountStatus ||
+          currentCompany?.account_status ||
+          'active',
+        website:liveCompany.website||currentCompany?.website||'',
+        business_phone:liveCompany.businessPhone||currentCompany?.business_phone||'',
+        industry:liveCompany.industry||currentCompany?.industry||'',
+        company_size:liveCompany.companySize||currentCompany?.company_size||'',
+        headquarters:liveCompany.headquarters||currentCompany?.headquarters||''
+      };
+    }
+
+    if(currentCompanyId){
+      localStorage.setItem('alygnn_company_id',currentCompanyId);
+      sessionStorage.setItem('alygnn_company_id',currentCompanyId);
+    }
+
+    let verificationDocument=null;
+
+    if(currentCompanyId){
+      const {data:document,error:documentError}=await sb
+        .from('employer_verification_documents')
+        .select('id,review_status,created_at')
+        .eq('company_id',currentCompanyId)
+        .order('created_at',{ascending:false})
+        .limit(1)
+        .maybeSingle();
+
+      if(documentError){
+        console.warn('Verification document load failed:',documentError);
+      }else{
+        verificationDocument=document||null;
+      }
+    }
+
+    verificationDocumentSubmitted=Boolean(verificationDocument);
+
+    const metadata=session.user.user_metadata||{};
+    const savedAiProfile=metadata.employer_ai_profile||{};
+    const completedCompanyId=String(metadata.employer_ai_profile_complete_company_id||'');
+    const currentId=String(currentCompanyId||'');
+
+    aiProfileComplete=Boolean(
+      verification.profile_complete ||
+      (
+        metadata.employer_ai_profile_complete===true &&
+        (
+          !completedCompanyId ||
+          !currentId ||
+          completedCompanyId===currentId
+        )
+      ) ||
+      savedAiProfile.profile_complete===true
+    );
+
+    const storedVerificationStatus=String(
+      liveCompany?.verificationStatus ||
+      currentCompany?.verification_status ||
+      verification.verification_status ||
+      profile.verification_status ||
+      'not_submitted'
+    ).toLowerCase();
+
+    employerVerified=
+      storedVerificationStatus==='approved' ||
+      profile.employer_verified===true;
+
+    localStorage.setItem(
+      'alygnn_employer_verification_status',
+      storedVerificationStatus
+    );
+
+    console.log(
+      'POST JOB VERIFICATION STATUS:',
+      {
+        liveStatus:liveCompany?.verificationStatus||null,
+        companyStatus:currentCompany?.verification_status||null,
+        verificationRowStatus:verification.verification_status||null,
+        profileStatus:profile.verification_status||null,
+        effectiveStatus:storedVerificationStatus
+      }
+    );
+
+    if(employerVerified){
+      verificationStatus='approved';
+    }else if(!verificationDocumentSubmitted){
+      // A newly created company may default to pending_review in the database.
+      // It is not truly pending until a verification document has been uploaded.
+      verificationStatus='not_submitted';
+    }else if(
+      storedVerificationStatus==='rejected' ||
+      String(verificationDocument?.review_status||'').toLowerCase()==='rejected'
+    ){
+      verificationStatus='rejected';
+    }else{
+      verificationStatus='pending_review';
+    }
+
+    const companyName=
+      currentCompany?.company_name ||
+      currentCompany?.legal_name ||
+      currentCompany?.name ||
+      verification.company_name ||
+      savedAiProfile.company_name ||
+      metadata.onboarding_company_profile?.company_name ||
+      profile.company_name ||
+      metadata.company_name ||
+      'Your company';
+
+    el('company-name').textContent=companyName;
+
+    const aiButton=el('company-ai-link');
+    const lock=el('verification-lock');
+
+    if(!aiProfileComplete){
+      aiButton.textContent='Complete Company AI Profile';
+      aiButton.hidden=false;
+      lock.textContent='Complete your Company AI Profile before publishing a job.';
+      lock.hidden=false;
+    }else if(employerVerified){
+      aiButton.hidden=true;
+      lock.hidden=true;
+    }else if(verificationStatus==='not_submitted'){
+      aiButton.textContent='Verify Company';
+      aiButton.hidden=false;
+      lock.textContent=
+        'Your AI Profile is complete. Verify your company by uploading an official business document before this job can be published.';
+      lock.hidden=false;
+    }else if(verificationStatus==='rejected'){
+      aiButton.textContent='Resubmit Company Verification';
+      aiButton.hidden=false;
+      lock.textContent=
+        'Your company verification needs attention. Upload a corrected business document before this job can be published.';
+      lock.hidden=false;
+    }else{
+      aiButton.hidden=true;
+      lock.textContent=
+        'Your company verification is pending. You can finish this job draft while Alygnn reviews it.';
+      lock.hidden=false;
+    }
+
+    setupSuggestions();
+
+    // If the employer came back from Candidate Preview to edit,
+    // restore the saved draft and reopen the final review step
+    // instead of restarting at Step 1.
+    const returnStep=Number(
+      sessionStorage.getItem('alygnnJobReturnStep') || '1'
+    );
+
+    restoreDraft();
+
+    showStep(
+      Number.isFinite(returnStep) &&
+      returnStep>=1 &&
+      returnStep<=5
+        ? returnStep
+        : 1
+    );
+
+    sessionStorage.removeItem('alygnnJobReturnStep');
+  }catch(error){
+    console.error(error);
+    showMessage('Could not prepare the job form. Please return to the dashboard and try again.');
+  }finally{
+    hideLoading();
+  }
+})();
+</script>
+</body>
+</html>

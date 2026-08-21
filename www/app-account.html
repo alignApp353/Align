@@ -1,49 +1,4699 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alygnn My Profile</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F5F8F8">
+<title>Alygnn | Candidate Profile</title>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+
 <style>
-:root{--brand:#5D7FA3;--bg:#05080D;--card-bg:rgba(18,24,36,.94);--text:#FFFFFF;--border:rgba(255,255,255,.12);--text-muted:#A7B0BC;--mint:#6FBF8F;--rose:#D79A9A;}body.light{--bg:#F6F8F7;--card-bg:#FFFFFF;--text:#1A2530;--border:#DDE3E8;--text-muted:#4A5968;}*{box-sizing:border-box;font-family:'DM Sans',Arial,sans-serif!important;}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,rgba(93,127,163,.25),transparent 35%),var(--bg);color:var(--text)}.screen{min-height:100vh;max-width:520px;margin:auto;padding:28px 22px 100px}.logo{font-size:36px;font-weight:900;color:var(--brand)}.title{margin-top:28px;font-size:38px;font-weight:900}.subtitle{color:var(--text-muted);margin-top:8px;font-size:16px;line-height:1.5}.card{margin-top:18px;background:var(--card-bg);border:1px solid var(--border);border-radius:28px;padding:22px;box-shadow:0 18px 50px rgba(0,0,0,.25)}.profile-row{display:flex;align-items:center;gap:16px}.avatar{width:72px;height:72px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900}.name{font-size:22px;font-weight:900}.meta{color:var(--text-muted);margin-top:4px}.card-title{font-size:20px;font-weight:900;margin-bottom:8px}.card-sub{color:var(--text-muted);font-size:15px;line-height:1.5}.progress{margin-top:18px}.progress-top{display:flex;justify-content:space-between;font-weight:900;margin-bottom:10px}.bar{height:10px;background:rgba(93,127,163,.2);border-radius:999px;overflow:hidden}.fill{width:50%;height:100%;background:var(--brand)}.checklist{margin-top:16px;display:grid;gap:10px;color:var(--text-muted);font-weight:700}.good{color:var(--mint)}.warn{color:#F5A623}.btn{width:100%;min-height:58px;margin-top:14px;border-radius:20px;border:none;font-size:18px;font-weight:900;cursor:pointer;transition:.2s ease}.btn:active{transform:scale(.98)}.primary{background:var(--brand);color:white}.menu{display:grid;gap:12px;margin-top:14px}.menu-item{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:20px;padding:18px;color:var(--text);font-weight:800;display:flex;justify-content:space-between;align-items:center;cursor:pointer}.logout{color:var(--rose);text-align:center;margin:28px 0 10px;font-weight:900;cursor:pointer}.bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:auto;background:var(--card-bg);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:12px 10px 20px}.nav-item{color:var(--text-muted);font-size:13px;font-weight:800;text-align:center;cursor:pointer}.nav-item.active{color:var(--brand)}
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:'DM Sans',Arial,sans-serif!important;
+}
+
+:root{
+  --brand:#5D7FA3;
+  --brand-dark:#35679A;
+  --brand-soft:#EAF2F8;
+  --sage:#8CB69B;
+  --sage-soft:#E8F4EC;
+  --bg:#F5F8F8;
+  --card:#FFFFFF;
+  --text:#172333;
+  --muted:#66788A;
+  --border:#DCE5EB;
+  --soft:#F0F4F6;
+  --amber:#A06C12;
+  --amber-soft:#FFF3DF;
+  --rose:#B95D5D;
+  --rose-soft:#FDEEEE;
+  --shadow:0 14px 38px rgba(23,35,51,.055);
+}
+
+html,body{
+  width:100%;
+  min-height:100%;
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparent 27%),
+    var(--bg);
+  color:var(--text);
+  padding-bottom:calc(88px + env(safe-area-inset-bottom));
+}
+
+button{
+  font:inherit;
+  cursor:pointer;
+}
+
+[hidden]{display:none!important}
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+.app-header{
+  position:sticky;
+  top:0;
+  z-index:40;
+  min-height:86px;
+  display:grid;
+  grid-template-columns:46px 1fr 46px;
+  align-items:center;
+  padding:calc(12px + env(safe-area-inset-top)) 18px 12px;
+  background:rgba(245,248,248,.96);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+
+.header-spacer{
+  width:42px;
+  height:42px;
+}
+
+.logo{
+  text-align:center;
+  color:var(--brand);
+  font-family:'DM Serif Display',Georgia,serif!important;
+  font-size:31px;
+  line-height:1;
+}
+
+.logo span{
+  color:var(--sage);
+}
+
+.settings-shortcut{
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:#fff;
+  color:var(--brand-dark);
+  box-shadow:0 7px 20px rgba(23,35,51,.045);
+  font-size:18px;
+}
+
+/* =====================================================
+   PAGE
+===================================================== */
+
+.page{
+  width:100%;
+  max-width:560px;
+  margin:0 auto;
+  padding:28px 18px 34px;
+}
+
+.eyebrow{
+  color:var(--brand-dark);
+  font-size:11px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:1.35px;
+  text-transform:uppercase;
+}
+
+.greeting{
+  margin-top:10px;
+  font-size:34px;
+  line-height:1.08;
+  letter-spacing:-.75px;
+  font-weight:900;
+}
+
+.lead{
+  margin-top:9px;
+  max-width:440px;
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.6;
+}
+
+/* =====================================================
+   HERO
+===================================================== */
+
+.hero{
+  position:relative;
+  overflow:hidden;
+  margin-top:24px;
+  min-height:245px;
+  padding:24px;
+  border-radius:30px;
+  background:
+    linear-gradient(135deg,#35679A 0%,#5D89B4 78%,#6C94B8 100%);
+  color:#fff;
+  box-shadow:0 18px 44px rgba(53,103,154,.16);
+}
+
+.hero:after{
+  content:'';
+  position:absolute;
+  right:-52px;
+  bottom:-72px;
+  width:190px;
+  height:190px;
+  border-radius:50%;
+  background:rgba(255,255,255,.08);
+}
+
+.hero-top{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+}
+
+.hero-label{
+  color:rgba(255,255,255,.82);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+}
+
+.hero-title{
+  margin-top:10px;
+  max-width:330px;
+  font-size:28px;
+  line-height:1.14;
+  letter-spacing:-.6px;
+  font-weight:900;
+}
+
+.score-box{
+  flex:0 0 94px;
+  width:94px;
+  min-height:104px;
+  padding:14px 10px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:22px;
+  background:rgba(255,255,255,.12);
+  backdrop-filter:blur(10px);
+}
+
+.score-value{
+  font-size:26px;
+  line-height:1;
+  font-weight:900;
+}
+
+.score-label{
+  margin-top:7px;
+  color:rgba(255,255,255,.82);
+  font-size:8px;
+  line-height:1.2;
+  text-align:center;
+  text-transform:uppercase;
+  font-weight:900;
+  letter-spacing:.55px;
+}
+
+.hero-progress{
+  position:relative;
+  z-index:2;
+  margin-top:22px;
+}
+
+.hero-progress-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:8px;
+  color:rgba(255,255,255,.9);
+  font-size:10px;
+  font-weight:800;
+}
+
+.hero-bar{
+  height:8px;
+  overflow:hidden;
+  border-radius:999px;
+  background:rgba(255,255,255,.22);
+}
+
+.hero-fill{
+  width:0;
+  height:100%;
+  border-radius:999px;
+  background:#fff;
+  transition:width .35s ease;
+}
+
+.hero-actions{
+  position:relative;
+  z-index:2;
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:20px;
+}
+
+.hero-btn{
+  min-height:48px;
+  padding:0 18px;
+  border-radius:15px;
+  font-size:12px;
+  font-weight:900;
+}
+
+.hero-btn.primary{
+  border:none;
+  background:#fff;
+  color:var(--brand-dark);
+}
+
+.hero-btn.secondary{
+  border:1px solid rgba(255,255,255,.28);
+  background:rgba(255,255,255,.08);
+  color:#fff;
+}
+
+/* =====================================================
+   QUICK CARDS
+===================================================== */
+
+.section{
+  margin-top:24px;
+}
+
+.section-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.section-title{
+  font-size:19px;
+  font-weight:900;
+  letter-spacing:-.2px;
+}
+
+.section-link{
+  border:none;
+  background:transparent;
+  color:var(--brand-dark);
+  font-size:11px;
+  font-weight:900;
+}
+
+.quick-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.quick-card{
+  min-height:154px;
+  padding:17px;
+  border:1px solid var(--border);
+  border-radius:24px;
+  background:#fff;
+  box-shadow:var(--shadow);
+}
+
+.quick-icon{
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:14px;
+  background:var(--brand-soft);
+  color:var(--brand-dark);
+  font-size:18px;
+  font-weight:900;
+}
+
+.quick-icon.green{
+  background:var(--sage-soft);
+  color:#32935D;
+}
+
+.quick-icon.amber{
+  background:var(--amber-soft);
+  color:var(--amber);
+}
+
+.quick-icon.gray{
+  background:#EFF2F4;
+  color:#6E7A86;
+}
+
+.quick-label{
+  margin-top:14px;
+  color:#47596D;
+  font-size:11px;
+  font-weight:800;
+}
+
+.quick-value{
+  margin-top:5px;
+  font-size:23px;
+  line-height:1.1;
+  font-weight:900;
+}
+
+.quick-note{
+  margin-top:7px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.4;
+  font-weight:700;
+}
+
+/* =====================================================
+   PROFILE CARD
+===================================================== */
+
+.profile-card,
+.setup-card,
+.account-card{
+  padding:20px;
+  border:1px solid var(--border);
+  border-radius:26px;
+  background:#fff;
+  box-shadow:var(--shadow);
+}
+
+.profile-top{
+  display:flex;
+  align-items:center;
+  gap:15px;
+}
+
+.avatar{
+  width:66px;
+  height:66px;
+  flex:0 0 66px;
+  display:grid;
+  place-items:center;
+  border-radius:21px;
+  background:linear-gradient(145deg,#6D93B8,#527AA2);
+  color:#fff;
+  font-size:22px;
+  font-weight:900;
+}
+
+.profile-copy{
+  min-width:0;
+  flex:1;
+}
+
+.profile-name{
+  font-size:20px;
+  line-height:1.15;
+  font-weight:900;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.profile-meta{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.45;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+
+/* =====================================================
+   SETUP
+===================================================== */
+
+.setup-intro{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+}
+
+.setup-list{
+  display:grid;
+  gap:10px;
+  margin-top:16px;
+}
+
+.setup-item{
+  width:100%;
+  min-height:68px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:13px 14px;
+  border:1px solid var(--border);
+  border-radius:17px;
+  background:#FAFCFD;
+  color:var(--text);
+  text-align:left;
+}
+
+.setup-item.done{
+  background:#FAFCFB;
+}
+
+.setup-status{
+  width:36px;
+  height:36px;
+  flex:0 0 36px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:var(--amber-soft);
+  color:var(--amber);
+  font-size:14px;
+  font-weight:900;
+}
+
+.setup-item.done .setup-status{
+  background:var(--sage-soft);
+  color:#33945E;
+}
+
+.setup-text{
+  min-width:0;
+  flex:1;
+}
+
+.setup-text strong{
+  display:block;
+  font-size:12px;
+  line-height:1.3;
+}
+
+.setup-text span{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:9.5px;
+  line-height:1.35;
+}
+
+.setup-arrow{
+  color:#8B9BAB;
+  font-size:18px;
+  font-weight:700;
+}
+
+/* =====================================================
+   ACCOUNT
+===================================================== */
+
+.account-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  min-height:60px;
+  border:none;
+  background:transparent;
+  color:var(--text);
+  text-align:left;
+}
+
+.account-row + .account-row{
+  border-top:1px solid var(--border);
+}
+
+.account-row-icon{
+  width:38px;
+  height:38px;
+  flex:0 0 38px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:var(--soft);
+  color:var(--brand-dark);
+  font-size:15px;
+}
+
+.account-row-copy{
+  flex:1;
+}
+
+.account-row-copy strong{
+  display:block;
+  font-size:12px;
+}
+
+.account-row-copy span{
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:9px;
+}
+
+.account-row.logout{
+  color:var(--rose);
+}
+
+.account-row.logout .account-row-icon{
+  color:var(--rose);
+  background:var(--rose-soft);
+}
+
+/* =====================================================
+   BOTTOM NAV
+===================================================== */
+
+.bottom-nav{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:50;
+  max-width:560px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  padding:8px 12px calc(10px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--border);
+  background:rgba(255,255,255,.97);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+
+.nav-item{
+  position:relative;
+  min-height:54px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  border:none;
+  background:transparent;
+  color:#738394;
+  font-size:9px;
+  font-weight:800;
+}
+
+.nav-item.active{
+  color:var(--brand-dark);
+}
+
+.nav-item.active:before{
+  content:'';
+  position:absolute;
+  top:-9px;
+  width:34px;
+  height:3px;
+  border-radius:999px;
+  background:var(--brand-dark);
+}
+
+.nav-icon{
+  font-size:17px;
+  line-height:1;
+}
+
+/* =====================================================
+   LOADING
+===================================================== */
+
+.loading{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  display:grid;
+  place-items:center;
+  background:rgba(245,248,248,.98);
+}
+
+.spinner{
+  width:42px;
+  height:42px;
+  border:4px solid #E0E7EB;
+  border-top-color:var(--brand-dark);
+  border-radius:50%;
+  animation:spin .75s linear infinite;
+}
+
+.loading-text{
+  margin-top:10px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+}
+
+@keyframes spin{
+  to{transform:rotate(360deg)}
+}
+
+@media(max-width:390px){
+  .page{
+    padding-left:14px;
+    padding-right:14px;
+  }
+
+  .greeting{
+    font-size:30px;
+  }
+
+  .hero{
+    padding:20px;
+  }
+
+  .hero-title{
+    font-size:25px;
+  }
+
+  .score-box{
+    flex-basis:86px;
+    width:86px;
+    min-height:96px;
+  }
+}
+
+
+/* Candidate notifications */
+.notification-shortcut{
+  position:relative;
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:#fff;
+  color:var(--brand-dark);
+  box-shadow:0 7px 20px rgba(23,35,51,.045);
+  cursor:pointer;
+}
+
+.notification-shortcut svg{
+  width:19px;
+  height:19px;
+  stroke:currentColor;
+}
+
+.notification-badge{
+  position:absolute;
+  top:-4px;
+  right:-3px;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:2px solid #fff;
+  border-radius:999px;
+  background:#EF4444;
+  color:#fff;
+  font-size:10px;
+  line-height:1;
+  font-weight:900;
+}
+
+.notification-overlay{
+  position:fixed;
+  inset:0;
+  z-index:120;
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+  background:rgba(10,20,31,.48);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+}
+
+.notification-overlay.open{
+  display:flex;
+}
+
+.notification-sheet{
+  width:100%;
+  max-width:560px;
+  max-height:min(74vh,680px);
+  overflow:auto;
+  padding:14px 20px calc(24px + env(safe-area-inset-bottom));
+  border:1px solid var(--border);
+  border-bottom:none;
+  border-radius:30px 30px 0 0;
+  background:#fff;
+  color:var(--text);
+  box-shadow:0 -22px 70px rgba(23,35,51,.18);
+  animation:notificationSheetUp .22s ease-out;
+}
+
+@keyframes notificationSheetUp{
+  from{transform:translateY(24px);opacity:.25}
+  to{transform:translateY(0);opacity:1}
+}
+
+.notification-grabber{
+  width:54px;
+  height:5px;
+  margin:0 auto 18px;
+  border-radius:999px;
+  background:#DCE4EA;
+}
+
+.notification-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+}
+
+.notification-head h2{
+  margin:0;
+  font-size:27px;
+  line-height:1.05;
+  font-weight:900;
+  letter-spacing:-.6px;
+}
+
+.notification-head p{
+  margin:7px 0 0;
+  color:var(--text-muted);
+  font-size:13px;
+  line-height:1.5;
+}
+
+.notification-close{
+  flex:0 0 auto;
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:transparent;
+  color:var(--text);
+  font-size:22px;
+  cursor:pointer;
+}
+
+.notification-tools{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:18px 0 6px;
+}
+
+.notification-count-label{
+  color:var(--text-muted);
+  font-size:12px;
+  font-weight:800;
+}
+
+.mark-read-btn{
+  border:0;
+  background:transparent;
+  color:var(--brand-dark);
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.notification-list{
+  display:grid;
+}
+
+.notification-item{
+  position:relative;
+  display:grid;
+  grid-template-columns:48px 1fr auto;
+  gap:12px;
+  align-items:start;
+  padding:17px 0;
+  border-bottom:1px solid var(--border);
+}
+
+.notification-item:last-child{
+  border-bottom:0;
+}
+
+.notification-item.unread::before{
+  content:'';
+  position:absolute;
+  left:-10px;
+  top:29px;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--brand);
+}
+
+.notification-icon{
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:14px;
+  background:#EAF2F9;
+  color:var(--brand-dark);
+  font-size:17px;
+  font-weight:900;
+}
+
+.notification-icon.green{
+  background:#E9F6EE;
+  color:#2F9464;
+}
+
+.notification-icon.amber{
+  background:#FFF3D9;
+  color:#A66C00;
+}
+
+.notification-copy strong{
+  display:block;
+  margin:1px 0 4px;
+  color:var(--text);
+  font-size:14px;
+  line-height:1.35;
+}
+
+.notification-copy span{
+  display:block;
+  color:var(--text-muted);
+  font-size:12px;
+  line-height:1.5;
+}
+
+.notification-time{
+  color:var(--text-muted);
+  font-size:10px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.notification-empty{
+  padding:34px 16px 28px;
+  text-align:center;
+  color:var(--text-muted);
+}
+
+.notification-empty-icon{
+  width:52px;
+  height:52px;
+  margin:0 auto 12px;
+  display:grid;
+  place-items:center;
+  border-radius:18px;
+  background:#EAF2F9;
+  color:var(--brand-dark);
+  font-size:20px;
+}
+
+.notification-empty strong{
+  display:block;
+  margin-bottom:5px;
+  color:var(--text);
+  font-size:15px;
+}
+
+/* Dark mode */
+body[data-theme="dark"] .notification-shortcut,
+body[data-theme="dark"] .notification-sheet{
+  background:#0D1A24;
+  border-color:#253845;
+}
+
+body[data-theme="dark"] .notification-badge{
+  border-color:#0D1A24;
+}
+
+body[data-theme="dark"] .notification-grabber{
+  background:#344753;
+}
+
+body[data-theme="dark"] .notification-close{
+  border-color:#2A3B47;
+}
+
+body[data-theme="dark"] .notification-icon{
+  background:#14293B;
+}
+
+body[data-theme="dark"] .notification-icon.green{
+  background:#123326;
+}
+
+body[data-theme="dark"] .notification-icon.amber{
+  background:#372B12;
+}
+
+/* System dark mode */
+@media (prefers-color-scheme:dark){
+  body[data-theme="system"] .notification-shortcut,
+  body[data-theme="system"] .notification-sheet{
+    background:#0D1A24;
+    border-color:#253845;
+  }
+  body[data-theme="system"] .notification-badge{
+    border-color:#0D1A24;
+  }
+  body[data-theme="system"] .notification-grabber{
+    background:#344753;
+  }
+  body[data-theme="system"] .notification-close{
+    border-color:#2A3B47;
+  }
+  body[data-theme="system"] .notification-icon{
+    background:#14293B;
+  }
+  body[data-theme="system"] .notification-icon.green{
+    background:#123326;
+  }
+  body[data-theme="system"] .notification-icon.amber{
+    background:#372B12;
+  }
+}
+
+@media(max-width:380px){
+  .header-actions{gap:5px}
+  .notification-shortcut{width:39px;height:39px}
+}
+
+
+</style>
+
+<style id="inline-candidate-settings-styles">
+.header-back-inline{
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:#fff;
+  color:var(--text);
+  box-shadow:0 7px 20px rgba(23,35,51,.045);
+  font-size:19px;
+  font-weight:800;
+}
+
+.settings-view{
+  padding-bottom:44px;
+}
+
+.settings-title{
+  margin-top:10px;
+  font-size:34px;
+  line-height:1.08;
+  letter-spacing:-.75px;
+  font-weight:900;
+}
+
+.settings-subtitle{
+  margin-top:9px;
+  max-width:440px;
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.6;
+}
+
+.settings-message{
+  margin-top:18px;
+  padding:14px 16px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#fff;
+  color:var(--text);
+  font-size:11px;
+  line-height:1.45;
+  font-weight:800;
+}
+
+.settings-message.success{
+  background:var(--sage-soft);
+  border-color:#CDE4D5;
+  color:#2F8354;
+}
+
+.settings-message.error{
+  background:var(--rose-soft);
+  border-color:#F1CCCC;
+  color:var(--rose);
+}
+
+.settings-message a{
+  color:var(--brand-dark);
+  font-weight:800;
+  text-decoration:none;
+}
+
+.settings-card{
+  margin-top:18px;
+  padding:20px;
+  border:1px solid var(--border);
+  border-radius:26px;
+  background:#fff;
+  box-shadow:var(--shadow);
+}
+
+.settings-card-title{
+  font-size:18px;
+  line-height:1.2;
+  font-weight:900;
+}
+
+.settings-card-copy{
+  margin-top:7px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.5;
+}
+
+.settings-choice-grid{
+  display:grid;
+  gap:10px;
+  margin-top:16px;
+}
+
+.settings-choice,
+.settings-row{
+  width:100%;
+  min-height:64px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:14px 15px;
+  border:1px solid var(--border);
+  border-radius:17px;
+  background:#FAFCFD;
+  color:var(--text);
+  text-align:left;
+}
+
+.settings-choice.active{
+  border-color:#B7D0E2;
+  background:var(--brand-soft);
+}
+
+.settings-choice > span:first-child,
+.settings-row-copy{
+  min-width:0;
+  flex:1;
+}
+
+.settings-choice strong,
+.settings-row-copy strong{
+  display:block;
+  font-size:12px;
+  line-height:1.3;
+  font-weight:900;
+}
+
+.settings-choice small,
+.settings-row-copy small{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.35;
+  font-weight:700;
+}
+
+.settings-choice-check{
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border-radius:10px;
+  background:#EFF3F6;
+  color:transparent;
+  font-size:13px;
+  font-weight:900;
+}
+
+.settings-choice.active .settings-choice-check{
+  background:#DCEBF6;
+  color:var(--brand-dark);
+}
+
+.settings-input{
+  width:100%;
+  min-height:52px;
+  margin-top:12px;
+  padding:0 15px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#FBFCFD;
+  color:var(--text);
+  outline:none;
+  font-size:13px;
+}
+
+.settings-input:focus{
+  border-color:var(--brand);
+  box-shadow:0 0 0 3px rgba(93,127,163,.10);
+}
+
+.settings-password-wrap{
+  position:relative;
+}
+
+.settings-password-wrap + .settings-password-wrap{
+  margin-top:0;
+}
+
+.settings-password-wrap .settings-input{
+  padding-right:58px;
+}
+
+.settings-password-eye{
+  position:absolute;
+  right:9px;
+  top:calc(50% + 6px);
+  transform:translateY(-50%);
+  width:40px;
+  height:40px;
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  color:#7B8DA0;
+  cursor:pointer;
+  z-index:2;
+}
+
+.settings-password-eye:active{
+  background:rgba(93,127,163,.10);
+}
+
+.settings-password-eye svg{
+  width:21px;
+  height:21px;
+}
+
+.settings-password-eye .settings-eye-slash{
+  display:none;
+}
+
+.settings-password-eye.is-visible .settings-eye-slash{
+  display:block;
+}
+
+.settings-password-verify{
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid var(--border);
+}
+
+.settings-password-verify-title{
+  color:var(--text);
+  font-size:16px;
+  font-weight:900;
+}
+
+.settings-password-verify-copy{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+}
+
+.settings-password-verify-copy strong{
+  color:var(--text);
+}
+
+.settings-password-code{
+  margin-top:14px;
+  text-align:center;
+  letter-spacing:5px;
+  font-size:18px;
+  font-weight:900;
+}
+
+.settings-password-verify .settings-primary-btn{
+  margin-top:12px;
+}
+
+.settings-password-resend{
+  width:100%;
+  margin-top:8px;
+  padding:12px;
+  border:0;
+  background:transparent;
+  color:var(--brand-dark);
+  font-weight:900;
+  cursor:pointer;
+}
+
+.settings-password-inline-message{
+  margin-top:10px;
+  padding:11px 12px;
+  border-radius:12px;
+  font-size:12px;
+  line-height:1.45;
+  font-weight:800;
+  text-align:center;
+}
+
+.settings-password-inline-message.info{
+  color:var(--brand-dark);
+  background:rgba(93,127,163,.12);
+}
+
+.settings-password-inline-message.success{
+  color:#2F9464;
+  background:rgba(111,191,143,.13);
+}
+
+.settings-password-inline-message.error{
+  color:var(--rose);
+  background:rgba(215,154,154,.13);
+}
+
+.settings-primary-btn{
+  width:100%;
+  min-height:50px;
+  margin-top:14px;
+  border:none;
+  border-radius:16px;
+  background:var(--brand-dark);
+  color:#fff;
+  font-size:12px;
+  font-weight:900;
+}
+
+.settings-row{
+  margin-top:10px;
+}
+
+.settings-toggle{
+  flex:0 0 auto;
+  min-width:40px;
+  padding:7px 10px;
+  border-radius:999px;
+  background:var(--sage-soft);
+  color:#2F8C59;
+  text-align:center;
+  font-size:9px;
+  font-weight:900;
+}
+
+.settings-toggle.off{
+  background:#EFF2F4;
+  color:#74818D;
+}
+
+.settings-arrow{
+  color:#8B9BAB;
+  font-size:18px;
+  font-weight:800;
+}
+
+.settings-logout{
+  width:100%;
+  min-height:52px;
+  margin-top:20px;
+  border:1px solid #F0C9C9;
+  border-radius:17px;
+  background:var(--rose-soft);
+  color:var(--rose);
+  font-size:12px;
+  font-weight:900;
+}
+
+body[data-theme="dark"]{
+  --bg:#0E151D;
+  --card:#15202B;
+  --text:#F4F7F9;
+  --muted:#A7B2BD;
+  --border:#2B3946;
+  --soft:#1C2934;
+  background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.20),transparent 27%),var(--bg);
+}
+
+body[data-theme="dark"] .app-header,
+body[data-theme="dark"] .bottom-nav{
+  background:rgba(14,21,29,.96);
+}
+
+body[data-theme="dark"] .settings-shortcut,
+body[data-theme="dark"] .header-back-inline,
+body[data-theme="dark"] .quick-card,
+body[data-theme="dark"] .profile-card,
+body[data-theme="dark"] .setup-card,
+body[data-theme="dark"] .account-card,
+body[data-theme="dark"] .settings-card,
+body[data-theme="dark"] .settings-message{
+  background:#15202B;
+}
+
+body[data-theme="dark"] .setup-item,
+body[data-theme="dark"] .settings-choice,
+body[data-theme="dark"] .settings-row,
+body[data-theme="dark"] .settings-input{
+  background:#101A23;
+}
+
+body[data-theme="dark"] .settings-choice.active{
+  background:#1B3042;
+}
+
+@media (prefers-color-scheme: dark){
+  body[data-theme="system"]{
+    --bg:#0E151D;
+    --card:#15202B;
+    --text:#F4F7F9;
+    --muted:#A7B2BD;
+    --border:#2B3946;
+    --soft:#1C2934;
+    background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.20),transparent 27%),var(--bg);
+  }
+
+  body[data-theme="system"] .app-header,
+  body[data-theme="system"] .bottom-nav{
+    background:rgba(14,21,29,.96);
+  }
+
+  body[data-theme="system"] .settings-shortcut,
+  body[data-theme="system"] .header-back-inline,
+  body[data-theme="system"] .quick-card,
+  body[data-theme="system"] .profile-card,
+  body[data-theme="system"] .setup-card,
+  body[data-theme="system"] .account-card,
+  body[data-theme="system"] .settings-card,
+  body[data-theme="system"] .settings-message{
+    background:#15202B;
+  }
+
+  body[data-theme="system"] .setup-item,
+  body[data-theme="system"] .settings-choice,
+  body[data-theme="system"] .settings-row,
+  body[data-theme="system"] .settings-input{
+    background:#101A23;
+  }
+}
+</style>
+
+
+<style id="candidate-onboarding-dashboard-redesign">
+.onboarding-panel{margin-top:22px}
+.onboarding-card{padding:22px;border:1px solid var(--border);border-radius:28px;background:#fff;box-shadow:var(--shadow)}
+.onboarding-topline{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.onboarding-badge{padding:7px 9px;border-radius:999px;background:var(--brand-soft);color:var(--brand-dark);font-size:9px;font-weight:900;letter-spacing:.8px}
+.onboarding-count{color:var(--muted);font-size:10px;font-weight:800}
+.onboarding-card h2{margin-top:17px;font-size:29px;line-height:1.05;letter-spacing:-.7px;font-weight:900}
+.onboarding-copy{margin-top:10px;color:var(--muted);font-size:13px;line-height:1.6}
+.onboarding-progress{height:7px;margin-top:18px;border-radius:999px;background:#E8EEF2;overflow:hidden}
+.onboarding-progress span{display:block;width:0;height:100%;border-radius:999px;background:var(--brand-dark);transition:width .25s ease}
+.onboarding-steps{display:grid;gap:12px;margin-top:18px}
+.onboarding-step{display:grid;grid-template-columns:42px 1fr;gap:13px;padding:17px;border:1px solid var(--border);border-radius:21px;background:#FBFCFD}
+.onboarding-step.active{border-color:#BBD0E0;background:#F7FAFC}
+.onboarding-step.done{border-color:#CBE2D3;background:#F8FCF9}
+.onboarding-step.locked{opacity:.58;background:#F7F9FA}
+.step-number{width:36px;height:36px;display:grid;place-items:center;border-radius:12px;background:var(--brand-soft);color:var(--brand-dark);font-size:12px;font-weight:900}
+.onboarding-step.done .step-number{background:var(--sage-soft);color:#2F8957}
+.onboarding-step.locked .step-number{background:#EEF2F4;color:#84919D}
+.step-body{min-width:0}
+.step-kicker{color:var(--muted);font-size:8px;font-weight:900;letter-spacing:.8px}
+.step-title{margin-top:4px;font-size:16px;line-height:1.25;font-weight:900}
+.step-copy{margin-top:5px;color:var(--muted);font-size:10px;line-height:1.5}
+.step-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
+.step-btn{min-height:42px;padding:0 14px;border-radius:13px;font-size:10px;font-weight:900}
+.step-btn.primary{border:none;background:var(--brand-dark);color:#fff}
+.step-btn.secondary{border:1px solid var(--border);background:#fff;color:var(--brand-dark)}
+.step-btn:disabled{cursor:not-allowed;opacity:.45}
+.matches-lock{margin-top:14px;display:flex;align-items:center;gap:12px;padding:14px;border:1px dashed #CAD6DE;border-radius:18px;background:#F8FAFB}
+.matches-lock-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:12px;background:#E8EEF2;color:#81909E;font-family:'DM Serif Display',Georgia,serif!important;font-size:18px}
+.matches-lock strong{display:block;font-size:11px;font-weight:900}
+.matches-lock span{display:block;margin-top:3px;color:var(--muted);font-size:9px;line-height:1.4}
+.onboarding-message{margin-top:12px;padding:11px 12px;border-radius:14px;background:var(--rose-soft);color:var(--rose);font-size:10px;font-weight:800;line-height:1.45}
+.onboarding-message.success{background:var(--sage-soft);color:#2F8354}
+.nav-item.locked{opacity:.48}
+.nav-item.locked:after{content:'LOCKED';position:absolute;top:4px;right:8px;padding:2px 4px;border-radius:999px;background:#EEF2F4;color:#7C8996;font-size:5px;font-weight:900;letter-spacing:.5px}
+body[data-theme="dark"] .onboarding-card{background:#15202B}
+body[data-theme="dark"] .onboarding-step{background:#101A23}
+body[data-theme="dark"] .onboarding-step.active{background:#142431}
+body[data-theme="dark"] .onboarding-step.done{background:#13251D}
+body[data-theme="dark"] .step-btn.secondary{background:#15202B;color:#DCE8F2}
+body[data-theme="dark"] .matches-lock{background:#101A23}
+@media(max-width:390px){.onboarding-card{padding:18px}.onboarding-card h2{font-size:26px}.onboarding-step{grid-template-columns:38px 1fr;padding:15px}.step-actions{display:grid;grid-template-columns:1fr}.step-btn{width:100%}}
+</style>
+
+
+<style id="completed-profile-dashboard">
+.complete-actions{
+  margin:18px 0 4px;
+  display:none;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.complete-actions.show{display:grid}
+.complete-action{
+  min-height:56px;
+  border-radius:18px;
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+  font-size:14px;
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:0 8px 22px rgba(23,35,51,.035);
+}
+.complete-action.primary{
+  background:var(--brand-dark);
+  border-color:var(--brand-dark);
+  color:#fff;
+}
+.complete-action.full{
+  grid-column:1/-1;
+}
+@media(max-width:390px){
+  .complete-actions{grid-template-columns:1fr}
+  .complete-action.full{grid-column:auto}
+}
+
+body[data-profile-complete="true"] #profile-section{
+  margin-top:22px;
+}
+
+body[data-profile-complete="true"] #profile-section .complete-actions{
+  margin-top:14px;
+  margin-bottom:0;
+}
+
+/* Personalized job recommendations */
+.recommendations-section{
+  margin-top:28px;
+  padding-bottom:6px;
+}
+
+.recommendations-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:13px;
+}
+
+.recommendations-status{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:750;
+  line-height:1.45;
+}
+
+.recommendations-see-all{
+  flex:0 0 auto;
+  border:0;
+  background:transparent;
+  color:var(--brand-dark);
+  font-size:10px;
+  font-weight:900;
+  padding:8px 0 8px 12px;
+  cursor:pointer;
+}
+
+.recommendations-list{
+  display:grid;
+  gap:11px;
+}
+
+.recommendation-card{
+  position:relative;
+  overflow:hidden;
+  border:1px solid var(--border);
+  border-radius:20px;
+  background:#fff;
+  padding:17px;
+  box-shadow:0 9px 24px rgba(23,35,51,.035);
+}
+
+.recommendation-card:active{
+  transform:scale(.995);
+}
+
+.recommendation-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.recommendation-main{
+  min-width:0;
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+}
+
+.recommendation-logo{
+  width:44px;
+  height:44px;
+  flex:0 0 44px;
+  display:grid;
+  place-items:center;
+  border-radius:14px;
+  background:var(--brand-soft);
+  color:var(--brand-dark);
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:.3px;
+}
+
+.recommendation-copy{
+  min-width:0;
+}
+
+.recommendation-title{
+  color:var(--text);
+  font-size:15px;
+  line-height:1.25;
+  font-weight:900;
+}
+
+.recommendation-company{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:750;
+  line-height:1.35;
+}
+
+.recommendation-fit{
+  flex:0 0 auto;
+  border-radius:999px;
+  padding:7px 9px;
+  background:var(--sage-soft);
+  color:#2F8957;
+  font-size:9px;
+  font-weight:900;
+  white-space:nowrap;
+}
+
+.recommendation-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:13px;
+}
+
+.recommendation-pill{
+  min-height:27px;
+  display:inline-flex;
+  align-items:center;
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:0 9px;
+  background:#F8FAFB;
+  color:var(--muted);
+  font-size:8px;
+  font-weight:850;
+}
+
+.recommendation-actions{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+  margin-top:14px;
+}
+
+.recommendation-view{
+  min-height:42px;
+  border:0;
+  border-radius:13px;
+  background:var(--brand-dark);
+  color:#fff;
+  font-size:10px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.recommendation-swipe{
+  min-width:105px;
+  min-height:42px;
+  border:1px solid var(--border);
+  border-radius:13px;
+  background:#fff;
+  color:var(--text);
+  font-size:10px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.recommendations-empty{
+  border:1px dashed var(--border);
+  border-radius:20px;
+  padding:20px 18px;
+  background:#FAFBFC;
+}
+
+.recommendations-empty strong{
+  display:block;
+  color:var(--text);
+  font-size:13px;
+  font-weight:900;
+}
+
+.recommendations-empty span{
+  display:block;
+  margin-top:5px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.5;
+}
+
+.recommendations-empty button{
+  margin-top:13px;
+  min-height:40px;
+  border:0;
+  border-radius:12px;
+  padding:0 14px;
+  background:var(--brand-dark);
+  color:#fff;
+  font-size:10px;
+  font-weight:900;
+}
+
+.recommendation-loading{
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:19px;
+  background:#fff;
+}
+
+.recommendation-loading-line{
+  width:55%;
+  height:10px;
+  margin-top:10px;
+  border-radius:999px;
+  background:#E9EEF2;
+}
+
+.recommendation-loading-line.wide{
+  width:82%;
+  height:15px;
+  margin-top:0;
+}
+
+html[data-effective-theme="dark"] .recommendation-card,
+html[data-effective-theme="dark"] .recommendation-loading{
+  background:#101A23;
+  border-color:#2B3946;
+}
+
+html[data-effective-theme="dark"] .recommendation-pill{
+  background:#15212B;
+  border-color:#2B3946;
+  color:#A9B6C2;
+}
+
+html[data-effective-theme="dark"] .recommendation-swipe{
+  background:#101A23;
+  border-color:#2B3946;
+  color:#EDF3F7;
+}
+
+html[data-effective-theme="dark"] .recommendations-empty{
+  background:#101A23;
+  border-color:#2B3946;
+}
+
+html[data-effective-theme="dark"] .recommendation-loading-line{
+  background:#26343F;
+}
+
+@media(max-width:390px){
+  .recommendation-actions{
+    grid-template-columns:1fr;
+  }
+  .recommendation-swipe{
+    width:100%;
+  }
+}
+</style>
+
+
+<style id="candidate-activity-tweaks">
+#snapshot-section .quick-card[role="button"]{cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+#snapshot-section .quick-card[role="button"]:active{transform:scale(.985)}
+#snapshot-section .quick-card[role="button"]:focus-visible{outline:3px solid rgba(53,103,154,.20);outline-offset:2px}
+</style>
+
+
+<script src="app-candidate-theme.js"></script>
+<link rel="stylesheet" href="app-candidate-theme.css">
+
+<style id="completed-dashboard-flash-fix">
+body[data-profile-complete="true"] #profile-hero{display:none!important}
+body[data-profile-complete="true"] #snapshot-section{display:none!important}
+</style>
+
+
+<style id="notification-effective-theme-fix">
+html[data-effective-theme="dark"] .notification-shortcut,
+html[data-effective-theme="dark"] .notification-sheet{background:#0D1A24!important;border-color:#253845!important}
+html[data-effective-theme="dark"] .notification-badge{border-color:#0D1A24!important}
+html[data-effective-theme="dark"] .notification-grabber{background:#344753!important}
+html[data-effective-theme="dark"] .notification-close{border-color:#2A3B47!important}
+html[data-effective-theme="dark"] .notification-icon{background:#14293B!important}
+html[data-effective-theme="dark"] .notification-icon.green{background:#123326!important}
+html[data-effective-theme="dark"] .notification-icon.amber{background:#372B12!important}
 </style>
 </head>
+
 <body>
-<div class="screen"><div class="logo">Alygnn.</div><div class="title">My Profile</div><div class="subtitle">Manage your resume, preferences, and profile to get better job matches.</div><div class="card"><div class="profile-row"><div id="avatar" class="avatar">A</div><div><div id="profileName" class="name">Loading...</div><div id="profileEmail" class="meta">Checking account...</div><div id="profileLocation" class="meta">Alygnn member</div></div></div><div class="progress"><div class="progress-top"><span>Profile Completion</span><span id="completionText">50%</span></div><div class="bar"><div id="completionFill" class="fill"></div></div></div><div class="checklist"><div><span class="good">✓</span> Account Created</div><div id="resumeStatus"><span class="warn">!</span> Upload Resume</div><div id="prefStatus"><span class="warn">!</span> Complete Preferences</div></div></div><button class="btn primary" onclick="window.location.href='app-swipe.html'">Start Swiping</button><div class="card"><div class="card-title">Finish Setting Up Your Profile</div><div class="card-sub">Complete these steps to improve your matches.</div><div class="menu"><div class="menu-item" onclick="window.location.href='app-align-upload.html'">Upload or Build Resume <span>›</span></div><div class="menu-item" onclick="window.location.href='app-view-resume.html'">View Resume <span>›</span></div><div class="menu-item" onclick="window.location.href='app-preferences.html'">Job Preferences <span>›</span></div><div class="menu-item" onclick="alert('Work Experience page coming next')">Work Experience <span>›</span></div></div></div><div class="card"><div class="card-title">Account</div><div class="menu"><div class="menu-item" onclick="window.location.href='app-account-settings.html'">Settings <span>›</span></div></div></div><div class="logout" onclick="logoutUser()">Log out</div></div><div class="bottom-nav"><div class="nav-item" onclick="window.location.href='app-swipe.html'">Swipe</div><div class="nav-item" onclick="alert('Applied page coming next')">Applied</div><div class="nav-item active">My Profile</div></div>
+
+<div class="loading" id="loading">
+  <div style="text-align:center">
+    <div class="spinner"></div>
+    <div class="loading-text">Opening your candidate workspace…</div>
+  </div>
+</div>
+
+<header class="app-header">
+  <button
+    class="header-back-inline"
+    id="settings-back"
+    type="button"
+    aria-label="Back to profile"
+    onclick="openProfileView()"
+    hidden
+  >
+    ←
+  </button>
+
+  <div class="header-spacer" id="profile-header-spacer"></div>
+
+  <div class="logo">
+    Alygnn<span>.</span>
+  </div>
+
+  <button
+    class="notification-shortcut"
+    id="notification-shortcut"
+    type="button"
+    aria-label="Open notifications"
+    onclick="openCandidateNotifications()"
+  >
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path>
+      <path d="M10 21h4" stroke-width="1.9" stroke-linecap="round"></path>
+    </svg>
+    <span class="notification-badge" id="notification-badge" hidden>0</span>
+  </button>
+
+  <div class="header-spacer" id="settings-header-spacer" hidden></div>
+</header>
+
+<main class="page" id="profile-view">
+
+  <div class="eyebrow">Candidate Workspace</div>
+
+  <h1 class="greeting" id="greeting">
+    Welcome back.
+  </h1>
+
+  <p class="lead" id="lead">
+    Keep your profile ready so Alygnn can surface stronger job matches.
+  </p>
+
+  <section class="onboarding-panel" id="onboarding-panel" hidden>
+    <div class="onboarding-card">
+      <div class="onboarding-topline">
+        <span class="onboarding-badge">2-STEP SETUP</span>
+        <span class="onboarding-count" id="onboarding-count">0 of 2 complete</span>
+      </div>
+
+      <h2>Set up your job search.</h2>
+      <p class="onboarding-copy">Add your resume and tell us what you are looking for. Once both steps are complete, Alygnn will unlock jobs matched to you.</p>
+
+      <div class="onboarding-progress"><span id="onboarding-progress-fill"></span></div>
+
+      <div class="onboarding-steps">
+        <div class="onboarding-step active" id="onboarding-resume-step">
+          <div class="step-number" id="onboarding-resume-number">1</div>
+          <div class="step-body">
+            <div class="step-kicker">STEP 1</div>
+            <div class="step-title" id="onboarding-resume-title">Add your resume</div>
+            <div class="step-copy" id="onboarding-resume-copy">Upload a resume you already have or create one with Alygnn.</div>
+            <div class="step-actions" id="onboarding-resume-actions">
+              <button class="step-btn primary" type="button" id="dashboard-upload-btn" onclick="chooseDashboardResume()">Upload Resume</button>
+              <button class="step-btn secondary" type="button" onclick="window.location.href='app-resume-builder.html'">Create Resume</button>
+            </div>
+            <input id="dashboard-resume-input" type="file" accept=".pdf,.doc,.docx" hidden>
+          </div>
+        </div>
+
+        <div class="onboarding-step locked" id="onboarding-preferences-step">
+          <div class="step-number" id="onboarding-preferences-number">2</div>
+          <div class="step-body">
+            <div class="step-kicker">STEP 2</div>
+            <div class="step-title" id="onboarding-preferences-title">Set your preferences</div>
+            <div class="step-copy" id="onboarding-preferences-copy">Choose your target roles, location, pay, job type, and work style.</div>
+            <div class="step-actions">
+              <button class="step-btn primary" id="dashboard-preferences-btn" type="button" onclick="openDashboardPreferences()" disabled>Set Preferences</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="matches-lock" id="matches-lock">
+        <div class="matches-lock-icon">A</div>
+        <div>
+          <strong>Job matches are locked</strong>
+          <span>Complete both setup steps to start seeing jobs selected for you.</span>
+        </div>
+      </div>
+
+      <div class="onboarding-message" id="onboarding-message" hidden></div>
+    </div>
+  </section>
+
+  <!-- HERO -->
+  <section class="hero" id="profile-hero">
+    <div class="hero-top">
+      <div>
+        <div class="hero-label">Your Alygnn profile</div>
+
+        <div class="hero-title" id="hero-title">
+          Your profile is getting ready for stronger matches.
+        </div>
+      </div>
+
+      <div class="score-box">
+        <div class="score-value" id="hero-score">0%</div>
+        <div class="score-label">Profile ready</div>
+      </div>
+    </div>
+
+    <div class="hero-progress">
+      <div class="hero-progress-row">
+        <span>Profile completion</span>
+        <span id="completion-label">0%</span>
+      </div>
+
+      <div class="hero-bar">
+        <div class="hero-fill" id="completion-fill"></div>
+      </div>
+    </div>
+
+    <div class="hero-actions">
+      <button
+        class="hero-btn primary"
+        type="button"
+        onclick="window.location.href='app-swipe.html'"
+      >
+        Start Swiping
+      </button>
+
+      <button
+        class="hero-btn secondary"
+        id="hero-resume-btn"
+        type="button"
+        onclick="window.location.href='app-resume-preview.html'"
+      >
+        View Resume
+      </button>
+    </div>
+  </section>
+
+  <!-- ACTIVITY -->
+  <section class="section" id="snapshot-section">
+    <div class="section-head">
+      <div class="section-title">Your activity</div>
+    </div>
+
+    <div class="quick-grid">
+      <article class="quick-card" onclick="window.location.href='app-applied.html'" role="button" tabindex="0">
+        <div class="quick-icon amber">◈</div>
+        <div class="quick-label">Applications</div>
+        <div class="quick-value" id="application-count">0</div>
+        <div class="quick-note" id="application-note">Applications connected to your profile.</div>
+      </article>
+
+      <article class="quick-card" onclick="window.location.href='app-swipe.html'" role="button" tabindex="0">
+        <div class="quick-icon green">◎</div>
+        <div class="quick-label">Job Matching</div>
+        <div class="quick-value" id="matching-value">On</div>
+        <div class="quick-note" id="matching-note">Alygnn is ready to match jobs to your preferences.</div>
+      </article>
+
+      <article class="quick-card" onclick="window.location.href='app-resume-preview.html'" role="button" tabindex="0">
+        <div class="quick-icon" id="resume-icon">▤</div>
+        <div class="quick-label">Resume</div>
+        <div class="quick-value" id="resume-value">Checking</div>
+        <div class="quick-note" id="resume-note">Reviewing your resume status.</div>
+      </article>
+
+      <article class="quick-card" onclick="window.location.href='app-preferences.html?edit=1&build=58'" role="button" tabindex="0">
+        <div class="quick-icon green" id="preference-icon">◎</div>
+        <div class="quick-label">Preferences</div>
+        <div class="quick-value" id="preference-value">Checking</div>
+        <div class="quick-note" id="preference-note">Checking your job preferences.</div>
+      </article>
+    </div>
+  </section>
+
+  <!-- PROFILE -->
+  <section class="section" id="profile-section">
+    <div class="section-head">
+      <div class="section-title">Your profile</div>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-top">
+        <div class="avatar" id="avatar">A</div>
+
+        <div class="profile-copy">
+          <div class="profile-name" id="profileName">Loading…</div>
+          <div class="profile-meta" id="profileHeadline">Alygnn candidate</div>
+          <div class="profile-meta" id="profileEmail">Checking your account…</div>
+          <div class="profile-meta" id="profileLocation">Location not added</div>
+        </div>
+      </div>
+
+    </div>
+
+    <section class="complete-actions" id="complete-actions" aria-label="Candidate quick actions">
+      <button class="complete-action primary" type="button" onclick="window.location.href='app-swipe.html'">
+        Start Swiping
+      </button>
+      <button class="complete-action" type="button" onclick="window.location.href='app-resume-preview.html'">
+        View Resume
+      </button>
+      <button class="complete-action full" type="button" onclick="window.location.href='app-preferences.html?edit=1&build=58'">
+        Edit Preferences
+      </button>
+    </section>
+  </section>
+
+  <!-- RECOMMENDED JOBS -->
+  <section class="section recommendations-section" id="recommendations-section" hidden>
+    <div class="recommendations-head">
+      <div>
+        <div class="section-title">Recommended for you</div>
+        <div class="recommendations-status" id="recommendations-status">
+          Finding jobs that fit your preferences…
+        </div>
+      </div>
+
+      <button class="recommendations-see-all" type="button" onclick="window.location.href='app-swipe.html'">
+        See all
+      </button>
+    </div>
+
+    <div class="recommendations-list" id="recommendations-list">
+      <div class="recommendation-loading">
+        <div class="recommendation-loading-line wide"></div>
+        <div class="recommendation-loading-line"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETUP -->
+  <section class="section" id="setup-section">
+    <div class="section-head">
+      <div class="section-title">Finish your setup</div>
+    </div>
+
+    <div class="setup-card">
+      <p class="setup-intro">
+        Complete anything missing so Alygnn can make better recommendations.
+      </p>
+
+      <div class="setup-list">
+        <button
+          class="setup-item"
+          id="resume-setup"
+          type="button"
+          onclick="window.location.href='app-align-upload.html'"
+        >
+          <div class="setup-status" id="resume-setup-status">!</div>
+
+          <div class="setup-text">
+            <strong id="resume-setup-title">Upload or build your resume</strong>
+            <span id="resume-setup-copy">Give employers a complete view of your experience.</span>
+          </div>
+
+          <div class="setup-arrow">›</div>
+        </button>
+
+        <button
+          class="setup-item"
+          id="preferences-setup"
+          type="button"
+          onclick="window.location.href='app-preferences.html'"
+        >
+          <div class="setup-status" id="preferences-setup-status">!</div>
+
+          <div class="setup-text">
+            <strong id="preferences-setup-title">Complete job preferences</strong>
+            <span id="preferences-setup-copy">Tell Alygnn what roles, pay, and work style you want.</span>
+          </div>
+
+          <div class="setup-arrow">›</div>
+        </button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<main class="page settings-view" id="settings-view" hidden>
+  <div class="eyebrow">Candidate Workspace</div>
+
+  <h1 class="settings-title">Settings</h1>
+  <p class="settings-subtitle">Manage your Alygnn account and personalize your experience.</p>
+
+  <div id="settings-message" class="settings-message" hidden></div>
+
+  <section class="settings-card">
+    <div class="settings-card-title">Appearance</div>
+
+    <div class="settings-choice-grid">
+      <button class="settings-choice" type="button" data-theme-option="system" onclick="setCandidateTheme('system')">
+        <span>
+          <strong>System Default</strong>
+          <small>Follow your device appearance</small>
+        </span>
+        <span class="settings-choice-check">✓</span>
+      </button>
+
+      <button class="settings-choice" type="button" data-theme-option="light" onclick="setCandidateTheme('light')">
+        <span>
+          <strong>Light Mode</strong>
+          <small>Use Alygnn's light workspace</small>
+        </span>
+        <span class="settings-choice-check">✓</span>
+      </button>
+
+      <button class="settings-choice" type="button" data-theme-option="dark" onclick="setCandidateTheme('dark')">
+        <span>
+          <strong>Dark Mode</strong>
+          <small>Use a darker workspace</small>
+        </span>
+        <span class="settings-choice-check">✓</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="settings-card">
+    <div class="settings-card-title">Change Password</div>
+    <p class="settings-card-copy">Choose a new password with at least 8 characters.</p>
+
+    <div class="settings-password-wrap">
+      <input id="settings-new-password" class="settings-input settings-password-input" type="password" autocomplete="new-password" placeholder="New password">
+      <button
+        class="settings-password-eye"
+        id="settings-new-password-eye"
+        type="button"
+        aria-label="Show new password"
+        aria-pressed="false"
+        onclick="toggleSettingsPassword('settings-new-password','settings-new-password-eye')"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+          <circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.8"></circle>
+          <path class="settings-eye-slash" d="M4 4l16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+        </svg>
+      </button>
+    </div>
+
+    <div class="settings-password-wrap">
+      <input id="settings-confirm-password" class="settings-input settings-password-input" type="password" autocomplete="new-password" placeholder="Confirm password">
+      <button
+        class="settings-password-eye"
+        id="settings-confirm-password-eye"
+        type="button"
+        aria-label="Show confirm password"
+        aria-pressed="false"
+        onclick="toggleSettingsPassword('settings-confirm-password','settings-confirm-password-eye')"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+          <circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.8"></circle>
+          <path class="settings-eye-slash" d="M4 4l16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+        </svg>
+      </button>
+    </div>
+
+    <button id="settings-password-btn" class="settings-primary-btn" type="button" onclick="changeCandidatePassword()">
+      Update Password
+    </button>
+
+    <div id="settings-password-verify" class="settings-password-verify" hidden>
+      <div class="settings-password-verify-title">Check your email</div>
+      <div class="settings-password-verify-copy">
+        We sent a 6-digit verification code to
+        <strong id="settings-password-email"></strong>.
+        Enter it below to confirm this password change.
+      </div>
+
+      <input
+        id="settings-password-code"
+        class="settings-input settings-password-code"
+        type="text"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        maxlength="6"
+        placeholder="6-digit code"
+      >
+
+      <button
+        id="settings-password-verify-btn"
+        class="settings-primary-btn"
+        type="button"
+        onclick="verifyCandidatePasswordChange()"
+      >
+        Verify &amp; Change Password
+      </button>
+
+      <button
+        id="settings-password-resend-btn"
+        class="settings-password-resend"
+        type="button"
+        onclick="resendCandidatePasswordCode()"
+      >
+        Resend code
+      </button>
+
+      <div
+        id="settings-password-verify-message"
+        class="settings-password-inline-message"
+        hidden
+        aria-live="polite"
+      ></div>
+    </div>
+  </section>
+
+  <section class="settings-card">
+    <div class="settings-card-title">Notifications</div>
+
+    <button class="settings-row" type="button" onclick="toggleCandidateSetting('job_alerts', this)">
+      <span class="settings-row-copy">
+        <strong>Job Alerts</strong>
+        <small>New jobs that match your preferences</small>
+      </span>
+      <span class="settings-toggle" data-setting-state>On</span>
+    </button>
+
+    <button class="settings-row" type="button" onclick="toggleCandidateSetting('application_updates', this)">
+      <span class="settings-row-copy">
+        <strong>Application Updates</strong>
+        <small>Interview, reviewed, hired, or not selected updates</small>
+      </span>
+      <span class="settings-toggle" data-setting-state>On</span>
+    </button>
+  </section>
+
+  <section class="settings-card">
+    <div class="settings-card-title">Account</div>
+
+    <button class="settings-row" type="button" onclick="openPreferencesFromSettings()">
+      <span class="settings-row-copy">
+        <strong>Job Preferences</strong>
+        <small>Roles, pay, location, and work style</small>
+      </span>
+      <span class="settings-arrow">›</span>
+    </button>
+
+    <button class="settings-row" type="button" onclick="showSettingsMessage('Privacy settings are coming soon.','info')">
+      <span class="settings-row-copy">
+        <strong>Privacy</strong>
+        <small>Manage candidate privacy controls</small>
+      </span>
+      <span class="settings-arrow">›</span>
+    </button>
+  </section>
+
+  <section class="settings-card">
+    <div class="settings-card-title">Support</div>
+
+    <button class="settings-row" type="button" onclick="openCandidateSupport()">
+      <span class="settings-row-copy">
+        <strong>Help & Support</strong>
+        <small>Get help with your Alygnn account</small>
+      </span>
+      <span class="settings-arrow">›</span>
+    </button>
+
+    <button class="settings-row" type="button" onclick="openCandidateAbout()">
+      <span class="settings-row-copy">
+        <strong>About Alygnn</strong>
+        <small>Version and product information</small>
+      </span>
+      <span class="settings-arrow">›</span>
+    </button>
+  </section>
+
+  <button class="settings-logout" type="button" onclick="logoutUser()">
+    Log Out
+  </button>
+</main>
+
+<div
+  class="notification-overlay"
+  id="notification-overlay"
+  aria-hidden="true"
+  onclick="candidateNotificationBackdrop(event)"
+>
+  <section class="notification-sheet" role="dialog" aria-modal="true" aria-labelledby="candidate-notification-title">
+    <div class="notification-grabber"></div>
+
+    <div class="notification-head">
+      <div>
+        <h2 id="candidate-notification-title">Notifications</h2>
+        <p>Application updates, profile reminders, and job activity.</p>
+      </div>
+
+      <button
+        class="notification-close"
+        type="button"
+        aria-label="Close notifications"
+        onclick="closeCandidateNotifications()"
+      >×</button>
+    </div>
+
+    <div class="notification-tools">
+      <span class="notification-count-label" id="notification-count-label">You’re all caught up</span>
+      <button class="mark-read-btn" id="mark-read-btn" type="button" onclick="markAllCandidateNotificationsRead()">Mark all read</button>
+    </div>
+
+    <div class="notification-list" id="notification-list"></div>
+  </section>
+</div>
+
+<nav class="bottom-nav" aria-label="Candidate navigation">
+  <button class="nav-item active" id="nav-profile" type="button" onclick="openProfileView()"><span class="nav-icon">◉</span><span>My Profile</span></button>
+  <button class="nav-item" id="nav-swipe" type="button" onclick="openCandidateDestination('app-swipe.html')"><span class="nav-icon">◇</span><span>Swipe</span></button>
+  <button class="nav-item" id="nav-jobs" type="button" onclick="openCandidateDestination('app-applied.html')"><span class="nav-icon">▣</span><span>My Jobs</span></button>
+  <button class="nav-item" id="nav-settings" type="button" onclick="openSettingsView()"><span class="nav-icon">⚙</span><span>Settings</span></button>
+</nav>
+
 <script>
-const SUPABASE_URL="https://auth.alygnn.com";const SUPABASE_KEY="sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG";const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-function applyTheme(){const theme=localStorage.getItem('alygnn-theme')||'system';document.body.classList.remove('light');if(theme==='light')document.body.classList.add('light');if(theme==='system'&&window.matchMedia('(prefers-color-scheme: light)').matches)document.body.classList.add('light');}
-function titleFromEmail(email){if(!email)return 'Alygnn Member';return email.split('@')[0].replace(/[._-]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());}
-function initials(value){if(!value)return 'A';const clean=value.replace(/@.*/,'').replace(/[._-]/g,' ').trim();const parts=clean.split(/\s+/).filter(Boolean);if(parts.length>=2)return(parts[0][0]+parts[1][0]).toUpperCase();return clean[0]?clean[0].toUpperCase():'A';}
-async function loadProfile(){const {data,error}=await sb.auth.getSession();if(error||!data.session){window.location.replace('app-login.html');return;}const user=data.session.user;const meta=user.user_metadata||{};const email=user.email||'';const name=meta.full_name||meta.name||meta.first_name||titleFromEmail(email);document.getElementById('profileName').textContent=name;document.getElementById('profileEmail').textContent=email;document.getElementById('profileLocation').textContent=meta.location||'Alygnn member';document.getElementById('avatar').textContent=initials(name||email);let completion=50;if(name)completion+=20;if(email)completion+=10;
+const SUPABASE_URL='https://auth.alygnn.com';
+const SUPABASE_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
 
-const {data:profileData,error:profileError}=await sb
-  .from('profiles')
-  .select('resume_file_path,resume_source')
-  .eq('id',user.id)
-  .maybeSingle();
+const sb=supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  {
+    auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true
+    }
+  }
+);
 
-if(profileError){
-  console.error('Profile resume check failed:',profileError);
+const $=id=>document.getElementById(id);
+
+let candidateOnboardingState={complete:true,hasResume:false,previewReviewed:false,preferencesComplete:false};
+let dashboardUploadBusy=false;
+
+
+const CANDIDATE_NOTIFICATION_READ_KEY='alygnn_candidate_notification_reads';
+let candidateNotifications=[];
+
+function getCandidateNotificationReads(){
+  try{
+    const parsed=JSON.parse(
+      localStorage.getItem(CANDIDATE_NOTIFICATION_READ_KEY) || '[]'
+    );
+    return new Set(Array.isArray(parsed)?parsed:[]);
+  }catch(error){
+    return new Set();
+  }
 }
 
-if(profileData&&profileData.resume_file_path){
-  completion+=20;
-  document.getElementById('resumeStatus').innerHTML='<span class="good">✓</span> Resume Uploaded';
+function saveCandidateNotificationReads(reads){
+  localStorage.setItem(
+    CANDIDATE_NOTIFICATION_READ_KEY,
+    JSON.stringify(Array.from(reads))
+  );
 }
 
-if(meta.preferences_complete){
-  document.getElementById('prefStatus').innerHTML='<span class="good">✓</span> Job Preferences Complete';
+function buildCandidateNotifications({
+  applicationCount=0,
+  hasResume=false,
+  preferencesComplete=false
+}={}){
+  const notifications=[];
+
+  if(applicationCount>0){
+    notifications.push({
+      id:'applications-'+applicationCount,
+      icon:'◎',
+      iconClass:'green',
+      title:'Application activity',
+      copy:`You have ${applicationCount} active application${applicationCount===1?'':'s'} connected to your Alygnn profile.`,
+      time:'Now',
+      action:'app-applied.html'
+    });
+  }
+
+  if(!hasResume){
+    notifications.push({
+      id:'resume-missing',
+      icon:'▤',
+      iconClass:'',
+      title:'Finish your resume',
+      copy:'Add or build your resume so employers can review your experience and skills.',
+      time:'Profile',
+      action:'app-align-upload.html'
+    });
+  }
+
+  if(!preferencesComplete){
+    notifications.push({
+      id:'preferences-missing',
+      icon:'◎',
+      iconClass:'amber',
+      title:'Complete your job preferences',
+      copy:'Add your target roles, salary, location, and work style for stronger matches.',
+      time:'Profile',
+      action:'app-preferences.html'
+    });
+  }
+
+  return notifications;
 }
 
-if(completion>100)completion=100;
-document.getElementById('completionText').textContent=completion+'%';
-document.getElementById('completionFill').style.width=completion+'%';
+function notificationEscape(value){
+  return String(value ?? '').replace(/[&<>"']/g,char=>({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#039;'
+  })[char]);
 }
-async function logoutUser(){try{await sb.auth.signOut({scope:'global'});}catch(error){console.log('Logout error:',error);}Object.keys(localStorage).forEach(function(key){const lower=key.toLowerCase();if(lower.includes('supabase')||lower.includes('sb-')||lower.includes('alygnn'))localStorage.removeItem(key);});sessionStorage.clear();window.location.replace('app-login.html?logout=1');}
-applyTheme();loadProfile();
+
+function renderCandidateNotifications(context){
+  if(context){
+    candidateNotifications=buildCandidateNotifications(context);
+  }
+
+  const list=$('notification-list');
+  const badge=$('notification-badge');
+  const countLabel=$('notification-count-label');
+  const markRead=$('mark-read-btn');
+
+  if(!list || !badge || !countLabel || !markRead) return;
+
+  const reads=getCandidateNotificationReads();
+  const unread=candidateNotifications.filter(item=>!reads.has(item.id));
+
+  badge.textContent=String(unread.length);
+  badge.hidden=unread.length===0;
+
+  countLabel.textContent=unread.length
+    ?`${unread.length} unread notification${unread.length===1?'':'s'}`
+    :'You’re all caught up';
+
+  markRead.hidden=unread.length===0;
+
+  if(!candidateNotifications.length){
+    list.innerHTML=`
+      <div class="notification-empty">
+        <div class="notification-empty-icon">✓</div>
+        <strong>You’re all caught up</strong>
+        <span>No new candidate notifications right now.</span>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML=candidateNotifications.map(item=>{
+    const isUnread=!reads.has(item.id);
+    return `
+      <button
+        type="button"
+        class="notification-item ${isUnread?'unread':''}"
+        style="width:100%;border-left:0;border-right:0;background:transparent;text-align:left;color:inherit;cursor:pointer"
+        onclick="openCandidateNotificationItem('${notificationEscape(item.id)}','${notificationEscape(item.action)}')"
+      >
+        <span class="notification-icon ${notificationEscape(item.iconClass)}">${notificationEscape(item.icon)}</span>
+        <span class="notification-copy">
+          <strong>${notificationEscape(item.title)}</strong>
+          <span>${notificationEscape(item.copy)}</span>
+        </span>
+        <span class="notification-time">${notificationEscape(item.time)}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function openCandidateNotifications(){
+  const overlay=$('notification-overlay');
+  if(!overlay) return;
+
+  renderCandidateNotifications();
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden';
+}
+
+function closeCandidateNotifications(){
+  const overlay=$('notification-overlay');
+  if(!overlay) return;
+
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden','true');
+  document.body.style.overflow='';
+}
+
+function candidateNotificationBackdrop(event){
+  if(event.target===event.currentTarget){
+    closeCandidateNotifications();
+  }
+}
+
+function markAllCandidateNotificationsRead(){
+  const reads=getCandidateNotificationReads();
+  candidateNotifications.forEach(item=>reads.add(item.id));
+  saveCandidateNotificationReads(reads);
+  renderCandidateNotifications();
+}
+
+function openCandidateNotificationItem(id,action){
+  const reads=getCandidateNotificationReads();
+  reads.add(id);
+  saveCandidateNotificationReads(reads);
+  renderCandidateNotifications();
+
+  if(action){
+    window.location.href=action;
+  }
+}
+
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'){
+    closeCandidateNotifications();
+  }
+});
+
+
+
+
+function syncCandidateView(){
+  const settingsOpen=window.location.hash==='#settings';
+  const profileView=$('profile-view');
+  const settingsView=$('settings-view');
+  const navProfile=$('nav-profile');
+  const navSettings=$('nav-settings');
+  const notificationShortcut=$('notification-shortcut');
+  const settingsBack=$('settings-back');
+  const profileSpacer=$('profile-header-spacer');
+  const settingsSpacer=$('settings-header-spacer');
+
+  if(profileView) profileView.hidden=settingsOpen;
+  if(settingsView) settingsView.hidden=!settingsOpen;
+
+  if(navProfile) navProfile.classList.toggle('active',!settingsOpen);
+  if(navSettings) navSettings.classList.toggle('active',settingsOpen);
+
+  if(notificationShortcut) notificationShortcut.hidden=settingsOpen;
+  if(settingsBack) settingsBack.hidden=!settingsOpen;
+  if(profileSpacer) profileSpacer.hidden=settingsOpen;
+  if(settingsSpacer) settingsSpacer.hidden=!settingsOpen;
+
+  if(settingsOpen){
+    refreshCandidateSettingsUI();
+  }
+
+  window.scrollTo({top:0,left:0,behavior:'auto'});
+}
+
+function openSettingsView(){
+  if(window.location.hash==='#settings'){
+    syncCandidateView();
+    return;
+  }
+
+  window.location.hash='settings';
+}
+
+function openProfileView(){
+  if(window.location.hash){
+    history.replaceState(null,'',window.location.pathname+window.location.search);
+  }
+  syncCandidateView();
+}
+
+function showSettingsMessage(message,type='info'){
+  const box=$('settings-message');
+  if(!box) return;
+
+  box.textContent=message;
+  box.className='settings-message';
+  if(type==='success') box.classList.add('success');
+  if(type==='error') box.classList.add('error');
+  box.hidden=false;
+
+  clearTimeout(showSettingsMessage.timer);
+  showSettingsMessage.timer=setTimeout(()=>{
+    box.hidden=true;
+  },4200);
+}
+
+
+function showPersistentSettingsInfo(htmlContent){
+  const box=$('settings-message');
+  if(!box)return;
+
+  clearTimeout(showSettingsMessage.timer);
+
+  box.className='settings-message';
+  box.innerHTML=htmlContent;
+  box.hidden=false;
+
+  window.scrollTo({
+    top:0,
+    left:0,
+    behavior:'smooth'
+  });
+}
+
+function openCandidateSupport(){
+  showPersistentSettingsInfo(`
+    <strong>Help &amp; Support</strong><br>
+    Need help with your Alygnn account? Contact
+    <a href="mailto:admin@alygnn.com?subject=Alygnn%20Support">admin@alygnn.com</a>.
+  `);
+}
+
+function openCandidateAbout(){
+  showPersistentSettingsInfo(`
+    <strong>About Alygnn</strong><br>
+    Alygnn is a job-matching platform. Job seekers can create a profile,
+    upload a resume, set job preferences, and swipe through and apply to
+    job postings. Employers can create a verified business account and
+    post job openings for job seekers to discover and apply to.
+  `);
+}
+
+function getCandidateTheme(){
+  return window.AlygnnCandidateTheme
+    ? window.AlygnnCandidateTheme.get()
+    : (localStorage.getItem('alygnn_candidate_theme') || localStorage.getItem('alygnn-theme') || 'system');
+}
+
+function setCandidateTheme(theme){
+  const allowed=new Set(['system','light','dark']);
+  const next=allowed.has(theme)?theme:'system';
+
+  if(window.AlygnnCandidateTheme){
+    window.AlygnnCandidateTheme.set(next);
+  }else{
+    localStorage.setItem('alygnn_candidate_theme',next);
+    localStorage.setItem('alygnn-theme',next);
+    document.body.dataset.theme=next;
+  }
+
+  refreshCandidateSettingsUI();
+}
+
+function refreshCandidateSettingsUI(){
+  const theme=getCandidateTheme();
+
+  if(window.AlygnnCandidateTheme){
+    window.AlygnnCandidateTheme.apply(theme);
+  }
+
+  document.body.dataset.theme=theme;
+
+  document.querySelectorAll('[data-theme-option]')
+    .forEach(button=>{
+      button.classList.toggle(
+        'active',
+        button.dataset.themeOption===theme
+      );
+    });
+
+  document.querySelectorAll('[data-setting-state]')
+    .forEach(label=>{
+      const row=label.closest('.settings-row');
+      const text=row?.innerText?.toLowerCase() || '';
+      const key=text.includes('job alerts')
+        ?'job_alerts'
+        :'application_updates';
+      const enabled=localStorage.getItem('alygnn_'+key)!=='false';
+      label.textContent=enabled?'On':'Off';
+      label.classList.toggle('off',!enabled);
+    });
+}
+
+function toggleCandidateSetting(key,button){
+  const storageKey='alygnn_'+key;
+  const current=localStorage.getItem(storageKey)!=='false';
+  localStorage.setItem(storageKey,String(!current));
+
+  const label=button.querySelector('[data-setting-state]');
+  if(label){
+    label.textContent=!current?'On':'Off';
+    label.classList.toggle('off',current);
+  }
+}
+
+
+function toggleSettingsPassword(inputId,buttonId){
+  const input=$(inputId);
+  const button=$(buttonId);
+
+  if(!input || !button)return;
+
+  const willShow=input.type==='password';
+
+  input.type=willShow?'text':'password';
+  button.classList.toggle('is-visible',willShow);
+  button.setAttribute('aria-pressed',String(willShow));
+  button.setAttribute(
+    'aria-label',
+    willShow
+      ?'Hide password'
+      :'Show password'
+  );
+}
+
+async function sendCandidatePasswordChangeEmail(){
+  try{
+    const {data,error}=await sb.auth.getSession();
+
+    if(error)throw error;
+
+    const session=data?.session;
+    const email=session?.user?.email;
+
+    if(!session || !email){
+      throw new Error('No authenticated email is available.');
+    }
+
+    const response=await fetch(
+      'https://alygnn.com/api/notify-password-change',
+      {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':`Bearer ${session.access_token}`
+        },
+        body:JSON.stringify({
+          email
+        })
+      }
+    );
+
+    if(!response.ok){
+      const responseText=await response.text();
+      throw new Error(
+        responseText ||
+        'Password confirmation email failed.'
+      );
+    }
+
+    return true;
+
+  }catch(error){
+    console.warn(
+      'Password changed, but confirmation email could not be sent:',
+      error
+    );
+
+    return false;
+  }
+}
+
+
+
+function setPasswordVerifyMessage(message,type='info'){
+  const box=$('settings-password-verify-message');
+
+  if(!box)return;
+
+  if(!message){
+    box.textContent='';
+    box.className='settings-password-inline-message';
+    box.hidden=true;
+    return;
+  }
+
+  box.textContent=message;
+  box.className='settings-password-inline-message '+type;
+  box.hidden=false;
+}
+
+let pendingCandidatePasswordChange=null;
+
+function resetSettingsPasswordEyes(){
+  const newPassword=$('settings-new-password');
+  const confirmPassword=$('settings-confirm-password');
+  const newEye=$('settings-new-password-eye');
+  const confirmEye=$('settings-confirm-password-eye');
+
+  if(newPassword)newPassword.type='password';
+  if(confirmPassword)confirmPassword.type='password';
+
+  [
+    [newEye,'Show new password'],
+    [confirmEye,'Show confirm password']
+  ].forEach(([button,label])=>{
+    if(!button)return;
+
+    button.classList.remove('is-visible');
+    button.setAttribute('aria-pressed','false');
+    button.setAttribute('aria-label',label);
+  });
+}
+
+function hidePasswordVerificationStep(){
+  const verify=$('settings-password-verify');
+
+  if(verify){
+    verify.hidden=true;
+  }
+
+  const code=$('settings-password-code');
+
+  if(code){
+    code.value='';
+  }
+
+  setPasswordVerifyMessage('');
+}
+
+async function sendCandidatePasswordOtp(email){
+  const {error}=await sb.auth.signInWithOtp({
+    email,
+    options:{
+      shouldCreateUser:false
+    }
+  });
+
+  if(error)throw error;
+}
+
+async function changeCandidatePassword(){
+  const password=$('settings-new-password')?.value || '';
+  const confirm=$('settings-confirm-password')?.value || '';
+  const button=$('settings-password-btn');
+
+  hidePasswordVerificationStep();
+  pendingCandidatePasswordChange=null;
+
+  if(!password || !confirm){
+    showSettingsMessage(
+      'Please fill out both password fields.',
+      'error'
+    );
+    return;
+  }
+
+  if(password.length<8){
+    showSettingsMessage(
+      'Password must be at least 8 characters.',
+      'error'
+    );
+    return;
+  }
+
+  if(password!==confirm){
+    showSettingsMessage(
+      'Passwords do not match.',
+      'error'
+    );
+    return;
+  }
+
+  const original=button?.textContent || 'Update Password';
+
+  if(button){
+    button.disabled=true;
+    button.textContent='Sending code…';
+  }
+
+  try{
+    const {
+      data:sessionData,
+      error:sessionError
+    }=await sb.auth.getSession();
+
+    if(sessionError)throw sessionError;
+
+    const session=sessionData?.session;
+    const email=session?.user?.email;
+
+    if(!session || !email){
+      throw new Error(
+        'Your session expired. Please sign in again.'
+      );
+    }
+
+    await sendCandidatePasswordOtp(email);
+
+    pendingCandidatePasswordChange={
+      email,
+      password
+    };
+
+    $('settings-password-email').textContent=email;
+    $('settings-password-verify').hidden=false;
+
+    setPasswordVerifyMessage(
+      'Verification code sent. Enter the 6-digit code below.',
+      'success'
+    );
+
+    showSettingsMessage(
+      'Verification code sent. Check your email.',
+      'success'
+    );
+
+    setTimeout(()=>{
+      $('settings-password-code')?.focus();
+    },100);
+
+  }catch(error){
+    const raw=String(error?.message || '').toLowerCase();
+
+    let message=
+      error?.message ||
+      'Unable to send the verification code.';
+
+    if(
+      raw.includes('rate limit') ||
+      raw.includes('too many')
+    ){
+      message=
+        'Too many verification attempts. Wait a moment and try again.';
+    }else if(
+      raw.includes('session') ||
+      raw.includes('jwt') ||
+      raw.includes('not authenticated')
+    ){
+      message=
+        'Your session expired. Sign in again, then change your password.';
+    }
+
+    showSettingsMessage(
+      message,
+      'error'
+    );
+
+  }finally{
+    if(button){
+      button.disabled=false;
+      button.textContent=original;
+    }
+  }
+}
+
+async function resendCandidatePasswordCode(){
+  const button=$('settings-password-resend-btn');
+
+  if(!pendingCandidatePasswordChange?.email){
+    showSettingsMessage(
+      'Enter your new password again, then tap Update Password.',
+      'error'
+    );
+    return;
+  }
+
+  const original=button?.textContent || 'Resend code';
+
+  if(button){
+    button.disabled=true;
+    button.textContent='Sending…';
+  }
+
+  try{
+    await sendCandidatePasswordOtp(
+      pendingCandidatePasswordChange.email
+    );
+
+    showSettingsMessage(
+      'A new verification code was sent.',
+      'success'
+    );
+
+  }catch(error){
+    showSettingsMessage(
+      error?.message ||
+      'Unable to resend the verification code.',
+      'error'
+    );
+
+  }finally{
+    if(button){
+      button.disabled=false;
+      button.textContent=original;
+    }
+  }
+}
+
+async function verifyCandidatePasswordChange(){
+  const code=String(
+    $('settings-password-code')?.value || ''
+  )
+    .replace(/\D/g,'')
+    .trim();
+
+  const button=$('settings-password-verify-btn');
+  const resendButton=$('settings-password-resend-btn');
+
+  if(!pendingCandidatePasswordChange){
+    const message=
+      'Enter your new password again, then request a new code.';
+
+    setPasswordVerifyMessage(message,'error');
+    showSettingsMessage(message,'error');
+    return;
+  }
+
+  if(!/^\d{6}$/.test(code)){
+    const message=
+      'Enter the 6-digit verification code from your email.';
+
+    setPasswordVerifyMessage(message,'error');
+    showSettingsMessage(message,'error');
+    return;
+  }
+
+  const original=
+    button?.textContent ||
+    'Verify & Change Password';
+
+  if(button){
+    button.disabled=true;
+    button.textContent='Verifying…';
+  }
+
+  if(resendButton){
+    resendButton.disabled=true;
+  }
+
+  setPasswordVerifyMessage(
+    'Verifying your code…',
+    'info'
+  );
+
+  try{
+    const {
+      email,
+      password
+    }=pendingCandidatePasswordChange;
+
+    const {
+      data:verificationData,
+      error:verificationError
+    }=await sb.auth.verifyOtp({
+      email,
+      token:code,
+      type:'email'
+    });
+
+    if(verificationError){
+      throw verificationError;
+    }
+
+    if(!verificationData?.session){
+      throw new Error(
+        'The verification code could not be confirmed.'
+      );
+    }
+
+    setPasswordVerifyMessage(
+      'Code verified. Updating your password…',
+      'info'
+    );
+
+    const {
+      data:updateData,
+      error:updateError
+    }=await sb.auth.updateUser({
+      password
+    });
+
+    if(updateError){
+      throw updateError;
+    }
+
+    if(!updateData?.user){
+      throw new Error(
+        'Password update could not be confirmed.'
+      );
+    }
+
+    // The password is already changed at this point.
+    // Do NOT make the user wait for the separate confirmation-email API.
+    $('settings-new-password').value='';
+    $('settings-confirm-password').value='';
+    $('settings-password-code').value='';
+
+    pendingCandidatePasswordChange=null;
+    resetSettingsPasswordEyes();
+
+    setPasswordVerifyMessage(
+      'Password updated successfully.',
+      'success'
+    );
+
+    showSettingsMessage(
+      'Password updated successfully.',
+      'success'
+    );
+
+    if(button){
+      button.textContent='Password Updated ✓';
+    }
+
+    // Send the security confirmation email in the background.
+    // A mail/API problem must never make the password update look stuck.
+    void sendCandidatePasswordChangeEmail()
+      .then(sent=>{
+        if(sent){
+          setPasswordVerifyMessage(
+            'Password updated successfully. Confirmation email sent.',
+            'success'
+          );
+        }else{
+          console.warn(
+            'Password updated, but the confirmation email was not sent.'
+          );
+        }
+      })
+      .catch(error=>{
+        console.warn(
+          'Password confirmation email failed after successful update:',
+          error
+        );
+      });
+
+    setTimeout(()=>{
+      hidePasswordVerificationStep();
+
+      if(button){
+        button.textContent=original;
+      }
+    },2200);
+
+  }catch(error){
+    console.error(
+      'Password verification/update failed:',
+      error
+    );
+
+    const raw=String(error?.message || '').toLowerCase();
+
+    let message=
+      error?.message ||
+      'Unable to verify the code.';
+
+    if(
+      raw.includes('expired') ||
+      raw.includes('invalid') ||
+      raw.includes('token')
+    ){
+      message=
+        'That verification code is invalid or expired. Try again or resend the code.';
+    }else if(
+      raw.includes('same password') ||
+      raw.includes('different from the old password')
+    ){
+      message=
+        'Choose a password different from your current password.';
+    }else if(
+      raw.includes('password') &&
+      raw.includes('weak')
+    ){
+      message=
+        'Choose a stronger password and try again.';
+    }
+
+    setPasswordVerifyMessage(
+      message,
+      'error'
+    );
+
+    showSettingsMessage(
+      message,
+      'error'
+    );
+
+  }finally{
+    if(button){
+      button.disabled=false;
+
+      if(button.textContent==='Verifying…'){
+        button.textContent=original;
+      }
+    }
+
+    if(resendButton){
+      resendButton.disabled=false;
+    }
+  }
+}
+
+$('settings-password-code')?.addEventListener(
+  'input',
+  event=>{
+    event.target.value=
+      event.target.value
+        .replace(/\D/g,'')
+        .slice(0,6);
+  }
+);
+
+$('settings-password-code')?.addEventListener(
+  'keydown',
+  event=>{
+    if(event.key==='Enter'){
+      verifyCandidatePasswordChange();
+    }
+  }
+);
+
+window.addEventListener('hashchange',syncCandidateView);
+
+function safeString(value){
+  return String(value ?? '').trim();
+}
+
+function titleFromEmail(email){
+  if(!email) return 'Alygnn Member';
+
+  return email
+    .split('@')[0]
+    .replace(/[._-]/g,' ')
+    .replace(/\b\w/g,c=>c.toUpperCase());
+}
+
+function initials(value){
+  if(!value) return 'A';
+
+  const clean=String(value)
+    .replace(/@.*/,'')
+    .replace(/[._-]/g,' ')
+    .trim();
+
+  const parts=clean
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if(parts.length>=2){
+    return(
+      (parts[0][0]||'')+
+      (parts[1][0]||'')
+    ).toUpperCase();
+  }
+
+  return clean[0]
+    ?clean[0].toUpperCase()
+    :'A';
+}
+
+function parseObject(value){
+  if(!value) return {};
+
+  if(
+    typeof value==='object' &&
+    !Array.isArray(value)
+  ){
+    return value;
+  }
+
+  if(typeof value==='string'){
+    try{
+      const parsed=JSON.parse(value);
+      return parsed && typeof parsed==='object'
+        ?parsed
+        :{};
+    }catch(_){
+      return {};
+    }
+  }
+
+  return {};
+}
+
+let activeCandidateName='';
+
+const ALYGNN_TIME_MESSAGES={
+  late:[
+    "Late-night job hunt? Alygnn's still awake.",
+    "Still up? Your next move might be too.",
+    "Midnight motivation hits different.",
+    "Sleep can wait a minute. That next opportunity might not.",
+    "One more scroll. Make it a good one.",
+    "The job market doesn't have a bedtime.",
+    "Quiet hours. Loud ambitions."
+  ],
+  morning:[
+    "Coffee's optional — finding a better match isn't.",
+    "New day. New jobs. Same ambition.",
+    "Morning. Let's find something worth getting up for.",
+    "Your coffee can cool down. The job search can't.",
+    "Start the day with better options.",
+    "Fresh morning, fresh matches.",
+    "Before the inbox gets loud, make a move."
+  ],
+  afternoon:[
+    "Plenty of day left to make a move.",
+    "The day's not over. Neither is the search.",
+    "Afternoon slump? A better job might fix that.",
+    "Keep the momentum going.",
+    "A good opportunity beats another coffee break.",
+    "Still plenty of time to find something better.",
+    "Your next move could be one swipe away."
+  ],
+  evening:[
+    "Your next opportunity hasn't clocked out yet.",
+    "Clocked out? Your career doesn't have to.",
+    "The workday ended. The opportunities didn't.",
+    "One more good match before you call it a night?",
+    "Evening scroll, career edition.",
+    "Tomorrow-you might be glad you checked tonight.",
+    "The best part of the day might still be one swipe away."
+  ]
+};
+
+let lastMessageBucket='';
+let lastMessageText='';
+
+function pickTimeMessage(bucket,timeZone){
+  const pool=ALYGNN_TIME_MESSAGES[bucket]||ALYGNN_TIME_MESSAGES.afternoon;
+
+  // Keep one random line stable for the current page/daypart so the text
+  // doesn't change every minute while the dashboard is open.
+  if(lastMessageBucket===bucket && lastMessageText){
+    return lastMessageText;
+  }
+
+  const storageKey=`alygnn_message_${timeZone}_${bucket}`;
+  let saved='';
+
+  try{
+    saved=sessionStorage.getItem(storageKey)||'';
+  }catch(_){}
+
+  if(saved && pool.includes(saved)){
+    lastMessageBucket=bucket;
+    lastMessageText=saved;
+    return saved;
+  }
+
+  const next=pool[Math.floor(Math.random()*pool.length)];
+
+  lastMessageBucket=bucket;
+  lastMessageText=next;
+
+  try{
+    sessionStorage.setItem(storageKey,next);
+  }catch(_){}
+
+  return next;
+}
+
+function getCandidateTimeContext(){
+  const now=new Date();
+
+  // Resolve the phone/device IANA time zone (for example America/New_York).
+  // This follows the user's device when they travel or change time zones.
+  let timeZone='UTC';
+
+  try{
+    timeZone=
+      Intl.DateTimeFormat()
+        .resolvedOptions()
+        .timeZone || 'UTC';
+  }catch(_){}
+
+  let hour=now.getHours();
+
+  try{
+    const hourPart=
+      new Intl.DateTimeFormat('en-US',{
+        timeZone,
+        hour:'2-digit',
+        hourCycle:'h23'
+      })
+      .formatToParts(now)
+      .find(part=>part.type==='hour');
+
+    if(hourPart){
+      const parsed=Number(hourPart.value);
+      if(Number.isFinite(parsed))hour=parsed;
+    }
+  }catch(_){}
+
+  let greeting='Welcome back';
+  let bucket='late';
+
+  if(hour>=5 && hour<12){
+    greeting='Good morning';
+    bucket='morning';
+  }else if(hour>=12 && hour<17){
+    greeting='Good afternoon';
+    bucket='afternoon';
+  }else if(hour>=17 && hour<21){
+    greeting='Good evening';
+    bucket='evening';
+  }else if(hour>=21){
+    greeting='Good evening';
+    bucket='evening';
+  }
+
+  return{
+    timeZone,
+    hour,
+    greeting,
+    bucket,
+    completeLead:pickTimeMessage(bucket,timeZone)
+  };
+}
+
+function getGreeting(name){
+  const context=getCandidateTimeContext();
+
+  const firstName=
+    safeString(name)
+      .split(/\s+/)
+      .filter(Boolean)[0];
+
+  return firstName
+    ?context.greeting+', '+firstName
+    :context.greeting;
+}
+
+function refreshTimeBasedDashboardCopy(){
+  if(!$('greeting'))return;
+
+  $('greeting').textContent=
+    getGreeting(activeCandidateName);
+
+  if(
+    candidateOnboardingState &&
+    candidateOnboardingState.complete &&
+    $('lead')
+  ){
+    $('lead').textContent=
+      getCandidateTimeContext().completeLead;
+  }
+}
+
+function setSetupDone(item,status,title,copy){
+  item.classList.add('done');
+  status.textContent='✓';
+  title.textContent=title;
+  copy.textContent=copy;
+}
+
+
+function showOnboardingMessage(message,type='error'){
+  const box=$('onboarding-message');
+  if(!box) return;
+  box.textContent=message;
+  box.className='onboarding-message';
+  if(type==='success') box.classList.add('success');
+  box.hidden=false;
+}
+
+function clearOnboardingMessage(){
+  const box=$('onboarding-message');
+  if(!box) return;
+  box.hidden=true;
+  box.textContent='';
+  box.className='onboarding-message';
+}
+
+function lockCandidateNavigation(locked){
+  ['nav-swipe','nav-jobs'].forEach(id=>{
+    const button=$(id);
+    if(!button) return;
+    button.classList.toggle('locked',locked);
+    button.setAttribute('aria-disabled',locked?'true':'false');
+  });
+}
+
+function openCandidateDestination(url){
+  if(candidateOnboardingState.complete){
+    window.location.href=url;
+    return;
+  }
+  openProfileView();
+  const panel=$('onboarding-panel');
+  if(panel){
+    panel.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  showOnboardingMessage('Complete your resume and job preferences to unlock job matches.');
+}
+
+function openPreferencesFromSettings(){
+  if(!candidateOnboardingState.hasResume){
+    openProfileView();
+    $('onboarding-panel')?.scrollIntoView({behavior:'smooth',block:'start'});
+    showOnboardingMessage('Add your resume first. Job preferences unlock after your resume is ready.');
+    return;
+  }
+  if(!candidateOnboardingState.previewReviewed){
+    window.location.href='app-resume-preview.html';
+    return;
+  }
+  window.location.href='app-preferences.html';
+}
+
+function openDashboardPreferences(){
+  if(!candidateOnboardingState.hasResume){
+    showOnboardingMessage('Add your resume before setting job preferences.');
+    return;
+  }
+  if(!candidateOnboardingState.previewReviewed){
+    window.location.href='app-resume-preview.html';
+    return;
+  }
+  window.location.href='app-preferences.html';
+}
+
+function chooseDashboardResume(){
+  if(dashboardUploadBusy) return;
+  clearOnboardingMessage();
+  $('dashboard-resume-input')?.click();
+}
+
+async function uploadDashboardResume(file){
+  if(!file || dashboardUploadBusy) return;
+
+  const extension=(file.name.split('.').pop()||'').toLowerCase();
+  if(!['pdf','doc','docx'].includes(extension)){
+    showOnboardingMessage('Choose a PDF, DOC, or DOCX resume.');
+    return;
+  }
+  if(file.size<=0 || file.size>10*1024*1024){
+    showOnboardingMessage(file.size<=0?'That file appears to be empty.':'Your resume must be 10MB or smaller.');
+    return;
+  }
+
+  dashboardUploadBusy=true;
+  const button=$('dashboard-upload-btn');
+  const original=button?.textContent || 'Upload Resume';
+  if(button){button.disabled=true;button.textContent='Uploading…';}
+  clearOnboardingMessage();
+
+  try{
+    const {data:{user},error:userError}=await sb.auth.getUser();
+    if(userError || !user) throw userError || new Error('Your session expired. Please sign in again.');
+
+    const {data:profile,error:profileError}=await sb
+      .from('profiles')
+      .select('resume_file_path,resume_data')
+      .eq('id',user.id)
+      .maybeSingle();
+    if(profileError) throw profileError;
+
+    const filePath=`${user.id}/resume-${Date.now()}.${extension}`;
+    const {error:uploadError}=await sb.storage
+      .from('resumes')
+      .upload(filePath,file,{cacheControl:'3600',upsert:false,contentType:file.type||undefined});
+    if(uploadError) throw uploadError;
+
+    const resumeData=parseObject(profile?.resume_data);
+    const onboarding=parseObject(resumeData._alygnn_onboarding);
+    resumeData._alygnn_onboarding={...onboarding,preview_reviewed:false};
+
+    const {error:saveError}=await sb.from('profiles').upsert({
+      id:user.id,
+      resume_file_path:filePath,
+      resume_source:'upload',
+      resume_data:resumeData,
+      updated_at:new Date().toISOString()
+    },{onConflict:'id'});
+
+    if(saveError){
+      await sb.storage.from('resumes').remove([filePath]).catch(()=>{});
+      throw saveError;
+    }
+
+    if(profile?.resume_file_path && profile.resume_file_path!==filePath){
+      await sb.storage.from('resumes').remove([profile.resume_file_path]).catch(()=>{});
+    }
+
+    showOnboardingMessage('Resume uploaded. Opening your preview…','success');
+    setTimeout(()=>window.location.href='app-resume-preview.html?source=upload',350);
+  }catch(error){
+    console.error('Dashboard resume upload failed:',error);
+    showOnboardingMessage(error?.message || 'We could not upload your resume. Please try again.');
+    dashboardUploadBusy=false;
+    if(button){button.disabled=false;button.textContent=original;}
+  }
+}
+
+function renderCandidateOnboardingGate({hasResume,previewReviewed,preferencesComplete}){
+  const complete=hasResume && preferencesComplete;
+  candidateOnboardingState={complete,hasResume,previewReviewed,preferencesComplete};
+
+  const panel=$('onboarding-panel');
+  const hero=$('profile-hero');
+  const snapshot=$('snapshot-section');
+  const profileSection=$('profile-section');
+  const setup=$('setup-section');
+
+  lockCandidateNavigation(!complete);
+
+  if(complete){
+    document.body.dataset.profileComplete='true';
+    if(panel) panel.hidden=true;
+
+    // Once onboarding is complete, the large completion hero is no longer useful.
+    if(hero) hero.hidden=true;
+
+    // Completed candidates no longer need the onboarding-style
+    // activity summary on the main dashboard.
+    if(snapshot) snapshot.hidden=true;
+    if(profileSection) profileSection.hidden=false;
+    if(setup) setup.hidden=true;
+
+    const completeActions=$('complete-actions');
+    if(completeActions)completeActions.classList.add('show');
+
+    $('lead').textContent=
+      getCandidateTimeContext().completeLead;
+
+    return;
+  }
+
+  document.body.dataset.profileComplete='false';
+
+  const recommendationsSection=$('recommendations-section');
+  if(recommendationsSection)recommendationsSection.hidden=true;
+
+  if(panel) panel.hidden=false;
+  if(hero) hero.hidden=true;
+
+  const completeActions=$('complete-actions');
+  if(completeActions)completeActions.classList.remove('show');
+
+  if(snapshot) snapshot.hidden=true;
+  if(profileSection) profileSection.hidden=true;
+  if(setup) setup.hidden=true;
+
+  $('lead').textContent='Complete your setup to unlock personalized job matches.';
+
+  const completedSteps=(hasResume?1:0)+(preferencesComplete?1:0);
+  $('onboarding-count').textContent=`${completedSteps} of 2 complete`;
+  $('onboarding-progress-fill').style.width=`${completedSteps*50}%`;
+
+  const resumeStep=$('onboarding-resume-step');
+  const prefStep=$('onboarding-preferences-step');
+  const prefButton=$('dashboard-preferences-btn');
+  const resumeActions=$('onboarding-resume-actions');
+
+  resumeStep.classList.remove('active','done','locked');
+  prefStep.classList.remove('active','done','locked');
+
+  if(!hasResume){
+    resumeStep.classList.add('active');
+    prefStep.classList.add('locked');
+    $('onboarding-resume-number').textContent='1';
+    $('onboarding-resume-title').textContent='Add your resume';
+    $('onboarding-resume-copy').textContent='Upload a resume you already have or create one with Alygnn.';
+    if(resumeActions){
+      resumeActions.innerHTML=`<button class="step-btn primary" type="button" id="dashboard-upload-btn" onclick="chooseDashboardResume()">Upload Resume</button><button class="step-btn secondary" type="button" onclick="window.location.href='app-resume-builder.html'">Create Resume</button>`;
+    }
+    $('onboarding-preferences-number').textContent='2';
+    $('onboarding-preferences-title').textContent='Set your preferences';
+    $('onboarding-preferences-copy').textContent='This unlocks after your resume is added and reviewed.';
+    prefButton.disabled=true;
+  }else if(!previewReviewed){
+    resumeStep.classList.add('active');
+    prefStep.classList.add('locked');
+    $('onboarding-resume-number').textContent='✓';
+    $('onboarding-resume-title').textContent='Resume added — review it';
+    $('onboarding-resume-copy').textContent='Review what employers will see before you continue.';
+    if(resumeActions){
+      resumeActions.innerHTML=`<button class="step-btn primary" type="button" onclick="window.location.href='app-resume-preview.html'">Review Resume</button><button class="step-btn secondary" type="button" onclick="window.location.href='app-align-upload.html'">Change Resume</button>`;
+    }
+    $('onboarding-preferences-copy').textContent='Review your resume first, then preferences will unlock.';
+    prefButton.disabled=true;
+  }else{
+    resumeStep.classList.add('done');
+    prefStep.classList.add('active');
+    $('onboarding-resume-number').textContent='✓';
+    $('onboarding-resume-title').textContent='Resume ready';
+    $('onboarding-resume-copy').textContent='Your resume is saved and ready for matching.';
+    if(resumeActions){
+      resumeActions.innerHTML=`<button class="step-btn secondary" type="button" onclick="window.location.href='app-resume-preview.html'">View Resume</button>`;
+    }
+    $('onboarding-preferences-number').textContent='2';
+    $('onboarding-preferences-title').textContent='Set your preferences';
+    $('onboarding-preferences-copy').textContent='Tell Alygnn which roles, location, pay, and work style you want.';
+    prefButton.disabled=false;
+  }
+}
+
+
+
+function alygnnMatchText(value){
+  return String(value ?? '').trim().toLowerCase();
+}
+
+function alygnnMatchTokens(value){
+  return alygnnMatchText(value)
+    .replace(/[^a-z0-9+#. ]/g,' ')
+    .split(/\s+/)
+    .map(token=>token.trim())
+    .filter(token=>token.length>1);
+}
+
+function alygnnTokenOverlap(a,b){
+  const left=new Set(alygnnMatchTokens(a));
+  const right=new Set(alygnnMatchTokens(b));
+
+  if(!left.size || !right.size)return 0;
+
+  let shared=0;
+  left.forEach(token=>{
+    if(right.has(token))shared+=1;
+  });
+
+  return shared/Math.max(1,Math.min(left.size,right.size));
+}
+
+function alygnnNormalizeJobType(value){
+  const raw=alygnnMatchText(value).replace(/[^a-z]/g,'');
+
+  if(raw.includes('fulltime'))return 'fulltime';
+  if(raw.includes('parttime'))return 'parttime';
+  if(raw.includes('contract'))return 'contractor';
+  if(raw.includes('intern'))return 'intern';
+
+  return raw;
+}
+
+function alygnnJobSalary(job){
+  const min=Number(job?.salary_min);
+  const max=Number(job?.salary_max);
+
+  return{
+    min:Number.isFinite(min) && min>0 ? min : null,
+    max:Number.isFinite(max) && max>0 ? max : null
+  };
+}
+
+function alygnnJobLocation(job){
+  return String(
+    job?.location ||
+    [job?.city,job?.state].filter(Boolean).join(', ') ||
+    ''
+  ).trim();
+}
+
+function alygnnComputeMatch(job,preferences){
+  const criteria=[];
+
+  let roleValue=null;
+  let locationValue=null;
+  let workStyleValue=null;
+  let jobTypeValue=null;
+  let industryValue=null;
+  let salaryValue=null;
+
+  const wantedTitle=String(preferences?.query || '').trim();
+
+  if(wantedTitle){
+    const title=String(job?.title || '').trim();
+    let value=alygnnTokenOverlap(wantedTitle,title);
+
+    const wanted=alygnnMatchText(wantedTitle);
+    const actual=alygnnMatchText(title);
+
+    if(
+      wanted &&
+      actual &&
+      (actual.includes(wanted) || wanted.includes(actual))
+    ){
+      value=Math.max(value,.95);
+    }
+
+    roleValue=value;
+    criteria.push({key:'role',weight:34,value});
+  }
+
+  const wantedLocation=String(
+    preferences?.location ||
+    [preferences?.city,preferences?.state].filter(Boolean).join(', ') ||
+    ''
+  ).trim();
+
+  if(wantedLocation){
+    const jobLocation=alygnnJobLocation(job);
+    const wanted=alygnnMatchText(wantedLocation);
+    const actual=alygnnMatchText(jobLocation);
+    const remote=alygnnMatchText(job?.work_style).includes('remote');
+
+    let value=alygnnTokenOverlap(wantedLocation,jobLocation);
+
+    if(
+      wanted &&
+      actual &&
+      (actual.includes(wanted) || wanted.includes(actual))
+    ){
+      value=Math.max(value,1);
+    }
+
+    if(
+      alygnnMatchText(preferences?.workStyle).includes('remote') &&
+      remote
+    ){
+      value=Math.max(value,.9);
+    }
+
+    locationValue=value;
+    criteria.push({key:'location',weight:18,value});
+  }
+
+  const wantedStyle=String(preferences?.workStyle || '').trim();
+
+  if(wantedStyle){
+    const actualStyle=String(
+      job?.work_style ||
+      job?.work_arrangement ||
+      ''
+    ).trim();
+
+    const value=
+      alygnnMatchText(actualStyle)
+        .includes(alygnnMatchText(wantedStyle))
+        ?1
+        :0;
+
+    workStyleValue=value;
+    criteria.push({key:'workStyle',weight:14,value});
+  }
+
+  const wantedTypes=Array.isArray(preferences?.jobTypes)
+    ?preferences.jobTypes
+    :[preferences?.jobType].filter(Boolean);
+
+  if(wantedTypes.length){
+    const actualType=alygnnNormalizeJobType(
+      job?.job_type ||
+      job?.employment_type
+    );
+
+    const value=wantedTypes
+      .map(alygnnNormalizeJobType)
+      .includes(actualType)
+        ?1
+        :0;
+
+    jobTypeValue=value;
+    criteria.push({key:'jobType',weight:14,value});
+  }
+
+  const wantedIndustries=Array.isArray(preferences?.industries)
+    ?preferences.industries.filter(Boolean)
+    :[];
+
+  if(wantedIndustries.length){
+    const jobIndustry=String(
+      job?.industry ||
+      job?.category ||
+      job?.sector ||
+      ''
+    ).trim();
+
+    if(jobIndustry){
+      let value=0;
+
+      for(const industry of wantedIndustries){
+        value=Math.max(
+          value,
+          alygnnTokenOverlap(industry,jobIndustry)
+        );
+
+        if(
+          alygnnMatchText(jobIndustry).includes(alygnnMatchText(industry)) ||
+          alygnnMatchText(industry).includes(alygnnMatchText(jobIndustry))
+        ){
+          value=Math.max(value,1);
+        }
+      }
+
+      industryValue=value;
+      criteria.push({key:'industry',weight:10,value});
+    }
+  }
+
+  const prefMin=Number(preferences?.salary_min);
+  const prefMax=Number(preferences?.salary_max);
+  const salary=alygnnJobSalary(job);
+
+  if(
+    (Number.isFinite(prefMin) || Number.isFinite(prefMax)) &&
+    (salary.min || salary.max)
+  ){
+    const targetMin=Number.isFinite(prefMin)
+      ?prefMin
+      :0;
+
+    const targetMax=Number.isFinite(prefMax)
+      ?prefMax
+      :Number.MAX_SAFE_INTEGER;
+
+    const jobMin=salary.min || 0;
+    const jobMax=salary.max || Number.MAX_SAFE_INTEGER;
+
+    const overlaps=
+      Math.max(targetMin,jobMin) <=
+      Math.min(targetMax,jobMax);
+
+    salaryValue=overlaps?1:0;
+
+    criteria.push({
+      key:'salary',
+      weight:10,
+      value:salaryValue
+    });
+  }
+
+  if(!criteria.length){
+    return{
+      score:0,
+      breakdown:{
+        role:null,
+        work:null,
+        salary:null,
+        location:null
+      }
+    };
+  }
+
+  const weight=
+    criteria.reduce(
+      (sum,item)=>sum+item.weight,
+      0
+    );
+
+  const points=
+    criteria.reduce(
+      (sum,item)=>sum+(item.weight*item.value),
+      0
+    );
+
+  const score=Math.max(
+    0,
+    Math.min(
+      99,
+      Math.round((points/weight)*100)
+    )
+  );
+
+  const workParts=[
+    workStyleValue,
+    jobTypeValue,
+    industryValue
+  ].filter(value=>value!==null);
+
+  const workValue=
+    workParts.length
+      ?workParts.reduce((sum,value)=>sum+value,0)/workParts.length
+      :null;
+
+  return{
+    score,
+    breakdown:{
+      role:roleValue===null?null:Math.round(roleValue*100),
+      work:workValue===null?null:Math.round(workValue*100),
+      salary:salaryValue===null?null:Math.round(salaryValue*100),
+      location:locationValue===null?null:Math.round(locationValue*100)
+    }
+  };
+}
+
+function jobPreferenceFit(job,preferences){
+  return alygnnComputeMatch(job,preferences).score;
+}
+
+function recommendationSalaryText(job){
+  if(safeString(job?.salary)){
+    return safeString(job.salary);
+  }
+
+  const {min,max}=alygnnJobSalary(job);
+
+  if(min && max){
+    return '$'+min.toLocaleString('en-US')+'–$'+max.toLocaleString('en-US');
+  }
+
+  if(min){
+    return 'From $'+min.toLocaleString('en-US');
+  }
+
+  if(max){
+    return 'Up to $'+max.toLocaleString('en-US');
+  }
+
+  return '';
+}
+
+function recommendationCompany(job){
+  return safeString(
+    job?.company ||
+    job?.company_name ||
+    job?.employer_name ||
+    'Employer'
+  );
+}
+
+function recommendationLocation(job){
+  return safeString(
+    alygnnJobLocation(job) ||
+    'Location not listed'
+  );
+}
+
+function recommendationInitials(value){
+  const parts=safeString(value).split(/\s+/).filter(Boolean);
+
+  return(
+    (parts[0]?.[0]||'A')+
+    (parts[1]?.[0]||'')
+  ).toUpperCase();
+}
+
+function recommendationEscape(value){
+  return String(value??'').replace(/[&<>"']/g,char=>({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#039;'
+  })[char]);
+}
+
+function recommendationJobType(job){
+  return safeString(
+    job?.job_type ||
+    job?.employment_type
+  );
+}
+
+function recommendationWorkStyle(job){
+  return safeString(job?.work_style);
+}
+
+function recommendationCard(job){
+  const company=recommendationCompany(job);
+  const location=recommendationLocation(job);
+  const salary=recommendationSalaryText(job);
+  const type=recommendationJobType(job);
+  const workStyle=recommendationWorkStyle(job);
+  const fit=Number(job?._alygnnPreferenceFit)||0;
+
+  const pills=[
+    location,
+    type,
+    workStyle,
+    salary
+  ]
+    .filter(Boolean)
+    .slice(0,4)
+    .map(value=>`<span class="recommendation-pill">${recommendationEscape(value)}</span>`)
+    .join('');
+
+  return`
+    <article class="recommendation-card">
+      <div class="recommendation-top">
+        <div class="recommendation-main">
+          <div class="recommendation-logo">${recommendationEscape(recommendationInitials(company))}</div>
+
+          <div class="recommendation-copy">
+            <div class="recommendation-title">${recommendationEscape(job?.title||'Job Opportunity')}</div>
+            <div class="recommendation-company">${recommendationEscape(company)}</div>
+          </div>
+        </div>
+
+        <div class="recommendation-fit">${fit}% match</div>
+      </div>
+
+      <div class="recommendation-meta">${pills}</div>
+
+      <div class="recommendation-actions">
+        <button
+          class="recommendation-view"
+          type="button"
+          onclick="window.location.href='app-job-details.html?id=${encodeURIComponent(job.id)}'"
+        >
+          View Job
+        </button>
+
+        <button
+          class="recommendation-swipe"
+          type="button"
+          onclick="window.location.href='app-swipe.html'"
+        >
+          Start Swiping
+        </button>
+      </div>
+    </article>
+  `;
+}
+
+async function loadRecommendedJobs(userId,preferences){
+  const section=$('recommendations-section');
+  const status=$('recommendations-status');
+  const list=$('recommendations-list');
+
+  if(!section || !status || !list)return;
+
+  section.hidden=false;
+  status.textContent='Finding jobs that fit your preferences…';
+
+  try{
+    const [
+      jobsResult,
+      applicationsResult,
+      skippedResult
+    ]=await Promise.all([
+      sb
+        .from('jobs')
+        .select('*')
+        .eq('status','active')
+        .order('created_at',{ascending:false})
+        .limit(60),
+
+      sb
+        .from('applications')
+        .select('job_id')
+        .eq('candidate_id',userId),
+
+      sb
+        .from('skipped_jobs')
+        .select('job_id')
+        .eq('candidate_id',userId)
+    ]);
+
+    if(jobsResult.error){
+      throw jobsResult.error;
+    }
+
+    const appliedIds=new Set(
+      applicationsResult.error
+        ?[]
+        :(applicationsResult.data||[])
+          .map(row=>String(row.job_id||''))
+          .filter(Boolean)
+    );
+
+    const skippedIds=new Set(
+      skippedResult.error
+        ?[]
+        :(skippedResult.data||[])
+          .map(row=>String(row.job_id||''))
+          .filter(Boolean)
+    );
+
+    const available=(jobsResult.data||[])
+      .filter(job=>{
+        const id=String(job?.id||'');
+
+        return(
+          id &&
+          !appliedIds.has(id) &&
+          !skippedIds.has(id)
+        );
+      })
+      .map(job=>({
+        ...job,
+        _alygnnPreferenceFit:jobPreferenceFit(job,preferences)
+      }))
+      .sort((a,b)=>{
+        const fitDiff=
+          Number(b._alygnnPreferenceFit)-
+          Number(a._alygnnPreferenceFit);
+
+        if(fitDiff!==0)return fitDiff;
+
+        return new Date(b.created_at||0)-new Date(a.created_at||0);
+      });
+
+    if(!available.length){
+      status.textContent='Matching active';
+      list.innerHTML=`
+        <div class="recommendations-empty">
+          <strong>No new recommendations right now.</strong>
+          <span>You’re caught up. New listings will appear here as employers post jobs.</span>
+          <button type="button" onclick="window.location.href='app-swipe.html'">Explore Jobs</button>
+        </div>
+      `;
+      return;
+    }
+
+    const top=available.slice(0,2);
+    const strongMatches=available.filter(job=>Number(job._alygnnPreferenceFit)>=55).length;
+
+    status.textContent=
+      strongMatches
+        ?`Matching active · ${strongMatches} job${strongMatches===1?'':'s'} currently fit your preferences`
+        :`Matching active · ${available.length} active job${available.length===1?'':'s'} ranked for you`;
+
+    list.innerHTML=
+      top.map(recommendationCard).join('');
+  }catch(error){
+    console.warn('Could not load dashboard recommendations:',error);
+
+    status.textContent='Matching active';
+    list.innerHTML=`
+      <div class="recommendations-empty">
+        <strong>Your matches are ready in Swipe.</strong>
+        <span>Open Swipe to continue reviewing available jobs.</span>
+        <button type="button" onclick="window.location.href='app-swipe.html'">Start Swiping</button>
+      </div>
+    `;
+  }
+}
+
+async function countApplications(userId){
+  try{
+    const result=await sb
+      .from('applications')
+      .select('id',{count:'exact',head:true})
+      .eq('candidate_id',userId);
+
+    if(!result.error){
+      return result.count || 0;
+    }
+
+    const fallback=await sb
+      .from('applications')
+      .select('id',{count:'exact',head:true})
+      .eq('user_id',userId);
+
+    if(!fallback.error){
+      return fallback.count || 0;
+    }
+  }catch(error){
+    console.warn(
+      'Application count unavailable:',
+      error
+    );
+  }
+
+  return 0;
+}
+
+async function loadCandidateWorkspace(){
+  try{
+    const {
+      data,
+      error
+    }=await sb.auth.getSession();
+
+    if(
+      error ||
+      !data.session
+    ){
+      window.location.replace(
+        'app-login.html'
+      );
+      return;
+    }
+
+    const user=data.session.user;
+    const meta=user.user_metadata || {};
+    const email=user.email || '';
+
+    const {
+      data:profile,
+      error:profileError
+    }=await sb
+      .from('profiles')
+      .select('*')
+      .eq('id',user.id)
+      .maybeSingle();
+
+    if(profileError){
+      console.warn(
+        'Candidate profile lookup failed:',
+        profileError
+      );
+    }
+
+    const resumeData=
+      parseObject(
+        profile?.resume_data
+      );
+
+    const personal=
+      parseObject(
+        resumeData.personal
+      );
+
+    const resumeName=
+      [
+        personal.first_name,
+        personal.last_name
+      ]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    const signupName=
+      [
+        meta.first_name,
+        meta.last_name
+      ]
+      .map(value=>safeString(value))
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    const emailFallback=
+      titleFromEmail(email);
+
+    const profileName=
+      safeString(
+        profile?.full_name ||
+        profile?.name
+      );
+
+    const normalizePersonName=value=>
+      safeString(value)
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g,'');
+
+    const profileLooksLikeEmail=
+      Boolean(
+        profileName &&
+        normalizePersonName(profileName)===
+          normalizePersonName(emailFallback)
+      );
+
+    const name=
+      safeString(
+        (!profileLooksLikeEmail && profileName) ||
+        meta.full_name ||
+        meta.name ||
+        signupName ||
+        resumeData.name ||
+        resumeName ||
+        emailFallback
+      );
+
+    // Older profile creation logic could save the email username as the
+    // candidate's name. Repair that automatically when signup metadata
+    // contains the real first and last name.
+    if(
+      signupName &&
+      profileLooksLikeEmail
+    ){
+      try{
+        const {error:nameRepairError}=await sb
+          .from('profiles')
+          .update({
+            full_name:signupName
+          })
+          .eq('id',user.id);
+
+        if(nameRepairError){
+          console.warn(
+            'Could not repair candidate profile name:',
+            nameRepairError
+          );
+        }
+      }catch(nameRepairError){
+        console.warn(
+          'Candidate profile name repair unavailable:',
+          nameRepairError
+        );
+      }
+    }
+
+    const location=
+      safeString(
+        profile?.location ||
+        resumeData.location ||
+        [
+          personal.city,
+          personal.state
+        ]
+        .filter(Boolean)
+        .join(', ') ||
+        meta.location
+      );
+
+    const headline=
+      safeString(
+        profile?.headline ||
+        profile?.title ||
+        resumeData.title ||
+        resumeData.headline ||
+        'Alygnn candidate'
+      );
+
+    const hasResume=Boolean(
+      profile?.resume_file_path ||
+      profile?.resume_url ||
+      profile?.resume_text ||
+      (personal && Object.values(personal).some(value=>safeString(value))) ||
+      (Array.isArray(resumeData.skills) && resumeData.skills.length) ||
+      (Array.isArray(resumeData.experience) && resumeData.experience.length) ||
+      (Array.isArray(resumeData.education) && resumeData.education.length)
+    );
+
+    const preferences=
+      parseObject(
+        profile?.preferences
+      );
+
+    const preferenceJobTypes=
+      Array.isArray(preferences.jobTypes)
+        ?preferences.jobTypes
+        :[];
+
+    const preferencesComplete=Boolean(
+      preferences.preferences_complete ||
+      profile?.preferences_complete ||
+      meta.preferences_complete ||
+      (
+        safeString(preferences.query) &&
+        safeString(
+          preferences.location ||
+          preferences.city ||
+          preferences.state ||
+          preferences.country
+        ) &&
+        (
+          preferenceJobTypes.length ||
+          safeString(preferences.jobType)
+        )
+      )
+    );
+
+    const resumeOnboarding=
+      parseObject(
+        resumeData._alygnn_onboarding
+      );
+
+    const resumePreviewReviewed=
+      resumeOnboarding.preview_reviewed===true;
+
+    candidateOnboardingState={
+      complete:hasResume && preferencesComplete,
+      hasResume,
+      previewReviewed:resumePreviewReviewed,
+      preferencesComplete
+    };
+
+
+    const hasProfileDetails=Boolean(
+      name &&
+      email &&
+      (
+        location ||
+        headline
+      )
+    );
+
+    /*
+     * Candidate completion is based on the four things that actually
+     * improve matching, rather than starting at an arbitrary 50%.
+     */
+    let completion=25;
+
+    if(hasResume){
+      completion+=30;
+    }
+
+    if(preferencesComplete){
+      completion+=25;
+    }
+
+    if(hasProfileDetails){
+      completion+=20;
+    }
+
+    completion=Math.min(
+      completion,
+      100
+    );
+
+    const applicationCount=
+      await countApplications(
+        user.id
+      );
+
+    renderCandidateNotifications({
+      applicationCount,
+      hasResume,
+      preferencesComplete
+    });
+
+    activeCandidateName=name;
+
+    $('greeting').textContent=
+      getGreeting(name);
+
+    $('lead').textContent=
+      applicationCount
+        ?`You have ${applicationCount} application${applicationCount===1?'':'s'} connected to your profile. Keep your information current for stronger matches.`
+        :'Keep your profile current so Alygnn can surface stronger job matches.';
+
+    $('avatar').textContent=
+      initials(
+        name || email
+      );
+
+    $('profileName').textContent=
+      name || 'Alygnn Member';
+
+    $('profileEmail').textContent=
+      email || 'Email not available';
+
+    $('profileLocation').textContent=
+      location || 'Location not added';
+
+    $('profileHeadline').textContent=
+      headline;
+
+    if(hasResume && preferencesComplete){
+      loadRecommendedJobs(
+        user.id,
+        preferences
+      );
+    }else{
+      const recommendationsSection=$('recommendations-section');
+      if(recommendationsSection)recommendationsSection.hidden=true;
+    }
+
+    $('completion-label').textContent=
+      completion+'%';
+
+    $('hero-score').textContent=
+      completion+'%';
+
+    $('completion-fill').style.width=
+      completion+'%';
+
+    const hero=$('profile-hero');
+    if(hero)hero.hidden=false;
+
+    const completeActions=$('complete-actions');
+    if(completeActions)completeActions.classList.remove('show');
+
+    if(completion===100){
+      $('hero-title').textContent=
+        'Your profile is ready for your next strong match.';
+
+      const hero=$('profile-hero');
+      if(hero)hero.hidden=true;
+
+      const completeActions=$('complete-actions');
+      if(completeActions)completeActions.classList.add('show');
+    }else if(completion>=75){
+      $('hero-title').textContent=
+        'Your profile is almost ready for stronger matches.';
+    }else{
+      $('hero-title').textContent=
+        'Finish your profile to unlock stronger matches.';
+    }
+
+    if(hasResume){
+      $('resume-value').textContent='Ready';
+      $('resume-note').textContent='View or update the resume employers will see.';
+      $('resume-icon').classList.add('green');
+
+      setSetupDone(
+        $('resume-setup'),
+        $('resume-setup-status'),
+        $('resume-setup-title'),
+        $('resume-setup-copy')
+      );
+
+      $('resume-setup-title').textContent=
+        'Resume ready';
+
+      $('resume-setup-copy').textContent=
+        'View or update your resume whenever you need.';
+    }else{
+      $('resume-value').textContent='Missing';
+      $('resume-note').textContent='Upload or build a resume to strengthen your profile.';
+      $('hero-resume-btn').textContent='Build Resume';
+      $('hero-resume-btn').onclick=()=>{
+        window.location.href='app-align-upload.html';
+      };
+    }
+
+    if(preferencesComplete){
+      $('preference-value').textContent='Ready';
+      $('preference-note').textContent='Edit industries, location, pay, or work style.';
+
+      setSetupDone(
+        $('preferences-setup'),
+        $('preferences-setup-status'),
+        $('preferences-setup-title'),
+        $('preferences-setup-copy')
+      );
+
+      $('preferences-setup-title').textContent=
+        'Preferences ready';
+
+      $('preferences-setup-copy').textContent=
+        'Update your target roles, salary, location, or work style anytime.';
+    }else{
+      $('preference-value').textContent='Missing';
+      $('preference-note').textContent='Complete your preferences for better job matching.';
+      $('preference-icon').classList.remove('green');
+      $('preference-icon').classList.add('amber');
+    }
+
+    $('application-count').textContent=
+      applicationCount;
+
+    $('application-note').textContent=
+      applicationCount
+        ?`${applicationCount} application${applicationCount===1?'':'s'} submitted through Alygnn.`
+        :'Applications you submit will appear here.';
+
+    if($('profile-value')){
+      $('profile-value').textContent=
+        hasProfileDetails
+          ?'Ready'
+          :'Finish';
+    }
+
+    if($('profile-note')){
+      $('profile-note').textContent=
+        hasProfileDetails
+          ?'Your identity and profile details are connected.'
+          :'Add your location or professional information.';
+    }
+
+    if(
+      hasResume &&
+      preferencesComplete
+    ){
+      $('setup-section').hidden=true;
+    }
+
+    renderCandidateOnboardingGate({
+      hasResume,
+      previewReviewed:resumePreviewReviewed,
+      preferencesComplete
+    });
+
+  }catch(error){
+    console.error(
+      'Candidate workspace failed:',
+      error
+    );
+  }finally{
+    $('loading').hidden=true;
+  }
+}
+
+async function logoutUser(){
+  const confirmed=window.confirm('Log out of Alygnn?');
+  if(!confirmed)return;
+  try{
+    await sb.auth.signOut({
+      scope:'global'
+    });
+  }catch(error){
+    console.log(
+      'Logout error:',
+      error
+    );
+  }
+
+  Object.keys(localStorage)
+    .forEach(key=>{
+      const lower=
+        key.toLowerCase();
+
+      if(
+        lower.includes('supabase') ||
+        lower.includes('sb-') ||
+        lower.includes('alygnn')
+      ){
+        localStorage.removeItem(
+          key
+        );
+      }
+    });
+
+  sessionStorage.clear();
+
+  window.location.replace(
+    'app-login.html?logout=1'
+  );
+}
+
+document.body.dataset.theme=getCandidateTheme();
+$('dashboard-resume-input')?.addEventListener('change',event=>{
+  const file=event.target.files?.[0];
+  if(file) uploadDashboardResume(file);
+  event.target.value='';
+});
+syncCandidateView();
+loadCandidateWorkspace();
+
+// Keep greetings accurate if the candidate leaves the app open,
+// crosses a daypart boundary, or the device time zone changes.
+window.addEventListener('pageshow',()=>{
+  refreshTimeBasedDashboardCopy();
+});
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){
+    refreshTimeBasedDashboardCopy();
+  }
+});
+
+setInterval(()=>{
+  refreshTimeBasedDashboardCopy();
+},60*1000);
+
 </script>
+
 </body>
 </html>
-<!-- STANDALONE_ACCOUNT_VERSION -->

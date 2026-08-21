@@ -1,11 +1,359 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F6F8F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#071722" media="(prefers-color-scheme: dark)">
 <title>Alygnn</title>
-<script>
-window.location.replace("app-login.html");
-</script>
+<!-- ALYGNN CAPACITOR ENTRYPOINT V71 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+
+:root{
+  --brand:#5D7FA3;
+  --sage:#8CB69B;
+  --bg:#F6F8F7;
+  --text:#172333;
+  --muted:#6E8092;
+  --track:#E2E9EE;
+  --glow:rgba(93,127,163,.12);
+}
+
+html[data-theme="dark"]{
+  --bg:#071722;
+  --text:#F6F8FA;
+  --muted:#9EACB9;
+  --track:#213342;
+  --glow:rgba(93,127,163,.18);
+}
+
+html,
+body{
+  width:100%;
+  min-height:100%;
+  background:var(--bg);
+}
+
+body{
+  min-height:100vh;
+  min-height:100dvh;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:
+    calc(24px + env(safe-area-inset-top))
+    24px
+    calc(24px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 50% 38%,var(--glow),transparent 34%),
+    var(--bg);
+  color:var(--text);
+  font-family:'DM Sans',Arial,sans-serif;
+  transition:background-color .2s ease,color .2s ease;
+}
+
+.splash{
+  width:min(360px,88vw);
+  text-align:center;
+  transform:translateY(-3vh);
+  opacity:1;
+  transition:opacity .22s ease,transform .22s ease;
+}
+
+body.is-leaving .splash{
+  opacity:0;
+  transform:translateY(-3vh) scale(.985);
+}
+
+.logo{
+  display:inline-block;
+  font-family:'DM Serif Display',Georgia,serif;
+  font-size:clamp(54px,15vw,72px);
+  line-height:.95;
+  letter-spacing:-2px;
+  color:var(--brand);
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+}
+
+.logo-dot{
+  color:var(--sage);
+}
+
+.tagline{
+  margin-top:18px;
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.45;
+  font-weight:700;
+  letter-spacing:.01em;
+}
+
+.loading-track{
+  position:relative;
+  width:116px;
+  height:3px;
+  margin:25px auto 0;
+  overflow:hidden;
+  border-radius:999px;
+  background:var(--track);
+}
+
+.loading-bar{
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:-48%;
+  width:48%;
+  border-radius:999px;
+  background:linear-gradient(
+    90deg,
+    var(--brand),
+    var(--sage)
+  );
+  animation:alygnn-loading 1.15s cubic-bezier(.4,0,.2,1) infinite;
+}
+
+@keyframes alygnn-loading{
+  0%{
+    transform:translateX(0);
+    opacity:.45;
+  }
+  45%{
+    opacity:1;
+  }
+  100%{
+    transform:translateX(310%);
+    opacity:.55;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .loading-bar{
+    left:0;
+    width:100%;
+    animation:none;
+    opacity:.8;
+  }
+}
+
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#071722;
+    --text:#F6F8FA;
+    --muted:#9EACB9;
+    --track:#213342;
+    --glow:rgba(93,127,163,.18);
+  }
+
+  html,
+  body{
+    background:#071722;
+  }
+}
+
+</style>
 </head>
-<body></body>
+<body>
+<main class="splash" aria-label="Alygnn is loading">
+  <div class="logo">Alygnn<span class="logo-dot">.</span></div>
+  <div class="tagline">Finding your fit.</div>
+  <div class="loading-track" aria-hidden="true">
+    <div class="loading-bar"></div>
+  </div>
+</main>
+<script>
+(function applySplashTheme(){
+  const media=
+    window.matchMedia('(prefers-color-scheme: dark)');
+
+  function apply(){
+    const dark=media.matches;
+
+    document.documentElement.dataset.theme=
+      dark ? 'dark' : 'light';
+  }
+
+  apply();
+  media.addEventListener?.('change',apply);
+})();
+
+const sb=supabase.createClient(
+  'https://auth.alygnn.com',
+  'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+  {
+    auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true
+    }
+  }
+);
+
+
+const ALYGNN_NATIVE_OAUTH_REDIRECT='alygnn://auth/callback';
+
+function isNativeCapacitor(){
+  try{
+    return !!(
+      window.Capacitor &&
+      typeof window.Capacitor.isNativePlatform==='function' &&
+      window.Capacitor.isNativePlatform()
+    );
+  }catch(_error){
+    return false;
+  }
+}
+
+function nativePlugin(name){
+  return window.Capacitor?.Plugins?.[name] || null;
+}
+
+function callbackParams(url){
+  const parsed=new URL(url);
+  const query=parsed.searchParams;
+  const hash=new URLSearchParams((parsed.hash||'').replace(/^#/,''));
+
+  return {
+    accessToken:hash.get('access_token')||query.get('access_token'),
+    refreshToken:hash.get('refresh_token')||query.get('refresh_token'),
+    code:query.get('code')||hash.get('code'),
+    error:query.get('error_description')||hash.get('error_description')||
+      query.get('error')||hash.get('error')
+  };
+}
+
+async function consumeNativeOAuthCallback(url){
+  if(!url || !url.startsWith(ALYGNN_NATIVE_OAUTH_REDIRECT)) return false;
+
+  const params=callbackParams(url);
+
+  if(params.error){
+    throw new Error(decodeURIComponent(params.error.replace(/\+/g,' ')));
+  }
+
+  if(params.accessToken && params.refreshToken){
+    const {error}=await sb.auth.setSession({
+      access_token:params.accessToken,
+      refresh_token:params.refreshToken
+    });
+    if(error) throw error;
+  }else if(params.code){
+    const {error}=await sb.auth.exchangeCodeForSession(params.code);
+    if(error) throw error;
+  }else{
+    throw new Error('Google sign-in returned to Alygnn without a session.');
+  }
+
+  try{
+    const Browser=nativePlugin('Browser');
+    if(Browser?.close) await Browser.close();
+  }catch(_error){}
+
+  return true;
+}
+
+function oauthShow(text,type='error'){
+  console[type==='error'?'error':'log'](text);
+}
+
+
+const SPLASH_MIN_MS=1250;
+const splashStartedAt=Date.now();
+
+function wait(ms){
+  return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+async function leaveSplash(destination){
+  const elapsed=Date.now()-splashStartedAt;
+  const remaining=Math.max(0,SPLASH_MIN_MS-elapsed);
+
+  if(remaining){
+    await wait(remaining);
+  }
+
+  document.body.classList.add('is-leaving');
+  await wait(220);
+
+  window.location.replace(destination);
+}
+
+let oauthLaunchReady=Promise.resolve();
+
+if(isNativeCapacitor()){
+  const App=nativePlugin('App');
+
+  if(App){
+    oauthLaunchReady=(async()=>{
+      try{
+        await App.addListener('appUrlOpen',async({url})=>{
+          try{
+            const handled=await consumeNativeOAuthCallback(url);
+            if(!handled)return;
+
+            const accountType=
+              localStorage.getItem('alygnn_account_type')||
+              'candidate';
+
+            window.location.replace(
+              accountType==='employer'
+                ?'app-employer-dashboard.html'
+                :'app-account.html'
+            );
+          }catch(error){
+            console.error('OAuth callback error:',error);
+            window.location.replace('app-login.html');
+          }
+        });
+
+        const launch=await App.getLaunchUrl();
+        if(launch?.url){
+          await consumeNativeOAuthCallback(launch.url);
+        }
+      }catch(error){
+        console.error('Native OAuth launch handling failed:',error);
+      }
+    })();
+  }
+}
+
+(async function routeApp(){
+  let destination='app-start.html';
+
+  try{
+    await oauthLaunchReady;
+
+    const {data,error}=await sb.auth.getSession();
+
+    if(!error && data.session){
+      const accountType=
+        localStorage.getItem('alygnn_account_type') ||
+        'candidate';
+
+      destination=
+        accountType==='employer'
+          ?'app-employer-dashboard.html'
+          :'app-account.html';
+    }
+
+  }catch(err){
+    console.error(err);
+  }
+
+  await leaveSplash(destination);
+})();
+</script>
+</body>
 </html>

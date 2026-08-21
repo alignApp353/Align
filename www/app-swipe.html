@@ -14,42 +14,75 @@
   box-sizing:border-box;
   margin:0;
   padding:0;
+  font-family:'DM Sans',Arial,sans-serif!important;
 }
 
 :root{
   --brand:#5D7FA3;
+  --brand-dark:#345F91;
   --sage:#8CB69B;
   --bg:#F6F8F7;
-  --card-bg:#FCFCFA;
-  --text:#1A2530;
+  --card-bg:#FFFFFF;
+  --text:#172333;
   --border:#DDE3E8;
   --mint:#6FBF8F;
   --rose:#D79A9A;
-  --text-muted:#4A5968;
-  --brand-light:rgba(93,127,163,0.10);
+  --text-muted:#56677B;
+  --brand-light:rgba(93,127,163,.10);
+  --mint-light:rgba(111,191,143,.15);
+  --rose-light:rgba(215,154,154,.16);
+}
+
+html,body{
+  width:100%;
+  min-height:100%;
 }
 
 body{
-  font-family:'DM Sans',sans-serif;
-  background:var(--bg);
+  background:
+    radial-gradient(circle at top,rgba(93,127,163,.09),transparent 30%),
+    var(--bg);
   color:var(--text);
   min-height:100vh;
   overflow:hidden;
 }
 
-nav{
-  height:64px;
-  padding:0 18px;
+/* HEADER */
+.top-header{
+  min-height:112px;
+  padding:calc(14px + env(safe-area-inset-top)) 18px 14px;
+  display:grid;
+  grid-template-columns:92px 1fr 92px;
+  align-items:center;
+  background:rgba(246,248,247,.96);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(16px);
+}
+
+.back-btn{
+  min-height:44px;
+  border:none;
+  border-radius:999px;
+  background:rgba(93,127,163,.09);
+  color:var(--text);
+  padding:0 15px;
+  font-size:14px;
+  font-weight:800;
   display:flex;
   align-items:center;
-  justify-content:space-between;
-  background:rgba(246,248,247,.95);
-  border-bottom:1px solid var(--border);
+  justify-content:center;
+  gap:7px;
+  cursor:pointer;
+}
+
+.brand-block{
+  text-align:center;
 }
 
 .logo{
-  font-family:'DM Serif Display',serif;
-  font-size:24px;
+  font-family:'DM Serif Display',Georgia,serif!important;
+  font-size:31px;
+  line-height:1;
   color:var(--brand);
 }
 
@@ -57,9 +90,45 @@ nav{
   color:var(--sage);
 }
 
-.nav-stats{
+.tagline{
+  margin-top:5px;
+  font-size:11px;
+  color:var(--text-muted);
+  font-weight:600;
+}
+
+.profile-chip{
+  justify-self:end;
+  width:46px;
+  height:46px;
+  border:none;
+  border-radius:50%;
+  background:linear-gradient(145deg,var(--brand),#6E95BE);
+  color:#fff;
+  font-size:14px;
+  font-weight:900;
   display:flex;
-  gap:16px;
+  align-items:center;
+  justify-content:center;
+}
+
+/* PROGRESS */
+.progress-shell{
+  padding:12px 18px 0;
+}
+
+.progress-card{
+  max-width:430px;
+  margin:0 auto;
+  background:rgba(255,255,255,.88);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:12px 14px;
+  display:grid;
+  grid-template-columns:repeat(3,1fr) 1.4fr;
+  gap:8px;
+  align-items:center;
+  box-shadow:0 8px 22px rgba(25,40,60,.05);
 }
 
 .stat{
@@ -67,56 +136,92 @@ nav{
 }
 
 .stat-val{
-  font-size:17px;
-  font-weight:700;
+  font-size:18px;
+  font-weight:900;
+  color:var(--text);
 }
 
 .stat-label{
+  margin-top:2px;
   font-size:9px;
   color:var(--text-muted);
   text-transform:uppercase;
   letter-spacing:.8px;
+  font-weight:800;
 }
 
+.job-progress{
+  border-left:1px solid var(--border);
+  padding-left:12px;
+}
+
+.progress-copy{
+  font-size:11px;
+  font-weight:800;
+  color:var(--text);
+  text-align:center;
+  margin-bottom:6px;
+}
+
+.progress-track{
+  width:100%;
+  height:7px;
+  background:#E8EDF2;
+  border-radius:999px;
+  overflow:hidden;
+}
+
+.progress-fill{
+  height:100%;
+  width:0;
+  background:var(--brand);
+  border-radius:inherit;
+  transition:width .25s ease;
+}
+
+/* MAIN */
 .swipe-area{
-  height:calc(100vh - 64px);
+  height:calc(100vh - 112px - 84px);
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  padding:18px;
+  padding:14px 18px calc(92px + env(safe-area-inset-bottom));
 }
 
 .card-stack{
   position:relative;
   width:100%;
   max-width:430px;
-  height:540px;
+  height:min(525px,calc(100vh - 305px));
 }
 
 .job-card{
   position:absolute;
   inset:0;
-  background:var(--card-bg);
+  background:
+    radial-gradient(circle at top right,rgba(93,127,163,.08),transparent 28%),
+    var(--card-bg);
   border:1px solid var(--border);
-  border-radius:28px;
-  padding:26px;
-  box-shadow:0 8px 30px rgba(0,0,0,.08);
+  border-radius:30px;
+  padding:24px;
+  box-shadow:0 22px 60px rgba(27,43,63,.12);
   display:flex;
   flex-direction:column;
   cursor:grab;
   user-select:none;
   touch-action:none;
   transform-origin:center bottom;
+  transition:transform .22s ease,box-shadow .22s ease;
 }
 
 .job-card:nth-child(2){
-  transform:scale(.96) translateY(10px);
+  transform:scale(.97) translateY(10px);
   z-index:1;
 }
 
 .job-card:nth-child(3){
-  transform:scale(.92) translateY(20px);
+  transform:scale(.94) translateY(20px);
   z-index:0;
 }
 
@@ -126,24 +231,19 @@ nav{
 
 .job-card.is-dragging{
   transition:none;
-  box-shadow:0 18px 50px rgba(0,0,0,.16);
+  box-shadow:0 22px 55px rgba(27,43,63,.17);
 }
 
-.job-card.swipe-left{
-  animation:swipeLeft .35s ease forwards;
-}
-
-.job-card.swipe-right{
-  animation:swipeRight .35s ease forwards;
-}
+.job-card.swipe-left{animation:swipeLeft .35s ease forwards}
+.job-card.swipe-right{animation:swipeRight .35s ease forwards}
 
 .stamp{
   position:absolute;
   top:24px;
   padding:7px 16px;
   border-radius:10px;
-  font-size:20px;
-  font-weight:800;
+  font-size:19px;
+  font-weight:900;
   letter-spacing:2px;
   opacity:0;
   border:3px solid;
@@ -164,47 +264,95 @@ nav{
   transform:rotate(-12deg);
 }
 
-.match{
-  display:inline-block;
-  width:max-content;
-  background:#E8F5EC;
-  color:#2F855A;
-  padding:8px 14px;
-  border-radius:999px;
-  font-size:13px;
-  font-weight:800;
+.card-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
   margin-bottom:18px;
+}
+
+.match{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  width:max-content;
+  background:linear-gradient(180deg,#EDF8F1,#E4F3EA);
+  color:#257B52;
+  padding:9px 14px;
+  border-radius:999px;
+  border:1px solid rgba(111,191,143,.28);
+  font-size:13px;
+  font-weight:900;
+}
+
+.save-btn{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+  font-size:19px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
 .card-top{
   display:flex;
-  gap:14px;
+  gap:15px;
   margin-bottom:18px;
+  align-items:flex-start;
 }
 
 .company-logo{
-  width:54px;
-  height:54px;
-  border-radius:16px;
-  background:var(--brand-light);
+  width:68px;
+  height:68px;
+  border-radius:22px;
+  background:linear-gradient(145deg,#F5F8FA,#E5ECF2);
   border:1px solid var(--border);
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:22px;
+  font-size:23px;
+  font-weight:900;
+  color:var(--brand-dark);
+  flex-shrink:0;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
 }
 
 .job-title{
-  font-family:'DM Serif Display',serif;
-  font-size:28px;
-  line-height:1.1;
+  font-family:'DM Serif Display',Georgia,serif!important;
+  font-size:31px;
+  line-height:1.02;
+  letter-spacing:-.4px;
   color:var(--text);
+  text-transform:none;
+}
+
+.company-line{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-top:6px;
 }
 
 .company-name{
   font-size:15px;
   color:var(--text-muted);
-  margin-top:4px;
+}
+
+.verified{
+  width:17px;
+  height:17px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--brand);
+  color:white;
+  font-size:10px;
+  font-weight:900;
 }
 
 .card-pills{
@@ -216,33 +364,37 @@ nav{
 
 .pill{
   font-size:12px;
-  padding:7px 12px;
+  padding:8px 12px;
   border-radius:999px;
   border:1px solid var(--border);
   color:var(--text-muted);
-  background:white;
+  background:rgba(250,252,253,.92);
+  font-weight:800;
 }
 
 .salary{
   background:var(--brand-light);
-  color:var(--brand);
+  color:var(--brand-dark);
 }
 
 .card-desc{
-  font-size:15px;
+  font-size:14px;
   color:var(--text-muted);
-  line-height:1.65;
+  line-height:1.68;
   flex:1;
   overflow:hidden;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:6;
 }
 
 .card-bottom{
   border-top:1px solid var(--border);
-  padding-top:16px;
+  padding-top:15px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-top:18px;
+  margin-top:17px;
 }
 
 .posted-time{
@@ -251,17 +403,84 @@ nav{
 }
 
 .apply-link{
-  color:var(--brand);
+  color:var(--brand-dark);
   text-decoration:none;
   font-size:13px;
-  font-weight:700;
+  font-weight:900;
 }
 
-.action-buttons{
+
+.quick-facts{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:9px;
+  margin:2px 0 18px;
+}
+
+.fact{
+  border:1px solid var(--border);
+  background:rgba(248,250,252,.9);
+  border-radius:16px;
+  padding:11px 10px;
+}
+
+.fact-label{
+  font-size:9px;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  color:var(--text-muted);
+  font-weight:900;
+}
+
+.fact-value{
+  margin-top:5px;
+  font-size:12px;
+  line-height:1.25;
+  color:var(--text);
+  font-weight:900;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.card-actions-mini{
   display:flex;
   align-items:center;
-  gap:18px;
-  margin-top:24px;
+  gap:4px;
+}
+
+.icon-btn{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:17px;
+}
+
+/* ACTIONS */
+.action-buttons{
+  display:flex;
+  align-items:flex-end;
+  gap:22px;
+  margin-top:20px;
+}
+
+.action-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+}
+
+.action-label{
+  font-size:11px;
+  color:var(--text-muted);
+  font-weight:800;
 }
 
 .action-btn{
@@ -269,7 +488,7 @@ nav{
   border-radius:50%;
   background:white;
   border:1.5px solid var(--border);
-  box-shadow:0 4px 12px rgba(0,0,0,.08);
+  box-shadow:0 5px 16px rgba(27,43,63,.10);
   cursor:pointer;
   display:flex;
   align-items:center;
@@ -277,30 +496,71 @@ nav{
 }
 
 .btn-undo{
-  width:46px;
-  height:46px;
-  font-size:18px;
+  width:48px;
+  height:48px;
+  font-size:19px;
+  color:var(--text);
 }
 
 .btn-skip{
-  width:58px;
-  height:58px;
-  font-size:26px;
-  color:var(--rose);
+  width:60px;
+  height:60px;
+  font-size:27px;
+  color:#D25B67;
 }
 
 .btn-apply{
-  width:68px;
-  height:68px;
-  font-size:30px;
+  width:70px;
+  height:70px;
+  font-size:31px;
   background:var(--brand);
   color:white;
   border:none;
 }
 
+/* BOTTOM NAV */
+.bottom-nav{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  max-width:520px;
+  margin:0 auto;
+  min-height:72px;
+  padding:10px 12px calc(13px + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.96);
+  border-top:1px solid var(--border);
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  z-index:50;
+  backdrop-filter:blur(16px);
+}
+
+.nav-link{
+  border:none;
+  background:transparent;
+  color:var(--text-muted);
+  font-size:11px;
+  font-weight:800;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+}
+
+.nav-icon{
+  font-size:19px;
+  line-height:1;
+}
+
+.nav-link.active{
+  color:var(--brand-dark);
+}
+
+/* EMPTY + TOAST */
 .empty-screen{
   display:none;
-  height:calc(100vh - 64px);
+  height:calc(100vh - 112px);
   align-items:center;
   justify-content:center;
   flex-direction:column;
@@ -309,7 +569,7 @@ nav{
 }
 
 .empty-title{
-  font-family:'DM Serif Display',serif;
+  font-family:'DM Serif Display',Georgia,serif!important;
   font-size:32px;
   margin-bottom:10px;
 }
@@ -322,44 +582,242 @@ nav{
 
 .toast{
   position:fixed;
-  bottom:32px;
+  bottom:92px;
   left:50%;
-  transform:translateX(-50%) translateY(80px);
+  transform:translateX(-50%) translateY(18px);
   background:var(--text);
   color:white;
   padding:12px 22px;
   border-radius:999px;
   font-size:14px;
-  transition:.3s;
+  transition:opacity .2s ease, transform .2s ease;
   z-index:100;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  white-space:nowrap;
 }
 
 .toast.show{
   transform:translateX(-50%) translateY(0);
+  opacity:1;
+  visibility:visible;
 }
 
 @keyframes swipeLeft{
-  to{
-    transform:translateX(-130%) rotate(-22deg);
-    opacity:0;
-  }
+  to{transform:translateX(-130%) rotate(-22deg);opacity:0}
 }
 
 @keyframes swipeRight{
-  to{
-    transform:translateX(130%) rotate(22deg);
-    opacity:0;
-  }
+  to{transform:translateX(130%) rotate(22deg);opacity:0}
+}
+
+@media(max-height:760px){
+  .top-header{min-height:96px;padding-top:calc(9px + env(safe-area-inset-top))}
+  .logo{font-size:27px}
+  .tagline{display:none}
+  .progress-shell{padding-top:7px}
+  .progress-card{padding:9px 12px}
+  .swipe-area{height:calc(100vh - 96px - 72px);padding-top:9px}
+  .card-stack{height:min(470px,calc(100vh - 270px))}
+  .job-card{padding:19px}
+  .job-title{font-size:25px}
+  .card-desc{-webkit-line-clamp:5}
+  .action-buttons{margin-top:13px}
+}
+
+
+/* FULL JOB AD */
+body.details-open{overflow:hidden}
+.job-details-overlay{
+  position:fixed;inset:0;z-index:300;background:rgba(23,35,51,.42);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .22s ease;
+}
+.job-details-overlay.open{opacity:1;pointer-events:auto}
+.job-details-sheet{
+  width:100%;max-height:94vh;background:var(--bg);border-radius:30px 30px 0 0;
+  transform:translateY(100%);transition:transform .34s cubic-bezier(.2,.8,.2,1);
+  overflow:hidden;display:flex;flex-direction:column;
+  box-shadow:0 -22px 70px rgba(23,35,51,.18);
+}
+.job-details-overlay.open .job-details-sheet{transform:translateY(0)}
+.details-grip{width:44px;height:5px;border-radius:999px;background:#D4DCE3;margin:10px auto 5px;flex-shrink:0}
+.details-header{
+  padding:8px 18px 14px;display:grid;grid-template-columns:44px 1fr 44px;align-items:center;
+  border-bottom:1px solid var(--border);background:rgba(246,248,247,.96)
+}
+.details-close,.details-save{
+  width:42px;height:42px;border:1px solid var(--border);border-radius:50%;background:#fff;
+  color:var(--text);font-size:20px;display:grid;place-items:center
+}
+.details-header-title{text-align:center;font-size:13px;font-weight:900;color:var(--text)}
+.details-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 17px 120px}
+.details-hero{background:#fff;border:1px solid var(--border);border-radius:24px;padding:20px;box-shadow:0 12px 32px rgba(23,35,51,.07)}
+.details-company-row{display:flex;gap:14px;align-items:flex-start}
+.details-logo{width:64px;height:64px;border-radius:20px;background:linear-gradient(145deg,#F5F8FA,#E5ECF2);border:1px solid var(--border);display:grid;place-items:center;font-size:22px;font-weight:900;color:var(--brand-dark);flex-shrink:0}
+.details-title{font-family:'DM Serif Display',Georgia,serif!important;font-size:29px;line-height:1.05;color:var(--text)}
+.details-company{margin-top:6px;font-size:14px;color:var(--text-muted);font-weight:700}
+.details-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:17px}
+.details-pill{font-size:11px;font-weight:800;padding:8px 11px;border-radius:999px;border:1px solid var(--border);background:#F9FBFC;color:var(--text-muted)}
+.details-pill.pay{background:var(--brand-light);color:var(--brand-dark);border-color:rgba(93,127,163,.2)}
+.details-section{margin-top:14px;background:#fff;border:1px solid var(--border);border-radius:21px;padding:18px}
+.details-section h2{font-size:16px;font-weight:900;margin-bottom:10px;color:var(--text)}
+.details-copy{font-size:14px;color:var(--text-muted);line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.details-list{display:grid;gap:10px;list-style:none}
+.details-list li{position:relative;padding-left:17px;font-size:13px;color:var(--text-muted);line-height:1.55}
+.details-list li::before{content:'';position:absolute;left:0;top:.58em;width:6px;height:6px;border-radius:50%;background:var(--brand)}
+.details-empty{font-size:13px;color:var(--text-muted);font-style:italic}
+.details-footer{position:absolute;left:0;right:0;bottom:0;padding:11px 16px calc(11px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);border-top:1px solid var(--border);backdrop-filter:blur(18px)}
+.details-apply{width:100%;min-height:56px;border:none;border-radius:17px;background:var(--brand-dark);color:#fff;font-size:15px;font-weight:900;box-shadow:0 9px 22px rgba(52,95,145,.22)}
+.details-apply:disabled{opacity:.6}
+.tap-hint{font-size:11px;color:var(--brand-dark);font-weight:900}
+@media(min-width:700px){.job-details-overlay{align-items:center;justify-content:center;padding:24px}.job-details-sheet{max-width:560px;border-radius:30px;max-height:90vh}.details-footer{border-radius:0 0 30px 30px}}
+
+</style>
+
+<style id="candidate-four-tab-nav">
+.bottom-nav{
+  display:grid!important;
+  grid-template-columns:repeat(4,1fr)!important;
+}
+.bottom-nav .nav-item{
+  position:relative;
+  min-height:54px;
+  border:none;
+  background:transparent;
+  color:#738394;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  font-size:9px;
+  font-weight:800;
+  cursor:pointer;
+}
+.bottom-nav .nav-item.active{color:#35679A}
+.bottom-nav .nav-item.active:before{
+  content:'';
+  position:absolute;
+  top:-9px;
+  width:34px;
+  height:3px;
+  border-radius:999px;
+  background:#35679A;
+}
+.bottom-nav .nav-icon{font-size:17px;line-height:1}
+</style>
+
+
+<script src="app-candidate-theme.js"></script>
+<link rel="stylesheet" href="app-candidate-theme.css">
+
+<style id="swipe-caught-up-fix">
+.empty-screen{
+  min-height:calc(100vh - 250px)!important;
+  height:auto!important;
+  padding:28px 18px 118px!important;
+}
+
+.empty-card{
+  width:100%;
+  max-width:430px;
+  margin:auto;
+  padding:28px 22px;
+  border:1px solid var(--border);
+  border-radius:26px;
+  background:#FFFFFF;
+  box-shadow:0 14px 36px rgba(23,35,51,.055);
+}
+
+.empty-kicker{
+  color:var(--brand-dark);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  margin-bottom:10px;
+}
+
+.empty-title{
+  margin-bottom:9px!important;
+}
+
+.empty-sub{
+  margin:0 auto;
+}
+
+.empty-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+  margin-top:22px;
+}
+
+.empty-primary,
+.empty-secondary{
+  min-height:48px;
+  border-radius:15px;
+  font-size:12px;
+  font-weight:900;
+}
+
+.empty-primary{
+  border:0;
+  background:var(--brand-dark);
+  color:#fff;
+}
+
+.empty-secondary{
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+}
+
+/* Keep toast readable in dark mode. */
+html[data-effective-theme="dark"] .toast{
+  background:#22303C!important;
+  color:#F4F7F9!important;
+  border:1px solid #334452!important;
+  box-shadow:0 10px 30px rgba(0,0,0,.28)!important;
+}
+
+html[data-effective-theme="dark"] .empty-card{
+  background:#15202B!important;
+  border-color:#2B3946!important;
+  color:#F4F7F9!important;
+}
+
+html[data-effective-theme="dark"] .empty-secondary{
+  background:#101A23!important;
+  border-color:#2B3946!important;
+  color:#F4F7F9!important;
+}
+
+@media(max-width:390px){
+  .empty-actions{grid-template-columns:1fr}
 }
 </style>
 </head>
 
 <body>
+<header class="top-header">
+  <button class="back-btn" id="back-button" type="button">
+    <span aria-hidden="true">←</span>
+    <span>Back</span>
+  </button>
 
-<nav>
-  <div class="logo">Alygnn<span>.</span></div>
+  <div class="brand-block">
+    <div class="logo">Alygnn<span>.</span></div>
+    <div class="tagline">Get better job matches.</div>
+  </div>
 
-  <div class="nav-stats">
+  <button class="profile-chip" id="profile-button" type="button" aria-label="Open profile">JE</button>
+</header>
+
+<section class="progress-shell">
+  <div class="progress-card">
     <div class="stat">
       <div class="stat-val" id="stat-applied">0</div>
       <div class="stat-label">Applied</div>
@@ -374,24 +832,78 @@ nav{
       <div class="stat-val" id="stat-remaining">0</div>
       <div class="stat-label">Left</div>
     </div>
-  </div>
-</nav>
 
-<div class="swipe-area" id="swipe-area">
+    <div class="job-progress">
+      <div class="progress-copy" id="job-progress-copy">Job 0 of 0</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main class="swipe-area" id="swipe-area">
   <div class="card-stack" id="card-stack"></div>
 
   <div class="action-buttons">
-    <button class="action-btn btn-undo" onclick="undo()">↩</button>
-    <button class="action-btn btn-skip" onclick="skipCurrent()">✕</button>
-    <button class="action-btn btn-apply" onclick="applyCurrent()">✓</button>
-  </div>
-</div>
+    <div class="action-wrap">
+      <button class="action-btn btn-undo" id="undo-button" type="button" aria-label="Undo last swipe">↩</button>
+      <div class="action-label">Undo</div>
+    </div>
 
-<div class="empty-screen" id="empty-screen">
-  <div class="empty-title">You're all caught up</div>
-  <div class="empty-sub">
-    You went through all your matches. More jobs will appear as Alygnn finds better fits for you.
+    <div class="action-wrap">
+      <button class="action-btn btn-skip" id="skip-button" type="button" aria-label="Pass on job">✕</button>
+      <div class="action-label">Pass</div>
+    </div>
+
+    <div class="action-wrap">
+      <button class="action-btn btn-apply" id="apply-button" type="button" aria-label="Apply to job">✓</button>
+      <div class="action-label">Apply</div>
+    </div>
   </div>
+</main>
+
+<section class="empty-screen" id="empty-screen">
+  <div class="empty-card">
+    <div class="empty-kicker">MATCHES REVIEWED</div>
+    <div class="empty-title">You're all caught up</div>
+    <div class="empty-sub">
+      You’ve reviewed every new job currently available to you. We’ll keep new matches ready as employers post them.
+    </div>
+
+    <div class="empty-actions">
+      <button class="empty-primary" type="button" onclick="window.location.href='app-applied.html'">
+        View My Jobs
+      </button>
+      <button class="empty-secondary" type="button" onclick="window.location.href='app-preferences.html?edit=1'">
+        Edit Preferences
+      </button>
+    </div>
+  </div>
+</section>
+
+<nav class="bottom-nav" aria-label="Candidate navigation">
+  <button class="nav-item" type="button" onclick="window.location.href='app-account.html'"><span class="nav-icon">◉</span><span>My Profile</span></button>
+  <button class="nav-item active" type="button"><span class="nav-icon">◇</span><span>Swipe</span></button>
+  <button class="nav-item" type="button" onclick="window.location.href='app-applied.html'"><span class="nav-icon">▣</span><span>My Jobs</span></button>
+  <button class="nav-item" type="button" onclick="window.location.href='app-account.html#settings'"><span class="nav-icon">⚙</span><span>Settings</span></button>
+</nav>
+
+
+
+<div class="job-details-overlay" id="job-details-overlay" aria-hidden="true">
+  <section class="job-details-sheet" id="job-details-sheet" role="dialog" aria-modal="true" aria-labelledby="details-job-title">
+    <div class="details-grip"></div>
+    <header class="details-header">
+      <button class="details-close" id="details-close" type="button" aria-label="Close job details">←</button>
+      <div class="details-header-title">Full job ad</div>
+      <button class="details-save" id="details-save" type="button" aria-label="Save job">♡</button>
+    </header>
+    <div class="details-scroll" id="details-scroll"></div>
+    <footer class="details-footer">
+      <button class="details-apply" id="details-apply" type="button">Apply Now</button>
+    </footer>
+  </section>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -416,6 +928,8 @@ let startY=0;
 let currentX=0;
 let activePointerId=null;
 let toastTimer;
+let detailsJobIndex=null;
+let dragDistance=0;
 
 function escapeHtml(value){
   return String(value??'').replace(/[&<>"']/g,c=>({
@@ -448,6 +962,134 @@ function postedText(value){
   return days+' days ago';
 }
 
+
+
+function normalizeList(value){
+  if(Array.isArray(value))return value.map(v=>String(v).trim()).filter(Boolean);
+  if(!value)return [];
+  if(typeof value==='object')return Object.values(value).flatMap(normalizeList);
+  return String(value)
+    .split(/\n|•|;|\|/)
+    .map(v=>v.replace(/^[-–—✓✔]\s*/, '').trim())
+    .filter(Boolean);
+}
+
+function renderList(items,emptyText){
+  const clean=normalizeList(items);
+  if(!clean.length)return `<div class="details-empty">${escapeHtml(emptyText)}</div>`;
+  return `<ul class="details-list">${clean.map(item=>`<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+}
+
+function getJobLists(job){
+  return {
+    responsibilities: job.responsibilities||job.tasks||job.duties||[],
+    requirements: job.requirements||job.qualifications||job.skills||[],
+    benefits: job.benefits||job.perks||[]
+  };
+}
+
+function openJobDetails(index){
+  const job=jobs[Number(index)];
+  if(!job)return;
+  detailsJobIndex=Number(index);
+
+  const company=job.company||job.company_name||'Employer';
+  const location=job.location||[job.city,job.state].filter(Boolean).join(', ')||'Location not listed';
+  const type=job.job_type||job.employment_type||'Job';
+  const style=job.work_style||'';
+  const lists=getJobLists(job);
+  const companyAbout=job.company_description||job.company_headline||job.about_company||'';
+
+  document.getElementById('details-scroll').innerHTML=`
+    <article class="details-hero">
+      <div class="details-company-row">
+        <div class="details-logo">${escapeHtml(initials(company))}</div>
+        <div>
+          <h1 class="details-title" id="details-job-title">${escapeHtml(job.title||'Job Opportunity')}</h1>
+          <div class="details-company">${escapeHtml(company)} · Verified employer</div>
+        </div>
+      </div>
+      <div class="details-pills">
+        <span class="details-pill">⌖ ${escapeHtml(location)}</span>
+        <span class="details-pill">▣ ${escapeHtml(type)}</span>
+        ${style?`<span class="details-pill">⌂ ${escapeHtml(style)}</span>`:''}
+        <span class="details-pill pay">${escapeHtml(salaryText(job))}</span>
+      </div>
+    </article>
+
+    <section class="details-section">
+      <h2>About the role</h2>
+      <div class="details-copy">${escapeHtml(job.description||'The employer has not added a full description yet.')}</div>
+    </section>
+
+    <section class="details-section">
+      <h2>Responsibilities</h2>
+      ${renderList(lists.responsibilities,'Responsibilities will be discussed during the hiring process.')}
+    </section>
+
+    <section class="details-section">
+      <h2>Requirements</h2>
+      ${renderList(lists.requirements,'No additional requirements were listed.')}
+    </section>
+
+    <section class="details-section">
+      <h2>Benefits</h2>
+      ${renderList(lists.benefits,'Benefits were not listed for this role.')}
+    </section>
+
+    <section class="details-section">
+      <h2>About ${escapeHtml(company)}</h2>
+      <div class="details-copy">${escapeHtml(companyAbout||'This is a verified employer on Alygnn.')}</div>
+    </section>
+  `;
+
+  document.getElementById('details-save').textContent='♡';
+  document.getElementById('details-apply').textContent='Apply Now';
+  document.getElementById('details-apply').disabled=false;
+  document.getElementById('details-scroll').scrollTop=0;
+  document.body.classList.add('details-open');
+  const overlay=document.getElementById('job-details-overlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+}
+
+function closeJobDetails(){
+  const overlay=document.getElementById('job-details-overlay');
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden','true');
+  document.body.classList.remove('details-open');
+  setTimeout(()=>{detailsJobIndex=null;},220);
+}
+
+async function applyFromDetails(){
+  if(detailsJobIndex===null)return;
+  const button=document.getElementById('details-apply');
+  const job=jobs[detailsJobIndex];
+  if(!job)return;
+  button.disabled=true;
+  button.textContent='Applying…';
+  try{
+    const alreadyExists=await createApplication(job);
+    if(!alreadyExists)applied++;
+    button.textContent=alreadyExists?'Already Applied':'✓ Applied';
+    updateStats();
+    showToast(alreadyExists?'Already applied':'Application submitted');
+    setTimeout(()=>{
+      closeJobDetails();
+      if(detailsJobIndex===currentIndex){
+        history.push({job,direction:'right',index:currentIndex});
+        currentIndex++;
+        setTimeout(renderCards,230);
+      }
+    },650);
+  }catch(error){
+    console.error(error);
+    button.disabled=false;
+    button.textContent='Apply Now';
+    showToast(error.message||'Could not apply');
+  }
+}
+
 function buildCard(job,index){
   const card=document.createElement('div');
   card.className='job-card';
@@ -463,28 +1105,52 @@ function buildCard(job,index){
     <div class="stamp stamp-apply">APPLY</div>
     <div class="stamp stamp-skip">PASS</div>
 
-    <div class="match">${escapeHtml(match)}</div>
+    <div class="card-toolbar">
+      <div class="match">★ ${escapeHtml(match)}</div>
+      <div class="card-actions-mini">
+        <button class="icon-btn share-btn" type="button" aria-label="Share job">↗</button>
+        <button class="save-btn" type="button" aria-label="Save job">♡</button>
+      </div>
+    </div>
 
     <div class="card-top">
       <div class="company-logo">${escapeHtml(initials(company))}</div>
       <div>
         <div class="job-title">${escapeHtml(job.title||'Job Opportunity')}</div>
-        <div class="company-name">${escapeHtml(company)}</div>
+        <div class="company-line">
+          <div class="company-name">${escapeHtml(company)}</div>
+          <div class="verified" title="Verified employer">✓</div>
+        </div>
       </div>
     </div>
 
     <div class="card-pills">
-      <span class="pill">${escapeHtml(location)}</span>
-      <span class="pill">${escapeHtml(type)}</span>
-      ${style?`<span class="pill">${escapeHtml(style)}</span>`:''}
-      <span class="pill salary">${escapeHtml(salaryText(job))}</span>
+      <span class="pill">⌖ ${escapeHtml(location)}</span>
+      <span class="pill">▣ ${escapeHtml(type)}</span>
+      ${style?`<span class="pill">⌂ ${escapeHtml(style)}</span>`:''}
+      <span class="pill salary">$ ${escapeHtml(salaryText(job))}</span>
+    </div>
+
+    <div class="quick-facts">
+      <div class="fact">
+        <div class="fact-label">Match</div>
+        <div class="fact-value">${escapeHtml(match)}</div>
+      </div>
+      <div class="fact">
+        <div class="fact-label">Work Style</div>
+        <div class="fact-value">${escapeHtml(style||'Flexible')}</div>
+      </div>
+      <div class="fact">
+        <div class="fact-label">Posted</div>
+        <div class="fact-value">${escapeHtml(postedText(job.created_at))}</div>
+      </div>
     </div>
 
     <div class="card-desc">${escapeHtml(job.description||'Open this job to see the full details and requirements.')}</div>
 
     <div class="card-bottom">
-      <div class="posted-time">${escapeHtml(postedText(job.created_at))}</div>
-      <a href="app-job-details.html?id=${encodeURIComponent(job.id)}" class="apply-link" onclick="event.stopPropagation()">View details</a>
+      <div class="posted-time">Verified Alygnn listing</div>
+      <span class="apply-link tap-hint">Tap to view full ad →</span>
     </div>
   `;
 
@@ -527,7 +1193,10 @@ function setupDrag(card){
 function dragStart(e){
   setupTopCard();
   if(!activeCard||activeCard!==e.currentTarget)return;
-  if(e.target.closest('.apply-link'))return;
+  if(e.target.closest('button,.apply-link')){
+    if(e.target.closest('.apply-link'))openJobDetails(activeCard.dataset.index);
+    return;
+  }
 
   e.preventDefault();
   isDragging=true;
@@ -535,6 +1204,7 @@ function dragStart(e){
   startX=e.clientX;
   startY=e.clientY;
   currentX=0;
+  dragDistance=0;
 
   activeCard.classList.add('is-dragging');
   activeCard.style.transition='none';
@@ -554,6 +1224,7 @@ function dragMove(e){
 
   currentX=e.clientX-startX;
   const currentY=e.clientY-startY;
+  dragDistance=Math.hypot(currentX,currentY);
   const rotate=currentX*.08;
 
   activeCard.style.transform=`translate(${currentX}px,${currentY*.25}px) rotate(${rotate}deg)`;
@@ -574,7 +1245,7 @@ function dragMove(e){
   }
 }
 
-function dragEnd(){
+function dragEnd(e){
   if(!isDragging||!activeCard)return;
 
   isDragging=false;
@@ -585,6 +1256,9 @@ function dragEnd(){
   activeCard.removeEventListener('pointercancel',dragEnd);
   activeCard.classList.remove('is-dragging');
 
+  const tapped=dragDistance<9&&Math.abs(currentX)<9;
+  const tappedIndex=activeCard.dataset.index;
+
   if(currentX>70){
     animateSwipe('right');
   }else if(currentX<-70){
@@ -592,6 +1266,7 @@ function dragEnd(){
   }else{
     activeCard.style.transition='transform .25s ease';
     activeCard.style.transform='';
+    if(tapped)setTimeout(()=>openJobDetails(tappedIndex),40);
   }
 }
 
@@ -618,6 +1293,63 @@ async function createApplication(job){
   return false;
 }
 
+
+async function recordPassedJob(job){
+  if(!job?.id)return false;
+
+  const {data:existing,error:checkError}=await sb
+    .from('skipped_jobs')
+    .select('job_id')
+    .eq('candidate_id',session.user.id)
+    .eq('job_id',job.id)
+    .maybeSingle();
+
+  if(checkError){
+    console.warn('Could not check passed job:',checkError);
+  }
+
+  if(existing)return false;
+
+  const {error}=await sb
+    .from('skipped_jobs')
+    .insert({
+      candidate_id:session.user.id,
+      job_id:job.id
+    });
+
+  if(error){
+    // Duplicate-safe in case the table has a unique candidate/job constraint.
+    if(error.code==='23505')return false;
+    throw error;
+  }
+
+  return true;
+}
+
+async function removePassedJob(jobId){
+  if(!jobId)return;
+
+  const {error}=await sb
+    .from('skipped_jobs')
+    .delete()
+    .eq('candidate_id',session.user.id)
+    .eq('job_id',jobId);
+
+  if(error)throw error;
+}
+
+async function removeApplicationForUndo(jobId){
+  if(!jobId)return;
+
+  const {error}=await sb
+    .from('applications')
+    .delete()
+    .eq('candidate_id',session.user.id)
+    .eq('job_id',jobId);
+
+  if(error)throw error;
+}
+
 async function animateSwipe(direction){
   setupTopCard();
   if(!activeCard)return;
@@ -625,11 +1357,18 @@ async function animateSwipe(direction){
   const job=jobs[Number(activeCard.dataset.index)];
   activeCard.classList.add(direction==='right'?'swipe-right':'swipe-left');
 
-  history.push({job,direction,index:currentIndex});
+  const historyEntry={
+    job,
+    direction,
+    index:currentIndex,
+    createdApplication:false,
+    createdPassed:false
+  };
 
   if(direction==='right'){
     try{
       const alreadyExists=await createApplication(job);
+      historyEntry.createdApplication=!alreadyExists;
       applied++;
       showToast(alreadyExists?'Already applied':'Application submitted');
     }catch(error){
@@ -637,10 +1376,18 @@ async function animateSwipe(direction){
       showToast(error.message||'Could not apply');
     }
   }else{
-    skipped++;
-    showToast('Passed');
+    try{
+      historyEntry.createdPassed=await recordPassedJob(job);
+      skipped++;
+      showToast('Passed · saved to My Jobs');
+    }catch(error){
+      console.error(error);
+      skipped++;
+      showToast('Passed');
+    }
   }
 
+  history.push(historyEntry);
   currentIndex++;
 
   setTimeout(renderCards,350);
@@ -656,7 +1403,7 @@ function applyCurrent(){
   if(activeCard)animateSwipe('right');
 }
 
-function undo(){
+async function undo(){
   if(!history.length){
     showToast('Nothing to undo');
     return;
@@ -664,21 +1411,40 @@ function undo(){
 
   const last=history.pop();
 
-  if(last.direction==='right'){
-    applied=Math.max(0,applied-1);
-  }else{
-    skipped=Math.max(0,skipped-1);
-  }
+  try{
+    if(last.direction==='right'){
+      if(last.createdApplication){
+        await removeApplicationForUndo(last.job?.id);
+      }
+      applied=Math.max(0,applied-1);
+    }else{
+      if(last.createdPassed){
+        await removePassedJob(last.job?.id);
+      }
+      skipped=Math.max(0,skipped-1);
+    }
 
-  currentIndex=last.index;
-  renderCards();
-  showToast('Undone');
+    currentIndex=last.index;
+    renderCards();
+    showToast('Undone');
+  }catch(error){
+    console.error('Could not undo swipe:',error);
+    history.push(last);
+    showToast('Could not undo');
+  }
 }
 
 function updateStats(){
+  const remaining=Math.max(0,jobs.length-currentIndex);
+  const position=jobs.length?Math.min(currentIndex+1,jobs.length):0;
+  const completed=jobs.length?Math.min(currentIndex,jobs.length):0;
+  const progress=jobs.length?(completed/jobs.length)*100:0;
+
   document.getElementById('stat-applied').textContent=applied;
   document.getElementById('stat-skipped').textContent=skipped;
-  document.getElementById('stat-remaining').textContent=Math.max(0,jobs.length-currentIndex);
+  document.getElementById('stat-remaining').textContent=remaining;
+  document.getElementById('job-progress-copy').textContent=`Job ${position} of ${jobs.length}`;
+  document.getElementById('progress-fill').style.width=progress+'%';
 }
 
 function showToast(message){
@@ -690,25 +1456,112 @@ function showToast(message){
 }
 
 async function loadJobs(){
-  const {data,error}=await sb
-    .from('jobs')
-    .select('*')
-    .eq('status','active')
-    .order('created_at',{ascending:false});
+  const [
+    jobsResult,
+    applicationsResult,
+    skippedResult
+  ]=await Promise.all([
+    sb
+      .from('jobs')
+      .select('*')
+      .eq('status','active')
+      .order('created_at',{ascending:false}),
 
-  if(error){
-    console.error(error);
-    showToast(error.message||'Could not load jobs');
+    sb
+      .from('applications')
+      .select('job_id')
+      .eq('candidate_id',session.user.id),
+
+    sb
+      .from('skipped_jobs')
+      .select('job_id')
+      .eq('candidate_id',session.user.id)
+  ]);
+
+  if(jobsResult.error){
+    console.error(jobsResult.error);
+    showToast(jobsResult.error.message||'Could not load jobs');
     jobs=[];
     renderCards();
     return;
   }
 
-  jobs=data||[];
+  const appliedIds=new Set(
+    (applicationsResult.data||[])
+      .map(row=>String(row.job_id||''))
+      .filter(Boolean)
+  );
+
+  const skippedIds=skippedResult.error
+    ?new Set()
+    :new Set(
+      (skippedResult.data||[])
+        .map(row=>String(row.job_id||''))
+        .filter(Boolean)
+    );
+
+  if(!applicationsResult.error){
+    applied=appliedIds.size;
+  }
+
+  if(!skippedResult.error){
+    skipped=skippedIds.size;
+  }
+
+  jobs=(jobsResult.data||[]).filter(job=>{
+    const id=String(job.id||'');
+    return id && !appliedIds.has(id) && !skippedIds.has(id);
+  });
+
   currentIndex=0;
   history=[];
   renderCards();
 }
+
+document.getElementById('back-button').addEventListener('click',()=>{
+  window.location.href='app-account.html';
+});
+
+document.getElementById('profile-button').addEventListener('click',()=>{
+  window.location.href='app-account.html';
+});
+
+document.getElementById('undo-button').addEventListener('click',undo);
+document.getElementById('skip-button').addEventListener('click',skipCurrent);
+document.getElementById('apply-button').addEventListener('click',applyCurrent);
+
+document.addEventListener('click',event=>{
+  const saveButton=event.target.closest('.save-btn');
+  if(saveButton){
+    event.stopPropagation();
+    saveButton.textContent=saveButton.textContent==='♡'?'♥':'♡';
+    showToast(saveButton.textContent==='♥'?'Job saved':'Removed from saved');
+    return;
+  }
+
+  const shareButton=event.target.closest('.share-btn');
+  if(shareButton){
+    event.stopPropagation();
+    showToast('Share option coming next');
+  }
+});
+
+
+
+document.getElementById('details-close').addEventListener('click',closeJobDetails);
+document.getElementById('details-apply').addEventListener('click',applyFromDetails);
+document.getElementById('details-save').addEventListener('click',event=>{
+  const button=event.currentTarget;
+  button.textContent=button.textContent==='♡'?'♥':'♡';
+  showToast(button.textContent==='♥'?'Job saved':'Removed from saved');
+});
+document.getElementById('job-details-overlay').addEventListener('click',event=>{
+  if(event.target===event.currentTarget)closeJobDetails();
+});
+document.getElementById('job-details-sheet').addEventListener('click',event=>event.stopPropagation());
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&document.getElementById('job-details-overlay').classList.contains('open'))closeJobDetails();
+});
 
 (async function initialize(){
   const {data,error}=await sb.auth.getSession();
@@ -719,6 +1572,14 @@ async function loadJobs(){
   }
 
   session=data.session;
+
+  const fullName=
+    session.user.user_metadata?.full_name||
+    session.user.user_metadata?.name||
+    session.user.email?.split('@')[0]||
+    'User';
+
+  document.getElementById('profile-button').textContent=initials(fullName);
 
   const {count}=await sb
     .from('applications')
