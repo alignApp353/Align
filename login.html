@@ -489,18 +489,126 @@
       return;
     }
 
-    sessionStorage.setItem('alygnn_oauth_mode', isSignupTab ? 'signup' : 'login');
+    const oauthMode = isSignupTab ? 'signup' : 'login';
+    sessionStorage.setItem('alygnn_oauth_mode', oauthMode);
     sessionStorage.setItem('alygnn_oauth_role', currentRole);
 
     const params = new URLSearchParams();
-    if (currentRole === 'employer') params.set('role', 'employer');
-    params.set('oauth_mode', isSignupTab ? 'signup' : 'login');
+    params.set('oauth_return', '1');
+    params.set('oauth_mode', oauthMode);
+    params.set('role', currentRole === 'employer' ? 'employer' : 'jobseeker');
 
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/set-password.html?' + params.toString() }
+      options: { redirectTo: window.location.origin + '/login.html?' + params.toString() }
     });
     if (error) showMsg(error.message || 'Could not open Google sign in. Please try again.');
+  }
+
+  async function getOAuthSession() {
+    let { data: { session } } = await sb.auth.getSession();
+    if (session) return session;
+
+    return await new Promise(resolve => {
+      let finished = false;
+      const finish = value => {
+        if (finished) return;
+        finished = true;
+        try { subscription?.unsubscribe(); } catch (_) {}
+        resolve(value || null);
+      };
+
+      const { data: { subscription } } = sb.auth.onAuthStateChange((_event, nextSession) => {
+        if (nextSession) finish(nextSession);
+      });
+
+      setTimeout(async () => {
+        const { data } = await sb.auth.getSession();
+        finish(data.session || null);
+      }, 2500);
+    });
+  }
+
+  async function validateGoogleIntent(session, intent) {
+    const response = await fetch(SUPABASE_URL + '/functions/v1/validate-google-login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + session.access_token
+      },
+      body: JSON.stringify({ intent })
+    });
+
+    let payload = {};
+    try { payload = await response.json(); } catch (_) {}
+    if (!response.ok) throw new Error(payload.error || 'Could not verify this Google account.');
+    return payload;
+  }
+
+  async function handleOAuthReturn() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('oauth_return') !== '1') {
+      if (params.get('error') === 'no_account') {
+        switchTab('login');
+        showMsg('No Alygnn account was found for that Google account. Create an account first.');
+      }
+      return;
+    }
+
+    const intent = params.get('oauth_mode') === 'signup' ? 'signup' : 'login';
+    const requestedRole = params.get('role') === 'employer' ? 'employer' : 'seeker';
+
+    showMsg(intent === 'signup' ? 'Finishing your Google account…' : 'Checking your Alygnn account…', 'success');
+
+    const session = await getOAuthSession();
+    if (!session?.user) {
+      showMsg('Google sign in did not finish. Please try again.');
+      return;
+    }
+
+    try {
+      const result = await validateGoogleIntent(session, intent);
+
+      if (!result.allowed) {
+        await sb.auth.signOut({ scope: 'local' });
+        const clean = new URL(window.location.origin + '/login.html');
+        clean.searchParams.set('role', requestedRole === 'employer' ? 'employer' : 'jobseeker');
+        clean.searchParams.set('error', 'no_account');
+        history.replaceState({}, '', clean.pathname + clean.search);
+        switchTab('login');
+        showMsg('No Alygnn account was found for that Google account. Create an account first.');
+        return;
+      }
+
+      if (intent === 'signup') {
+        const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+        const { error: profileError } = await sb.from('profiles').upsert({
+          id: session.user.id,
+          role: requestedRole,
+          full_name: fullName
+        }, { onConflict: 'id' });
+
+        if (profileError) console.error('Could not save Google signup profile:', profileError);
+        await savePendingPreferences(session.user, fullName);
+        window.location.replace(redirectFor(requestedRole));
+        return;
+      }
+
+      const { data: profile } = await sb
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      const savedRole = profile?.role || session.user.user_metadata?.role || requestedRole;
+      window.location.replace(redirectFor(savedRole === 'employer' ? 'employer' : 'seeker'));
+    } catch (error) {
+      console.error('Google account validation failed:', error);
+      await sb.auth.signOut({ scope: 'local' });
+      switchTab('login');
+      showMsg(error.message || 'We could not verify this Google account. Please try again.');
+    }
   }
 
   async function handleApple() {
@@ -579,6 +687,8 @@
     const lbl = document.getElementById('strength-label');
     lbl.textContent = labels[score]; lbl.style.color = lc[score];
   }
+
+  handleOAuthReturn();
 </script>
 </body>
 </html>
