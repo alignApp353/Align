@@ -497,13 +497,16 @@
       showMsg('Please agree to the Terms of Service and Privacy Policy to continue.');
       return;
     }
-    // Pass the currently selected role in the redirect URL so
-    // set-password.html can save it to the profiles table after
-    // Google OAuth completes — fixing the role routing for Google sign-ins.
+    // set-password.html is no longer part of this flow. Pass the selected
+    // role straight to the real destination (account.html reads it on
+    // first load and saves it to profiles, same job the role param used
+    // to do) so Google sign-in lands the user directly on their
+    // account/onboarding page with no extra stop in between.
     const roleParam = currentRole === 'employer' ? '?role=employer' : '';
+    const dest = currentRole === 'employer' ? '/employer-onboarding.html' : '/account.html';
     await sb.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/set-password.html' + roleParam }
+      options: { redirectTo: window.location.origin + dest + roleParam }
     });
   }
 
@@ -514,9 +517,10 @@
       return;
     }
     const roleParam = currentRole === 'employer' ? '?role=employer' : '';
+    const dest = currentRole === 'employer' ? '/employer-onboarding.html' : '/account.html';
     await sb.auth.signInWithOAuth({
       provider: 'apple',
-      options: { redirectTo: window.location.origin + '/set-password.html' + roleParam }
+      options: { redirectTo: window.location.origin + dest + roleParam }
     });
   }
 
