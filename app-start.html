@@ -8,6 +8,43 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<script>
+(function(){
+  const preference=
+    localStorage.getItem('alygnn_candidate_theme') ||
+    localStorage.getItem('alygnn-theme') ||
+    'system';
+
+  const media=window.matchMedia('(prefers-color-scheme: dark)');
+
+  function apply(){
+    const effective=
+      preference==='dark'
+        ?'dark'
+        :preference==='light'
+          ?'light'
+          :(media.matches?'dark':'light');
+
+    document.documentElement.dataset.effectiveTheme=effective;
+
+    const meta=document.querySelector('meta[name="theme-color"]');
+    if(meta){
+      meta.setAttribute(
+        'content',
+        effective==='dark'
+          ?'#071722'
+          :'#F6F8F7'
+      );
+    }
+  }
+
+  apply();
+
+  if(preference==='system'){
+    media.addEventListener?.('change',apply);
+  }
+})();
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
 :root{--brand:#5D7FA3;--brand-dark:#345F91;--sage:#8CB69B;--bg:#F6F8F7;--text:#172333;--muted:#59697A;--border:#DDE3E8;--candidate:#23A968;--employer:#3568C0}
@@ -49,6 +86,73 @@ button,a{font:inherit}
 .transition-copy{margin-top:7px;color:var(--muted);font-size:13px}
 @media(max-height:720px){.hero{margin-top:42px}.choices{margin-top:25px}.choice{min-height:125px}.footer{padding-top:25px}}
 @media(max-width:360px){.page{padding-left:14px;padding-right:14px}.choice{grid-template-columns:54px 1fr 38px;padding:16px;gap:12px}.choice-icon{width:54px;height:54px}.arrow{width:38px;height:38px}}
+
+html[data-effective-theme="dark"]{
+  --brand:#6E94BB;
+  --brand-dark:#82A7CE;
+  --sage:#8CB69B;
+  --bg:#071722;
+  --text:#F4F7FA;
+  --muted:#A3B1BF;
+  --border:#2A3B49;
+  --candidate:#2CB276;
+  --employer:#4E7ED8;
+}
+
+html[data-effective-theme="dark"] body{
+  background:
+    radial-gradient(circle at 15% 10%,rgba(140,182,155,.08),transparent 28%),
+    radial-gradient(circle at 90% 80%,rgba(93,127,163,.11),transparent 30%),
+    var(--bg);
+}
+
+html[data-effective-theme="dark"] .choice{
+  border-color:var(--border);
+  box-shadow:0 11px 30px rgba(0,0,0,.10);
+}
+
+html[data-effective-theme="dark"] .choice.candidate{
+  background:linear-gradient(
+    120deg,
+    rgba(18,54,41,.92),
+    rgba(15,32,44,.98)
+  );
+}
+
+html[data-effective-theme="dark"] .choice.employer{
+  background:linear-gradient(
+    120deg,
+    rgba(25,43,69,.96),
+    rgba(15,32,44,.98)
+  );
+}
+
+html[data-effective-theme="dark"] .candidate .choice-icon{
+  background:#123A2C;
+  color:#6DD8A2;
+}
+
+html[data-effective-theme="dark"] .employer .choice-icon{
+  background:#1B3150;
+  color:#73A1F0;
+}
+
+html[data-effective-theme="dark"] .small-note{
+  color:#7F92A3;
+}
+
+html[data-effective-theme="dark"] .transition-screen{
+  background:rgba(7,23,34,.985);
+}
+
+html[data-effective-theme="dark"] .transition-icon.candidate{
+  background:#123A2C;
+}
+
+html[data-effective-theme="dark"] .transition-icon.employer{
+  background:#1B3150;
+}
+
 </style>
 </head>
 <body>
@@ -124,7 +228,7 @@ function chooseExperience(type){
 }
 candidateChoice.addEventListener('click',()=>chooseExperience('candidate'));
 employerChoice.addEventListener('click',()=>chooseExperience('employer'));
-document.getElementById('sign-in-link').addEventListener('click',()=>{const savedType=localStorage.getItem('alygnn_account_type');chooseExperience(savedType==='employer'?'employer':'candidate')});
+document.getElementById('sign-in-link').addEventListener('click',()=>{localStorage.setItem('alygnn_account_type','candidate');window.location.href='app-login.html'});
 </script>
 </body>
 </html>
