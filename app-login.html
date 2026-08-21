@@ -11,20 +11,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
-  const preference=
-    localStorage.getItem('alygnn_candidate_theme') ||
-    localStorage.getItem('alygnn-theme') ||
-    'system';
-
   const media=window.matchMedia('(prefers-color-scheme: dark)');
 
-  function apply(){
-    const effective=
-      preference==='dark'
-        ?'dark'
-        :preference==='light'
-          ?'light'
-          :(media.matches?'dark':'light');
+  function applySystemTheme(){
+    const effective=media.matches?'dark':'light';
 
     document.documentElement.dataset.effectiveTheme=effective;
 
@@ -39,11 +29,8 @@
     }
   }
 
-  apply();
-
-  if(preference==='system'){
-    media.addEventListener?.('change',apply);
-  }
+  applySystemTheme();
+  media.addEventListener?.('change',applySystemTheme);
 })();
 </script>
 <style>
