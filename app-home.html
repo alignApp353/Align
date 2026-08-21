@@ -64,6 +64,13 @@ body{
   width:min(360px,88vw);
   text-align:center;
   transform:translateY(-3vh);
+  opacity:1;
+  transition:opacity .22s ease,transform .22s ease;
+}
+
+body.is-leaving .splash{
+  opacity:0;
+  transform:translateY(-3vh) scale(.985);
 }
 
 .logo{
@@ -178,24 +185,61 @@ body{
   }
 })();
 
-const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const sb=supabase.createClient(
+  'https://auth.alygnn.com',
+  'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+  {
+    auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true
+    }
+  }
+);
+
+const SPLASH_MIN_MS=1250;
+const splashStartedAt=Date.now();
+
+function wait(ms){
+  return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+async function leaveSplash(destination){
+  const elapsed=Date.now()-splashStartedAt;
+  const remaining=Math.max(0,SPLASH_MIN_MS-elapsed);
+
+  if(remaining){
+    await wait(remaining);
+  }
+
+  document.body.classList.add('is-leaving');
+  await wait(220);
+
+  window.location.replace(destination);
+}
+
 (async function routeApp(){
+  let destination='app-start.html';
+
   try{
     const {data,error}=await sb.auth.getSession();
-    if(error||!data.session){
-      window.location.replace('app-start.html');
-      return;
+
+    if(!error && data.session){
+      const accountType=
+        localStorage.getItem('alygnn_account_type') ||
+        'candidate';
+
+      destination=
+        accountType==='employer'
+          ?'app-employer-dashboard.html'
+          :'app-account.html';
     }
-    const accountType=localStorage.getItem('alygnn_account_type')||'candidate';
-    if(accountType==='employer'){
-      window.location.replace('app-employer-dashboard.html');
-    }else{
-      window.location.replace('app-account.html');
-    }
+
   }catch(err){
     console.error(err);
-    window.location.replace('app-start.html');
   }
+
+  await leaveSplash(destination);
 })();
 </script>
 </body>
