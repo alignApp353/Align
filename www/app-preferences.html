@@ -676,117 +676,15 @@ html[data-effective-theme="dark"] .salary-handle-max{
 
 
 
+
 /* =========================================================
-   V79 — Stable Capacitor scroll layout
-   Header/progress and save button are layout rows.
-   ONLY <main> scrolls. No body scroll, no nested full-page
-   scroll surface, no sticky/fixed element fighting WebView.
+   V82 — CLEAN NATIVE DOCUMENT SCROLL
+   No nested full-screen scroller.
+   No manual pointer scrolling.
+   No body/app height lock.
+   Android WebView scrolls the document normally.
    ========================================================= */
 
-html,
-body{
-  width:100%;
-  height:100%;
-  min-height:100%;
-  margin:0;
-  overflow:hidden!important;
-}
-
-body{
-  padding-bottom:0!important;
-}
-
-.app{
-  width:100%;
-  max-width:560px;
-  height:100dvh!important;
-  min-height:0!important;
-  margin:0 auto;
-  padding:0!important;
-  display:flex!important;
-  flex-direction:column!important;
-  overflow:hidden!important;
-}
-
-/* These rows stay visible because main is the only scroll area. */
-.topbar{
-  position:relative!important;
-  top:auto!important;
-  flex:0 0 auto!important;
-}
-
-.stage{
-  flex:0 0 auto!important;
-}
-
-/* This is the ONE and ONLY vertical scroll container. */
-main{
-  display:block!important;
-  flex:1 1 auto!important;
-  min-height:0!important;
-  height:auto!important;
-  overflow-x:hidden!important;
-  overflow-y:auto!important;
-  -webkit-overflow-scrolling:touch;
-  overscroll-behavior-y:contain;
-  touch-action:pan-y;
-  padding-bottom:26px!important;
-  scrollbar-width:none;
-}
-
-main::-webkit-scrollbar{
-  display:none;
-}
-
-/* Never turn content cards into competing scroll surfaces. */
-.intro,
-.section,
-.card,
-.field,
-.choice-grid,
-.benefit-grid,
-.job-grid,
-.chips,
-.industry-search{
-  overflow:visible;
-}
-
-/* The save bar is now the final flex row, not position:fixed. */
-.bottom-save{
-  position:relative!important;
-  left:auto!important;
-  right:auto!important;
-  bottom:auto!important;
-  flex:0 0 auto!important;
-  width:100%;
-  max-width:none!important;
-  margin:0!important;
-  z-index:120;
-}
-
-/* Normal page swipes remain vertical. */
-main,
-.intro,
-.section,
-.card,
-.field,
-.choice-grid,
-.benefit-grid,
-.job-grid,
-.chips,
-.industry-search{
-  touch-action:pan-y;
-}
-
-/* Slider itself can own the drag gesture, but nowhere else. */
-.range-wrap,
-.range-inputs,
-.range-inputs input{
-  touch-action:none;
-}
-
-
-/* V80: Back is a real link, not JS-only navigation. */
 .back{
   display:inline-flex;
   align-items:center;
@@ -794,18 +692,105 @@ main,
   touch-action:manipulation;
 }
 
-
-/* =========================================================
-   V80 — Android touch-scroll fallback
-   Native overflow scrolling remains enabled for wheel/mouse.
-   Touch drags are handled explicitly so Android WebView
-   cannot snap the page back to the top.
-   ========================================================= */
-main{
-  overflow-y:auto!important;
+html{
+  width:100%!important;
+  min-height:100%!important;
+  height:auto!important;
   overflow-x:hidden!important;
-  overscroll-behavior-y:none!important;
-  -webkit-overflow-scrolling:auto!important;
+  overflow-y:auto!important;
+  overscroll-behavior-y:auto!important;
+  touch-action:pan-y!important;
+}
+
+body{
+  width:100%!important;
+  min-height:100%!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0 0 calc(96px + env(safe-area-inset-bottom))!important;
+  overflow-x:hidden!important;
+  overflow-y:visible!important;
+  touch-action:pan-y!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+
+.app{
+  display:block!important;
+  width:100%!important;
+  max-width:560px!important;
+  height:auto!important;
+  min-height:100vh!important;
+  margin:0 auto!important;
+  padding:0!important;
+  overflow:visible!important;
+  touch-action:pan-y!important;
+}
+
+/* Header stays available, but the page itself is what scrolls. */
+.topbar{
+  position:sticky!important;
+  top:0!important;
+  z-index:100!important;
+}
+
+.stage{
+  position:relative!important;
+  overflow:visible!important;
+}
+
+main{
+  display:block!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  overflow:visible!important;
+  touch-action:pan-y!important;
+  padding-bottom:28px!important;
+}
+
+.intro,
+.section,
+.card,
+.field,
+.choice-grid,
+.benefit-grid,
+.job-grid,
+.chips,
+.industry-search{
+  overflow:visible!important;
+}
+
+/* Keep only the save action fixed to the bottom. */
+.bottom-save{
+  position:fixed!important;
+  left:0!important;
+  right:0!important;
+  bottom:0!important;
+  z-index:120!important;
+  width:100%!important;
+  max-width:560px!important;
+  margin:0 auto!important;
+}
+
+/* Normal page gestures stay vertical. */
+.intro,
+.section,
+.card,
+.field,
+.choice-grid,
+.benefit-grid,
+.job-grid,
+.chips,
+.industry-search{
+  touch-action:pan-y!important;
+}
+
+/* Only the salary range thumb area owns drag. */
+.range-wrap{
+  touch-action:pan-y!important;
+}
+.range-inputs,
+.range-inputs input{
   touch-action:none!important;
 }
 
@@ -814,7 +799,7 @@ main{
 <script src="app-candidate-theme.js"></script>
 <link rel="stylesheet" href="app-candidate-theme.css">
 </head>
-<body data-preferences-build="80">
+<body data-preferences-build="82">
 <div class="app">
   <header class="topbar">
     <a class="back" id="backLink" href="app-resume-preview.html">← Back</a>
@@ -2343,73 +2328,5 @@ $('saveBtn').addEventListener('click',savePreferences);
 
 initialize();
 </script>
-
-
-
-
-<script>
-(function(){
-  const main=document.querySelector('main');
-  if(!main) return;
-
-  let startY=0;
-  let startScrollTop=0;
-  let dragging=false;
-  let moved=false;
-
-  const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
-
-  main.addEventListener('touchstart',event=>{
-    if(event.touches.length!==1) return;
-
-    startY=event.touches[0].clientY;
-    startScrollTop=main.scrollTop;
-    dragging=true;
-    moved=false;
-  },{passive:true});
-
-  main.addEventListener('touchmove',event=>{
-    if(!dragging || event.touches.length!==1) return;
-
-    const currentY=event.touches[0].clientY;
-    const deltaY=currentY-startY;
-
-    if(Math.abs(deltaY)<4) return;
-
-    moved=true;
-
-    const maxScroll=Math.max(0,main.scrollHeight-main.clientHeight);
-    main.scrollTop=clamp(startScrollTop-deltaY,0,maxScroll);
-
-    // Stop Android WebView from applying a second native scroll/bounce.
-    event.preventDefault();
-  },{passive:false});
-
-  const endDrag=()=>{
-    dragging=false;
-  };
-
-  main.addEventListener('touchend',endDrag,{passive:true});
-  main.addEventListener('touchcancel',endDrag,{passive:true});
-
-  // Keep the currently visible position stable after keyboard/focus changes.
-  main.addEventListener('focusin',event=>{
-    const field=event.target;
-    if(!field.matches('input,textarea,select')) return;
-
-    requestAnimationFrame(()=>{
-      const mainRect=main.getBoundingClientRect();
-      const fieldRect=field.getBoundingClientRect();
-
-      if(fieldRect.bottom>mainRect.bottom-18){
-        main.scrollTop += fieldRect.bottom-(mainRect.bottom-18);
-      }else if(fieldRect.top<mainRect.top+18){
-        main.scrollTop -= (mainRect.top+18)-fieldRect.top;
-      }
-    });
-  });
-})();
-</script>
-
 </body>
 </html>
