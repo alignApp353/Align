@@ -185,6 +185,12 @@
       <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Create account</button>
     </div>
 
+    <!-- Consent sits next to social signup so it is visible before Google/Apple. -->
+    <label class="terms-check" id="signup-terms-wrap" style="display:none; margin-top:-2px;">
+      <input type="checkbox" id="signup-terms" />
+      <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+    </label>
+
     <button class="google-btn" onclick="handleGoogle()">
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
         <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -192,14 +198,14 @@
         <path d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/>
         <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
       </svg>
-      Continue with Google
+      <span id="google-button-text">Sign in with Google</span>
     </button>
 
     <button class="google-btn" onclick="handleApple()" >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="black">
         <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.39.07 2.36.74 3.18.8 1.21-.24 2.37-.93 3.67-.84 1.58.13 2.77.79 3.53 1.98-3.25 1.94-2.48 6.18.57 7.37-.67 1.63-1.53 3.24-2.95 3.57zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
       </svg>
-      Continue with Apple
+      <span id="apple-button-text">Sign in with Apple</span>
     </button>
 
     <div class="divider"><span id="divider-text">or sign in with email</span></div>
@@ -271,10 +277,6 @@
         </div>
         <div id="password-match-message" style="display:none;margin-top:7px;font-size:11px;font-weight:500;"></div>
       </div>
-      <label class="terms-check">
-        <input type="checkbox" id="signup-terms" />
-        <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
-      </label>
       <button class="btn-submit" id="signup-btn" onclick="doSignup()" style="margin-top:6px;">Create account</button>
     </div>
 
@@ -304,27 +306,7 @@
     document.addEventListener('DOMContentLoaded', () => switchRole('employer'));
   }
 
-  // Seekers always land on account.html (unchanged). Employers now skip
-  // the account hub entirely: brand-new/incomplete employers go straight
-  // to onboarding, and employers who've already finished onboarding go
-  // straight to the dashboard. "Onboarding complete" is read off
-  // profiles.verification_status, which is NULL until employer-onboarding.html's
-  // submit() runs for the first time (it always sets that column, to either
-  // 'approved', 'pending', or 'not_submitted') — so no new DB column needed.
-  async function redirectFor(r, userId) {
-    if (r !== 'employer') return window.location.origin + '/account.html';
-    if (userId) {
-      const { data: profile } = await sb
-        .from('profiles')
-        .select('verification_status')
-        .eq('id', userId)
-        .maybeSingle();
-      if (profile?.verification_status != null) {
-        return window.location.origin + '/employer-dashboard.html';
-      }
-    }
-    return window.location.origin + '/employer-onboarding.html';
-  }
+  const redirectFor = r => window.location.origin + (r === 'employer' ? '/employer-account.html' : '/account.html');
 
   function switchRole(role) {
     currentRole = role;
@@ -347,6 +329,9 @@
       ? `New here? <a href="#" onclick="switchTab('signup'); return false;">Create a free account</a>`
       : `Already have one? <a href="#" onclick="switchTab('login'); return false;">Sign in</a>`;
     document.getElementById('divider-text').textContent = isLogin ? 'or sign in with email' : 'or sign up with email';
+    document.getElementById('google-button-text').textContent = isLogin ? 'Sign in with Google' : 'Sign up with Google';
+    document.getElementById('apple-button-text').textContent = isLogin ? 'Sign in with Apple' : 'Sign up with Apple';
+    document.getElementById('signup-terms-wrap').style.display = isLogin ? 'none' : 'flex';
     document.getElementById('login-btn').textContent = isEmp ? 'Sign in to Dashboard' : 'Sign in to Alygnn';
     document.getElementById('signup-btn').textContent = isEmp ? 'Create employer account' : 'Create account';
     document.getElementById('switch-prompt').innerHTML = isLogin
@@ -394,10 +379,20 @@
     const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Signing in…';
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     btn.disabled = false; btn.textContent = orig;
-    if (error) { showMsg(error.message); return; }
+    if (error) {
+      const raw = String(error.message || '').toLowerCase();
+      if (raw.includes('invalid login credentials') || raw.includes('invalid credentials')) {
+        showMsg('Email or password is incorrect. If you have not created an account yet, choose Create account.');
+      } else if (raw.includes('email not confirmed') || raw.includes('confirm your email')) {
+        showMsg('Please verify your email before signing in.');
+      } else {
+        showMsg(error.message || 'Unable to sign in. Please try again.');
+      }
+      return;
+    }
     await savePendingPreferences(data.user);
     const r = data.user?.user_metadata?.role || 'seeker';
-    window.location.href = await redirectFor(r, data.user?.id);
+    window.location.href = redirectFor(r);
   }
 
   async function doSignup() {
@@ -478,12 +473,7 @@
     if (data.session) {
       await savePendingPreferences(data.user, name);
       showMsg('Account created! Redirecting…', 'success');
-      // A brand-new account has no verification_status row yet either way,
-      // so this is always onboarding for employers — no need to query.
-      const dest = currentRole === 'employer'
-        ? window.location.origin + '/employer-onboarding.html'
-        : window.location.origin + '/account.html';
-      setTimeout(() => { window.location.href = dest; }, 600);
+      setTimeout(() => { window.location.href = redirectFor(currentRole); }, 600);
       return;
     }
 
@@ -494,34 +484,45 @@
   async function handleGoogle() {
     const isSignupTab = document.getElementById('signup-form').style.display !== 'none';
     if (isSignupTab && !document.getElementById('signup-terms').checked) {
-      showMsg('Please agree to the Terms of Service and Privacy Policy to continue.');
+      showMsg('Check the box above to agree to the Terms of Service and Privacy Policy, then continue with Google.');
+      document.getElementById('signup-terms').focus();
       return;
     }
-    // set-password.html is no longer part of this flow. Pass the selected
-    // role straight to the real destination (account.html reads it on
-    // first load and saves it to profiles, same job the role param used
-    // to do) so Google sign-in lands the user directly on their
-    // account/onboarding page with no extra stop in between.
-    const roleParam = currentRole === 'employer' ? '?role=employer' : '';
-    const dest = currentRole === 'employer' ? '/employer-onboarding.html' : '/account.html';
-    await sb.auth.signInWithOAuth({
+
+    sessionStorage.setItem('alygnn_oauth_mode', isSignupTab ? 'signup' : 'login');
+    sessionStorage.setItem('alygnn_oauth_role', currentRole);
+
+    const params = new URLSearchParams();
+    if (currentRole === 'employer') params.set('role', 'employer');
+    params.set('oauth_mode', isSignupTab ? 'signup' : 'login');
+
+    const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + dest + roleParam }
+      options: { redirectTo: window.location.origin + '/set-password.html?' + params.toString() }
     });
+    if (error) showMsg(error.message || 'Could not open Google sign in. Please try again.');
   }
 
   async function handleApple() {
     const isSignupTab = document.getElementById('signup-form').style.display !== 'none';
     if (isSignupTab && !document.getElementById('signup-terms').checked) {
-      showMsg('Please agree to the Terms of Service and Privacy Policy to continue.');
+      showMsg('Check the box above to agree to the Terms of Service and Privacy Policy, then continue with Apple.');
+      document.getElementById('signup-terms').focus();
       return;
     }
-    const roleParam = currentRole === 'employer' ? '?role=employer' : '';
-    const dest = currentRole === 'employer' ? '/employer-onboarding.html' : '/account.html';
-    await sb.auth.signInWithOAuth({
+
+    sessionStorage.setItem('alygnn_oauth_mode', isSignupTab ? 'signup' : 'login');
+    sessionStorage.setItem('alygnn_oauth_role', currentRole);
+
+    const params = new URLSearchParams();
+    if (currentRole === 'employer') params.set('role', 'employer');
+    params.set('oauth_mode', isSignupTab ? 'signup' : 'login');
+
+    const { error } = await sb.auth.signInWithOAuth({
       provider: 'apple',
-      options: { redirectTo: window.location.origin + dest + roleParam }
+      options: { redirectTo: window.location.origin + '/set-password.html?' + params.toString() }
     });
+    if (error) showMsg(error.message || 'Could not open Apple sign in. Please try again.');
   }
 
   async function doForgot() {
