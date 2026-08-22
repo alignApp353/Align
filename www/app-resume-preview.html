@@ -88,7 +88,7 @@ html[data-effective-theme="dark"] .pdf-page,html[data-effective-theme="dark"] .p
 <link rel="stylesheet" href="app-candidate-theme.css">
 <script src="app-candidate-theme.js"></script>
 </head>
-<body data-resume-preview-build="86">
+<body data-resume-preview-build="88">
 <header class="header">
   <button class="back" id="backBtn" type="button" aria-label="Edit resume">←</button>
   <div class="logo">Alygnn<span>.</span></div>
@@ -167,10 +167,32 @@ function hasResume(){
   );
 }
 function currentSource(){
-  if(profile?.resume_file_path) return 'upload';
-  if(String(profile?.resume_source||'').toLowerCase()==='upload') return 'upload';
-  return 'builder';
+  const source=String(profile?.resume_source||'').toLowerCase();
+
+  // A resume created by Alygnn's builder may ALSO have
+  // resume_file_path = generated-resume.html. It is still a builder resume.
+  if(source==='builder') return 'builder';
+  if(source==='upload') return 'upload';
+
+  const data=parseObject(profile?.resume_data);
+  if(data?.source==='resume-builder' || data?._alygnn_design?.builder_template){
+    return 'builder';
+  }
+
+  return profile?.resume_file_path ? 'upload' : 'builder';
 }
+const BUILDER_TEMPLATE_NAMES={
+  classic:'Classic',
+  navy:'Navy',
+  teal:'Teal Executive',
+  green:'Green Sidebar',
+  editorial:'Editorial',
+  lavender:'Lavender',
+  bluebar:'Blue Column',
+  gold:'Black & Gold',
+  compact:'Compact',
+  corporate:'Corporate'
+};
 function templateName(id){return RESUME_TEMPLATES.find(t=>t.id===id)?.name||'Prime ATS'}
 function resumeParts(data){
   const person=parseObject(data.personal);
@@ -199,8 +221,17 @@ function buildResumeHtml(data){
 function renderBuilderResume(){
   const data=parseObject(profile?.resume_data);
   $('previewBody').innerHTML=buildResumeHtml(data);
+
   const design=parseObject(data._alygnn_design);
-  $('sourceBadge').textContent=templateName(design.template||'prime-ats');
+  const builderTemplate=String(
+    design.builder_template ||
+    data.template ||
+    ''
+  ).toLowerCase();
+
+  $('sourceBadge').textContent=
+    BUILDER_TEMPLATE_NAMES[builderTemplate] ||
+    templateName(design.template||'classic');
 }
 
 
