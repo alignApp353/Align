@@ -71,7 +71,8 @@ input::placeholder{color:#98A2AD}
 .social{width:100%;min-height:54px;margin-top:10px;border:1px solid var(--border);border-radius:17px;background:#fff;color:var(--text);display:flex;align-items:center;justify-content:center;gap:12px;font-size:14px;font-weight:900}
 .social:first-of-type{margin-top:0}
 .google-mark{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:16px;font-weight:900;color:#4285F4}
-.apple-mark{font-size:22px;line-height:1}
+.apple-mark{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif!important;font-size:23px;line-height:1;font-weight:500}
+[hidden]{display:none!important}
 .signup{margin-top:25px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
 .signup a{color:var(--accent-dark);text-decoration:none;font-weight:900}
 .switch{margin-top:15px;text-align:center}
@@ -179,12 +180,17 @@ html[data-effective-theme="dark"] .back-btn{
 <button class="primary" id="sign-in-btn" type="button">Sign in</button>
 <div class="divider">or continue with</div>
 <button class="social" id="google-btn" type="button"><span class="google-mark">G</span><span>Continue with Google</span></button>
+<button class="social" id="apple-btn" type="button" aria-label="Continue with Apple" hidden>
+  <span class="apple-mark" aria-hidden="true"></span><span>Continue with Apple</span>
+</button>
 <div class="signup">Don’t have an account? <a href="app-create-account.html">Create one</a></div>
 <div class="switch"><button class="switch-btn" id="switch-btn" type="button">Switch to employer sign in</button></div>
 </div></section></main>
 <script>
 const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const ACCOUNT_TYPE='candidate';
+window.__ALYGNN_LOGIN_BUILD='ios-apple-v3';
+console.log('ALYGNN_LOGIN_BUILD: ios-apple-v3');
 
 const ALYGNN_NATIVE_OAUTH_REDIRECT='alygnn://auth/callback';
 
@@ -198,6 +204,19 @@ function isNativeCapacitor(){
   }catch(_error){
     return false;
   }
+}
+
+function capacitorPlatform(){
+  try{
+    if(window.Capacitor && typeof window.Capacitor.getPlatform==='function'){
+      return window.Capacitor.getPlatform();
+    }
+  }catch(_error){}
+  return 'web';
+}
+
+function isIOSCapacitor(){
+  return isNativeCapacitor() && capacitorPlatform()==='ios';
 }
 
 function nativePlugin(name){
@@ -254,59 +273,15 @@ function oauthShow(text,type='error'){
 
 
 const TARGET_PAGE='app-account.html';
-
-function isGoogleOnlyAccount(user){
-  if(!user) return false;
-
-  const primary=String(user.app_metadata?.provider||'').toLowerCase();
-  const providers=Array.isArray(user.app_metadata?.providers)
-    ? user.app_metadata.providers.map(v=>String(v).toLowerCase())
-    : [];
-
-  return primary==='google' ||
-    (providers.length===1 && providers[0]==='google');
-}
-
-function hasAlygnnPassword(user){
-  return user?.user_metadata?.alygnn_password_set===true;
-}
-
-function destinationAfterGoogle(session, fallback){
-  const user=session?.user;
-  const mode=localStorage.getItem('alygnn_google_auth_mode');
-
-  // Only Google SIGN-UP should be forced through password creation.
-  // Normal "Continue with Google" sign-in must go straight to the account.
-  if(
-    mode==='signup' &&
-    isGoogleOnlyAccount(user) &&
-    !hasAlygnnPassword(user)
-  ){
-    return 'app-google-set-password.html';
-  }
-
-  return fallback;
-}
-
 function showMessage(text,type){const m=document.getElementById('message');m.textContent=text;m.className='message '+type}
 function setLoading(b,l,lt,nt){b.disabled=l;b.textContent=l?lt:nt}
 function friendlyError(error){const raw=String(error?.message||'').toLowerCase();if(raw.includes('invalid login credentials')||raw.includes('invalid credentials'))return'Incorrect email or password. Please try again.';if(raw.includes('email not confirmed')||raw.includes('confirm your email'))return'Please verify your email before signing in.';if(raw.includes('fetch')||raw.includes('network')||raw.includes('failed to fetch'))return'Unable to connect. Please check your internet connection.';if(raw.includes('too many requests')||raw.includes('rate limit'))return'Too many attempts. Please wait a few minutes and try again.';return error?.message||'Unable to sign in. Please try again.'}
-async function redirectIfLoggedIn(){
-  const params=new URLSearchParams(location.search);
-  if(params.has('logout')) return;
-
-  const {data}=await sb.auth.getSession();
-
-  if(data.session){
-    location.replace(destinationAfterGoogle(data.session,TARGET_PAGE));
-  }
-}
+async function redirectIfLoggedIn(){const params=new URLSearchParams(location.search);if(params.has('logout'))return;const {data}=await sb.auth.getSession();if(data.session)location.replace(TARGET_PAGE)}
 async function signIn(){const email=document.getElementById('email').value.trim().toLowerCase();const password=document.getElementById('password').value;const button=document.getElementById('sign-in-btn');if(!email){showMessage('Please enter your email address.','error');return}if(!password){showMessage('Please enter your password.','error');return}setLoading(button,true,'Signing in…','Sign in');const {error}=await sb.auth.signInWithPassword({email,password});if(error){showMessage(friendlyError(error),'error');setLoading(button,false,'Signing in…','Sign in');return}localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);showMessage('Welcome back. Redirecting…','success');setTimeout(()=>location.replace(TARGET_PAGE),450)}
 async function googleLogin(){
   const button=document.getElementById('google-btn');
   setLoading(button,true,'Opening Google…','Continue with Google');
   localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
-  localStorage.setItem('alygnn_google_auth_mode','signin');
 
   try{
     if(isNativeCapacitor()){
@@ -348,20 +323,92 @@ async function googleLogin(){
   }
 }
 
+function randomNonce(length=32){
+  const chars='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._';
+  const bytes=new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes,b=>chars[b%chars.length]).join('');
+}
+
+async function sha256Hex(value){
+  const bytes=new TextEncoder().encode(value);
+  const digest=await crypto.subtle.digest('SHA-256',bytes);
+  return Array.from(new Uint8Array(digest))
+    .map(b=>b.toString(16).padStart(2,'0'))
+    .join('');
+}
+
+async function appleLogin(){
+  const button=document.getElementById('apple-btn');
+  setLoading(button,true,'Opening Apple…','Continue with Apple');
+  localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
+
+  try{
+    if(!isIOSCapacitor()){
+      throw new Error('Continue with Apple is only available in the Alygnn iOS app.');
+    }
+
+    const AppleSignIn=nativePlugin('AppleSignIn');
+    if(!AppleSignIn?.signIn){
+      throw new Error('Apple sign-in plugin is not installed. Run: npm install @capawesome/capacitor-apple-sign-in && npx cap sync ios');
+    }
+
+    // Supabase expects the raw nonce while Apple receives its SHA-256 hash.
+    const rawNonce=randomNonce();
+    const hashedNonce=await sha256Hex(rawNonce);
+
+    const result=await AppleSignIn.signIn({
+      scopes:['EMAIL','FULL_NAME'],
+      nonce:hashedNonce
+    });
+
+    if(!result?.idToken){
+      throw new Error('Apple did not return an identity token.');
+    }
+
+    const {data,error}=await sb.auth.signInWithIdToken({
+      provider:'apple',
+      token:result.idToken,
+      nonce:rawNonce
+    });
+    if(error) throw error;
+    if(!data?.session) throw new Error('Apple sign-in completed, but no Alygnn session was created.');
+
+    localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
+    showMessage('Apple sign-in successful. Opening Alygnn…','success');
+    setTimeout(()=>location.replace(TARGET_PAGE),350);
+  }catch(error){
+    const raw=String(error?.message||error||'');
+    const lower=raw.toLowerCase();
+    const code=String(error?.code||'').toUpperCase();
+
+    if(code==='SIGN_IN_CANCELED' || lower.includes('cancel') || lower.includes('canceled') || lower.includes('cancelled')){
+      showMessage('Apple sign-in was cancelled.','error');
+    }else if(lower.includes('plugin') && lower.includes('not')){
+      showMessage('Apple sign-in is not installed in this iOS build yet.','error');
+    }else if(lower.includes('nonce')){
+      showMessage('Apple sign-in security verification failed. Please try again.','error');
+    }else{
+      showMessage(friendlyError(error),'error');
+    }
+
+    setLoading(button,false,'Opening Apple…','Continue with Apple');
+  }
+}
+
 async function finishGoogleReturn(url){
   try{
     const handled=await consumeNativeOAuthCallback(url);
     if(!handled) return;
 
     localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
-    localStorage.setItem('alygnn_google_auth_mode','signin');
     showMessage('Google sign-in successful. Opening Alygnn…','success');
 
     const {data,error}=await sb.auth.getSession();
     if(error) throw error;
     if(!data.session) throw new Error('Google sign-in completed, but no Alygnn session was created.');
 
-    location.replace(destinationAfterGoogle(data.session,TARGET_PAGE));
+    location.replace(TARGET_PAGE);
   }catch(error){
     showMessage(friendlyError(error),'error');
     const button=document.getElementById('google-btn');
@@ -389,6 +436,13 @@ document.getElementById('show-btn').addEventListener('click',e=>{const i=documen
 document.getElementById('forgot-btn').addEventListener('click',()=>location.href='app-forgot-password.html');
 document.getElementById('sign-in-btn').addEventListener('click',signIn);
 document.getElementById('google-btn').addEventListener('click',googleLogin);
+
+const appleButton=document.getElementById('apple-btn');
+if(appleButton && isIOSCapacitor()){
+  appleButton.hidden=false;
+  appleButton.addEventListener('click',appleLogin);
+}
+
 document.getElementById('switch-btn').addEventListener('click',()=>location.href=ACCOUNT_TYPE==='employer'?'app-login.html':'app-employer-login.html');
 document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')signIn()});
 setupNativeGoogleReturn();
