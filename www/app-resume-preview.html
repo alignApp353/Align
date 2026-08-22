@@ -9,57 +9,61 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
-:root{--brand:#5D7FA3;--brand-dark:#35679A;--sage:#8CB69B;--bg:#F5F8F8;--card:#fff;--text:#172333;--muted:#66788A;--border:#DCE5EB;--soft:#EFF4F7;--green:#359762;--shadow:0 14px 38px rgba(23,35,51,.055)}
-html,body{width:100%;min-height:100%}
-body{min-height:100vh;background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparent 27%),var(--bg);color:var(--text);padding-bottom:calc(105px + env(safe-area-inset-bottom))}
+:root{--brand:#5D7FA3;--brand-dark:#35679A;--sage:#8CB69B;--bg:#F5F8F8;--card:#fff;--text:#172333;--muted:#66788A;--border:#DCE5EB;--soft:#EFF4F7;--shadow:0 14px 38px rgba(23,35,51,.055)}
+html{width:100%;min-height:100%;height:auto!important;overflow-x:hidden!important;overflow-y:auto!important}
+body{width:100%;min-height:100vh;height:auto!important;overflow-x:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.09),transparent 27%),var(--bg);color:var(--text);padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 button{font:inherit;cursor:pointer}
 [hidden]{display:none!important}
-.header{position:sticky;top:0;z-index:40;min-height:84px;padding:calc(12px + env(safe-area-inset-top)) 18px 12px;display:grid;grid-template-columns:46px 1fr 46px;align-items:center;background:rgba(245,248,248,.96);border-bottom:1px solid var(--border);backdrop-filter:blur(18px)}
-.back{width:42px;height:42px;border:1px solid var(--border);border-radius:50%;background:#fff;color:var(--text);font-size:20px}
-.logo{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:30px;color:var(--brand)}
+.header{position:sticky;top:0;z-index:40;min-height:94px;padding:calc(12px + env(safe-area-inset-top)) 18px 12px;display:grid;grid-template-columns:46px 1fr 46px;align-items:center;background:rgba(245,248,248,.96);border-bottom:1px solid var(--border);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.back{width:42px;height:42px;border:1px solid var(--border);border-radius:50%;background:#fff;color:var(--text);font-size:19px;display:grid;place-items:center}
+.logo{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:32px;line-height:1;color:var(--brand)}
 .logo span{color:var(--sage)}
-.page{width:100%;max-width:600px;margin:auto;padding:22px 16px 34px}
-.step{font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--brand-dark)}
-.progress{height:7px;margin-top:10px;border-radius:999px;background:#E4EBF0;overflow:hidden}
-.progress>div{height:100%;width:66.666%;border-radius:999px;background:var(--brand-dark)}
-h1{margin-top:24px;font-size:30px;line-height:1.08;letter-spacing:-.7px;font-weight:900}
-.sub{margin-top:10px;color:var(--muted);font-size:14px;line-height:1.55}
-.status{margin-top:18px;padding:14px 16px;border:1px solid #CFE3D6;border-radius:18px;background:#ECF7F0;color:#246E45;font-size:13px;font-weight:800}
-.preview-shell{margin-top:20px;border:1px solid var(--border);border-radius:26px;background:var(--card);box-shadow:var(--shadow);overflow:hidden}
-.preview-head{padding:15px 17px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px}
-.preview-title{font-size:13px;font-weight:900}
-.preview-badge{padding:6px 9px;border-radius:999px;background:#EAF2F8;color:var(--brand-dark);font-size:10px;font-weight:900}
-.file-frame{width:100%;height:min(67vh,720px);min-height:520px;border:0;background:#fff}
+.page{width:100%;max-width:680px;margin:0 auto;padding:18px 16px 28px;overflow:visible!important}
+.loading{min-height:58vh;display:grid;place-items:center;text-align:center;color:var(--muted);font-weight:800}
+.spinner{width:34px;height:34px;margin:0 auto 12px;border:3px solid #E1E8ED;border-top-color:var(--brand-dark);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.preview-shell{border:1px solid var(--border);border-radius:26px;background:var(--card);box-shadow:var(--shadow);overflow:hidden}
+.preview-head{min-height:66px;padding:15px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.preview-title{font-size:15px;font-weight:900;color:var(--text)}
+.preview-badge{padding:8px 12px;border-radius:999px;background:#EAF2F8;color:var(--brand-dark);font-size:11px;font-weight:900;white-space:nowrap}
+.pdf-preview{width:100%;min-height:560px;padding:18px 14px 24px;background:#EEF2F5;overflow:visible!important}
+.pdf-preview-loading{min-height:440px;display:grid;place-items:center;text-align:center;color:var(--muted);font-size:12px;font-weight:800}
+.pdf-preview-loading .spinner{margin:0 auto 12px}
+.pdf-page{width:100%;max-width:100%;margin:0 auto 16px;background:#fff;box-shadow:0 5px 18px rgba(23,35,51,.10);overflow:hidden}
+.pdf-page:last-child{margin-bottom:0}
+.pdf-page canvas{display:block;width:100%!important;max-width:100%!important;height:auto!important;margin:0 auto;background:#fff}
+.pdf-preview-error{min-height:440px;padding:34px 22px;display:grid;place-items:center;text-align:center;color:var(--muted)}
+.pdf-preview-error strong{display:block;margin-bottom:8px;color:var(--text);font-size:15px}
+.pdf-open-fallback,.open-file{margin-top:16px;min-height:46px;padding:0 16px;border:1px solid var(--border);border-radius:14px;background:#fff;color:var(--brand-dark);font-weight:900}
 .file-fallback{padding:44px 24px;text-align:center}
 .file-icon{width:70px;height:70px;margin:0 auto;border-radius:22px;background:#EAF2F8;color:var(--brand-dark);display:grid;place-items:center;font-size:28px;font-weight:900}
 .file-name{margin-top:16px;font-weight:900;font-size:17px;word-break:break-word}
 .file-copy{margin:8px auto 0;max-width:360px;color:var(--muted);font-size:13px;line-height:1.55}
-.open-file{margin-top:18px;min-height:48px;padding:0 18px;border:1px solid var(--border);border-radius:15px;background:#fff;color:var(--brand-dark);font-weight:900}
 .resume-paper{padding:34px 30px 42px;background:#fff;color:#172333}
-.paper-name{font-size:28px;font-weight:900;letter-spacing:-.6px}
-.paper-contact{margin-top:5px;color:#627285;font-size:11px;line-height:1.5}
-.paper-rule{height:2px;margin:15px 0 20px;background:#315D89}
-.paper-section{margin-top:20px}
-.paper-section:first-of-type{margin-top:0}
-.paper-title{font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#315D89}
-.paper-copy{margin-top:7px;font-size:12px;line-height:1.6;white-space:pre-wrap}
-.paper-item{margin-top:10px}
-.paper-item strong{display:block;font-size:13px}
-.paper-meta{margin-top:2px;color:#627285;font-size:11px}
-.skills{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
-.skill{padding:6px 9px;border-radius:999px;background:#EFF4F7;font-size:10px;font-weight:800}
-.error{margin-top:18px;padding:14px 16px;border-radius:16px;background:#FDEEEE;color:#9F4E4E;font-size:13px;font-weight:800}
-.footer{position:fixed;left:0;right:0;bottom:0;z-index:45;background:rgba(255,255,255,.97);border-top:1px solid var(--border);backdrop-filter:blur(18px);padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
-.footer-inner{max-width:600px;margin:auto;display:grid;grid-template-columns:.8fr 1.2fr;gap:10px}
-.secondary,.primary{min-height:54px;border-radius:17px;font-weight:900}
+.paper-name{font-size:28px;font-weight:900;letter-spacing:-.6px}.paper-contact{margin-top:5px;color:#627285;font-size:11px;line-height:1.5}.paper-rule{height:2px;margin:15px 0 20px;background:#315D89}.paper-section{margin-top:20px}.paper-section:first-of-type{margin-top:0}.paper-title{font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#315D89}.paper-copy{margin-top:7px;font-size:12px;line-height:1.6;white-space:pre-wrap}.paper-item{margin-top:10px}.paper-item strong{display:block;font-size:13px}.paper-meta{margin-top:2px;color:#627285;font-size:11px}.skills{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.skill{padding:6px 9px;border-radius:999px;background:#EFF4F7;font-size:10px;font-weight:800}
+.error{margin-top:14px;padding:14px 16px;border-radius:16px;background:#FDEEEE;color:#9F4E4E;font-size:13px;font-weight:800}
+.footer{position:fixed;left:0;right:0;bottom:0;z-index:45;background:rgba(255,255,255,.97);border-top:1px solid var(--border);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+.footer-inner{max-width:680px;margin:auto;display:grid;grid-template-columns:.86fr 1.34fr;gap:10px}
+.secondary,.primary{min-height:56px;border-radius:18px;font-size:15px;font-weight:900}
 .secondary{border:1px solid var(--border);background:#fff;color:var(--text)}
 .primary{border:0;background:var(--brand-dark);color:#fff}
-.loading{min-height:55vh;display:grid;place-items:center;text-align:center;color:var(--muted);font-weight:800}
-.spinner{width:34px;height:34px;margin:0 auto 12px;border:3px solid #E1E8ED;border-top-color:var(--brand-dark);border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-@media(max-width:520px){.resume-paper{padding:27px 22px 34px}.file-frame{min-height:480px}}
+
+html[data-effective-theme="dark"] body{background:radial-gradient(circle at 85% 0%,rgba(93,127,163,.12),transparent 27%),#071A26;color:#F4F7F9}
+html[data-effective-theme="dark"] .header{background:rgba(7,26,38,.97);border-color:#2B3946}
+html[data-effective-theme="dark"] .back{background:#101A23;border-color:#2B3946;color:#F4F7F9}
+html[data-effective-theme="dark"] .preview-shell{background:#15202B;border-color:#2B3946}
+html[data-effective-theme="dark"] .preview-head{border-color:#2B3946}
+html[data-effective-theme="dark"] .preview-title{color:#F4F7F9}
+html[data-effective-theme="dark"] .preview-badge{background:#EAF2F8;color:#35679A}
+html[data-effective-theme="dark"] .pdf-preview{background:#24313A}
+html[data-effective-theme="dark"] .footer{background:rgba(7,26,38,.98);border-color:#2B3946}
+html[data-effective-theme="dark"] .secondary{background:#101A23;border-color:#2B3946;color:#F4F7F9}
+html[data-effective-theme="dark"] .pdf-page,html[data-effective-theme="dark"] .pdf-page canvas,html[data-effective-theme="dark"] .resume-paper{background:#fff!important;color:#172333!important}
+
+@media(max-width:520px){.page{padding:14px 12px 24px}.preview-shell{border-radius:22px}.preview-head{min-height:62px;padding:13px 15px}.pdf-preview{padding:12px 8px 18px;min-height:520px}.footer{padding-left:10px;padding-right:10px}.footer-inner{gap:8px}.secondary,.primary{min-height:54px;font-size:14px}}
 </style>
 
 <style id="alygnn-resume-template-preview">
@@ -83,32 +87,8 @@ h1{margin-top:24px;font-size:30px;line-height:1.08;letter-spacing:-.7px;font-wei
 </style>
 <link rel="stylesheet" href="app-candidate-theme.css">
 <script src="app-candidate-theme.js"></script>
-
-<style id="alygnn-resume-preview-mobile-scroll">
-html{
-  width:100%;
-  min-height:100%;
-  height:auto!important;
-  overflow-x:hidden!important;
-  overflow-y:auto!important;
-}
-body{
-  width:100%;
-  min-height:100vh;
-  height:auto!important;
-  overflow-x:hidden!important;
-  overflow-y:auto!important;
-  -webkit-overflow-scrolling:touch;
-  touch-action:pan-y;
-}
-.page{
-  overflow:visible!important;
-  padding-bottom:36px;
-}
-</style>
-
 </head>
-<body data-resume-preview-build="84">
+<body data-resume-preview-build="85">
 <header class="header">
   <button class="back" id="backBtn" type="button" aria-label="Edit resume">←</button>
   <div class="logo">Alygnn<span>.</span></div>
@@ -116,18 +96,11 @@ body{
 </header>
 
 <main class="page">
-  <div class="step" id="setupStep">Candidate setup · Step 2 of 3</div>
-  <div class="progress" id="setupProgress"><div></div></div>
-  <h1 id="pageTitle">Review your resume.</h1>
-  <p class="sub" id="pageSub">Make sure everything looks right. Your resume is what Alygnn will connect to your applications.</p>
-
   <div class="loading" id="loading">
     <div><div class="spinner"></div><div>Loading your resume…</div></div>
   </div>
 
   <div id="content" hidden>
-    <div class="status">✓ Resume saved to your Alygnn profile</div>
-
     <section class="preview-shell">
       <div class="preview-head">
         <div class="preview-title">Resume preview</div>
@@ -231,6 +204,123 @@ function renderBuilderResume(){
   $('sourceBadge').textContent=templateName(design.template||'prime-ats');
 }
 
+
+async function renderPdfWithPdfJs(url){
+  const previewBody=$('previewBody');
+
+  previewBody.innerHTML=`
+    <div class="pdf-preview" id="pdfPreview">
+      <div class="pdf-preview-loading" id="pdfPreviewLoading">
+        <div>
+          <div class="spinner"></div>
+          <div>Rendering your resume…</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const container=$('pdfPreview');
+
+  try{
+    if(!window.pdfjsLib){
+      throw new Error('PDF preview library did not load.');
+    }
+
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc=
+      'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+    const loadingTask=window.pdfjsLib.getDocument({
+      url,
+      withCredentials:false
+    });
+
+    const pdf=await loadingTask.promise;
+
+    container.innerHTML='';
+
+    /*
+     * Deliberately render a little smaller than the available card width.
+     * This keeps the full Letter/A4 page visible on phones instead of making
+     * uploaded resumes feel zoomed or clipping the right edge.
+     */
+    const containerWidth=
+      container.getBoundingClientRect().width ||
+      container.clientWidth ||
+      520;
+
+    const maxWidth=Math.max(
+      240,
+      Math.min(
+        820,
+        (containerWidth - 40) * 0.92
+      )
+    );
+
+    // Render every page so the user can scroll through the entire resume.
+    for(let pageNumber=1;pageNumber<=pdf.numPages;pageNumber+=1){
+      const page=await pdf.getPage(pageNumber);
+      const baseViewport=page.getViewport({scale:1});
+      const cssScale=maxWidth/baseViewport.width;
+
+      // Render at a higher internal resolution for crisp text on phones.
+      const outputScale=Math.min(
+        window.devicePixelRatio || 1,
+        2
+      );
+
+      const viewport=page.getViewport({
+        scale:cssScale*outputScale
+      });
+
+      const pageWrap=document.createElement('div');
+      pageWrap.className='pdf-page';
+
+      const canvas=document.createElement('canvas');
+      const context=canvas.getContext('2d',{
+        alpha:false
+      });
+
+      canvas.width=Math.floor(viewport.width);
+      canvas.height=Math.floor(viewport.height);
+      canvas.style.width='100%';
+      canvas.style.height='auto';
+
+      pageWrap.appendChild(canvas);
+      container.appendChild(pageWrap);
+
+      await page.render({
+        canvasContext:context,
+        viewport
+      }).promise;
+    }
+
+  }catch(error){
+    console.error('PDF preview error:',error);
+
+    container.innerHTML=`
+      <div class="pdf-preview-error">
+        <div>
+          <strong>Preview unavailable</strong>
+          <div>
+            Your resume is saved, but this device could not render the PDF preview.
+          </div>
+          <button
+            class="pdf-open-fallback"
+            id="pdfOpenFallback"
+            type="button"
+          >
+            Open Resume
+          </button>
+        </div>
+      </div>
+    `;
+
+    $('pdfOpenFallback').onclick=()=>{
+      window.location.href=url;
+    };
+  }
+}
+
 async function renderUploadedResume(){
   const path=profile?.resume_file_path;
   if(!path){
@@ -249,7 +339,7 @@ async function renderUploadedResume(){
   const fileLabel=path.split('/').pop();
 
   if(ext==='pdf'){
-    $('previewBody').innerHTML=`<iframe class="file-frame" title="Resume preview" src="${esc(signedUrl)}"></iframe>`;
+    await renderPdfWithPdfJs(signedUrl);
   }else{
     $('previewBody').innerHTML=`
       <div class="file-fallback">
@@ -294,32 +384,12 @@ function preferencesAreComplete(){
 
 function configureResumeFlow(){
   const complete=preferencesAreComplete();
-
-  if(complete){
-    $('setupStep').hidden=true;
-    $('setupProgress').hidden=true;
-    $('pageTitle').textContent='Your resume.';
-    $('pageSub').textContent='This is the resume connected to your Alygnn profile and applications.';
-    $('continueBtn').textContent='Go to Preferences';
-    $('backBtn').setAttribute('aria-label','Back to dashboard');
-    return;
-  }
-
-  $('setupStep').hidden=false;
-  $('setupProgress').hidden=false;
-  $('pageTitle').textContent='Review your resume.';
-  $('pageSub').textContent='Make sure everything looks right. Your resume is what Alygnn will connect to your applications.';
-  $('continueBtn').textContent='Continue to Preferences';
-  $('backBtn').setAttribute('aria-label','Edit resume');
+  $('continueBtn').textContent=complete?'Go to Preferences':'Continue to Preferences';
+  $('backBtn').setAttribute('aria-label','Back to dashboard');
 }
 
 function goBackFromResume(){
-  if(preferencesAreComplete()){
-    window.location.href='app-account.html';
-    return;
-  }
-
-  editResume();
+  window.location.href='app-account.html';
 }
 
 function editResume(){
@@ -327,9 +397,6 @@ function editResume(){
     window.location.href='app-resume-builder.html';
     return;
   }
-
-  // Uploaded resume: replace it directly from this preview.
-  // Do not send candidates to the retired app-align-upload page.
   $('replaceResumeInput').click();
 }
 
@@ -337,23 +404,17 @@ async function replaceUploadedResume(file){
   if(!file || !user || !profile) return;
 
   const extension=(file.name.split('.').pop()||'').toLowerCase();
-
   if(!['pdf','doc','docx'].includes(extension)){
     showError('Choose a PDF, DOC, or DOCX resume.');
     return;
   }
-
   if(file.size<=0 || file.size>10*1024*1024){
-    showError(
-      file.size<=0
-        ?'That file appears to be empty.'
-        :'Your resume must be 10MB or smaller.'
-    );
+    showError(file.size<=0?'That file appears to be empty.':'Your resume must be 10MB or smaller.');
     return;
   }
 
   const button=$('editBtn');
-  const originalText=button.textContent;
+  const original=button.textContent;
   button.disabled=true;
   button.textContent='Replacing…';
   $('message').hidden=true;
@@ -364,31 +425,19 @@ async function replaceUploadedResume(file){
 
     const {error:uploadError}=await sb.storage
       .from('resumes')
-      .upload(newPath,file,{
-        cacheControl:'3600',
-        upsert:false,
-        contentType:file.type||undefined
-      });
-
+      .upload(newPath,file,{cacheControl:'3600',upsert:false,contentType:file.type||undefined});
     if(uploadError) throw uploadError;
 
     const resumeData=parseObject(profile.resume_data);
     const onboarding=parseObject(resumeData._alygnn_onboarding);
+    resumeData._alygnn_onboarding={...onboarding,preview_reviewed:false};
 
-    resumeData._alygnn_onboarding={
-      ...onboarding,
-      preview_reviewed:false
-    };
-
-    const {error:saveError}=await sb
-      .from('profiles')
-      .update({
-        resume_file_path:newPath,
-        resume_source:'upload',
-        resume_data:resumeData,
-        updated_at:new Date().toISOString()
-      })
-      .eq('id',user.id);
+    const {error:saveError}=await sb.from('profiles').update({
+      resume_file_path:newPath,
+      resume_source:'upload',
+      resume_data:resumeData,
+      updated_at:new Date().toISOString()
+    }).eq('id',user.id);
 
     if(saveError){
       await sb.storage.from('resumes').remove([newPath]).catch(()=>{});
@@ -402,17 +451,14 @@ async function replaceUploadedResume(file){
     profile.resume_file_path=newPath;
     profile.resume_source='upload';
     profile.resume_data=resumeData;
-
     $('sourceBadge').textContent='Uploaded resume';
     button.textContent='Change Resume';
-
     await renderUploadedResume();
-
     window.scrollTo({top:0,behavior:'smooth'});
   }catch(error){
     console.error('Resume replacement failed:',error);
     showError(error?.message||'We could not replace your resume. Please try again.');
-    button.textContent=originalText;
+    button.textContent=original;
   }finally{
     button.disabled=false;
     $('replaceResumeInput').value='';
