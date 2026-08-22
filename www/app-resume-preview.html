@@ -86,9 +86,57 @@ html[data-effective-theme="dark"] .pdf-page,html[data-effective-theme="dark"] .p
 @media(max-width:420px){.template-grid{gap:9px}.template-mini{height:126px}.resume-design{min-height:460px}.resume-inner{padding:22px 19px 27px}.resume-design.template-executive .resume-header{margin:-22px -19px 15px;padding:20px 19px 17px}.resume-design.template-professional .resume-header,.resume-design.template-two-column .resume-header,.resume-design.template-creative .resume-header{padding:20px 17px 12px;margin-left:34%}.rd-two{grid-template-columns:34% 66%}.rd-main{padding:0 17px 22px}.rd-side{padding:17px 10px}}
 </style>
 <link rel="stylesheet" href="app-candidate-theme.css">
+<style id="resume-preview-v89-design-dark-fix">
+html[data-effective-theme="dark"] .design-card,
+html[data-effective-theme="dark"] .template-card{
+  background:#101A23!important;
+  border-color:#2B3946!important;
+}
+html[data-effective-theme="dark"] .design-title,
+html[data-effective-theme="dark"] .template-card-name{
+  color:#F4F7F9!important;
+}
+html[data-effective-theme="dark"] .template-card-copy,
+html[data-effective-theme="dark"] .design-label{
+  color:#A7B2BD!important;
+}
+html[data-effective-theme="dark"] .filter-chip,
+html[data-effective-theme="dark"] .segmented button{
+  background:#101A23!important;
+  border-color:#2B3946!important;
+  color:#A7B2BD!important;
+}
+html[data-effective-theme="dark"] .filter-chip.active,
+html[data-effective-theme="dark"] .segmented button.active{
+  background:#1B3042!important;
+  border-color:#6C98BF!important;
+  color:#F4F7F9!important;
+}
+html[data-effective-theme="dark"] .template-card.selected{
+  border-color:#6C98BF!important;
+  box-shadow:0 0 0 3px rgba(108,152,191,.14)!important;
+}
+html[data-effective-theme="dark"] .color-swatch.active{
+  box-shadow:0 0 0 3px #F4F7F9!important;
+}
+.design-intro{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.45;
+}
+.design-save-note{
+  display:none;
+  margin-top:10px;
+  color:#62B982;
+  font-size:11px;
+  font-weight:900;
+}
+</style>
+
 <script src="app-candidate-theme.js"></script>
 </head>
-<body data-resume-preview-build="88">
+<body data-resume-preview-build="89">
 <header class="header">
   <button class="back" id="backBtn" type="button" aria-label="Edit resume">←</button>
   <div class="logo">Alygnn<span>.</span></div>
@@ -107,6 +155,39 @@ html[data-effective-theme="dark"] .pdf-page,html[data-effective-theme="dark"] .p
         <div class="preview-badge" id="sourceBadge">Ready</div>
       </div>
       <div id="previewBody"></div>
+    </section>
+
+    <section id="templateChooser" class="design-card" hidden>
+      <div class="design-title">Customize your resume</div>
+      <div class="design-intro">
+        Change the layout, accent color, font, or spacing. Your resume information stays the same.
+      </div>
+
+      <div class="template-filters" id="templateFilters"></div>
+      <div class="template-grid" id="templateGrid"></div>
+
+      <div class="design-label">Accent color</div>
+      <div class="color-swatches" id="colorSwatches"></div>
+
+      <div class="design-label">Font style</div>
+      <div class="segmented" id="fontChoices">
+        <button type="button" data-font="sans">Clean Sans</button>
+        <button type="button" data-font="serif">Classic Serif</button>
+      </div>
+
+      <div class="design-label">Spacing</div>
+      <div class="segmented" id="densityChoices">
+        <button type="button" data-density="comfortable">Comfortable</button>
+        <button type="button" data-density="compact">Compact</button>
+      </div>
+
+      <button type="button" id="saveTemplateBtn" class="primary" style="width:100%;margin-top:16px">
+        Save Resume Style
+      </button>
+
+      <div id="templateSaveNote" class="design-save-note">
+        ✓ Resume style saved
+      </div>
     </section>
     <div class="error" id="message" hidden></div>
   </div>
@@ -129,12 +210,40 @@ const sb=supabase.createClient(
 let user=null;
 let profile=null;
 let signedUrl='';
+let selectedTemplate='classic';
+let selectedAccent='#5D7FA3';
+let selectedFont='sans';
+let selectedDensity='comfortable';
+let templateFilter='all';
+
 const RESUME_TEMPLATES=[
-  {id:'prime-ats',name:'Prime ATS'},{id:'pure-ats',name:'Pure ATS'},{id:'simple-ats',name:'Simple ATS'},
-  {id:'classic',name:'Classic'},{id:'traditional',name:'Traditional'},{id:'modern',name:'Modern'},
-  {id:'minimal',name:'Minimal'},{id:'professional',name:'Professional'},{id:'executive',name:'Executive'},
-  {id:'two-column',name:'Two Column ATS'},{id:'skills-first',name:'Skills First'},{id:'combination',name:'Combination'},
-  {id:'technical',name:'Technical'},{id:'student',name:'Student / Entry'},{id:'creative',name:'Creative'},{id:'compact',name:'Compact'}
+  {id:'prime-ats',name:'Prime ATS',tag:'ATS',cats:['ats','professional'],copy:'Clean one-column layout optimized for scanning.'},
+  {id:'pure-ats',name:'Pure ATS',tag:'ATS',cats:['ats','simple'],copy:'Ultra-simple monochrome format for maximum compatibility.'},
+  {id:'simple-ats',name:'Simple ATS',tag:'ATS',cats:['ats','simple'],copy:'Straightforward sections with minimal decoration.'},
+  {id:'classic',name:'Classic',tag:'Classic',cats:['classic','professional'],copy:'Traditional structure with timeless typography.'},
+  {id:'traditional',name:'Traditional',tag:'Classic',cats:['classic','professional'],copy:'Centered header and strong section bars.'},
+  {id:'modern',name:'Modern',tag:'Modern',cats:['modern','professional'],copy:'Clean accent styling with strong hierarchy.'},
+  {id:'minimal',name:'Minimal',tag:'Simple',cats:['simple','modern'],copy:'Open whitespace and understated section styling.'},
+  {id:'professional',name:'Professional',tag:'2 Column',cats:['professional','two-column'],copy:'Sidebar layout for skills and contact details.'},
+  {id:'executive',name:'Executive',tag:'Professional',cats:['professional','executive'],copy:'Strong header for experienced candidates and leaders.'},
+  {id:'two-column',name:'Two Column ATS',tag:'2 Column',cats:['ats','two-column'],copy:'Balanced sidebar while keeping content easy to scan.'},
+  {id:'skills-first',name:'Skills First',tag:'Functional',cats:['simple','skills'],copy:'Puts strengths first for career changers or gaps.'},
+  {id:'combination',name:'Combination',tag:'Hybrid',cats:['professional','skills'],copy:'Balances skills with chronological experience.'},
+  {id:'technical',name:'Technical',tag:'Tech',cats:['ats','technical'],copy:'Highlights technical skills before experience.'},
+  {id:'student',name:'Student / Entry',tag:'Entry',cats:['simple','student'],copy:'Education-first layout for early career candidates.'},
+  {id:'creative',name:'Creative',tag:'Modern',cats:['modern','two-column','creative'],copy:'Distinct sidebar and color while staying readable.'},
+  {id:'compact',name:'Compact',tag:'1 Page',cats:['ats','simple'],copy:'Dense one-page layout for longer work histories.'}
+];
+
+const TEMPLATE_FILTERS=[
+  ['all','All'],['ats','ATS'],['simple','Simple'],['professional','Professional'],
+  ['two-column','Two-column'],['modern','Modern'],['skills','Skills-first'],
+  ['technical','Technical'],['student','Student'],['executive','Executive'],['classic','Classic']
+];
+
+const RESUME_ACCENTS=[
+  '#5D7FA3','#35679A','#172333','#2F7D5A',
+  '#7B4CB7','#B54B3D','#B8861B','#4D6B73'
 ];
 const $=id=>document.getElementById(id);
 
@@ -209,7 +318,10 @@ function resumeParts(data){
 function rdSection(title,content){return `<section class="rd-section"><div class="rd-title">${title}</div>${content}</section>`}
 function buildResumeHtml(data){
   const design=parseObject(data._alygnn_design);
-  const id=design.template||'prime-ats',accent=design.accent||'#35679A',font=design.font||'sans',density=design.density||'comfortable';
+  const id=selectedTemplate||design.template||'classic';
+  const accent=selectedAccent||design.accent||'#5D7FA3';
+  const font=selectedFont||design.font||'sans';
+  const density=selectedDensity||design.density||'comfortable';
   const parts=resumeParts(data);
   const header=`<header class="resume-header"><div class="rd-name">${esc(parts.fullName)}</div><div class="rd-contact">${esc(parts.contact||'Contact information')}</div></header>`;
   const exp=rdSection('Experience',parts.experience),edu=rdSection('Education',parts.education),sk=rdSection('Skills',parts.skills);
@@ -220,18 +332,185 @@ function buildResumeHtml(data){
 }
 function renderBuilderResume(){
   const data=parseObject(profile?.resume_data);
-  $('previewBody').innerHTML=buildResumeHtml(data);
-
   const design=parseObject(data._alygnn_design);
-  const builderTemplate=String(
-    design.builder_template ||
-    data.template ||
-    ''
-  ).toLowerCase();
 
-  $('sourceBadge').textContent=
-    BUILDER_TEMPLATE_NAMES[builderTemplate] ||
-    templateName(design.template||'classic');
+  if(RESUME_TEMPLATES.some(t=>t.id===design.template)){
+    selectedTemplate=design.template;
+  }else{
+    selectedTemplate='classic';
+  }
+
+  if(RESUME_ACCENTS.includes(design.accent)) selectedAccent=design.accent;
+  if(['sans','serif'].includes(design.font)) selectedFont=design.font;
+  if(['comfortable','compact'].includes(design.density)) selectedDensity=design.density;
+
+  $('previewBody').innerHTML=buildResumeHtml(data);
+  $('sourceBadge').textContent=templateName(selectedTemplate);
+  $('templateChooser').hidden=false;
+
+  renderTemplateFilters();
+  renderTemplateGallery();
+  renderDesignControls();
+}
+
+function templateMiniClass(id){
+  if(['professional','creative'].includes(id))return 'sidebar';
+  if(id==='two-column')return 'sidebar split';
+  if(id==='traditional')return 'centered bars';
+  if(id==='executive')return 'headerband bold';
+  if(id==='compact')return 'compact';
+  if(id==='modern')return 'bold';
+  return '';
+}
+
+function miniTemplateHtml(template){
+  return `<div class="template-mini ${templateMiniClass(template.id)}" style="--mini-accent:${esc(selectedAccent)}">
+    <div class="mini-paper">
+      <div class="mini-name"></div>
+      <div class="mini-contact"></div>
+      <div class="mini-rule"></div>
+      <div class="mini-section"></div>
+      <div class="mini-line"></div>
+      <div class="mini-line medium"></div>
+      <div class="mini-line short"></div>
+      <div class="mini-section"></div>
+      <div class="mini-line"></div>
+      <div class="mini-line medium"></div>
+      <div class="mini-section"></div>
+      <div class="mini-line short"></div>
+    </div>
+  </div>`;
+}
+
+function refreshBuilderPreview(){
+  const data=parseObject(profile?.resume_data);
+  $('previewBody').innerHTML=buildResumeHtml(data);
+  $('sourceBadge').textContent=templateName(selectedTemplate);
+  $('templateSaveNote').style.display='none';
+}
+
+function renderTemplateFilters(){
+  const box=$('templateFilters');
+  if(!box)return;
+
+  box.innerHTML=TEMPLATE_FILTERS.map(([id,label])=>
+    `<button type="button" class="filter-chip ${templateFilter===id?'active':''}" data-filter="${id}">${esc(label)}</button>`
+  ).join('');
+
+  box.querySelectorAll('button').forEach(btn=>{
+    btn.onclick=()=>{
+      templateFilter=btn.dataset.filter;
+      renderTemplateFilters();
+      renderTemplateGallery();
+    };
+  });
+}
+
+function renderTemplateGallery(){
+  const box=$('templateGrid');
+  if(!box)return;
+
+  const items=RESUME_TEMPLATES.filter(t=>
+    templateFilter==='all'||t.cats.includes(templateFilter)
+  );
+
+  box.innerHTML=items.map(t=>`
+    <button type="button" class="template-card ${selectedTemplate===t.id?'selected':''}" data-template="${t.id}">
+      <span class="template-tag">${esc(t.tag)}</span>
+      ${miniTemplateHtml(t)}
+      <div class="template-card-name">${esc(t.name)}</div>
+      <div class="template-card-copy">${esc(t.copy)}</div>
+    </button>
+  `).join('');
+
+  box.querySelectorAll('.template-card').forEach(card=>{
+    card.onclick=()=>{
+      selectedTemplate=card.dataset.template;
+      renderTemplateGallery();
+      refreshBuilderPreview();
+    };
+  });
+}
+
+function renderDesignControls(){
+  const swatches=$('colorSwatches');
+  if(!swatches)return;
+
+  swatches.innerHTML=RESUME_ACCENTS.map(color=>
+    `<button type="button" class="color-swatch ${selectedAccent===color?'active':''}" data-color="${color}" aria-label="Use ${color}" style="background:${color}"></button>`
+  ).join('');
+
+  swatches.querySelectorAll('button').forEach(btn=>{
+    btn.onclick=()=>{
+      selectedAccent=btn.dataset.color;
+      renderDesignControls();
+      renderTemplateGallery();
+      refreshBuilderPreview();
+    };
+  });
+
+  document.querySelectorAll('#fontChoices button').forEach(btn=>{
+    btn.classList.toggle('active',btn.dataset.font===selectedFont);
+    btn.onclick=()=>{
+      selectedFont=btn.dataset.font;
+      renderDesignControls();
+      refreshBuilderPreview();
+    };
+  });
+
+  document.querySelectorAll('#densityChoices button').forEach(btn=>{
+    btn.classList.toggle('active',btn.dataset.density===selectedDensity);
+    btn.onclick=()=>{
+      selectedDensity=btn.dataset.density;
+      renderDesignControls();
+      refreshBuilderPreview();
+    };
+  });
+}
+
+async function saveTemplateChoice(){
+  const button=$('saveTemplateBtn');
+  const original=button.textContent;
+
+  button.disabled=true;
+  button.textContent='Saving…';
+
+  try{
+    const resumeData=parseObject(profile?.resume_data);
+    const existingDesign=parseObject(resumeData._alygnn_design);
+
+    // Preserve the originating builder template for edit compatibility,
+    // while saving the preview customization as the active design.
+    resumeData._alygnn_design={
+      ...existingDesign,
+      template:selectedTemplate,
+      accent:selectedAccent,
+      font:selectedFont,
+      density:selectedDensity
+    };
+
+    const {error}=await sb
+      .from('profiles')
+      .update({
+        resume_data:resumeData,
+        resume_source:'builder',
+        updated_at:new Date().toISOString()
+      })
+      .eq('id',user.id);
+
+    if(error)throw error;
+
+    profile.resume_data=resumeData;
+    profile.resume_source='builder';
+    $('templateSaveNote').style.display='block';
+    $('sourceBadge').textContent=templateName(selectedTemplate);
+  }catch(error){
+    console.error(error);
+    showError(error?.message||'We could not save your resume style.');
+  }finally{
+    button.disabled=false;
+    button.textContent=original;
+  }
 }
 
 
@@ -515,6 +794,7 @@ async function continueToPreferences(){
 $('backBtn').onclick=goBackFromResume;
 $('editBtn').onclick=editResume;
 $('continueBtn').onclick=continueToPreferences;
+if($('saveTemplateBtn')) $('saveTemplateBtn').onclick=saveTemplateChoice;
 
 initialize();
 </script>
