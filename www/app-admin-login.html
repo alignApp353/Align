@@ -14,6 +14,28 @@
 :root{--bg:#071823;--panel:#0E1F2D;--border:#294054;--text:#F6F8FA;--muted:#A9B6C5;--brand:#6F99C4;--brand2:#3B6FA7;--sage:#8CB69B;--red:#FF9D9D;--red-bg:#401F25;--green:#77D7A4;--green-bg:#123A2A}
 body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 0%,rgba(111,153,196,.16),transparent 28%),radial-gradient(circle at 90% 10%,rgba(140,182,155,.11),transparent 25%),var(--bg);color:var(--text);font-family:'DM Sans',Arial,sans-serif}
 .wrap{min-height:100vh;display:grid;place-items:center;padding:28px 18px}
+.back-btn{
+  position:fixed;
+  top:calc(18px + env(safe-area-inset-top));
+  left:18px;
+  width:44px;
+  height:44px;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:rgba(14,31,45,.96);
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  cursor:pointer;
+  z-index:1000;
+  box-shadow:0 8px 24px rgba(0,0,0,.20);
+  -webkit-tap-highlight-color:transparent;
+}
+.back-btn svg{width:22px;height:22px;stroke:currentColor}
+.back-btn:active{transform:scale(.96)}
+.back-btn:focus-visible{outline:3px solid rgba(111,153,196,.3);outline-offset:2px}
 .card{width:min(100%,460px);border:1px solid var(--border);border-radius:26px;background:linear-gradient(180deg,rgba(18,38,56,.98),rgba(14,31,45,.98));padding:28px;box-shadow:0 30px 90px rgba(0,0,0,.28)}
 .brand{font-family:'DM Serif Display',Georgia,serif;font-size:38px;color:var(--brand);text-align:center}.brand span{color:var(--sage)}
 .pill{width:max-content;margin:14px auto 0;padding:8px 11px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:10px;font-weight:900;letter-spacing:.6px}
@@ -29,6 +51,12 @@ input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(111,153,196,.12)
 </head>
 <body>
 <div class="wrap">
+  <button class="back-btn" id="back-btn" type="button" aria-label="Go back">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M19 12H5"></path>
+      <path d="M12 19l-7-7 7-7"></path>
+    </svg>
+  </button>
   <main class="card">
     <div class="brand">Alygnn<span>.</span></div>
     <div class="pill">ADMIN ACCESS</div>
@@ -108,6 +136,14 @@ document.getElementById('show-password').addEventListener('click',()=>{
   const hidden=password.type==='password';
   password.type=hidden?'text':'password';
   document.getElementById('show-password').textContent=hidden?'Hide':'Show';
+});
+
+document.getElementById('back-btn').addEventListener('click',()=>{
+  if(window.history.length>1){
+    window.history.back();
+  }else{
+    location.href='app-start.html';
+  }
 });
 
 signInButton.addEventListener('click',signIn);
