@@ -88,7 +88,7 @@ html[data-effective-theme="dark"] .pdf-page,html[data-effective-theme="dark"] .p
 <link rel="stylesheet" href="app-candidate-theme.css">
 <script src="app-candidate-theme.js"></script>
 </head>
-<body data-resume-preview-build="85">
+<body data-resume-preview-build="86">
 <header class="header">
   <button class="back" id="backBtn" type="button" aria-label="Edit resume">←</button>
   <div class="logo">Alygnn<span>.</span></div>
@@ -116,7 +116,6 @@ html[data-effective-theme="dark"] .pdf-page,html[data-effective-theme="dark"] .p
   <div class="footer-inner">
     <button class="secondary" id="editBtn" type="button">Edit Resume</button>
     <button class="primary" id="continueBtn" type="button">Continue to Preferences</button>
-    <input id="replaceResumeInput" type="file" accept=".pdf,.doc,.docx" hidden>
   </div>
 </footer>
 
@@ -393,77 +392,9 @@ function goBackFromResume(){
 }
 
 function editResume(){
-  if(currentSource()==='builder'){
-    window.location.href='app-resume-builder.html';
-    return;
-  }
-  $('replaceResumeInput').click();
+  window.location.href='app-resume-builder.html?edit=1';
 }
 
-async function replaceUploadedResume(file){
-  if(!file || !user || !profile) return;
-
-  const extension=(file.name.split('.').pop()||'').toLowerCase();
-  if(!['pdf','doc','docx'].includes(extension)){
-    showError('Choose a PDF, DOC, or DOCX resume.');
-    return;
-  }
-  if(file.size<=0 || file.size>10*1024*1024){
-    showError(file.size<=0?'That file appears to be empty.':'Your resume must be 10MB or smaller.');
-    return;
-  }
-
-  const button=$('editBtn');
-  const original=button.textContent;
-  button.disabled=true;
-  button.textContent='Replacing…';
-  $('message').hidden=true;
-
-  try{
-    const oldPath=profile.resume_file_path || null;
-    const newPath=`${user.id}/resume-${Date.now()}.${extension}`;
-
-    const {error:uploadError}=await sb.storage
-      .from('resumes')
-      .upload(newPath,file,{cacheControl:'3600',upsert:false,contentType:file.type||undefined});
-    if(uploadError) throw uploadError;
-
-    const resumeData=parseObject(profile.resume_data);
-    const onboarding=parseObject(resumeData._alygnn_onboarding);
-    resumeData._alygnn_onboarding={...onboarding,preview_reviewed:false};
-
-    const {error:saveError}=await sb.from('profiles').update({
-      resume_file_path:newPath,
-      resume_source:'upload',
-      resume_data:resumeData,
-      updated_at:new Date().toISOString()
-    }).eq('id',user.id);
-
-    if(saveError){
-      await sb.storage.from('resumes').remove([newPath]).catch(()=>{});
-      throw saveError;
-    }
-
-    if(oldPath && oldPath!==newPath){
-      await sb.storage.from('resumes').remove([oldPath]).catch(()=>{});
-    }
-
-    profile.resume_file_path=newPath;
-    profile.resume_source='upload';
-    profile.resume_data=resumeData;
-    $('sourceBadge').textContent='Uploaded resume';
-    button.textContent='Change Resume';
-    await renderUploadedResume();
-    window.scrollTo({top:0,behavior:'smooth'});
-  }catch(error){
-    console.error('Resume replacement failed:',error);
-    showError(error?.message||'We could not replace your resume. Please try again.');
-    button.textContent=original;
-  }finally{
-    button.disabled=false;
-    $('replaceResumeInput').value='';
-  }
-}
 
 async function initialize(){
   const {data,error}=await sb.auth.getSession();
@@ -497,7 +428,7 @@ async function initialize(){
 
   const source=currentSource();
   $('sourceBadge').textContent=source==='builder'?'Resume template':'Uploaded resume';
-  $('editBtn').textContent=source==='builder'?'Edit Resume':'Change Resume';
+  $('editBtn').textContent='Change Resume';
 
   if(source==='builder'){
     renderBuilderResume();
@@ -552,10 +483,6 @@ async function continueToPreferences(){
 
 $('backBtn').onclick=goBackFromResume;
 $('editBtn').onclick=editResume;
-$('replaceResumeInput').addEventListener('change',event=>{
-  const file=event.target.files?.[0];
-  if(file) replaceUploadedResume(file);
-});
 $('continueBtn').onclick=continueToPreferences;
 
 initialize();
