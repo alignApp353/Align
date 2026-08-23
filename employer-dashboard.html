@@ -1039,29 +1039,57 @@
   // satisfied for non-remote jobs, silently blocking every employer from
   // posting an on-site or hybrid role).
   const KNOWN_CITIES = [
+    // North Carolina — include larger cities plus smaller towns so employers
+    // can post jobs outside the major metros without having to free-type them.
+    'Albemarle, NC','Angier, NC','Apex, NC','Archdale, NC','Archer Lodge, NC',
+    'Asheboro, NC','Asheville, NC','Ayden, NC','Beaufort, NC','Belmont, NC',
+    'Benson, NC','Bessemer City, NC','Black Mountain, NC','Boone, NC','Brevard, NC',
+    'Burgaw, NC','Burlington, NC','Butner, NC','Carrboro, NC','Cary, NC',
+    'Chapel Hill, NC','Charlotte, NC','Clayton, NC','Clemmons, NC','Coats, NC',
+    'Concord, NC','Cornelius, NC','Creedmoor, NC','Davidson, NC','Dunn, NC',
+    'Durham, NC','Eden, NC','Edenton, NC','Elizabeth City, NC','Erwin, NC',
+    'Farmville, NC','Fayetteville, NC','Forest City, NC','Four Oaks, NC','Franklinton, NC',
+    'Fuquay-Varina, NC','Garner, NC','Gastonia, NC','Goldsboro, NC','Graham, NC',
+    'Greensboro, NC','Greenville, NC','Hampstead, NC','Henderson, NC','Hendersonville, NC',
+    'Hickory, NC','High Point, NC','Hillsborough, NC','Holly Ridge, NC','Holly Springs, NC',
+    'Hope Mills, NC','Huntersville, NC','Indian Trail, NC','Jacksonville, NC','Kannapolis, NC',
+    'Kernersville, NC','Kill Devil Hills, NC','Kinston, NC','Knightdale, NC','La Grange, NC',
+    'Leland, NC','Lenoir, NC','Lexington, NC','Lillington, NC','Lincolnton, NC',
+    'Louisburg, NC','Lumberton, NC','Manteo, NC','Matthews, NC','Mebane, NC',
+    'Mint Hill, NC','Monroe, NC','Mooresville, NC','Morehead City, NC','Morganton, NC',
+    'Morrisville, NC','Mount Airy, NC','Mount Olive, NC','Nags Head, NC','Nashville, NC',
+    'New Bern, NC','Newton, NC','Oak Island, NC','Oxford, NC','Pinehurst, NC',
+    'Pineville, NC','Pittsboro, NC','Raleigh, NC','Reidsville, NC','Roanoke Rapids, NC',
+    'Rolesville, NC','Rocky Mount, NC','Roxboro, NC','Salisbury, NC','Sanford, NC',
+    'Selma, NC','Shallotte, NC','Shelby, NC','Siler City, NC','Smithfield, NC',
+    'Snow Hill, NC','Southport, NC','Southern Pines, NC','Spring Hope, NC','Spring Lake, NC',
+    'Statesville, NC','Swansboro, NC','Tarboro, NC','Thomasville, NC','Wake Forest, NC',
+    'Wallace, NC','Washington, NC','Waynesville, NC','Wendell, NC','Whiteville, NC',
+    'Williamston, NC','Wilmington, NC','Wilson, NC','Winston-Salem, NC','Winterville, NC',
+    'Youngsville, NC','Zebulon, NC',
+
+    // Other common U.S. markets.
     'New York, NY','Los Angeles, CA','Chicago, IL','Houston, TX','Phoenix, AZ',
     'Philadelphia, PA','San Antonio, TX','San Diego, CA','Dallas, TX','Austin, TX',
-    'Jacksonville, FL','Fort Worth, TX','San Jose, CA','Columbus, OH','Charlotte, NC',
-    'Raleigh, NC','Durham, NC','Greensboro, NC','Winston-Salem, NC','Wilmington, NC',
-    'Fayetteville, NC','Cary, NC','High Point, NC','Asheville, NC','Concord, NC',
+    'Jacksonville, FL','Fort Worth, TX','San Jose, CA','Columbus, OH',
     'San Francisco, CA','Indianapolis, IN','Seattle, WA','Denver, CO','Washington, DC',
     'Boston, MA','Nashville, TN','Detroit, MI','Portland, OR','Memphis, TN',
     'Oklahoma City, OK','Las Vegas, NV','Louisville, KY','Baltimore, MD','Milwaukee, WI',
     'Albuquerque, NM','Tucson, AZ','Fresno, CA','Sacramento, CA','Kansas City, MO',
     'Mesa, AZ','Atlanta, GA','Omaha, NE','Colorado Springs, CO','Miami, FL',
-    'Tampa, FL','Orlando, FL','Virginia Beach, VA','Long Beach, CA',
-    'Oakland, CA','Minneapolis, MN','Tulsa, OK','Arlington, TX','New Orleans, LA',
-    'Wichita, KS','Cleveland, OH','Bakersfield, CA','Aurora, CO','Anaheim, CA',
-    'Honolulu, HI','Santa Ana, CA','Riverside, CA','Corpus Christi, TX','Lexington, KY',
-    'Stockton, CA','Henderson, NV','St. Paul, MN','St. Louis, MO','Cincinnati, OH',
-    'Pittsburgh, PA','Greenville, SC','Columbia, SC','Charleston, SC','Richmond, VA',
-    'Norfolk, VA','Chesapeake, VA','Newport News, VA','Baton Rouge, LA','Shreveport, LA',
-    'Boise, ID','Spokane, WA','Tacoma, WA','Bellevue, WA','Salt Lake City, UT',
-    'Provo, UT','Albany, NY','Buffalo, NY','Rochester, NY','Syracuse, NY',
-    'Hartford, CT','Providence, RI','Jersey City, NJ','Newark, NJ','Trenton, NJ',
-    'Chattanooga, TN','Knoxville, TN','Jackson, MS','Little Rock, AR','Des Moines, IA',
-    'Madison, WI','Green Bay, WI','Fort Lauderdale, FL','St. Petersburg, FL',
-    'Tallahassee, FL','Savannah, GA','Augusta, GA','Athens, GA','Myrtle Beach, SC'
+    'Tampa, FL','Orlando, FL','Virginia Beach, VA','Long Beach, CA','Oakland, CA',
+    'Minneapolis, MN','Tulsa, OK','Arlington, TX','New Orleans, LA','Wichita, KS',
+    'Cleveland, OH','Bakersfield, CA','Aurora, CO','Anaheim, CA','Honolulu, HI',
+    'Santa Ana, CA','Riverside, CA','Corpus Christi, TX','Lexington, KY','Stockton, CA',
+    'Henderson, NV','St. Paul, MN','St. Louis, MO','Cincinnati, OH','Pittsburgh, PA',
+    'Greenville, SC','Columbia, SC','Charleston, SC','Richmond, VA','Norfolk, VA',
+    'Chesapeake, VA','Newport News, VA','Baton Rouge, LA','Shreveport, LA','Boise, ID',
+    'Spokane, WA','Tacoma, WA','Bellevue, WA','Salt Lake City, UT','Provo, UT',
+    'Albany, NY','Buffalo, NY','Rochester, NY','Syracuse, NY','Hartford, CT',
+    'Providence, RI','Jersey City, NJ','Newark, NJ','Trenton, NJ','Chattanooga, TN',
+    'Knoxville, TN','Jackson, MS','Little Rock, AR','Des Moines, IA','Madison, WI',
+    'Green Bay, WI','Fort Lauderdale, FL','St. Petersburg, FL','Tallahassee, FL',
+    'Savannah, GA','Augusta, GA','Athens, GA','Myrtle Beach, SC'
   ];
 
   function renderLocationSuggestions() {
@@ -1073,7 +1101,7 @@
     const matches = (query === ''
       ? KNOWN_CITIES
       : KNOWN_CITIES.filter(c => c.toLowerCase().includes(query))
-    ).slice(0, MAX_RESULTS_SHOWN);
+    ).slice(0, 60);
 
     if (matches.length === 0) {
       box.classList.remove('show');
