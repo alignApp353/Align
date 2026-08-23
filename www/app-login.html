@@ -199,8 +199,8 @@ html[data-effective-theme="dark"] .back-btn{
 <script>
 const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const ACCOUNT_TYPE='candidate';
-window.__ALYGNN_LOGIN_BUILD='ios-apple-v6';
-console.log('ALYGNN_LOGIN_BUILD: ios-apple-v6');
+window.__ALYGNN_LOGIN_BUILD='ios-apple-v7';
+console.log('ALYGNN_LOGIN_BUILD: ios-apple-v7');
 
 const ALYGNN_NATIVE_OAUTH_REDIRECT='alygnn://auth/callback';
 
@@ -451,11 +451,9 @@ function navigateTo(page){
 }
 
 document.getElementById('back-btn').addEventListener('click',()=>{
-  if(window.history.length>1){
-    window.history.back();
-  }else{
-    navigateTo('app-start.html');
-  }
+  // Do not use history.back() here. The previous start screen can be restored
+  // from iOS WebView cache while its "Opening candidate login" overlay is still active.
+  window.location.replace('app-start.html');
 });
 
 document.getElementById('signup-btn').addEventListener('click',()=>{
