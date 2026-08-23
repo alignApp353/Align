@@ -74,7 +74,7 @@ input::placeholder{color:#98A2AD}
 .apple-mark{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif!important;font-size:23px;line-height:1;font-weight:500}
 [hidden]{display:none!important}
 .signup{margin-top:25px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
-.signup a{color:var(--accent-dark);text-decoration:none;font-weight:900}
+.signup-link{border:0;background:transparent;color:var(--accent-dark);padding:6px 4px;margin:-6px -4px;font-size:inherit;font-weight:900;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .switch{margin-top:15px;text-align:center}
 .switch-btn{border:none;background:transparent;color:var(--accent-dark);font-size:12px;font-weight:900}
 @media(max-height:760px){.login{justify-content:flex-start;padding-top:15px}.identity-icon{width:61px;height:61px}h1{font-size:27px;margin-top:13px}.form{margin-top:23px}.field{margin-top:13px}.input-wrap{min-height:51px}.primary{min-height:52px;margin-top:17px}.divider{margin:18px 0 11px}.social{min-height:49px;margin-top:8px}.signup{margin-top:17px}}
@@ -151,7 +151,7 @@ html[data-effective-theme="dark"] .back-btn{
 <body>
 <main class="page">
 <header class="topbar">
-<a class="back-btn" href="app-start.html" aria-label="Go back">←</a>
+<button class="back-btn" id="back-btn" type="button" aria-label="Go back">←</button>
 <div class="brand">Alygnn<span>.</span></div><div></div>
 </header>
 <section class="login">
@@ -193,14 +193,14 @@ html[data-effective-theme="dark"] .back-btn{
 <button class="social" id="apple-btn" type="button" aria-label="Continue with Apple" hidden>
   <span class="apple-mark" aria-hidden="true"></span><span>Sign in with Apple</span>
 </button>
-<div class="signup">Don’t have an account? <a href="app-create-account.html">Sign up</a></div>
+<div class="signup">Don’t have an account? <button class="signup-link" id="signup-btn" type="button">Sign up</button></div>
 <div class="switch"><button class="switch-btn" id="switch-btn" type="button">Switch to employer sign in</button></div>
 </div></section></main>
 <script>
 const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const ACCOUNT_TYPE='candidate';
-window.__ALYGNN_LOGIN_BUILD='ios-apple-v5';
-console.log('ALYGNN_LOGIN_BUILD: ios-apple-v5');
+window.__ALYGNN_LOGIN_BUILD='ios-apple-v6';
+console.log('ALYGNN_LOGIN_BUILD: ios-apple-v6');
 
 const ALYGNN_NATIVE_OAUTH_REDIRECT='alygnn://auth/callback';
 
@@ -441,6 +441,27 @@ async function setupNativeGoogleReturn(){
     await finishGoogleReturn(launch.url);
   }
 }
+function navigateTo(page){
+  try{
+    const target=new URL(page,window.location.href).href;
+    window.location.assign(target);
+  }catch(_error){
+    window.location.href=page;
+  }
+}
+
+document.getElementById('back-btn').addEventListener('click',()=>{
+  if(window.history.length>1){
+    window.history.back();
+  }else{
+    navigateTo('app-start.html');
+  }
+});
+
+document.getElementById('signup-btn').addEventListener('click',()=>{
+  navigateTo('app-create-account.html');
+});
+
 document.getElementById('show-btn').addEventListener('click',e=>{const i=document.getElementById('password');const s=i.type==='text';i.type=s?'password':'text';e.currentTarget.textContent=s?'Show':'Hide'});
 document.getElementById('forgot-btn').addEventListener('click',()=>location.href='app-forgot-password.html');
 document.getElementById('sign-in-btn').addEventListener('click',signIn);
