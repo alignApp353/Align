@@ -41,7 +41,7 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
 @media(max-width:590px){.shell{padding-left:14px;padding-right:14px}.card{padding:21px;border-radius:23px}.grid,.choice-grid{grid-template-columns:1fr}.actions{position:sticky;bottom:8px;z-index:30;padding:10px;background:rgba(246,248,247,.94);backdrop-filter:blur(14px);border:1px solid rgba(221,227,232,.75);border-radius:18px}.back{width:92px}h1{font-size:27px}.secure{font-size:10px}.rank-item{grid-template-columns:32px 1fr auto}.move{display:none}}
 </style>
 </head>
-<body>
+<body data-employer-onboarding-build="91">
 <main class="shell">
 <header class="top"><div class="brand">Alygnn<span>.</span></div><div class="secure">Employer setup</div></header>
 <div class="progress-copy"><span id="progress-label">Welcome</span><span id="progress-percent">17%</span></div>
@@ -58,14 +58,14 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
 <div class="step" data-title="Business Verification">
   <div class="eyebrow">Business verification</div><h1>Tell us about your company.</h1>
   <p class="intro">This information helps Alygnn protect candidates and maintain trusted employer accounts.</p>
-  <div class="grid"><div class="field"><label class="required" for="company-name">Legal company name</label><input id="company-name" name="company_name" required autocomplete="organization"><p class="helper"><strong>This will also be your employer display name shown to candidates.</strong> If you use a DBA or trade name, select the option below. The display name is locked after the workspace is created.</p></div><div class="field"><label class="required" for="website">Company website</label><input id="website" name="website" required placeholder="https://yourcompany.com" inputmode="url"></div></div>
+  <div class="grid"><div class="field"><label class="required" for="company-name">Legal company name</label><input id="company-name" name="company_name" required autocomplete="organization"></div><div class="field"><label class="required" for="website">Company website</label><input id="website" name="website" required placeholder="https://yourcompany.com" inputmode="url"></div></div>
   <div class="inline-check"><input id="has-dba" name="has_dba" type="checkbox"><label for="has-dba">This company operates under a DBA or trade name</label></div>
-  <div class="field conditional" id="dba-field"><label class="required" for="dba-name">DBA / trade name</label><input id="dba-name" name="dba_name" placeholder="Public-facing business name"><p class="helper">If entered, this is the name Alygnn should show publicly to candidates instead of the legal company name.</p></div>
+  <div class="field conditional" id="dba-field"><label class="required" for="dba-name">DBA / trade name</label><input id="dba-name" name="dba_name" placeholder="Public-facing business name"></div>
   <div class="grid">
     <div class="field"><label class="required" for="business-phone">Business phone number</label><input id="business-phone" name="business_phone" required type="tel" inputmode="tel" placeholder="(919) 555-0123"></div>
     <div class="field suggest-wrap"><label class="required" for="industry">Industry</label><input id="industry" name="industry" required autocomplete="off" placeholder="Start typing an industry"><div id="industry-suggestions" class="suggestions"></div></div>
     <div class="field"><label class="required" for="company-size">Company size</label><select id="company-size" name="company_size" required><option value="">Select size</option><option>1–10</option><option>11–50</option><option>51–200</option><option>201–500</option><option>501–1,000</option><option>1,001+</option></select></div>
-    <div class="field suggest-wrap"><label class="required" for="headquarters">Headquarters</label><input id="headquarters" name="headquarters" required autocomplete="off" placeholder="Start typing a city"><div id="city-suggestions" class="suggestions"></div></div>
+    <div class="field suggest-wrap"><label class="required" for="headquarters">Headquarters</label><input id="headquarters" name="headquarters" required autocomplete="off" placeholder="City, ST — e.g. Clayton, NC"><div id="city-suggestions" class="suggestions"></div></div>
   </div>
   <div class="field"><label class="required" for="ein">Federal EIN</label><input id="ein" name="ein" required inputmode="numeric" maxlength="10" autocomplete="off" placeholder="12-3456789"><p class="helper">Your EIN is used only for business verification and is transmitted securely to Alygnn.</p></div>
 </div>
@@ -115,21 +115,104 @@ const VOICES=['Professional','Friendly','Modern','Direct','Formal','Energetic'];
 const DEFAULT_COMPANY=['Career Growth','Competitive Pay','Company Culture','Learning & Development','Performance & Recognition','Meaningful Work','Innovation','Work-Life Balance'];
 const DEFAULT_CANDIDATE=['Technical Skills','Soft Skills','Experience','Communication','Culture Fit','Reliability','Leadership','Availability'];
 const INDUSTRIES=['Accounting','Advertising and Marketing','Agriculture','Architecture and Design','Automotive','Banking','Biotechnology','Construction','Consulting','Consumer Services','Education','Energy and Utilities','Engineering','Entertainment and Media','Financial Services','Food and Beverage','Government','Healthcare','Hospitality','Human Resources and Staffing','Insurance','Legal Services','Logistics and Transportation','Manufacturing','Nonprofit','Pharmaceuticals','Professional Services','Real Estate','Retail','Software and Technology','Telecommunications','Travel and Tourism','Wholesale','Wireless Services','Internet Service Provider','Fiber Optics','Network Infrastructure','Telecommunications Equipment'];
-const US_CITIES=['Albuquerque, NM','Alexandria, VA','Anaheim, CA','Anchorage, AK','Arlington, TX','Arlington, VA','Atlanta, GA','Augusta, GA','Austin, TX','Baltimore, MD','Baton Rouge, LA','Birmingham, AL','Boise, ID','Boston, MA','Buffalo, NY','Burlington, VT','Cary, NC','Charleston, SC','Charlotte, NC','Chattanooga, TN','Chicago, IL','Cincinnati, OH','Cleveland, OH','Colorado Springs, CO','Columbia, SC','Columbus, OH','Dallas, TX','Denver, CO','Des Moines, IA','Detroit, MI','Durham, NC','El Paso, TX','Fayetteville, NC','Fort Lauderdale, FL','Fort Worth, TX','Fresno, CA','Greensboro, NC','Greenville, SC','Hartford, CT','Henderson, NV','Honolulu, HI','Houston, TX','Indianapolis, IN','Irvine, CA','Jackson, MS','Jacksonville, FL','Kansas City, MO','Knoxville, TN','Las Vegas, NV','Lexington, KY','Little Rock, AR','Long Beach, CA','Los Angeles, CA','Louisville, KY','Madison, WI','Memphis, TN','Mesa, AZ','Miami, FL','Milwaukee, WI','Minneapolis, MN','Nashville, TN','New Orleans, LA','New York, NY','Newark, NJ','Norfolk, VA','Oakland, CA','Oklahoma City, OK','Omaha, NE','Orlando, FL','Philadelphia, PA','Phoenix, AZ','Pittsburgh, PA','Plano, TX','Portland, ME','Portland, OR','Providence, RI','Raleigh, NC','Reno, NV','Richmond, VA','Rochester, NY','Sacramento, CA','Salt Lake City, UT','San Antonio, TX','San Diego, CA','San Francisco, CA','San Jose, CA','Savannah, GA','Seattle, WA','St. Louis, MO','St. Petersburg, FL','Syracuse, NY','Tallahassee, FL','Tampa, FL','Toledo, OH','Tucson, AZ','Tulsa, OK','Virginia Beach, VA','Washington, DC','Wilmington, NC','Winston-Salem, NC'];
-const steps=[...document.querySelectorAll('.step')];let current=0;const selectedVoices=new Set();
-const form=document.getElementById('onboarding-form'),message=document.getElementById('message'),nextButton=document.getElementById('next-button'),backButton=document.getElementById('back-button');
-let currentUserId='';
-function draftKey(){
-  return currentUserId?`alygnn_employer_onboarding_draft:${currentUserId}`:'';
+const US_CITIES=[
+
+  'New York, NY','Los Angeles, CA','Chicago, IL','Houston, TX','Phoenix, AZ',
+  'Philadelphia, PA','San Antonio, TX','San Diego, CA','Dallas, TX','Austin, TX',
+  'Jacksonville, FL','Fort Worth, TX','San Jose, CA','Columbus, OH','Charlotte, NC',
+  'Raleigh, NC','Durham, NC','Greensboro, NC','Winston-Salem, NC','Wilmington, NC',
+  'Fayetteville, NC','Cary, NC','High Point, NC','Asheville, NC','Concord, NC',
+  'San Francisco, CA','Indianapolis, IN','Seattle, WA','Denver, CO','Washington, DC',
+  'Boston, MA','Nashville, TN','Detroit, MI','Portland, OR','Memphis, TN',
+  'Oklahoma City, OK','Las Vegas, NV','Louisville, KY','Baltimore, MD','Milwaukee, WI',
+  'Albuquerque, NM','Tucson, AZ','Fresno, CA','Sacramento, CA','Kansas City, MO',
+  'Mesa, AZ','Atlanta, GA','Omaha, NE','Colorado Springs, CO','Miami, FL','Tampa, FL',
+  'Orlando, FL','Virginia Beach, VA','Long Beach, CA','Oakland, CA','Minneapolis, MN',
+  'Tulsa, OK','Arlington, TX','New Orleans, LA','Wichita, KS','Cleveland, OH',
+  'Bakersfield, CA','Aurora, CO','Anaheim, CA','Honolulu, HI','Riverside, CA',
+  'Lexington, KY','St. Paul, MN','St. Louis, MO','Cincinnati, OH','Pittsburgh, PA',
+  'Greenville, SC','Columbia, SC','Charleston, SC','Richmond, VA','Norfolk, VA',
+  'Boise, ID','Spokane, WA','Tacoma, WA','Salt Lake City, UT','Albany, NY',
+  'Buffalo, NY','Rochester, NY','Syracuse, NY','Hartford, CT','Providence, RI',
+  'Jersey City, NJ','Newark, NJ','Knoxville, TN','Chattanooga, TN','Little Rock, AR',
+  'Des Moines, IA','Madison, WI','Fort Lauderdale, FL','St. Petersburg, FL',
+  'Tallahassee, FL','Savannah, GA','Myrtle Beach, SC',
+  'Aberdeen, NC','Ahoskie, NC','Albemarle, NC','Angier, NC','Apex, NC','Archdale, NC','Archer Lodge, NC','Asheboro, NC','Ayden, NC','Banner Elk, NC','Beaufort, NC','Belmont, NC','Benson, NC','Bermuda Run, NC','Bessemer City, NC','Black Mountain, NC','Blowing Rock, NC','Boone, NC','Brevard, NC','Burgaw, NC','Burlington, NC','Butner, NC','Calabash, NC','Cameron, NC','Canton, NC','Carrboro, NC','Chapel Hill, NC','Clayton, NC','Clemmons, NC','Clinton, NC','Cornelius, NC','Creedmoor, NC','Davidson, NC','Dunn, NC','Elizabeth City, NC','Elon, NC','Franklinton, NC','Fuquay-Varina, NC','Garner, NC','Gastonia, NC','Goldsboro, NC','Graham, NC','Havelock, NC','Henderson, NC','Hendersonville, NC','Hillsborough, NC','Holly Springs, NC','Hope Mills, NC','Huntersville, NC','Indian Trail, NC','Kannapolis, NC','Kernersville, NC','Kill Devil Hills, NC','Kings Mountain, NC','Kinston, NC','Knightdale, NC','Laurinburg, NC','Leland, NC','Lenoir, NC','Lexington, NC','Lillington, NC','Lincolnton, NC','Louisburg, NC','Lumberton, NC','Manteo, NC','Marion, NC','Matthews, NC','Mebane, NC','Mint Hill, NC','Monroe, NC','Mooresville, NC','Morehead City, NC','Morganton, NC','Morrisville, NC','Mount Airy, NC','New Bern, NC','Oxford, NC','Pinehurst, NC','Pittsboro, NC','Reidsville, NC','Roanoke Rapids, NC','Rockingham, NC','Rocky Mount, NC','Rolesville, NC','Roxboro, NC','Sanford, NC','Salisbury, NC','Selma, NC','Seven Springs, NC','Shelby, NC','Siler City, NC','Smithfield, NC','Southern Pines, NC','Spring Lake, NC','Statesville, NC','Tarboro, NC','Thomasville, NC','Wake Forest, NC','Washington, NC','Waynesville, NC','Wendell, NC','Wilson, NC','Youngsville, NC','Zebulon, NC',
+  'Remote - United States'
+];
+
+const US_STATE_NAMES={
+  AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',
+  CT:'Connecticut',DE:'Delaware',DC:'District of Columbia',FL:'Florida',GA:'Georgia',
+  HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',
+  LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',
+  MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',
+  NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',
+  OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',
+  SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',
+  WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming'
+};
+
+const US_STATE_CODES=new Set(Object.keys(US_STATE_NAMES));
+const US_STATE_NAME_TO_CODE=Object.fromEntries(
+  Object.entries(US_STATE_NAMES).map(([code,name])=>[name.toLowerCase(),code])
+);
+
+function normalizeCitySearch(value){
+  return String(value||'')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g,' ')
+    .trim()
+    .replace(/\s+/g,' ');
 }
 
-function saveDraft(){
-  const key=draftKey();
-  if(!key)return;
+function titleCaseCity(value){
+  return String(value||'')
+    .trim()
+    .replace(/\s+/g,' ')
+    .toLowerCase()
+    .replace(/\b[a-z]/g,char=>char.toUpperCase());
+}
 
+function normalizeCustomUSCity(value){
+  const raw=String(value||'').trim().replace(/\s+/g,' ');
+  if(!raw)return '';
+
+  const match=raw.match(/^([A-Za-z][A-Za-z .'-]{1,58}),\s*([A-Za-z .]{2,24})$/);
+  if(!match)return '';
+
+  const city=titleCaseCity(match[1]);
+  const stateRaw=match[2].trim();
+  const stateCode=
+    stateRaw.length===2 && US_STATE_CODES.has(stateRaw.toUpperCase())
+      ? stateRaw.toUpperCase()
+      : US_STATE_NAME_TO_CODE[stateRaw.toLowerCase()] || '';
+
+  if(!stateCode)return '';
+  return `${city}, ${stateCode}`;
+}
+
+function cityMatchesQuery(location,query){
+  const fullLocation=normalizeCitySearch(location);
+  const fullQuery=normalizeCitySearch(query);
+  if(!fullQuery)return false;
+
+  const cityPart=normalizeCitySearch(String(location||'').split(',')[0]);
+
+  return (
+    cityPart.includes(fullQuery) ||
+    cityPart.startsWith(fullQuery) ||
+    fullQuery.startsWith(cityPart) ||
+    fullLocation.includes(fullQuery)
+  );
+}
+
+const steps=[...document.querySelectorAll('.step')];let current=0;const selectedVoices=new Set();
+const form=document.getElementById('onboarding-form'),message=document.getElementById('message'),nextButton=document.getElementById('next-button'),backButton=document.getElementById('back-button');
+const DRAFT_KEY='alygnn_employer_onboarding_draft';
+
+function saveDraft(){
   const draft={
-    user_id:currentUserId,
-    company_id:localStorage.getItem('alygnn_company_id')||'',
     current,
     company_name:document.getElementById('company-name').value,
     website:document.getElementById('website').value,
@@ -144,16 +227,13 @@ function saveDraft(){
     company_priorities:getRanking('company-priorities'),
     candidate_priorities:getRanking('candidate-priorities')
   };
-  localStorage.setItem(key,JSON.stringify(draft));
+  localStorage.setItem(DRAFT_KEY,JSON.stringify(draft));
 }
 
 function restoreDraft(){
-  const key=draftKey();
-  if(!key)return false;
-
   let draft;
-  try{draft=JSON.parse(localStorage.getItem(key)||'null')}catch{return false}
-  if(!draft||draft.user_id!==currentUserId)return false;
+  try{draft=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null')}catch{return false}
+  if(!draft)return false;
 
   document.getElementById('company-name').value=draft.company_name||'';
   document.getElementById('website').value=draft.website||'';
@@ -197,6 +277,135 @@ function renderRankList(id,items){const list=document.getElementById(id);list.in
 function rankTemplate(name,i){return `<div class="rank-item" data-value="${escapeHtml(name)}"><div class="rank-number">${i+1}</div><div class="rank-name">${escapeHtml(name)}</div><div class="rank-tools"><button class="move" type="button" data-dir="up">Up</button><button class="move" type="button" data-dir="down">Down</button><button class="drag-handle" type="button" aria-label="Drag ${escapeHtml(name)}"></button></div></div>`}
 function renumber(list){[...list.children].forEach((item,i)=>item.querySelector('.rank-number').textContent=i+1)}
 function getRanking(id){return [...document.getElementById(id).children].map(x=>x.dataset.value)}
+
+function setupCitySuggestions(){
+  const input=document.getElementById('headquarters');
+  const box=document.getElementById('city-suggestions');
+
+  function close(){
+    box.classList.remove('show');
+    box.innerHTML='';
+    input.setAttribute('aria-expanded','false');
+  }
+
+  function exactCityOnlyMatch(raw){
+    const q=normalizeCitySearch(raw);
+    if(!q || raw.includes(','))return '';
+
+    const exact=US_CITIES.filter(location=>
+      normalizeCitySearch(String(location).split(',')[0])===q
+    );
+
+    return exact.length===1 ? exact[0] : '';
+  }
+
+  function choose(value){
+    input.value=value;
+    input.dataset.lastLocation=value;
+    close();
+    input.focus();
+    saveDraft();
+  }
+
+  function render(){
+    const raw=input.value.trim();
+
+    if(raw.length<2){
+      close();
+      return;
+    }
+
+    const matches=US_CITIES
+      .filter(location=>cityMatchesQuery(location,raw))
+      .sort((a,b)=>{
+        const aa=normalizeCitySearch(a);
+        const bb=normalizeCitySearch(b);
+        const qq=normalizeCitySearch(raw);
+        const aStarts=aa.startsWith(qq)?0:1;
+        const bStarts=bb.startsWith(qq)?0:1;
+        return aStarts-bStarts || aa.localeCompare(bb);
+      })
+      .slice(0,10);
+
+    const custom=normalizeCustomUSCity(raw);
+    const options=[];
+
+    if(
+      custom &&
+      !matches.some(location=>normalizeCitySearch(location)===normalizeCitySearch(custom))
+    ){
+      options.push(
+        `<button class="suggestion" type="button" data-value="${escapeHtml(custom)}">`+
+        `${escapeHtml(custom)}<small style="display:block;margin-top:3px;font-size:10px;font-weight:700;color:var(--muted)">Use this city</small>`+
+        `</button>`
+      );
+    }
+
+    matches.forEach(location=>{
+      options.push(
+        `<button class="suggestion" type="button" data-value="${escapeHtml(location)}">`+
+        `${escapeHtml(location)}<small style="display:block;margin-top:3px;font-size:10px;font-weight:700;color:var(--muted)">U.S. city</small>`+
+        `</button>`
+      );
+    });
+
+    if(!options.length){
+      box.innerHTML=
+        `<div style="padding:12px 14px;color:var(--muted);font-size:11px;line-height:1.45">`+
+        `Small town? Enter it as <strong style="color:var(--text)">City, ST</strong> — for example, Clayton, NC.`+
+        `</div>`;
+      box.classList.add('show');
+      input.setAttribute('aria-expanded','true');
+      return;
+    }
+
+    box.innerHTML=options.join('');
+    box.classList.add('show');
+    input.setAttribute('aria-expanded','true');
+  }
+
+  input.addEventListener('input',render);
+
+  box.addEventListener('click',event=>{
+    const button=event.target.closest('.suggestion');
+    if(!button)return;
+    choose(button.dataset.value);
+  });
+
+  document.addEventListener('click',event=>{
+    if(!event.target.closest('.suggest-wrap'))close();
+  });
+
+  input.addEventListener('keydown',event=>{
+    if(event.key==='Escape')close();
+
+    if(event.key==='Enter'){
+      const first=box.querySelector('.suggestion');
+      if(first){
+        event.preventDefault();
+        choose(first.dataset.value);
+      }
+    }
+  });
+
+  input.addEventListener('blur',()=>{
+    const custom=normalizeCustomUSCity(input.value);
+    if(custom){
+      input.value=custom;
+      input.dataset.lastLocation=custom;
+      saveDraft();
+      return;
+    }
+
+    const exact=exactCityOnlyMatch(input.value.trim());
+    if(exact){
+      input.value=exact;
+      input.dataset.lastLocation=exact;
+      saveDraft();
+    }
+  });
+}
+
 function setupSuggestions(inputId,boxId,values){const input=document.getElementById(inputId),box=document.getElementById(boxId);function close(){box.classList.remove('show');box.innerHTML=''}function render(){const q=input.value.trim().toLowerCase();if(q.length<2)return close();const matches=values.filter(v=>v.toLowerCase().includes(q)).slice(0,8);if(!matches.length)return close();box.innerHTML=matches.map(v=>`<button class="suggestion" type="button" data-value="${escapeHtml(v)}">${escapeHtml(v)}</button>`).join('');box.classList.add('show')}input.addEventListener('input',render);box.addEventListener('click',e=>{const b=e.target.closest('.suggestion');if(!b)return;input.value=b.dataset.value;close();input.focus()});document.addEventListener('click',e=>{if(!e.target.closest('.suggest-wrap'))close()});input.addEventListener('keydown',e=>{if(e.key==='Escape')close()})}
 function validateCurrent(){if(current===1){for(const field of steps[current].querySelectorAll('input[required],select[required]')){if(!field.checkValidity()){field.reportValidity();return false}}const websiteField=document.getElementById('website');try{const url=new URL(/^https?:\/\//i.test(websiteField.value.trim())?websiteField.value.trim():'https://'+websiteField.value.trim());const host=url.hostname.toLowerCase().replace(/^www\./,'');const labels=host.split('.');if(labels.length<2||!labels.every(l=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(l))||!/^[a-z]{2,63}$/i.test(labels.at(-1)))throw new Error();url.hash='';websiteField.value=url.toString()}catch{websiteField.focus();showMessage('Enter a complete business website, such as https://yourcompany.com.');return false}const phone=document.getElementById('business-phone').value.replace(/\D/g,'');if(phone.length<10){showMessage('Enter a valid business phone number.');return false}const ein=document.getElementById('ein').value.replace(/\D/g,'');if(!/^\d{9}$/.test(ein)){showMessage('Enter a valid 9-digit EIN.');return false}if(document.getElementById('has-dba').checked&&!document.getElementById('dba-name').value.trim()){showMessage('Enter the DBA or trade name.');return false}}if(current===2&&selectedVoices.size===0){showMessage('Choose at least one Company Voice.');return false}if(current===5&&!document.getElementById('authorization').checked){showMessage('Confirm that you are authorized to recruit for this company.');return false}return true}
 function aiSummary(){const v=[...selectedVoices],c=getRanking('company-priorities').slice(0,3),h=getRanking('candidate-priorities').slice(0,3);return `Your company emphasizes ${joinWords(c).toLowerCase()}. Alygnn will write hiring content in a ${joinWords(v).toLowerCase()} voice while prioritizing candidates who demonstrate ${joinWords(h).toLowerCase()}.`}
@@ -244,48 +453,6 @@ async function submit(){
       throw new Error('Your company was not fully created because the server did not return a company ID. Please update the create-company API and try again.');
     }
 
-    try{
-      const key=draftKey();
-      const existingDraft=JSON.parse(localStorage.getItem(key)||'{}')||{};
-      localStorage.setItem(key,JSON.stringify({
-        ...existingDraft,
-        user_id:session.user.id,
-        company_id:companyId
-      }));
-    }catch(error){
-      console.warn('Could not attach company ID to onboarding draft:',error);
-    }
-
-    // Preserve the answers from Company Setup so the Company AI Profile can
-    // prefill them later instead of asking the employer the same questions again.
-    const setupProfile=payload();
-    const existingMetadata=session.user.user_metadata||{};
-    const {error:metadataError}=await sb.auth.updateUser({
-      data:{
-        ...existingMetadata,
-        company_name:setupProfile.company_name,
-        onboarding_company_profile:{
-          user_id:session.user.id,
-          company_id:companyId,
-          company_name:setupProfile.company_name,
-          website:setupProfile.website,
-          business_phone:setupProfile.business_phone,
-          industry:setupProfile.industry,
-          company_size:setupProfile.company_size,
-          headquarters:setupProfile.headquarters,
-          company_voice:setupProfile.company_voice,
-          company_priorities:setupProfile.company_priorities,
-          candidate_priorities:setupProfile.candidate_priorities,
-          ai_summary:setupProfile.ai_summary,
-          saved_at:new Date().toISOString()
-        }
-      }
-    });
-    if(metadataError){
-      // Company creation succeeded, so do not block onboarding if metadata sync fails.
-      console.error('Could not cache onboarding answers for AI Profile:',metadataError);
-    }
-
     const status=
       result.company?.verificationStatus||
       result.company?.verification_status||
@@ -328,59 +495,8 @@ form.addEventListener('input',saveDraft);
 form.addEventListener('change',saveDraft);
 window.addEventListener('beforeunload',saveDraft);
 
-(async()=>{
-  renderVoices();
-  renderRankList('company-priorities',DEFAULT_COMPANY);
-  renderRankList('candidate-priorities',DEFAULT_CANDIDATE);
-  setupSuggestions('industry','industry-suggestions',INDUSTRIES);
-  setupSuggestions('headquarters','city-suggestions',US_CITIES);
-
-  const{data:{session}}=await sb.auth.getSession();
-
-  if(!session){
-    location.replace('app-employer-login.html');
-    return;
-  }
-
-  currentUserId=session.user.id;
-
-  // Delete the legacy global key so information from a different account
-  // cannot be restored into this employer's setup.
-  localStorage.removeItem('alygnn_employer_onboarding_draft');
-
-  if(!restoreDraft()){
-    document.getElementById('company-name').value=session.user.user_metadata?.company_name||'';
-    showStep(0);
-  }
-
-  const{data:membership,error}=await sb
-    .from('company_members')
-    .select('company_id,companies(account_number,verification_status)')
-    .eq('user_id',session.user.id)
-    .eq('membership_status','active')
-    .limit(1)
-    .maybeSingle();
-
-  if(!error&&membership?.company_id){
-    const company=Array.isArray(membership.companies)?membership.companies[0]:membership.companies;
-    localStorage.setItem('alygnn_company_id',membership.company_id);
-
-    if(company?.account_number){
-      localStorage.setItem('alygnn_company_account_number',company.account_number);
-    }
-
-    const status=company?.verification_status||'pending_review';
-    localStorage.setItem('alygnn_employer_verification_status',status);
-
-    if(status==='approved'){
-      location.replace('app-employer-dashboard.html');
-    }else if(localStorage.getItem('alygnn_verification_document_submitted')==='true'){
-      location.replace('app-employer-verification-status.html');
-    }else{
-      location.replace('app-employer-document-upload.html');
-    }
-  }
-})();
+(async()=>{renderVoices();renderRankList('company-priorities',DEFAULT_COMPANY);renderRankList('candidate-priorities',DEFAULT_CANDIDATE);setupSuggestions('industry','industry-suggestions',INDUSTRIES);setupCitySuggestions();const{data:{session}}=await sb.auth.getSession();if(!session){location.replace('app-employer-login.html');return}document.getElementById('company-name').value=session.user.user_metadata?.company_name||'';const{data:membership,error}=await sb.from('company_members').select('company_id,companies(account_number,verification_status)').eq('user_id',session.user.id).eq('membership_status','active').limit(1).maybeSingle();if(!error&&membership?.company_id){const company=Array.isArray(membership.companies)?membership.companies[0]:membership.companies;localStorage.setItem('alygnn_company_id',membership.company_id);if(company?.account_number)localStorage.setItem('alygnn_company_account_number',company.account_number);const status=company?.verification_status||'pending_review';localStorage.setItem('alygnn_employer_verification_status',status);if(status==='approved')location.replace('app-employer-dashboard.html');else if(localStorage.getItem('alygnn_verification_document_submitted')==='true')location.replace('app-employer-verification-status.html');else location.replace('app-employer-document-upload.html')}})();
+if(!restoreDraft())showStep(0);
 </script>
 </body>
 </html>
