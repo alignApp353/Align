@@ -151,7 +151,7 @@ html[data-effective-theme="dark"] .back-btn{
 <body>
 <main class="page">
 <header class="topbar">
-<button class="back-btn" id="back-btn" type="button" aria-label="Go back">←</button>
+<button class="back-btn" type="button" aria-label="Go back" onclick="window.location.href='app-start.html?reset=1'">←</button>
 <div class="brand">Alygnn<span>.</span></div><div></div>
 </header>
 <section class="login">
@@ -193,14 +193,14 @@ html[data-effective-theme="dark"] .back-btn{
 <button class="social" id="apple-btn" type="button" aria-label="Continue with Apple" hidden>
   <span class="apple-mark" aria-hidden="true"></span><span>Sign in with Apple</span>
 </button>
-<div class="signup">Don’t have an account? <button class="signup-link" id="signup-btn" type="button">Sign up</button></div>
+<div class="signup">Don’t have an account? <button class="signup-link" type="button" onclick="window.location.href='app-create-account.html?source=login'">Sign up</button></div>
 <div class="switch"><button class="switch-btn" id="switch-btn" type="button">Switch to employer sign in</button></div>
 </div></section></main>
 <script>
 const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const ACCOUNT_TYPE='candidate';
-window.__ALYGNN_LOGIN_BUILD='ios-apple-v7';
-console.log('ALYGNN_LOGIN_BUILD: ios-apple-v7');
+window.__ALYGNN_LOGIN_BUILD='ios-apple-v8';
+console.log('ALYGNN_LOGIN_BUILD: ios-apple-v8');
 
 const ALYGNN_NATIVE_OAUTH_REDIRECT='alygnn://auth/callback';
 
@@ -449,16 +449,6 @@ function navigateTo(page){
     window.location.href=page;
   }
 }
-
-document.getElementById('back-btn').addEventListener('click',()=>{
-  // Do not use history.back() here. The previous start screen can be restored
-  // from iOS WebView cache while its "Opening candidate login" overlay is still active.
-  window.location.replace('app-start.html');
-});
-
-document.getElementById('signup-btn').addEventListener('click',()=>{
-  navigateTo('app-create-account.html');
-});
 
 document.getElementById('show-btn').addEventListener('click',e=>{const i=document.getElementById('password');const s=i.type==='text';i.type=s?'password':'text';e.currentTarget.textContent=s?'Show':'Hide'});
 document.getElementById('forgot-btn').addEventListener('click',()=>location.href='app-forgot-password.html');
