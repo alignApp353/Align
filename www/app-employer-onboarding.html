@@ -216,7 +216,7 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
 </script>
 
 </head>
-<body data-employer-onboarding-build="93">
+<body data-employer-onboarding-build="94">
 <main class="shell">
 <header class="top"><div class="brand">Alygnn<span>.</span></div><div class="secure">Employer setup</div></header>
 <div class="progress-copy"><span id="progress-label">Welcome</span><span id="progress-percent">17%</span></div>
@@ -613,7 +613,47 @@ async function submit(){
     const result=await response.json().catch(()=>({}));
 
     if(!response.ok){
-      throw new Error(result.error||'Unable to create your company workspace.');
+      const apiMessage=String(result.error||result.message||'Unable to create your company workspace.');
+
+      // If this employer already has a workspace, setup has effectively
+      // already been created. Do not show a duplicate-workspace error.
+      // Recover the existing company details and route them to their
+      // current verification state instead.
+      if(/already own a company workspace|already (?:has|have) a company workspace|company workspace already exists/i.test(apiMessage)){
+        const {data:membership}=await sb
+          .from('company_members')
+          .select('company_id,companies(account_number,verification_status)')
+          .eq('user_id',session.user.id)
+          .eq('membership_status','active')
+          .limit(1)
+          .maybeSingle();
+
+        const existingCompany=Array.isArray(membership?.companies)
+          ? membership.companies[0]
+          : membership?.companies;
+
+        const existingCompanyId=membership?.company_id||localStorage.getItem('alygnn_company_id')||'';
+        const existingStatus=existingCompany?.verification_status||localStorage.getItem('alygnn_employer_verification_status')||'pending_review';
+        const existingAccountNumber=existingCompany?.account_number||'';
+
+        if(existingCompanyId){
+          localStorage.setItem('alygnn_company_id',existingCompanyId);
+          sessionStorage.setItem('alygnn_company_id',existingCompanyId);
+        }
+        if(existingAccountNumber){
+          localStorage.setItem('alygnn_company_account_number',existingAccountNumber);
+        }
+        localStorage.setItem('alygnn_employer_verification_status',existingStatus);
+
+        if(existingStatus==='approved'){
+          location.replace('app-employer-dashboard.html');
+        }else{
+          location.replace('app-employer-verification-status.html');
+        }
+        return;
+      }
+
+      throw new Error(apiMessage);
     }
 
     const companyId=
