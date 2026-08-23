@@ -41,7 +41,7 @@ body{min-height:100vh;background:radial-gradient(circle at 12% 8%,rgba(140,182,1
 button,input,a{font:inherit}
 .page{width:100%;max-width:520px;min-height:100vh;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
 .topbar{min-height:51px;display:grid;grid-template-columns:48px 1fr 48px;align-items:center}
-.back-btn{width:44px;height:44px;border:1px solid var(--border);border-radius:50%;background:#fff;color:var(--text);font-size:21px;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 16px rgba(23,35,51,.06)}
+.back-btn{width:44px;height:44px;border:1px solid var(--border);border-radius:50%;background:#fff;color:var(--text);font-size:21px;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 16px rgba(23,35,51,.06);text-decoration:none;-webkit-tap-highlight-color:transparent}
 .brand{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:31px;color:var(--brand)}
 .brand span{color:var(--sage)}
 .login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 0 14px}
@@ -151,7 +151,7 @@ html[data-effective-theme="dark"] .back-btn{
 <body>
 <main class="page">
 <header class="topbar">
-<button class="back-btn" id="back-btn" type="button" aria-label="Go back">←</button>
+<a class="back-btn" href="app-start.html" aria-label="Go back">←</a>
 <div class="brand">Alygnn<span>.</span></div><div></div>
 </header>
 <section class="login">
@@ -178,7 +178,7 @@ html[data-effective-theme="dark"] .back-btn{
 </div></div>
 <div id="message" class="message" aria-live="polite"></div>
 <button class="primary" id="sign-in-btn" type="button">Sign in</button>
-<div class="divider">or continue with</div>
+<div class="divider">or sign in with</div>
 <button class="social" id="google-btn" type="button">
   <span class="google-mark" aria-hidden="true">
     <svg viewBox="0 0 24 24" role="img">
@@ -188,22 +188,19 @@ html[data-effective-theme="dark"] .back-btn{
       <path fill="#EA4335" d="M12 5.94c1.47 0 2.79.5 3.83 1.49l2.87-2.87C16.96 2.94 14.7 2 12 2a10 10 0 0 0-8.96 5.47l3.35 2.6C7.18 7.7 9.39 5.94 12 5.94z"/>
     </svg>
   </span>
-  <span>Continue with Google</span>
+  <span>Sign in with Google</span>
 </button>
 <button class="social" id="apple-btn" type="button" aria-label="Continue with Apple" hidden>
-  <span class="apple-mark" aria-hidden="true"></span><span>Continue with Apple</span>
+  <span class="apple-mark" aria-hidden="true"></span><span>Sign in with Apple</span>
 </button>
-<div class="signup">
-  Don’t have an account? Continue with Google or Apple, or
-  <a href="app-create-account.html">sign up with email</a>.
-</div>
+<div class="signup">Don’t have an account? <a href="app-create-account.html">Sign up</a></div>
 <div class="switch"><button class="switch-btn" id="switch-btn" type="button">Switch to employer sign in</button></div>
 </div></section></main>
 <script>
 const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const ACCOUNT_TYPE='candidate';
-window.__ALYGNN_LOGIN_BUILD='ios-apple-v4';
-console.log('ALYGNN_LOGIN_BUILD: ios-apple-v4');
+window.__ALYGNN_LOGIN_BUILD='ios-apple-v5';
+console.log('ALYGNN_LOGIN_BUILD: ios-apple-v5');
 
 const ALYGNN_NATIVE_OAUTH_REDIRECT='alygnn://auth/callback';
 
@@ -293,7 +290,7 @@ async function redirectIfLoggedIn(){const params=new URLSearchParams(location.se
 async function signIn(){const email=document.getElementById('email').value.trim().toLowerCase();const password=document.getElementById('password').value;const button=document.getElementById('sign-in-btn');if(!email){showMessage('Please enter your email address.','error');return}if(!password){showMessage('Please enter your password.','error');return}setLoading(button,true,'Signing in…','Sign in');const {error}=await sb.auth.signInWithPassword({email,password});if(error){showMessage(friendlyError(error),'error');setLoading(button,false,'Signing in…','Sign in');return}localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);showMessage('Welcome back. Redirecting…','success');setTimeout(()=>location.replace(TARGET_PAGE),450)}
 async function googleLogin(){
   const button=document.getElementById('google-btn');
-  setLoading(button,true,'Opening Google…','Continue with Google');
+  setLoading(button,true,'Opening Google…','Sign in with Google');
   localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
 
   try{
@@ -332,7 +329,7 @@ async function googleLogin(){
 
   }catch(error){
     showMessage(friendlyError(error),'error');
-    setLoading(button,false,'Opening Google…','Continue with Google');
+    setLoading(button,false,'Opening Google…','Sign in with Google');
   }
 }
 
@@ -353,7 +350,7 @@ async function sha256Hex(value){
 
 async function appleLogin(){
   const button=document.getElementById('apple-btn');
-  setLoading(button,true,'Opening Apple…','Continue with Apple');
+  setLoading(button,true,'Opening Apple…','Sign in with Apple');
   localStorage.setItem('alygnn_account_type',ACCOUNT_TYPE);
 
   try{
@@ -405,7 +402,7 @@ async function appleLogin(){
       showMessage(friendlyError(error),'error');
     }
 
-    setLoading(button,false,'Opening Apple…','Continue with Apple');
+    setLoading(button,false,'Opening Apple…','Sign in with Apple');
   }
 }
 
@@ -425,7 +422,7 @@ async function finishGoogleReturn(url){
   }catch(error){
     showMessage(friendlyError(error),'error');
     const button=document.getElementById('google-btn');
-    setLoading(button,false,'Opening Google…','Continue with Google');
+    setLoading(button,false,'Opening Google…','Sign in with Google');
   }
 }
 
@@ -444,7 +441,6 @@ async function setupNativeGoogleReturn(){
     await finishGoogleReturn(launch.url);
   }
 }
-document.getElementById('back-btn').addEventListener('click',()=>location.href='app-start.html');
 document.getElementById('show-btn').addEventListener('click',e=>{const i=document.getElementById('password');const s=i.type==='text';i.type=s?'password':'text';e.currentTarget.textContent=s?'Show':'Hide'});
 document.getElementById('forgot-btn').addEventListener('click',()=>location.href='app-forgot-password.html');
 document.getElementById('sign-in-btn').addEventListener('click',signIn);
