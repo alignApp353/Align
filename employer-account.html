@@ -1514,12 +1514,20 @@
     const role = String(profile?.role || session.user.user_metadata?.role || '').toLowerCase();
     if (role !== 'employer') { window.location.replace('login.html?role=employer'); return; }
 
-    document.body.classList.add('auth-ready');
-
     currentProfile = profile || {
       employer_verified: false,
       verification_status: 'not_submitted'
     };
+
+    // A brand-new employer (never submitted a business profile) shouldn't
+    // land on the account page at all — send them straight into guided
+    // onboarding instead of showing the half-empty account view.
+    if ((currentProfile.verification_status || 'not_submitted') === 'not_submitted') {
+      window.location.replace('employer-onboarding.html');
+      return;
+    }
+
+    document.body.classList.add('auth-ready');
 
     const companyNameEl = document.getElementById('company-name');
     const headlineEl    = document.getElementById('company-headline');
