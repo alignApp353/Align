@@ -238,7 +238,7 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
 </script>
 
 </head>
-<body data-employer-onboarding-build="99">
+<body data-employer-onboarding-build="101">
 <main class="shell">
 <header class="top"><div class="brand">Alygnn<span>.</span></div><div class="secure">Employer setup</div></header>
 <div class="progress-copy"><span id="progress-label">Welcome</span><span id="progress-percent">17%</span></div>
@@ -794,43 +794,179 @@ window.addEventListener('beforeunload',()=>{if(!onboardingComplete)saveDraft()})
   }
 
   const userId=session.user.id;
-  const scopedComplete=localStorage.getItem(setupCompleteKey(userId))==='true';
-  const scopedCompanyId=localStorage.getItem(companyIdKey(userId))||'';
-  const scopedStatus=localStorage.getItem(verificationStatusKey(userId))||'';
+  const metadata=session.user.user_metadata||{};
+  const onboardingMeta=metadata.onboarding_company_profile||{};
+  const aiMeta=metadata.employer_ai_profile||{};
 
-  // If this signed-in employer already finished Company Setup, NEVER show
-  // the welcome/setup flow again. Verification Status is the gatekeeper.
-  if(scopedComplete && (scopedCompanyId || scopedStatus)){
-    openVerificationStatus();
-    return;
-  }
+  async function leaveOnboardingIfExisting(){
+    // A. Existing verification record = existing employer workspace.
+    try{
+      const{data:verification,error}=await sb
+        .from('employer_verifications')
+        .select('company_id,verification_status,blueprint_complete')
+        .eq('user_id',userId)
+        .limit(1)
+        .maybeSingle();
 
-  const{data:membership,error}=await sb
-    .from('company_members')
-    .select('company_id,companies(account_number,verification_status)')
-    .eq('user_id',userId)
-    .eq('membership_status','active')
-    .limit(1)
-    .maybeSingle();
+      if(error){
+        console.warn('Onboarding verification lookup failed:',error);
+      }else if(verification?.company_id || verification?.blueprint_complete){
+        const companyId=String(verification.company_id||'').trim();
+        const status=String(
+          verification.verification_status||'pending_review'
+        ).toLowerCase();
 
-  if(!error&&membership?.company_id){
-    const company=Array.isArray(membership.companies)
-      ? membership.companies[0]
-      : membership.companies;
+        saveEmployerRoutingState(userId,companyId,status);
 
-    const status=company?.verification_status||'pending_review';
-    saveEmployerRoutingState(userId,membership.company_id,status);
-
-    if(company?.account_number){
-      localStorage.setItem('alygnn_company_account_number',company.account_number);
+        if(status==='approved'){
+          onboardingComplete=true;
+          localStorage.removeItem(DRAFT_KEY);
+          location.replace('app-employer-dashboard.html');
+        }else{
+          openVerificationStatus();
+        }
+        return true;
+      }
+    }catch(error){
+      console.warn('Onboarding verification lookup threw:',error);
     }
 
-    openVerificationStatus();
-    return;
+    // B. Server-side resolver avoids RLS false negatives.
+    try{
+      const response=await fetch('https://alygnn.com/api/company/my-company',{
+        method:'GET',
+        headers:{'Authorization':'Bearer '+session.access_token}
+      });
+
+      if(response.ok){
+        const result=await response.json().catch(()=>({}));
+        const company=result.company||{};
+        const companyId=String(
+          company.id||
+          result.company_id||
+          result.companyId||
+          ''
+        ).trim();
+
+        if(companyId){
+          const status=String(
+            company.verificationStatus||
+            company.verification_status||
+            result.verification_status||
+            'pending_review'
+          ).toLowerCase();
+
+          const accountNumber=
+            company.accountNumber||
+            company.account_number||
+            result.account_number||
+            '';
+
+          saveEmployerRoutingState(userId,companyId,status);
+
+          if(accountNumber){
+            localStorage.setItem(
+              'alygnn_company_account_number',
+              String(accountNumber)
+            );
+          }
+
+          if(status==='approved'){
+            onboardingComplete=true;
+            localStorage.removeItem(DRAFT_KEY);
+            location.replace('app-employer-dashboard.html');
+          }else{
+            openVerificationStatus();
+          }
+          return true;
+        }
+      }
+    }catch(error){
+      console.warn('Onboarding server company resolver failed:',error);
+    }
+
+    // C. Direct membership fallback; pending membership still means the
+    // company already exists.
+    try{
+      const{data:membership,error}=await sb
+        .from('company_members')
+        .select('company_id,companies(id,account_number,verification_status)')
+        .eq('user_id',userId)
+        .in('membership_status',['active','pending'])
+        .limit(1)
+        .maybeSingle();
+
+      if(error){
+        console.warn('Onboarding membership lookup failed:',error);
+      }else if(membership?.company_id){
+        const company=Array.isArray(membership.companies)
+          ? membership.companies[0]
+          : membership.companies;
+
+        const status=String(
+          company?.verification_status||'pending_review'
+        ).toLowerCase();
+
+        saveEmployerRoutingState(userId,membership.company_id,status);
+
+        if(company?.account_number){
+          localStorage.setItem(
+            'alygnn_company_account_number',
+            company.account_number
+          );
+        }
+
+        if(status==='approved'){
+          onboardingComplete=true;
+          localStorage.removeItem(DRAFT_KEY);
+          location.replace('app-employer-dashboard.html');
+        }else{
+          openVerificationStatus();
+        }
+        return true;
+      }
+    }catch(error){
+      console.warn('Onboarding membership lookup threw:',error);
+    }
+
+    // D. Account-scoped saved state / Auth metadata.
+    const scopedCompanyId=String(
+      localStorage.getItem(companyIdKey(userId))||
+      onboardingMeta.company_id||
+      aiMeta.company_id||
+      metadata.company_id||
+      ''
+    ).trim();
+
+    if(scopedCompanyId){
+      const scopedStatus=String(
+        localStorage.getItem(verificationStatusKey(userId))||
+        onboardingMeta.verification_status||
+        metadata.verification_status||
+        'pending_review'
+      ).toLowerCase();
+
+      saveEmployerRoutingState(userId,scopedCompanyId,scopedStatus);
+
+      if(scopedStatus==='approved'){
+        onboardingComplete=true;
+        localStorage.removeItem(DRAFT_KEY);
+        location.replace('app-employer-dashboard.html');
+      }else{
+        openVerificationStatus();
+      }
+      return true;
+    }
+
+    return false;
   }
 
+  const existingEmployer=await leaveOnboardingIfExisting();
+  if(existingEmployer)return;
+
+  // No company/workspace was found anywhere. This is a genuinely new employer.
   document.getElementById('company-name').value=
-    session.user.user_metadata?.company_name||'';
+    metadata.company_name||'';
 
   if(!restoreDraft())showStep(0);
 })();
