@@ -720,36 +720,6 @@ function setupSuggestions(){
 }
 
 
-async function resolveCompanyLive(){
-  try{
-    if(!session?.access_token)return null;
-
-    const response=await fetch(
-      'https://alygnn.com/api/company/resolve-company',
-      {
-        method:'GET',
-        headers:{
-          Authorization:'Bearer '+session.access_token
-        },
-        cache:'no-store'
-      }
-    );
-
-    const result=await response.json().catch(()=>({}));
-
-    if(!response.ok||!result?.company){
-      console.warn('Live company lookup failed:',response.status,result);
-      return null;
-    }
-
-    console.log('LIVE COMPANY STATUS:',result.company);
-    return result.company;
-  }catch(error){
-    console.warn('Could not resolve live company:',error);
-    return null;
-  }
-}
-
 const el = id => document.getElementById(id);
 function escapeHtml(value){
   return String(value||'').replace(/[&<>"']/g,char=>({
@@ -1061,15 +1031,9 @@ function saveCurrentJobDraft(){
 }
 
 function saveDraftAndOpenPreview(){
-  if(!aiProfileComplete){
-    showMessage('Complete your Company AI Profile before previewing this job.');
-    el('verification-lock').textContent=
-      'Complete your Company AI Profile before publishing a job.';
-    el('verification-lock').hidden=false;
-    el('company-ai-link').hidden=false;
-    return;
-  }
-
+  // Employer setup already collected company-level voice, strengths, and
+  // hiring priorities. A separate Company AI Profile is optional refinement,
+  // not a requirement for creating or previewing a job.
   saveCurrentJobDraft();
   location.href='app-job-preview.html';
 }
@@ -1166,28 +1130,20 @@ el('back-btn').addEventListener('click', () => {
 el('company-ai-link').addEventListener('click',()=>{
   saveCurrentJobDraft();
 
-  if(aiProfileComplete){
-    if(currentCompanyId){
-      localStorage.setItem('alygnn_company_id',currentCompanyId);
-    }
-
-    const params=new URLSearchParams({
-      return_to:'app-post-job.html'
-    });
-    if(currentCompanyId)params.set('company_id',currentCompanyId);
-
-    location.href=
-      'app-employer-document-upload.html' +
-      (params.toString()?`?${params.toString()}`:'');
-    return;
+  // This action is now only used for business-verification issues.
+  // Company AI Profile completion never blocks job creation.
+  if(currentCompanyId){
+    localStorage.setItem('alygnn_company_id',currentCompanyId);
   }
 
-  sessionStorage.setItem('alygnnAiProfileReturnTo','app-post-job.html');
   const params=new URLSearchParams({
     return_to:'app-post-job.html'
   });
   if(currentCompanyId)params.set('company_id',currentCompanyId);
-  location.href=`app-employer-ai-profile.html?${params.toString()}`;
+
+  location.href=
+    'app-employer-document-upload.html' +
+    (params.toString()?`?${params.toString()}`:'');
 });
 
 
@@ -1235,10 +1191,6 @@ el('description').addEventListener('input', () => {
 
     const userId=session.user.id;
 
-    // Use the server-resolved company as the source of truth for
-    // approval / pending / rejected / deactivated status.
-    const liveCompany=await resolveCompanyLive();
-
     const [
       profileResult,
       verificationResult,
@@ -1263,7 +1215,6 @@ el('description').addEventListener('input', () => {
     const membership=membershipResult.data||null;
 
     currentCompanyId=
-      liveCompany?.id ||
       membership?.company_id ||
       verification.company_id ||
       sessionStorage.getItem('alygnn_company_id') ||
@@ -1272,37 +1223,6 @@ el('description').addEventListener('input', () => {
     currentCompany=membership
       ? (Array.isArray(membership.companies)?membership.companies[0]:membership.companies)
       : null;
-
-    if(liveCompany){
-      currentCompany={
-        ...(currentCompany||{}),
-        id:liveCompany.id||currentCompany?.id||currentCompanyId,
-        company_name:
-          liveCompany.name ||
-          currentCompany?.company_name ||
-          currentCompany?.legal_name ||
-          currentCompany?.name ||
-          null,
-        verification_status:
-          liveCompany.verificationStatus ||
-          currentCompany?.verification_status ||
-          null,
-        account_status:
-          liveCompany.accountStatus ||
-          currentCompany?.account_status ||
-          'active',
-        website:liveCompany.website||currentCompany?.website||'',
-        business_phone:liveCompany.businessPhone||currentCompany?.business_phone||'',
-        industry:liveCompany.industry||currentCompany?.industry||'',
-        company_size:liveCompany.companySize||currentCompany?.company_size||'',
-        headquarters:liveCompany.headquarters||currentCompany?.headquarters||''
-      };
-    }
-
-    if(currentCompanyId){
-      localStorage.setItem('alygnn_company_id',currentCompanyId);
-      sessionStorage.setItem('alygnn_company_id',currentCompanyId);
-    }
 
     let verificationDocument=null;
 
@@ -1342,8 +1262,19 @@ el('description').addEventListener('input', () => {
       savedAiProfile.profile_complete===true
     );
 
+    /*
+     * The latest verification document is the item Alygnn Trust & Safety
+     * actually reviews, so its review_status must be the first source of truth.
+     *
+     * This fixes the case where the admin page says APPROVED but older
+     * company/profile records still say pending_review.
+     */
+    const documentVerificationStatus=String(
+      verificationDocument?.review_status || ''
+    ).toLowerCase();
+
     const storedVerificationStatus=String(
-      liveCompany?.verificationStatus ||
+      documentVerificationStatus ||
       currentCompany?.verification_status ||
       verification.verification_status ||
       profile.verification_status ||
@@ -1351,24 +1282,9 @@ el('description').addEventListener('input', () => {
     ).toLowerCase();
 
     employerVerified=
-      storedVerificationStatus==='approved' ||
-      profile.employer_verified===true;
-
-    localStorage.setItem(
-      'alygnn_employer_verification_status',
-      storedVerificationStatus
-    );
-
-    console.log(
-      'POST JOB VERIFICATION STATUS:',
-      {
-        liveStatus:liveCompany?.verificationStatus||null,
-        companyStatus:currentCompany?.verification_status||null,
-        verificationRowStatus:verification.verification_status||null,
-        profileStatus:profile.verification_status||null,
-        effectiveStatus:storedVerificationStatus
-      }
-    );
+      profile.employer_verified===true ||
+      documentVerificationStatus==='approved' ||
+      storedVerificationStatus==='approved';
 
     if(employerVerified){
       verificationStatus='approved';
@@ -1377,13 +1293,18 @@ el('description').addEventListener('input', () => {
       // It is not truly pending until a verification document has been uploaded.
       verificationStatus='not_submitted';
     }else if(
-      storedVerificationStatus==='rejected' ||
-      String(verificationDocument?.review_status||'').toLowerCase()==='rejected'
+      documentVerificationStatus==='rejected' ||
+      storedVerificationStatus==='rejected'
     ){
       verificationStatus='rejected';
     }else{
       verificationStatus='pending_review';
     }
+
+    localStorage.setItem(
+      'alygnn_employer_verification_status',
+      verificationStatus
+    );
 
     const companyName=
       currentCompany?.company_name ||
@@ -1401,53 +1322,31 @@ el('description').addEventListener('input', () => {
     const aiButton=el('company-ai-link');
     const lock=el('verification-lock');
 
-    if(!aiProfileComplete){
-      aiButton.textContent='Complete Company AI Profile';
-      aiButton.hidden=false;
-      lock.textContent='Complete your Company AI Profile before publishing a job.';
-      lock.hidden=false;
-    }else if(employerVerified){
+    if(employerVerified){
       aiButton.hidden=true;
       lock.hidden=true;
     }else if(verificationStatus==='not_submitted'){
       aiButton.textContent='Verify Company';
       aiButton.hidden=false;
       lock.textContent=
-        'Your AI Profile is complete. Verify your company by uploading an official business document before this job can be published.';
+        'Verify your company by uploading an official business document.';
       lock.hidden=false;
     }else if(verificationStatus==='rejected'){
       aiButton.textContent='Resubmit Company Verification';
       aiButton.hidden=false;
       lock.textContent=
-        'Your company verification needs attention. Upload a corrected business document before this job can be published.';
+        'Your company verification needs attention. Upload a corrected business document.';
       lock.hidden=false;
     }else{
       aiButton.hidden=true;
       lock.textContent=
-        'Your company verification is pending. You can finish this job draft while Alygnn reviews it.';
+        'Your company verification is pending. You can continue building this job while Alygnn reviews it.';
       lock.hidden=false;
     }
 
     setupSuggestions();
-
-    // If the employer came back from Candidate Preview to edit,
-    // restore the saved draft and reopen the final review step
-    // instead of restarting at Step 1.
-    const returnStep=Number(
-      sessionStorage.getItem('alygnnJobReturnStep') || '1'
-    );
-
     restoreDraft();
-
-    showStep(
-      Number.isFinite(returnStep) &&
-      returnStep>=1 &&
-      returnStep<=5
-        ? returnStep
-        : 1
-    );
-
-    sessionStorage.removeItem('alygnnJobReturnStep');
+    showStep(1);
   }catch(error){
     console.error(error);
     showMessage('Could not prepare the job form. Please return to the dashboard and try again.');
