@@ -238,7 +238,7 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
 </script>
 
 </head>
-<body data-employer-onboarding-build="98">
+<body data-employer-onboarding-build="99">
 <main class="shell">
 <header class="top"><div class="brand">Alygnn<span>.</span></div><div class="secure">Employer setup</div></header>
 <div class="progress-copy"><span id="progress-label">Welcome</span><span id="progress-percent">17%</span></div>
@@ -416,6 +416,32 @@ const steps=[...document.querySelectorAll('.step')];let current=0;
 let onboardingComplete=false;const selectedVoices=new Set();
 const form=document.getElementById('onboarding-form'),message=document.getElementById('message'),nextButton=document.getElementById('next-button'),backButton=document.getElementById('back-button');
 const DRAFT_KEY='alygnn_employer_onboarding_draft';
+
+function setupCompleteKey(userId){
+  return `alygnn_employer_setup_complete_${userId}`;
+}
+function companyIdKey(userId){
+  return `alygnn_company_id_${userId}`;
+}
+function verificationStatusKey(userId){
+  return `alygnn_employer_verification_status_${userId}`;
+}
+function saveEmployerRoutingState(userId,companyId,status){
+  const normalizedStatus=String(status||'pending_review').toLowerCase();
+  if(companyId){
+    localStorage.setItem('alygnn_company_id',companyId);
+    sessionStorage.setItem('alygnn_company_id',companyId);
+    localStorage.setItem(companyIdKey(userId),companyId);
+  }
+  localStorage.setItem('alygnn_employer_verification_status',normalizedStatus);
+  localStorage.setItem(verificationStatusKey(userId),normalizedStatus);
+  localStorage.setItem(setupCompleteKey(userId),'true');
+}
+function openVerificationStatus(){
+  onboardingComplete=true;
+  localStorage.removeItem(DRAFT_KEY);
+  location.replace('app-employer-verification-status.html?from=employer-setup');
+}
 
 function saveDraft(){
   const draft={
@@ -678,22 +704,16 @@ async function submit(){
         const existingStatus=existingCompany?.verification_status||localStorage.getItem('alygnn_employer_verification_status')||'pending_review';
         const existingAccountNumber=existingCompany?.account_number||'';
 
-        if(existingCompanyId){
-          localStorage.setItem('alygnn_company_id',existingCompanyId);
-          sessionStorage.setItem('alygnn_company_id',existingCompanyId);
-        }
+        saveEmployerRoutingState(
+          session.user.id,
+          existingCompanyId,
+          existingStatus
+        );
         if(existingAccountNumber){
           localStorage.setItem('alygnn_company_account_number',existingAccountNumber);
         }
-        localStorage.setItem('alygnn_employer_verification_status',existingStatus);
-        onboardingComplete=true;
-        localStorage.removeItem(DRAFT_KEY);
 
-        if(existingStatus==='approved'){
-          location.replace('app-employer-dashboard.html');
-        }else{
-          location.replace('app-employer-verification-status.html');
-        }
+        openVerificationStatus();
         return;
       }
 
@@ -724,24 +744,17 @@ async function submit(){
       result.account_number||
       '';
 
-    localStorage.setItem('alygnn_employer_verification_status',status);
-    localStorage.setItem('alygnn_company_id',companyId);
-    sessionStorage.setItem('alygnn_company_id',companyId);
+    saveEmployerRoutingState(
+      session.user.id,
+      companyId,
+      status
+    );
     if(accountNumber){
       localStorage.setItem('alygnn_company_account_number',accountNumber);
     }
 
-    onboardingComplete=true;
-    localStorage.removeItem(DRAFT_KEY);
-    showMessage('Your company profile is saved.','success');
-
-    setTimeout(()=>{
-      if(status==='approved'){
-        location.replace('app-employer-dashboard.html');
-      }else{
-        location.replace('app-employer-verification-status.html');
-      }
-    },350);
+    showMessage('Your company profile is saved. Checking verification status…','success');
+    setTimeout(openVerificationStatus,250);
   }catch(error){
     console.error(error);
     showMessage(error.message||'Unable to finish setup.');
@@ -767,20 +780,60 @@ document.getElementById('authorization').addEventListener('change',event=>{
 });
 window.addEventListener('beforeunload',()=>{if(!onboardingComplete)saveDraft()});
 
-(async()=>{renderVoices();renderRankList('company-priorities',DEFAULT_COMPANY);renderRankList('candidate-priorities',DEFAULT_CANDIDATE);setupSuggestions('industry','industry-suggestions',INDUSTRIES);setupCitySuggestions();const{data:{session}}=await sb.auth.getSession();if(!session){location.replace('app-employer-login.html');return}document.getElementById('company-name').value=session.user.user_metadata?.company_name||'';const{data:membership,error}=await sb.from('company_members').select('company_id,companies(account_number,verification_status)').eq('user_id',session.user.id).eq('membership_status','active').limit(1).maybeSingle();if(!error&&membership?.company_id){
-  const company=Array.isArray(membership.companies)?membership.companies[0]:membership.companies;
-  localStorage.setItem('alygnn_company_id',membership.company_id);
-  sessionStorage.setItem('alygnn_company_id',membership.company_id);
-  if(company?.account_number)localStorage.setItem('alygnn_company_account_number',company.account_number);
-  const status=company?.verification_status||'pending_review';
-  localStorage.setItem('alygnn_employer_verification_status',status);
-  if(status==='approved'){
-    location.replace('app-employer-dashboard.html');
-  }else{
-    location.replace('app-employer-verification-status.html');
+(async()=>{
+  renderVoices();
+  renderRankList('company-priorities',DEFAULT_COMPANY);
+  renderRankList('candidate-priorities',DEFAULT_CANDIDATE);
+  setupSuggestions('industry','industry-suggestions',INDUSTRIES);
+  setupCitySuggestions();
+
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){
+    location.replace('app-employer-login.html');
+    return;
   }
-}})();
-if(!restoreDraft())showStep(0);
+
+  const userId=session.user.id;
+  const scopedComplete=localStorage.getItem(setupCompleteKey(userId))==='true';
+  const scopedCompanyId=localStorage.getItem(companyIdKey(userId))||'';
+  const scopedStatus=localStorage.getItem(verificationStatusKey(userId))||'';
+
+  // If this signed-in employer already finished Company Setup, NEVER show
+  // the welcome/setup flow again. Verification Status is the gatekeeper.
+  if(scopedComplete && (scopedCompanyId || scopedStatus)){
+    openVerificationStatus();
+    return;
+  }
+
+  const{data:membership,error}=await sb
+    .from('company_members')
+    .select('company_id,companies(account_number,verification_status)')
+    .eq('user_id',userId)
+    .eq('membership_status','active')
+    .limit(1)
+    .maybeSingle();
+
+  if(!error&&membership?.company_id){
+    const company=Array.isArray(membership.companies)
+      ? membership.companies[0]
+      : membership.companies;
+
+    const status=company?.verification_status||'pending_review';
+    saveEmployerRoutingState(userId,membership.company_id,status);
+
+    if(company?.account_number){
+      localStorage.setItem('alygnn_company_account_number',company.account_number);
+    }
+
+    openVerificationStatus();
+    return;
+  }
+
+  document.getElementById('company-name').value=
+    session.user.user_metadata?.company_name||'';
+
+  if(!restoreDraft())showStep(0);
+})();
 </script>
 </body>
 </html>
