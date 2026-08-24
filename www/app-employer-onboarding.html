@@ -177,6 +177,28 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
   }
 }
 
+
+.authorization.authorization-invalid{
+  border-color:#D46B6B!important;
+  box-shadow:0 0 0 3px rgba(212,107,107,.12)!important;
+}
+.authorization-error{
+  margin-top:10px;
+  color:#D46B6B;
+  font-size:11px;
+  font-weight:900;
+  line-height:1.4;
+}
+@media (prefers-color-scheme: dark){
+  .authorization.authorization-invalid{
+    border-color:#E49A9A!important;
+    box-shadow:0 0 0 3px rgba(228,154,154,.12)!important;
+  }
+  .authorization-error{
+    color:#F0A7A7!important;
+  }
+}
+
 </style>
 
 <script id="alygnn-employer-onboarding-theme-v93">
@@ -216,7 +238,7 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
 </script>
 
 </head>
-<body data-employer-onboarding-build="94">
+<body data-employer-onboarding-build="96">
 <main class="shell">
 <header class="top"><div class="brand">Alygnn<span>.</span></div><div class="secure">Employer setup</div></header>
 <div class="progress-copy"><span id="progress-label">Welcome</span><span id="progress-percent">17%</span></div>
@@ -273,7 +295,15 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
     <div class="overview-card"><div class="overview-head"><h2>What Matters Most When Hiring</h2><button class="edit" type="button" data-go="4">Edit</button></div><ol class="overview-content ordered" id="overview-candidate"></ol></div>
     <div class="ai-summary"><h2>AI Summary</h2><p id="ai-summary"></p></div>
   </div>
-  <div class="authorization"><div class="inline-check" style="margin-top:0"><input id="authorization" type="checkbox" required><label for="authorization">I am authorized to recruit and post jobs on behalf of this company, and the information provided is accurate.</label></div></div>
+  <div class="authorization" id="authorization-box">
+    <div class="inline-check" style="margin-top:0">
+      <input id="authorization" type="checkbox" required>
+      <label for="authorization">I am authorized to recruit and post jobs on behalf of this company, and the information provided is accurate.</label>
+    </div>
+    <div id="authorization-error" class="authorization-error" role="alert" hidden>
+      Check this box before finishing setup.
+    </div>
+  </div>
   <p class="helper">You can update these preferences later from your AI Hiring Blueprint.</p>
 </div>
 
@@ -400,7 +430,8 @@ function saveDraft(){
     ein:document.getElementById('ein').value,
     company_voice:[...selectedVoices],
     company_priorities:getRanking('company-priorities'),
-    candidate_priorities:getRanking('candidate-priorities')
+    candidate_priorities:getRanking('candidate-priorities'),
+    authorized:document.getElementById('authorization').checked
   };
   localStorage.setItem(DRAFT_KEY,JSON.stringify(draft));
 }
@@ -419,6 +450,7 @@ function restoreDraft(){
   document.getElementById('has-dba').checked=!!draft.has_dba;
   document.getElementById('dba-name').value=draft.dba_name||'';
   document.getElementById('ein').value=draft.ein||'';
+  document.getElementById('authorization').checked=!!draft.authorized;
 
   dbaField.classList.toggle('show',!!draft.has_dba);
   dbaName.required=!!draft.has_dba;
@@ -582,7 +614,16 @@ function setupCitySuggestions(){
 }
 
 function setupSuggestions(inputId,boxId,values){const input=document.getElementById(inputId),box=document.getElementById(boxId);function close(){box.classList.remove('show');box.innerHTML=''}function render(){const q=input.value.trim().toLowerCase();if(q.length<2)return close();const matches=values.filter(v=>v.toLowerCase().includes(q)).slice(0,8);if(!matches.length)return close();box.innerHTML=matches.map(v=>`<button class="suggestion" type="button" data-value="${escapeHtml(v)}">${escapeHtml(v)}</button>`).join('');box.classList.add('show')}input.addEventListener('input',render);box.addEventListener('click',e=>{const b=e.target.closest('.suggestion');if(!b)return;input.value=b.dataset.value;close();input.focus()});document.addEventListener('click',e=>{if(!e.target.closest('.suggest-wrap'))close()});input.addEventListener('keydown',e=>{if(e.key==='Escape')close()})}
-function validateCurrent(){if(current===1){for(const field of steps[current].querySelectorAll('input[required],select[required]')){if(!field.checkValidity()){field.reportValidity();return false}}const websiteField=document.getElementById('website');try{const url=new URL(/^https?:\/\//i.test(websiteField.value.trim())?websiteField.value.trim():'https://'+websiteField.value.trim());const host=url.hostname.toLowerCase().replace(/^www\./,'');const labels=host.split('.');if(labels.length<2||!labels.every(l=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(l))||!/^[a-z]{2,63}$/i.test(labels.at(-1)))throw new Error();url.hash='';websiteField.value=url.toString()}catch{websiteField.focus();showMessage('Enter a complete business website, such as https://yourcompany.com.');return false}const phone=document.getElementById('business-phone').value.replace(/\D/g,'');if(phone.length<10){showMessage('Enter a valid business phone number.');return false}const ein=document.getElementById('ein').value.replace(/\D/g,'');if(!/^\d{9}$/.test(ein)){showMessage('Enter a valid 9-digit EIN.');return false}if(document.getElementById('has-dba').checked&&!document.getElementById('dba-name').value.trim()){showMessage('Enter the DBA or trade name.');return false}}if(current===2&&selectedVoices.size===0){showMessage('Choose at least one Company Voice.');return false}if(current===5&&!document.getElementById('authorization').checked){showMessage('Confirm that you are authorized to recruit for this company.');return false}return true}
+function validateCurrent(){if(current===1){for(const field of steps[current].querySelectorAll('input[required],select[required]')){if(!field.checkValidity()){field.reportValidity();return false}}const websiteField=document.getElementById('website');try{const url=new URL(/^https?:\/\//i.test(websiteField.value.trim())?websiteField.value.trim():'https://'+websiteField.value.trim());const host=url.hostname.toLowerCase().replace(/^www\./,'');const labels=host.split('.');if(labels.length<2||!labels.every(l=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(l))||!/^[a-z]{2,63}$/i.test(labels.at(-1)))throw new Error();url.hash='';websiteField.value=url.toString()}catch{websiteField.focus();showMessage('Enter a complete business website, such as https://yourcompany.com.');return false}const phone=document.getElementById('business-phone').value.replace(/\D/g,'');if(phone.length<10){showMessage('Enter a valid business phone number.');return false}const ein=document.getElementById('ein').value.replace(/\D/g,'');if(!/^\d{9}$/.test(ein)){showMessage('Enter a valid 9-digit EIN.');return false}if(document.getElementById('has-dba').checked&&!document.getElementById('dba-name').value.trim()){showMessage('Enter the DBA or trade name.');return false}}if(current===2&&selectedVoices.size===0){showMessage('Choose at least one Company Voice.');return false}if(current===5&&!document.getElementById('authorization').checked){
+  const box=document.getElementById('authorization-box');
+  const err=document.getElementById('authorization-error');
+  box.classList.add('authorization-invalid');
+  err.hidden=false;
+  document.getElementById('authorization').focus({preventScroll:true});
+  box.scrollIntoView({behavior:'smooth',block:'center'});
+  return false
+}
+return true}
 function aiSummary(){const v=[...selectedVoices],c=getRanking('company-priorities').slice(0,3),h=getRanking('candidate-priorities').slice(0,3);return `Your company emphasizes ${joinWords(c).toLowerCase()}. Alygnn will write hiring content in a ${joinWords(v).toLowerCase()} voice while prioritizing candidates who demonstrate ${joinWords(h).toLowerCase()}.`}
 function joinWords(values){if(values.length<=1)return values[0]||'';if(values.length===2)return values.join(' and ');return values.slice(0,-1).join(', ')+', and '+values.at(-1)}
 function buildOverview(){const voices=[...selectedVoices],company=getRanking('company-priorities'),candidate=getRanking('candidate-priorities');document.getElementById('overview-voice').textContent=voices.join(' • ');document.getElementById('overview-company').innerHTML=company.slice(0,3).map(v=>`<li>${escapeHtml(v)}</li>`).join('');document.getElementById('overview-candidate').innerHTML=candidate.slice(0,3).map(v=>`<li>${escapeHtml(v)}</li>`).join('');document.getElementById('ai-summary').textContent=aiSummary()}
@@ -644,6 +685,7 @@ async function submit(){
           localStorage.setItem('alygnn_company_account_number',existingAccountNumber);
         }
         localStorage.setItem('alygnn_employer_verification_status',existingStatus);
+        localStorage.removeItem(DRAFT_KEY);
 
         if(existingStatus==='approved'){
           location.replace('app-employer-dashboard.html');
@@ -687,6 +729,7 @@ async function submit(){
       localStorage.setItem('alygnn_company_account_number',accountNumber);
     }
 
+    localStorage.removeItem(DRAFT_KEY);
     showMessage('Your company profile is saved.','success');
 
     setTimeout(()=>{
@@ -708,6 +751,17 @@ const hasDba=document.getElementById('has-dba'),dbaField=document.getElementById
 document.getElementById('ein').addEventListener('input',e=>{const d=e.target.value.replace(/\D/g,'').slice(0,9);e.target.value=d.length>2?d.slice(0,2)+'-'+d.slice(2):d});
 form.addEventListener('input',saveDraft);
 form.addEventListener('change',saveDraft);
+
+document.getElementById('authorization').addEventListener('change',event=>{
+  const box=document.getElementById('authorization-box');
+  const err=document.getElementById('authorization-error');
+  if(event.target.checked){
+    box.classList.remove('authorization-invalid');
+    err.hidden=true;
+    clearMessage();
+  }
+  saveDraft();
+});
 window.addEventListener('beforeunload',saveDraft);
 
 (async()=>{renderVoices();renderRankList('company-priorities',DEFAULT_COMPANY);renderRankList('candidate-priorities',DEFAULT_CANDIDATE);setupSuggestions('industry','industry-suggestions',INDUSTRIES);setupCitySuggestions();const{data:{session}}=await sb.auth.getSession();if(!session){location.replace('app-employer-login.html');return}document.getElementById('company-name').value=session.user.user_metadata?.company_name||'';const{data:membership,error}=await sb.from('company_members').select('company_id,companies(account_number,verification_status)').eq('user_id',session.user.id).eq('membership_status','active').limit(1).maybeSingle();if(!error&&membership?.company_id){const company=Array.isArray(membership.companies)?membership.companies[0]:membership.companies;localStorage.setItem('alygnn_company_id',membership.company_id);if(company?.account_number)localStorage.setItem('alygnn_company_account_number',company.account_number);const status=company?.verification_status||'pending_review';localStorage.setItem('alygnn_employer_verification_status',status);if(status==='approved')location.replace('app-employer-dashboard.html');else if(localStorage.getItem('alygnn_verification_document_submitted')==='true')location.replace('app-employer-verification-status.html');else location.replace('app-employer-document-upload.html')}})();
