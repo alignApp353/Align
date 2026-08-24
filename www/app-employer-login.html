@@ -9,33 +9,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-(function(){
-  const media=window.matchMedia('(prefers-color-scheme: dark)');
-
-  function applySystemTheme(){
-    const effective=media.matches?'dark':'light';
-
-    document.documentElement.dataset.effectiveTheme=effective;
-
-    const meta=document.querySelector('meta[name="theme-color"]');
-    if(meta){
-      meta.setAttribute(
-        'content',
-        effective==='dark'
-          ?'#071722'
-          :'#F6F8F7'
-      );
-    }
-  }
-
-  applySystemTheme();
-  media.addEventListener?.('change',applySystemTheme);
-})();
-</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
-:root{--brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--text:#172333;--muted:#59697A;--border:#DDE3E8;--accent:#23A968;--accent-dark:#188B52;--accent-bg:#E8F7EF;--danger:#B64040;--danger-bg:#FCEDED;--success:#18794E;--success-bg:#E8F6EE}
+:root{--brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--text:#172333;--muted:#59697A;--border:#DDE3E8;--accent:#3568C0;--accent-dark:#2857A8;--accent-bg:#EAF1FC;--danger:#B64040;--danger-bg:#FCEDED;--success:#18794E;--success-bg:#E8F6EE}
 html,body{width:100%;min-height:100%}
 body{min-height:100vh;background:radial-gradient(circle at 12% 8%,rgba(140,182,155,.13),transparent 28%),radial-gradient(circle at 90% 84%,rgba(93,127,163,.13),transparent 31%),var(--bg);color:var(--text)}
 button,input,a{font:inherit}
@@ -75,87 +51,8 @@ input::placeholder{color:#98A2AD}
 .signup{margin-top:25px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
 .signup a{color:var(--accent-dark);text-decoration:none;font-weight:900}
 .switch{margin-top:15px;text-align:center}
-.switch-btn{border:none;background:transparent;color:var(--accent-dark);font-size:12px;font-weight:900}
-
-.admin-entry{
-  margin-top:24px;
-  padding-top:20px;
-  border-top:1px solid var(--border);
-  text-align:center;
-}
-.admin-entry a{
-  color:var(--muted);
-  font-size:11px;
-  font-weight:800;
-  text-decoration:none;
-}
-
+.switch-btn{border:none;background:transparent;color:var(--brand);font-size:12px;font-weight:900}
 @media(max-height:760px){.login{justify-content:flex-start;padding-top:15px}.identity-icon{width:61px;height:61px}h1{font-size:27px;margin-top:13px}.form{margin-top:23px}.field{margin-top:13px}.input-wrap{min-height:51px}.primary{min-height:52px;margin-top:17px}.divider{margin:18px 0 11px}.social{min-height:49px;margin-top:8px}.signup{margin-top:17px}}
-
-html[data-effective-theme="dark"]{
-  --bg:#071722;
-  --text:#F4F7FA;
-  --muted:#A3B1BF;
-  --border:#2A3B49;
-  --accent:#2CB276;
-  --accent-dark:#59CC95;
-  --accent-bg:#123629;
-  --danger:#F3A4A4;
-  --danger-bg:#321D22;
-  --success:#74D5A5;
-  --success-bg:#123126;
-}
-
-html[data-effective-theme="dark"] body{
-  background:
-    radial-gradient(circle at 12% 8%,rgba(140,182,155,.10),transparent 28%),
-    radial-gradient(circle at 90% 84%,rgba(93,127,163,.10),transparent 31%),
-    var(--bg);
-}
-
-html[data-effective-theme="dark"] .back-btn,
-html[data-effective-theme="dark"] .input-wrap,
-html[data-effective-theme="dark"] .social{
-  background:#0F202C;
-  color:var(--text);
-}
-
-html[data-effective-theme="dark"] .input-wrap,
-html[data-effective-theme="dark"] .social{
-  border-color:var(--border);
-}
-
-html[data-effective-theme="dark"] .input-wrap:focus-within{
-  border-color:#59CC95;
-  box-shadow:0 0 0 4px rgba(44,178,118,.14);
-}
-
-html[data-effective-theme="dark"] .field-icon,
-html[data-effective-theme="dark"] .show-btn{
-  color:#91A3B4;
-}
-
-html[data-effective-theme="dark"] input::placeholder{
-  color:#728597;
-}
-
-html[data-effective-theme="dark"] .divider{
-  color:#778A9A;
-}
-
-html[data-effective-theme="dark"] .identity-icon{
-  color:#6FD8A2;
-  background:#103327;
-}
-
-html[data-effective-theme="dark"] .primary{
-  background:#23A968;
-}
-
-html[data-effective-theme="dark"] .back-btn{
-  box-shadow:none;
-}
-
 </style>
 </head>
 <body>
@@ -190,12 +87,9 @@ html[data-effective-theme="dark"] .back-btn{
 <button class="primary" id="sign-in-btn" type="button">Sign in</button>
 <div class="divider">or continue with</div>
 <button class="social" id="google-btn" type="button"><span class="google-mark">G</span><span>Continue with Google</span></button>
+<button class="social" id="apple-btn" type="button"><span class="apple-mark">●</span><span>Continue with Apple</span></button>
 <div class="signup">Don’t have an account? <a href="app-employer-create-account.html">Create one</a></div>
 <div class="switch"><button class="switch-btn" id="switch-btn" type="button">Switch to candidate sign in</button></div>
-<div class="admin-entry">
-  <a href="app-admin-login.html">Alygnn Admin sign in</a>
-</div>
-
 </div></section></main>
 <script>
 const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
@@ -206,13 +100,190 @@ const STATUS_PAGE='app-employer-verification-status.html';
 function showMessage(text,type){const m=document.getElementById('message');m.textContent=text;m.className='message '+type}
 function setLoading(b,l,lt,nt){b.disabled=l;b.textContent=l?lt:nt}
 function friendlyError(error){const raw=String(error?.message||'').toLowerCase();if(raw.includes('invalid login credentials')||raw.includes('invalid credentials'))return'Incorrect email or password. Please try again.';if(raw.includes('email not confirmed')||raw.includes('confirm your email'))return'Please verify your email before signing in.';if(raw.includes('fetch')||raw.includes('network')||raw.includes('failed to fetch'))return'Unable to connect. Please check your internet connection.';if(raw.includes('too many requests')||raw.includes('rate limit'))return'Too many attempts. Please wait a few minutes and try again.';return error?.message||'Unable to sign in. Please try again.'}
+function employerSetupKey(userId){
+  return `alygnn_employer_setup_complete_${userId}`;
+}
+function employerCompanyKey(userId){
+  return `alygnn_company_id_${userId}`;
+}
+function employerStatusKey(userId){
+  return `alygnn_employer_verification_status_${userId}`;
+}
+function normalizeEmployerStatus(value){
+  const status=String(value||'pending_review').toLowerCase().trim();
+  if(status==='approved')return'approved';
+  if(status==='rejected'||status==='denied')return'rejected';
+  if(status==='deactivated')return'deactivated';
+  return'pending_review';
+}
+function rememberEmployerCompany(userId,companyId,status,accountNumber=''){
+  const normalized=normalizeEmployerStatus(status);
+
+  if(companyId){
+    localStorage.setItem('alygnn_company_id',String(companyId));
+    sessionStorage.setItem('alygnn_company_id',String(companyId));
+    localStorage.setItem(employerCompanyKey(userId),String(companyId));
+  }
+
+  localStorage.setItem('alygnn_employer_verification_status',normalized);
+  localStorage.setItem(employerStatusKey(userId),normalized);
+  localStorage.setItem(employerSetupKey(userId),'true');
+
+  if(accountNumber){
+    localStorage.setItem('alygnn_company_account_number',String(accountNumber));
+  }
+}
+function routeExistingEmployer(status){
+  return normalizeEmployerStatus(status)==='approved'
+    ? TARGET_PAGE
+    : STATUS_PAGE;
+}
 async function employerDestination(userId){
-  const {data,error}=await sb.from('employer_verifications')
-    .select('blueprint_complete,verification_status')
-    .eq('user_id',userId).maybeSingle();
-  if(error){console.error(error);return ONBOARDING_PAGE}
-  if(!data||!data.blueprint_complete)return ONBOARDING_PAGE;
-  return data.verification_status==='approved'?TARGET_PAGE:STATUS_PAGE;
+  /*
+    IMPORTANT:
+    An employer is NEW only when we cannot find an existing company/workspace
+    anywhere. Do NOT use blueprint_complete as the deciding factor.
+  */
+  const {data:{session}}=await sb.auth.getSession();
+  const user=session?.user;
+
+  // 1. The verification row is a strong signal that the employer already
+  // created a company. company_id is enough to skip onboarding.
+  try{
+    const {data:verification,error}=await sb
+      .from('employer_verifications')
+      .select('company_id,blueprint_complete,verification_status')
+      .eq('user_id',userId)
+      .limit(1)
+      .maybeSingle();
+
+    if(error){
+      console.warn('Employer verification lookup failed:',error);
+    }else if(verification?.company_id || verification?.blueprint_complete){
+      const companyId=String(verification.company_id||'').trim();
+      const status=normalizeEmployerStatus(
+        verification.verification_status||'pending_review'
+      );
+
+      rememberEmployerCompany(userId,companyId,status);
+      return routeExistingEmployer(status);
+    }
+  }catch(error){
+    console.warn('Employer verification lookup threw:',error);
+  }
+
+  // 2. Ask Alygnn's server-side company resolver. This avoids browser RLS
+  // hiding an existing company from the app.
+  if(session?.access_token){
+    try{
+      const response=await fetch('https://alygnn.com/api/company/my-company',{
+        method:'GET',
+        headers:{'Authorization':'Bearer '+session.access_token}
+      });
+
+      if(response.ok){
+        const result=await response.json().catch(()=>({}));
+        const company=result.company||{};
+        const companyId=String(
+          company.id||
+          result.company_id||
+          result.companyId||
+          ''
+        ).trim();
+
+        if(companyId){
+          const status=normalizeEmployerStatus(
+            company.verificationStatus||
+            company.verification_status||
+            result.verification_status||
+            'pending_review'
+          );
+
+          const accountNumber=
+            company.accountNumber||
+            company.account_number||
+            result.account_number||
+            '';
+
+          rememberEmployerCompany(
+            userId,
+            companyId,
+            status,
+            accountNumber
+          );
+
+          return routeExistingEmployer(status);
+        }
+      }
+    }catch(error){
+      console.warn('Server company resolver failed:',error);
+    }
+  }
+
+  // 3. Direct membership fallback. Include BOTH active and pending
+  // memberships because pending verification is still an existing company.
+  try{
+    const {data:membership,error}=await sb
+      .from('company_members')
+      .select('company_id,companies(id,account_number,verification_status)')
+      .eq('user_id',userId)
+      .in('membership_status',['active','pending'])
+      .limit(1)
+      .maybeSingle();
+
+    if(error){
+      console.warn('Company membership lookup failed:',error);
+    }else if(membership?.company_id){
+      const company=Array.isArray(membership.companies)
+        ? membership.companies[0]
+        : membership.companies;
+
+      const companyId=String(membership.company_id).trim();
+      const status=normalizeEmployerStatus(
+        company?.verification_status||'pending_review'
+      );
+
+      rememberEmployerCompany(
+        userId,
+        companyId,
+        status,
+        company?.account_number||''
+      );
+
+      return routeExistingEmployer(status);
+    }
+  }catch(error){
+    console.warn('Company membership lookup threw:',error);
+  }
+
+  // 4. Account-scoped saved state / Auth metadata fallback.
+  // Never use another employer's generic browser state as proof.
+  const metadata=user?.user_metadata||{};
+  const profile=metadata.onboarding_company_profile||{};
+  const aiProfile=metadata.employer_ai_profile||{};
+
+  const savedCompanyId=String(
+    localStorage.getItem(employerCompanyKey(userId))||
+    profile.company_id||
+    aiProfile.company_id||
+    metadata.company_id||
+    ''
+  ).trim();
+
+  if(savedCompanyId){
+    const savedStatus=normalizeEmployerStatus(
+      localStorage.getItem(employerStatusKey(userId))||
+      profile.verification_status||
+      metadata.verification_status||
+      'pending_review'
+    );
+
+    rememberEmployerCompany(userId,savedCompanyId,savedStatus);
+    return routeExistingEmployer(savedStatus);
+  }
+
+  // ONLY now is this truly treated as a brand-new employer.
+  return ONBOARDING_PAGE;
 }
 async function redirectIfLoggedIn(){
   const params=new URLSearchParams(location.search);
@@ -281,11 +352,12 @@ async function signIn(){
   setTimeout(()=>location.replace(destination),450);
 }
 async function googleLogin(){showMessage('Employer Google sign-in is disabled. Sign in with your verified company email and password.','error')}
-document.getElementById('back-btn').addEventListener('click',()=>location.href='app-start.html');
+document.getElementById('back-btn').addEventListener('click',()=>location.href='index.html');
 document.getElementById('show-btn').addEventListener('click',e=>{const i=document.getElementById('password');const s=i.type==='text';i.type=s?'password':'text';e.currentTarget.textContent=s?'Show':'Hide'});
 document.getElementById('forgot-btn').addEventListener('click',()=>location.href='app-forgot-password.html');
 document.getElementById('sign-in-btn').addEventListener('click',signIn);
 document.getElementById('google-btn').addEventListener('click',googleLogin);
+document.getElementById('apple-btn').addEventListener('click',()=>showMessage('Apple sign-in is not connected yet.','error'));
 document.getElementById('switch-btn').addEventListener('click',()=>location.href=ACCOUNT_TYPE==='employer'?'app-login.html':'app-employer-login.html');
 document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')signIn()});
 redirectIfLoggedIn();
