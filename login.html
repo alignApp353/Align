@@ -294,6 +294,9 @@
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+  // Reserved for the admin console (admin-login.html) only — never a
+  // valid job seeker or employer account.
+  const ADMIN_EMAIL = 'admin@alygnn.com';
   const { createClient } = supabase;
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -374,6 +377,10 @@
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
     if (!email || !password) { showMsg('Please enter your email and password.'); return; }
+    if (email.toLowerCase() === ADMIN_EMAIL) {
+      showMsg('This email is reserved for admin access. Use Admin login below instead.');
+      return;
+    }
     hideMsg();
     const btn = document.getElementById('login-btn');
     const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Signing in…';
@@ -402,6 +409,10 @@
     const confirmPassword = document.getElementById('signup-password-confirm').value;
     const company = document.getElementById('signup-company').value.trim();
     if (!name || !email || !password || !confirmPassword) { showMsg('Please fill in all fields.'); return; }
+    if (email.toLowerCase() === ADMIN_EMAIL) {
+      showMsg('This email is reserved and cannot be used to create a job seeker or employer account.');
+      return;
+    }
     if (currentRole === 'employer' && !company) { showMsg('Please enter your company name.'); return; }
     if (password.length < 8) { showMsg('Password must be at least 8 characters.'); return; }
     if (password !== confirmPassword) { showMsg('Passwords do not match.'); return; }
@@ -564,6 +575,13 @@
     const session = await getOAuthSession();
     if (!session?.user) {
       showMsg('Google sign in did not finish. Please try again.');
+      return;
+    }
+
+    if ((session.user.email || '').toLowerCase() === ADMIN_EMAIL) {
+      await sb.auth.signOut({ scope: 'local' });
+      switchTab('login');
+      showMsg('This email is reserved for admin access and cannot sign in here. Use Admin login below instead.');
       return;
     }
 
