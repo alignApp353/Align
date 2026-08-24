@@ -94,7 +94,7 @@
   </style>
 </head>
 
-<body data-verification-status-build="99">
+<body data-verification-status-build="100">
   <main class="card">
     <div class="brand">Alygnn<span>.</span></div>
 
@@ -116,6 +116,14 @@
         <strong id="company">Checking…</strong>
       </div>
       <div class="row">
+        <span>Company ID</span>
+        <strong id="company-id">Checking…</strong>
+      </div>
+      <div class="row">
+        <span>Account</span>
+        <strong id="account-number">Checking…</strong>
+      </div>
+      <div class="row">
         <span>Verification document</span>
         <strong id="document-status">Checking…</strong>
       </div>
@@ -123,8 +131,8 @@
 
     <div class="notice">
       <h2>Your setup is saved.</h2>
-      <p>
-        You do not need to complete employer setup again. Check back here for your verification status.
+      <p id="notice-copy">
+        You do not need to complete employer setup again. You can keep building your Company AI Profile and employer workspace while verification is pending.
       </p>
     </div>
 
@@ -142,20 +150,36 @@ const sb = supabase.createClient(
   {auth:{persistSession:true,autoRefreshToken:true}}
 );
 
-const $ = id => document.getElementById(id);
+const $=id=>document.getElementById(id);
+let currentStatus='pending_review';
+let companyId='';
+let accountNumber='';
+let currentUserId='';
 
-let currentStatus = 'pending_review';
-let companyId = '';
-let currentUserId = '';
+function setupCompleteKey(userId){return `alygnn_employer_setup_complete_${userId}`}
+function companyIdKey(userId){return `alygnn_company_id_${userId}`}
+function verificationStatusKey(userId){return `alygnn_employer_verification_status_${userId}`}
 
-function setupCompleteKey(userId){
-  return `alygnn_employer_setup_complete_${userId}`;
+function normalizeStatus(value){
+  const status=String(value||'').toLowerCase().trim();
+  if(status==='approved')return'approved';
+  if(status==='rejected'||status==='denied')return'rejected';
+  if(status==='deactivated')return'deactivated';
+  return'pending_review';
 }
-function companyIdKey(userId){
-  return `alygnn_company_id_${userId}`;
+function formatStatus(value){
+  const status=normalizeStatus(value);
+  if(status==='approved')return'Business Verified';
+  if(status==='rejected')return'Verification Needs Attention';
+  if(status==='deactivated')return'Account Deactivated';
+  return'Pending Business Verification';
 }
-function verificationStatusKey(userId){
-  return `alygnn_employer_verification_status_${userId}`;
+function formatDocumentStatus(value){
+  const status=String(value||'').toLowerCase().trim();
+  if(status==='approved')return'Approved';
+  if(status==='rejected'||status==='denied')return'Rejected';
+  if(status==='pending_review'||status==='pending')return'Pending Review';
+  return status?status.replaceAll('_',' '):'Submitted';
 }
 function saveStatusState(status){
   const normalized=normalizeStatus(status);
@@ -164,153 +188,121 @@ function saveStatusState(status){
     localStorage.setItem(verificationStatusKey(currentUserId),normalized);
     localStorage.setItem(setupCompleteKey(currentUserId),'true');
   }
-  if(companyId && currentUserId){
-    localStorage.setItem(companyIdKey(currentUserId),companyId);
+  if(companyId){
+    localStorage.setItem('alygnn_company_id',companyId);
+    sessionStorage.setItem('alygnn_company_id',companyId);
+    if(currentUserId)localStorage.setItem(companyIdKey(currentUserId),companyId);
   }
+  if(accountNumber)localStorage.setItem('alygnn_company_account_number',accountNumber);
 }
-
-function normalizeStatus(value){
-  const status = String(value || '').toLowerCase().trim();
-  if(status === 'approved') return 'approved';
-  if(status === 'rejected' || status === 'denied') return 'rejected';
-  return 'pending_review';
-}
-
-function formatStatus(value){
-  const status = normalizeStatus(value);
-  if(status === 'approved') return 'Business Verified';
-  if(status === 'rejected') return 'Verification Needs Attention';
-  return 'Pending Business Verification';
-}
-
 function applyStatus(){
-  $('status').textContent = formatStatus(currentStatus);
+  $('status').textContent=formatStatus(currentStatus);
   saveStatusState(currentStatus);
 
-  // The verification page is always the checkpoint first.
-  // From here the employer chooses what to do next.
-  $('primary').textContent = 'Build Company AI Profile';
-  $('primary').onclick = () => {
-    sessionStorage.setItem(
-      'alygnnAiProfileReturnTo',
-      'app-employer-verification-status.html'
-    );
-    location.href =
-      'app-employer-ai-profile.html?return_to='+
-      encodeURIComponent('app-employer-verification-status.html');
+  $('primary').hidden=false;
+  $('primary').textContent='Build Company AI Profile';
+  $('primary').onclick=()=>{
+    sessionStorage.setItem('alygnnAiProfileReturnTo','app-employer-verification-status.html');
+    location.href='app-employer-ai-profile.html?return_to='+encodeURIComponent('app-employer-verification-status.html');
   };
 
-  $('workspace').hidden = false;
-  $('workspace').textContent = 'Open Employer Dashboard';
-  $('workspace').onclick = () => location.href='app-employer-dashboard.html';
+  $('workspace').hidden=false;
+  $('workspace').textContent='Open Employer Dashboard';
+  $('workspace').onclick=()=>location.href='app-employer-dashboard.html?from=verification-status';
+  $('verification-action').hidden=true;
 
-  $('verification-action').hidden = true;
-
-  if(currentStatus === 'approved'){
-    $('icon').textContent = '✓';
-    $('badge').textContent = 'Business Verified';
-    $('badge').style.background = '#E8F6EE';
-    $('badge').style.color = '#18794E';
-    $('title').textContent = 'Your business is approved.';
-    $('copy').textContent =
-      'Your business verification is complete. You can build or edit your Company AI Profile, then continue to your employer workspace.';
+  if(currentStatus==='approved'){
+    $('icon').textContent='✓';
+    $('badge').textContent='Business Verified';
+    $('badge').style.background='#E8F6EE';
+    $('badge').style.color='#18794E';
+    $('title').textContent='Your business is approved.';
+    $('copy').textContent='Your business verification is complete. You can continue building your company profile or open your employer workspace.';
+    $('notice-copy').textContent='Your company is verified. Your Company ID and Alygnn account number stay connected to this employer workspace.';
     return;
   }
-
-  if(currentStatus === 'rejected'){
-    $('icon').textContent = '!';
-    $('badge').textContent = 'Verification Needs Attention';
-    $('title').textContent = 'Your verification needs attention.';
-    $('copy').textContent =
-      'Your company setup is saved. Update the requested verification document, then check your status again.';
-    $('verification-action').hidden = false;
-    $('verification-action').textContent = 'Upload New Verification Document';
-    $('verification-action').onclick = () => {
-      const suffix = companyId ? `?company_id=${encodeURIComponent(companyId)}` : '';
+  if(currentStatus==='rejected'){
+    $('icon').textContent='!';
+    $('badge').textContent='Verification Needs Attention';
+    $('badge').style.background='#FCEDED';
+    $('badge').style.color='#B64040';
+    $('title').textContent='Your verification needs attention.';
+    $('copy').textContent='Your company setup is saved. Upload the requested verification document, then check your status again.';
+    $('notice-copy').textContent='Your employer workspace remains saved while you correct the verification issue.';
+    $('verification-action').hidden=false;
+    $('verification-action').textContent='Upload New Verification Document';
+    $('verification-action').onclick=()=>{
+      const suffix=companyId?`?company_id=${encodeURIComponent(companyId)}`:'';
       location.href='app-employer-document-upload.html'+suffix;
     };
     return;
   }
+  if(currentStatus==='deactivated'){
+    $('icon').textContent='!';
+    $('badge').textContent='Account Deactivated';
+    $('badge').style.background='#F3EBF7';
+    $('badge').style.color='#67407C';
+    $('title').textContent='Your employer account is deactivated.';
+    $('copy').textContent='This company workspace is currently deactivated. Contact Alygnn support if you believe this is a mistake.';
+    $('notice-copy').textContent='Your saved company information has not been deleted.';
+    $('primary').hidden=true;
+    $('workspace').hidden=true;
+    return;
+  }
 
-  $('icon').textContent = '⌛';
-  $('badge').textContent = 'Pending Business Verification';
-  $('title').textContent = 'Your business is under review.';
-  $('copy').textContent =
-    'Alygnn is reviewing your company. Your setup is saved, and you can build your Company AI Profile while you wait.';
+  $('icon').textContent='⌛';
+  $('badge').textContent='Pending Business Verification';
+  $('badge').style.background='#FFF5DE';
+  $('badge').style.color='#9A6500';
+  $('title').textContent='Your business is under review.';
+  $('copy').textContent='Alygnn is reviewing your company. You can keep building your Company AI Profile and employer workspace while you wait.';
+  $('notice-copy').textContent='Pending verification does not block setup. You can build your company page and draft jobs; jobs stay private until approval.';
 }
 
+async function getVerificationRecord(userId){
+  const {data,error}=await sb.from('employer_verifications')
+    .select('user_id,company_id,company_name,verification_status,updated_at')
+    .eq('user_id',userId).maybeSingle();
+  if(error){console.warn('employer_verifications lookup failed:',error);return null}
+  return data||null;
+}
 async function getMembershipCompany(userId){
-  const {data, error} = await sb
-    .from('company_members')
-    .select('company_id,companies(id,legal_name,company_name,verification_status)')
-    .eq('user_id', userId)
-    .eq('membership_status', 'active')
-    .limit(1)
-    .maybeSingle();
-
-  if(error){
-    console.warn('company_members lookup failed:', error);
-    return null;
-  }
-  return data || null;
+  const {data,error}=await sb.from('company_members')
+    .select('company_id,companies(id,legal_name,company_name,account_number,verification_status,account_status)')
+    .eq('user_id',userId).in('membership_status',['active','pending']).limit(1).maybeSingle();
+  if(error){console.warn('company_members lookup failed:',error);return null}
+  return data||null;
 }
-
 async function getCompanyById(id){
-  if(!id) return null;
-
-  const {data, error} = await sb
-    .from('companies')
-    .select('id,legal_name,company_name,verification_status')
-    .eq('id', id)
-    .maybeSingle();
-
-  if(error){
-    console.warn('company lookup failed:', error);
-    return null;
-  }
-  return data || null;
+  if(!id)return null;
+  const {data,error}=await sb.from('companies')
+    .select('id,legal_name,company_name,account_number,verification_status,account_status')
+    .eq('id',id).maybeSingle();
+  if(error){console.warn('company lookup failed:',error);return null}
+  return data||null;
 }
-
 async function loadDocumentStatus(id){
   const verificationButton=$('verification-action');
-
   if(!id){
-    $('document-status').textContent =
-      localStorage.getItem('alygnn_verification_document_submitted')==='true'
-        ? 'Submitted'
-        : 'Checking…';
+    $('document-status').textContent=localStorage.getItem('alygnn_verification_document_submitted')==='true'?'Submitted':'Not submitted';
     return;
   }
-
-  const {data, error} = await sb
-    .from('employer_verification_documents')
-    .select('review_status')
-    .eq('company_id', id)
-    .order('created_at', {ascending:false})
-    .limit(1)
-    .maybeSingle();
-
+  const {data,error}=await sb.from('employer_verification_documents')
+    .select('review_status,created_at').eq('company_id',id)
+    .order('created_at',{ascending:false}).limit(1).maybeSingle();
   if(error){
-    console.warn('verification document lookup failed:', error);
-    $('document-status').textContent =
-      localStorage.getItem('alygnn_verification_document_submitted')==='true'
-        ? 'Submitted'
-        : 'Unable to check';
+    console.warn('verification document lookup failed:',error);
+    $('document-status').textContent=localStorage.getItem('alygnn_verification_document_submitted')==='true'?'Submitted':'Unable to check';
     return;
   }
-
   if(data){
-    $('document-status').textContent = formatStatus(data.review_status);
+    $('document-status').textContent=formatDocumentStatus(data.review_status);
     localStorage.setItem('alygnn_verification_document_submitted','true');
     return;
   }
-
-  const wasSubmitted =
-    localStorage.getItem('alygnn_verification_document_submitted')==='true';
-
-  $('document-status').textContent = wasSubmitted ? 'Submitted' : 'Not submitted';
-
-  if(!wasSubmitted && currentStatus!=='approved'){
+  const wasSubmitted=localStorage.getItem('alygnn_verification_document_submitted')==='true';
+  $('document-status').textContent=wasSubmitted?'Submitted':'Not submitted';
+  if(!wasSubmitted&&currentStatus!=='approved'){
     verificationButton.hidden=false;
     verificationButton.textContent='Upload Verification Document';
     verificationButton.onclick=()=>{
@@ -320,77 +312,54 @@ async function loadDocumentStatus(id){
   }
 }
 
-async function load(){
-  const {data:{session}} = await sb.auth.getSession();
+async function load({manual=false}={}){
+  const refreshButton=$('refresh');
+  if(manual){refreshButton.disabled=true;refreshButton.textContent='Checking…'}
+  try{
+    await sb.auth.refreshSession().catch(()=>{});
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session){location.replace('app-employer-login.html');return}
 
-  if(!session){
-    location.replace('app-employer-login.html');
-    return;
+    currentUserId=session.user.id;
+    const metadata=session.user.user_metadata||{};
+    const setupMeta=metadata.onboarding_company_profile||{};
+
+    const storedCompanyId=localStorage.getItem(companyIdKey(currentUserId))||
+      localStorage.getItem('alygnn_company_id')||sessionStorage.getItem('alygnn_company_id')||setupMeta.company_id||'';
+    const storedStatus=localStorage.getItem(verificationStatusKey(currentUserId))||
+      localStorage.getItem('alygnn_employer_verification_status')||'pending_review';
+
+    const verification=await getVerificationRecord(currentUserId);
+    const membership=await getMembershipCompany(currentUserId);
+    let company=membership?(Array.isArray(membership.companies)?membership.companies[0]:membership.companies):null;
+
+    companyId=String(verification?.company_id||membership?.company_id||storedCompanyId||'').trim();
+    if(!company&&companyId)company=await getCompanyById(companyId);
+
+    accountNumber=String(company?.account_number||localStorage.getItem('alygnn_company_account_number')||'').trim();
+
+    // Same source the admin review backend updates = freshest verification state.
+    currentStatus=normalizeStatus(verification?.verification_status||company?.verification_status||storedStatus);
+    if(String(company?.account_status||'').toLowerCase()==='deactivated')currentStatus='deactivated';
+
+    const companyName=String(verification?.company_name||company?.company_name||company?.legal_name||
+      setupMeta.company_name||metadata.company_name||'Your company').trim();
+
+    $('company').textContent=companyName||'Your company';
+    $('company-id').textContent=companyId||'Not available';
+    $('account-number').textContent=accountNumber||'Not available';
+
+    localStorage.setItem(setupCompleteKey(currentUserId),'true');
+    saveStatusState(currentStatus);
+    applyStatus();
+    await loadDocumentStatus(companyId);
+  }finally{
+    if(manual){refreshButton.disabled=false;refreshButton.textContent='Check Verification Status'}
   }
-
-  currentUserId=session.user.id;
-
-  const localCompanyId =
-    localStorage.getItem(companyIdKey(currentUserId)) ||
-    localStorage.getItem('alygnn_company_id') ||
-    sessionStorage.getItem('alygnn_company_id') ||
-    '';
-
-  const localStatus =
-    localStorage.getItem(verificationStatusKey(currentUserId)) ||
-    localStorage.getItem('alygnn_employer_verification_status') ||
-    'pending_review';
-
-  companyId=localCompanyId;
-  currentStatus=normalizeStatus(localStatus);
-
-  let company=null;
-  const membership=await getMembershipCompany(currentUserId);
-
-  if(membership?.company_id){
-    companyId=membership.company_id;
-    company=Array.isArray(membership.companies)
-      ? membership.companies[0]
-      : membership.companies;
-
-    localStorage.setItem('alygnn_company_id',companyId);
-    localStorage.setItem(companyIdKey(currentUserId),companyId);
-    sessionStorage.setItem('alygnn_company_id',companyId);
-
-    currentStatus=normalizeStatus(
-      company?.verification_status || currentStatus
-    );
-  }else if(companyId){
-    company=await getCompanyById(companyId);
-    if(company?.verification_status){
-      currentStatus=normalizeStatus(company.verification_status);
-    }
-  }
-
-  localStorage.setItem(setupCompleteKey(currentUserId),'true');
-
-  if(company){
-    $('company').textContent =
-      company.legal_name ||
-      company.company_name ||
-      'Your company';
-  }else{
-    // Do NOT bounce back to Employer Setup. A just-created company may take
-    // a moment to appear through the membership relation.
-    $('company').textContent='Your company';
-  }
-
-  applyStatus();
-  await loadDocumentStatus(companyId);
 }
 
-$('refresh').onclick = load;
-
-$('signout').onclick = async () => {
-  await sb.auth.signOut();
-  location.replace('app-employer-login.html?logout=1');
-};
-
+$('refresh').onclick=()=>load({manual:true});
+$('signout').onclick=async()=>{await sb.auth.signOut();location.replace('app-employer-login.html?logout=1')};
 load();
 </script>
 </body>
