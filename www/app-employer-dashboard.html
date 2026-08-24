@@ -996,6 +996,82 @@
     .settings-copy strong{display:block;font-size:12px}
     .settings-copy small{display:block;margin-top:3px;color:var(--muted);font-size:9px;font-weight:700}
     .section-kicker{margin-top:19px;color:var(--muted);font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase}
+    .ai-profile-card{
+      margin:18px 0 20px;padding:19px;border:1px solid rgba(93,127,163,.28);
+      border-radius:22px;background:linear-gradient(145deg,#F5FAFF,#FFFFFF);
+      box-shadow:0 12px 34px rgba(52,95,145,.08)
+    }
+    .ai-profile-card[hidden]{display:none!important}
+    .ai-profile-top{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}
+    .ai-profile-kicker{color:var(--brand-dark);font-size:10px;font-weight:900;letter-spacing:.9px;text-transform:uppercase}
+    .ai-profile-title{margin-top:6px;color:var(--text);font-size:18px;font-weight:900;line-height:1.2}
+    .ai-profile-percent{color:var(--brand-dark);font-size:18px;font-weight:900;white-space:nowrap}
+    .ai-profile-copy{margin-top:8px;color:var(--muted);font-size:11px;font-weight:600;line-height:1.55}
+    .ai-profile-progress{height:8px;margin-top:14px;border-radius:999px;background:#E1E8EF;overflow:hidden}
+    .ai-profile-progress span{display:block;height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,#396A9E,#8CB69B);transition:width .25s ease}
+    .ai-profile-action{
+      width:100%;margin-top:14px;padding:13px 16px;border:0;border-radius:14px;
+      background:var(--brand-dark);color:#fff;font-size:12px;font-weight:900
+    }
+    html[data-theme="dark"] .ai-profile-card{
+      background:linear-gradient(145deg,#111E2C,#0E1823);
+      border-color:rgba(140,182,155,.25)
+    }
+
+    .company-edit-modal{
+      position:fixed;inset:0;z-index:120;display:flex;align-items:flex-end;
+      justify-content:center;background:rgba(8,17,27,.58);backdrop-filter:blur(8px)
+    }
+    .company-edit-modal[hidden]{display:none!important}
+    .company-edit-sheet{
+      width:100%;max-width:720px;max-height:92vh;overflow:auto;
+      padding:22px 20px calc(22px + env(safe-area-inset-bottom));
+      border-radius:28px 28px 0 0;background:var(--card);
+      border:1px solid var(--border);box-shadow:0 -22px 70px rgba(10,24,38,.22)
+    }
+    .company-edit-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+    .company-edit-head h2{font-size:22px;font-weight:900;color:var(--text)}
+    .company-edit-head p{margin-top:5px;color:var(--muted);font-size:11px;line-height:1.5}
+    .company-edit-close{
+      width:38px;height:38px;border:1px solid var(--border);border-radius:50%;
+      background:var(--card);color:var(--text);font-size:20px;font-weight:800
+    }
+    .company-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:18px}
+    .company-edit-field{display:flex;flex-direction:column;gap:7px}
+    .company-edit-field.full{grid-column:1/-1}
+    .company-edit-field label{
+      color:var(--text);font-size:11px;font-weight:900;letter-spacing:.2px
+    }
+    .company-edit-field input,.company-edit-field textarea{
+      width:100%;border:1px solid var(--border);border-radius:15px;
+      background:var(--card);color:var(--text);font:inherit;font-size:13px;
+      padding:13px 14px;outline:none
+    }
+    .company-edit-field textarea{min-height:112px;resize:vertical;line-height:1.55}
+    .company-edit-field input:focus,.company-edit-field textarea:focus{
+      border-color:var(--brand-dark);box-shadow:0 0 0 3px rgba(52,95,145,.11)
+    }
+    .company-edit-note{margin-top:7px;color:var(--muted);font-size:10px;line-height:1.45}
+    .company-edit-message{
+      margin-top:14px;padding:12px 14px;border-radius:13px;
+      background:#FCEDED;color:#B64040;font-size:11px;font-weight:800
+    }
+    .company-edit-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:11px;margin-top:18px}
+    .company-edit-actions button{min-height:48px}
+    .company-edit-actions .secondary-btn{background:#FFFFFF!important;color:#172333!important;border-color:#DDE3E8!important}
+    #preview-career-page{
+      background:#FFFFFF!important;
+      color:#172333!important;
+      border-color:#DDE3E8!important;
+      -webkit-text-fill-color:#172333!important;
+      opacity:1!important;
+    }
+    .locked-company-name{background:rgba(127,145,164,.10)!important;color:var(--muted)!important;cursor:not-allowed}
+    .locked-field-note{margin-top:7px;color:var(--muted);font-size:10px;line-height:1.45}
+    @media(max-width:520px){
+      .company-edit-grid{grid-template-columns:1fr}
+      .company-edit-field.full{grid-column:auto}
+    }
     .sheet-panel.wide{max-height:94vh}
     .resume-preview{
       margin-top:11px;padding:15px;border:1px dashed var(--border);border-radius:15px;
@@ -1038,15 +1114,24 @@
           <p id="dashboard-message">Let’s build your team.</p>
         </div>
 
+        <section class="ai-profile-card" id="ai-profile-card" hidden>
+          <div class="ai-profile-top">
+            <div>
+              <div class="ai-profile-kicker">Company AI Profile</div>
+              <div class="ai-profile-title">Finish setting up how Alygnn hires for your company.</div>
+            </div>
+            <div class="ai-profile-percent" id="ai-profile-percent">0%</div>
+          </div>
+          <p class="ai-profile-copy" id="ai-profile-copy">Start your Company AI Profile to personalize hiring content and candidate matching.</p>
+          <div class="ai-profile-progress" id="ai-profile-progress" aria-label="Company AI Profile 0 percent complete"><span id="ai-profile-progress-fill"></span></div>
+          <button class="ai-profile-action" id="complete-ai-profile" type="button">Start Company AI Profile</button>
+        </section>
+
         <section class="hero-card">
           <div class="hero-top">
             <div>
               <div class="hero-label">Hiring snapshot</div>
               <div class="hero-title" id="hero-title">Your hiring activity is ready for review.</div>
-            </div>
-            <div class="hero-score">
-              <strong id="hero-score">—</strong>
-              <span>Avg. score</span>
             </div>
           </div>
           <div class="hero-actions">
@@ -1074,23 +1159,6 @@
             </div>
           </button>
 
-          <button class="metric" type="button">
-            <div class="metric-icon calendar">□</div>
-            <div>
-              <div class="metric-label">Today’s Interviews</div>
-              <div class="metric-value" id="interviews-today">0</div>
-              <div class="metric-note" id="interview-note">Nothing scheduled</div>
-            </div>
-          </button>
-
-          <button class="metric" type="button">
-            <div class="metric-icon hired">✓</div>
-            <div>
-              <div class="metric-label">Recent Hires</div>
-              <div class="metric-value" id="hired-month">0</div>
-              <div class="metric-note" id="hired-note">Track hires here</div>
-            </div>
-          </button>
         </div>
 
         <section class="section">
@@ -1099,14 +1167,6 @@
             <button class="section-link" data-view="jobs" type="button">View all</button>
           </div>
           <div id="dashboard-jobs"></div>
-        </section>
-
-        <section class="section">
-          <div class="section-head">
-            <h2 class="section-title">Best Fits</h2>
-            <button class="section-link" data-view="applicants" type="button">View all</button>
-          </div>
-          <div id="best-fits"></div>
         </section>
 
         <section class="section">
@@ -1263,6 +1323,64 @@
     </main>
   </div>
 
+  <div class="company-edit-modal" id="company-edit-modal" hidden>
+    <section class="company-edit-sheet" role="dialog" aria-modal="true" aria-labelledby="company-edit-title">
+      <div class="company-edit-head">
+        <div>
+          <h2 id="company-edit-title">Edit Company</h2>
+          <p>Update the information candidates see on your company profile.</p>
+        </div>
+        <button class="company-edit-close" id="close-company-editor" type="button" aria-label="Close">×</button>
+      </div>
+
+      <div class="company-edit-grid">
+        <div class="company-edit-field full">
+          <label for="edit-company-name">Company name</label>
+          <input class="locked-company-name" id="edit-company-name" type="text" readonly aria-readonly="true">
+          <div class="locked-field-note">Company names are locked after the workspace is created.</div>
+        </div>
+
+        <div class="company-edit-field">
+          <label for="edit-company-industry">Industry</label>
+          <input id="edit-company-industry" type="text" maxlength="120" placeholder="Business consulting">
+        </div>
+
+        <div class="company-edit-field">
+          <label for="edit-company-size">Company size</label>
+          <input id="edit-company-size" type="text" maxlength="80" placeholder="11–50 employees">
+        </div>
+
+        <div class="company-edit-field">
+          <label for="edit-company-location">Headquarters</label>
+          <input id="edit-company-location" type="text" maxlength="160" placeholder="Raleigh, NC">
+        </div>
+
+        <div class="company-edit-field">
+          <label for="edit-company-website">Website</label>
+          <input id="edit-company-website" type="url" maxlength="240" placeholder="https://company.com">
+        </div>
+
+        <div class="company-edit-field full">
+          <label for="edit-company-about">About the company</label>
+          <textarea id="edit-company-about" maxlength="2500" placeholder="Describe what your company does and what makes it different."></textarea>
+        </div>
+
+        <div class="company-edit-field full">
+          <label for="edit-company-benefits">Benefits &amp; culture</label>
+          <input id="edit-company-benefits" type="text" maxlength="600" placeholder="Paid training, flexible schedule, career advancement">
+          <div class="company-edit-note">Separate each benefit with a comma.</div>
+        </div>
+      </div>
+
+      <div class="company-edit-message" id="company-edit-message" hidden></div>
+
+      <div class="company-edit-actions">
+        <button class="secondary-btn" id="cancel-company-edit" type="button">Cancel</button>
+        <button class="primary-btn" id="save-company-edit" type="button">Save Changes</button>
+      </div>
+    </section>
+  </div>
+
   <nav class="bottom-nav" aria-label="Employer navigation">
     <button class="nav-item active" data-view="dashboard" type="button"><span class="nav-icon">▦</span><span>Dashboard</span></button>
     <button class="nav-item" data-view="jobs" type="button"><span class="nav-icon">▣</span><span>Jobs</span></button>
@@ -1400,12 +1518,17 @@
 
     const state = {
       session:null,
+      currentUser:null,
       jobs:[],
       applications:[],
       profiles:new Map(),
+      employerVerification:null,
+      companyRecord:null,
       activeCandidate:null,
       activeProfile:null,
-      currentView:'dashboard'
+      currentView:'dashboard',
+      aiProfileComplete:false,
+      verificationStatus:'pending_review'
     };
 
     const THEME_STORAGE_KEY = 'alygnnEmployerTheme';
@@ -1524,10 +1647,48 @@
         education:firstValue(profile.education,profile.highest_education,application.education),
         summary:firstValue(profile.professional_summary,profile.summary,profile.bio,profile.about,application.summary),
         skills:normalizeList(firstValue(profile.skills,profile.skill_list,profile.top_skills,application.skills)),
-        resumeUrl:firstValue(profile.resume_url,profile.resume_file_url,profile.resume_path,application.resume_url,application.resume_path),
+        resumeUrl:firstValue(profile.resume_url,profile.resume_file_url,application.resume_url),
+        resumePath:firstValue(
+          profile.resume_file_path,
+          profile.resume_path,
+          application.resume_file_path,
+          application.resume_path
+        ),
+        resumeData:firstValue(profile.resume_data,application.resume_data),
         resumeText:firstValue(profile.resume_text,profile.resume_content,application.resume_text)
       };
     };
+
+    function isWebUrl(value){
+      return /^https?:\/\//i.test(String(value || '').trim());
+    }
+
+    async function resolveCandidateResumeUrl(data){
+      if(!data) return '';
+
+      if(data.resumeUrl && isWebUrl(data.resumeUrl)){
+        return String(data.resumeUrl);
+      }
+
+      const storagePath = String(
+        data.resumePath ||
+        (!isWebUrl(data.resumeUrl) ? data.resumeUrl : '') ||
+        ''
+      ).trim();
+
+      if(!storagePath) return '';
+
+      const { data:signed, error } = await sb.storage
+        .from('resumes')
+        .createSignedUrl(storagePath,300);
+
+      if(error || !signed?.signedUrl){
+        console.error('Unable to create employer resume link:',error);
+        return '';
+      }
+
+      return signed.signedUrl;
+    }
 
     function provisionalScore(application){
       const stored = Number(application.match_score || application.alygnn_score || 0);
@@ -1582,6 +1743,16 @@
       requestAnimationFrame(() => view?.classList.add('enter'));
       window.scrollTo({top:0,behavior:'smooth'});
       renderAll();
+
+      if(name==='jobs'){
+        refreshJobsView();
+      }
+
+      if(name==='company'){
+        refreshCompanyProfile().catch(error=>{
+          console.error('Company profile refresh failed:',error);
+        });
+      }
     }
 
     function greeting(){
@@ -1604,19 +1775,10 @@
     }
 
     function renderHero(){
-      const scored = state.applications
-        .map(application => Number(application.match_score || application.alygnn_score || 0))
-        .filter(score => score > 0);
-
-      const average = scored.length
-        ? Math.round(scored.reduce((total,score) => total + score,0) / scored.length)
-        : 0;
-
       const fresh = state.applications.filter(application =>
         ['new','applied','pending'].includes(String(application.status || 'new').toLowerCase())
       ).length;
 
-      els.heroScore.textContent = average || '—';
       els.heroTitle.textContent = fresh
         ? `${fresh} candidate${fresh === 1 ? '' : 's'} waiting for your review.`
         : state.jobs.length
@@ -1637,38 +1799,19 @@
         ['new','applied','pending'].includes(String(application.status || 'new').toLowerCase())
       ).length;
 
-      const interviews = state.applications.filter(application => {
-        const status = String(application.status || '').toLowerCase();
-        const interviewDate = new Date(
-          application.interview_at ||
-          application.interview_date ||
-          application.updated_at
-        );
-
-        return status.includes('interview') &&
-          !Number.isNaN(interviewDate.getTime()) &&
-          interviewDate.toDateString() === new Date().toDateString();
-      }).length;
-
-      const now = new Date();
-      const hired = state.applications.filter(application => {
-        const status = String(application.status || '').toLowerCase();
-        const hiredDate = new Date(application.hired_at || application.updated_at);
-
-        return status.includes('hire') &&
-          !Number.isNaN(hiredDate.getTime()) &&
-          hiredDate.getMonth() === now.getMonth() &&
-          hiredDate.getFullYear() === now.getFullYear();
-      }).length;
-
       els.activeJobs.textContent = active;
       els.pausedJobs.textContent = paused + ' paused';
-      els.newApplicants.textContent = fresh;
-      els.applicantNote.textContent = fresh ? fresh + ' waiting for review' : 'No new activity';
-      els.interviewsToday.textContent = interviews;
-      els.interviewNote.textContent = interviews ? interviews + ' scheduled today' : 'Nothing scheduled';
-      els.hiredMonth.textContent = hired;
-      els.hiredNote.textContent = hired ? hired + ' this month' : 'Track hires here';
+
+      if(els.newApplicants){
+        els.newApplicants.textContent = fresh;
+      }
+
+      if(els.applicantNote){
+        els.applicantNote.textContent = fresh
+          ? fresh + ' waiting for review'
+          : 'No new activity';
+      }
+
       els.notificationCount.textContent = fresh;
       els.notificationCount.hidden = fresh === 0;
     }
@@ -1727,14 +1870,110 @@
       `;
     }
 
+    function safeJobCard(job,compact=false){
+      try{
+        const id = job?.id ?? '';
+        const title = escapeHtml(job?.title || 'Untitled position');
+        const location = escapeHtml(job?.location || job?.city || 'Location not listed');
+        const jobType = escapeHtml(job?.job_type || job?.employment_type || 'Job type not listed');
+        const statusRaw = String(job?.status || 'active').toLowerCase();
+        const status = escapeHtml(statusRaw);
+        const apps = Array.isArray(state.applications)
+          ? state.applications.filter(application =>
+              String(application?.job_id) === String(id)
+            )
+          : [];
+
+        const created = job?.created_at || job?.updated_at || '';
+        let posted = 'Recently posted';
+
+        try{
+          posted = created ? `Posted ${timeAgo(created)}` : 'Recently posted';
+        }catch(_){
+          posted = 'Recently posted';
+        }
+
+        const actionHtml = compact ? '' : `
+          <div class="job-actions">
+            <button class="mini-btn primary" data-job-action="edit" data-job-id="${escapeHtml(id)}">Edit</button>
+            <button class="mini-btn" data-job-action="${statusRaw === 'paused' ? 'activate' : 'pause'}" data-job-id="${escapeHtml(id)}">${statusRaw === 'paused' ? 'Activate' : 'Pause'}</button>
+            <button class="mini-btn danger" data-job-action="archive" data-job-id="${escapeHtml(id)}">Archive</button>
+          </div>
+        `;
+
+        return `
+          <article class="job-card" style="display:block;visibility:visible;opacity:1">
+            <div class="job-top">
+              <div style="min-width:0">
+                <div class="job-title">${title}</div>
+                <div class="job-meta">${posted}</div>
+                <div class="job-meta" style="margin-top:7px">${location} · ${jobType}</div>
+              </div>
+              <span class="status-badge ${statusClass(statusRaw)}">${status}</span>
+            </div>
+
+            <div class="job-stats">
+              <div class="job-stat"><strong>${Number(job?.views || job?.view_count || 0)}</strong><span>Views</span></div>
+              <div class="job-stat"><strong>${Number(job?.saves || job?.save_count || 0)}</strong><span>Saves</span></div>
+            </div>
+
+            ${actionHtml}
+          </article>
+        `;
+      }catch(error){
+        console.error('Could not render job card:',error,job);
+
+        return `
+          <article class="job-card" style="display:block;visibility:visible;opacity:1">
+            <div class="job-title">${escapeHtml(job?.title || 'Posted job')}</div>
+            <div class="job-meta">This job is live. Some management details could not be displayed.</div>
+          </article>
+        `;
+      }
+    }
+
     function renderJobs(){
-      const empty = '<div class="empty"><strong>No jobs yet</strong>Post your first job to begin receiving applicants.</div>';
-      els.jobsList.innerHTML = state.jobs.length
-        ? state.jobs.map(job => jobCard(job)).join('')
-        : empty;
-      els.dashboardJobs.innerHTML = state.jobs.length
-        ? state.jobs.slice(0,2).map(job => jobCard(job,true)).join('')
-        : empty;
+      const jobs = Array.isArray(state.jobs)
+        ? state.jobs.filter(Boolean)
+        : [];
+
+      const empty = `
+        <div class="empty">
+          <strong>No jobs yet</strong>
+          Post your first job to begin receiving applicants.
+        </div>
+      `;
+
+      /*
+       * Use a defensive renderer here. The Open Jobs metric can already
+       * see these records, so My Jobs should never disappear because one
+       * optional job field is missing or malformed.
+       */
+      if(els.jobsList){
+        els.jobsList.style.display='block';
+        els.jobsList.style.visibility='visible';
+        els.jobsList.style.opacity='1';
+        els.jobsList.style.minHeight=jobs.length ? '120px' : '72px';
+        els.jobsList.innerHTML = jobs.length
+          ? jobs.map(job => safeJobCard(job,false)).join('')
+          : empty;
+      }
+
+      if(els.dashboardJobs){
+        els.dashboardJobs.innerHTML = jobs.length
+          ? jobs.slice(0,2).map(job => safeJobCard(job,true)).join('')
+          : empty;
+      }
+
+      console.log(
+        'RENDERING MY JOBS:',
+        jobs.length,
+        jobs.map(job => ({
+          id:job?.id,
+          title:job?.title,
+          status:job?.status
+        }))
+      );
     }
 
     function candidateCard(application){
@@ -1798,9 +2037,24 @@
         .sort((a,b) => Number(b.match_score || b.alygnn_score || 0) - Number(a.match_score || a.alygnn_score || 0))
         .slice(0,5);
 
-      els.bestFits.innerHTML = top.length
+      if(els.bestFits) els.bestFits.innerHTML = top.length
         ? top.map(candidateCard).join('')
         : empty;
+
+      /*
+       * Android WebView can be inconsistent with the document-level
+       * delegated click after a view rerender. Bind each candidate row
+       * directly as well so tapping an applicant always opens details.
+       */
+      [els.applicantsList,els.bestFits].forEach(container => {
+        container?.querySelectorAll('[data-app-id]').forEach(button => {
+          button.onclick = event => {
+            event.preventDefault();
+            event.stopPropagation();
+            openCandidate(button.dataset.appId);
+          };
+        });
+      });
     }
 
     function renderActivity(){
@@ -1840,18 +2094,218 @@
 
 
     function companyMetadata(){
-      const meta = state.session?.user?.user_metadata || {};
+      const user = state.currentUser || state.session?.user || {};
+      const meta = user.user_metadata || {};
+      const setup = meta.onboarding_company_profile || {};
+      const aiProfile = meta.employer_ai_profile || {};
+      const verification = state.employerVerification || {};
+      const company = state.companyRecord || {};
       const firstJob = state.jobs[0] || {};
-      const name = firstValue(meta.company_name,meta.business_name,firstJob.company_name,'Your Company');
+
+      const name = firstValue(
+        aiProfile.company_name,
+        setup.company_name,
+        verification.company_name,
+        company.company_name,
+        company.legal_name,
+        company.name,
+        meta.company_name,
+        meta.business_name,
+        firstJob.company_name,
+        'Your Company'
+      );
+
       return {
         name,
-        industry:firstValue(meta.industry,firstJob.industry,'Not added'),
-        size:firstValue(meta.company_size,meta.employee_count,'Not added'),
-        location:firstValue(meta.company_location,meta.location,firstJob.location,'Not added'),
-        website:firstValue(meta.company_website,meta.website,'Not added'),
-        about:firstValue(meta.company_description,meta.description,meta.about),
-        benefits:normalizeList(firstValue(meta.company_benefits,meta.benefits))
+        industry:firstValue(
+          aiProfile.industry,
+          setup.industry,
+          verification.industry,
+          company.industry,
+          meta.industry,
+          firstJob.industry,
+          'Not added'
+        ),
+        size:firstValue(
+          setup.company_size,
+          verification.company_size,
+          company.company_size,
+          company.size,
+          meta.company_size,
+          meta.employee_count,
+          'Not added'
+        ),
+        location:firstValue(
+          setup.headquarters,
+          verification.headquarters,
+          company.headquarters,
+          company.location,
+          meta.company_location,
+          meta.location,
+          firstJob.location,
+          'Not added'
+        ),
+        website:firstValue(
+          aiProfile.website,
+          setup.website,
+          verification.website,
+          company.website,
+          meta.company_website,
+          meta.website,
+          'Not added'
+        ),
+        about:firstValue(
+          aiProfile.company_description,
+          setup.company_description,
+          verification.company_description,
+          company.company_description,
+          company.description,
+          aiProfile.ai_summary,
+          setup.ai_summary,
+          meta.company_description,
+          meta.description,
+          meta.about
+        ),
+        benefits:normalizeList(firstValue(
+          aiProfile.company_benefits,
+          setup.company_benefits,
+          meta.company_benefits,
+          meta.benefits
+        ))
       };
+    }
+
+    function openCompanyEditor(){
+      const company=companyMetadata();
+
+      $('edit-company-name').value=company.name==='Your Company'?'':company.name;
+      $('edit-company-name').readOnly=true;
+      $('edit-company-industry').value=company.industry==='Not added'?'':company.industry;
+      $('edit-company-size').value=company.size==='Not added'?'':company.size;
+      $('edit-company-location').value=company.location==='Not added'?'':company.location;
+      $('edit-company-website').value=company.website==='Not added'?'':company.website;
+      $('edit-company-about').value=company.about||'';
+      $('edit-company-benefits').value=company.benefits.join(', ');
+
+      $('company-edit-message').hidden=true;
+      $('company-edit-message').textContent='';
+      $('company-edit-modal').hidden=false;
+      document.body.style.overflow='hidden';
+    }
+
+    function closeCompanyEditor(){
+      $('company-edit-modal').hidden=true;
+      document.body.style.overflow='';
+    }
+
+    async function saveCompanyEditor(){
+      const button=$('save-company-edit');
+      const message=$('company-edit-message');
+
+      const existingCompany=companyMetadata();
+      const companyName=existingCompany.name;
+      const industry=$('edit-company-industry').value.trim();
+      const companySize=$('edit-company-size').value.trim();
+      const headquarters=$('edit-company-location').value.trim();
+      const website=$('edit-company-website').value.trim();
+      const description=$('edit-company-about').value.trim();
+      const benefits=normalizeList($('edit-company-benefits').value);
+
+      if(!companyName){
+        message.textContent='Please enter the company name.';
+        message.hidden=false;
+        return;
+      }
+
+      button.disabled=true;
+      button.textContent='Saving…';
+      message.hidden=true;
+
+      try{
+        await refreshCurrentUser();
+
+        const user=state.currentUser||state.session?.user;
+        const meta=user?.user_metadata||{};
+        const setup=meta.onboarding_company_profile||{};
+        const aiProfile=meta.employer_ai_profile||{};
+
+        const {data:updateData,error:updateError}=await sb.auth.updateUser({
+          data:{
+            ...meta,
+            company_name:companyName,
+            industry,
+            company_size:companySize,
+            company_location:headquarters,
+            company_website:website,
+            website,
+            company_description:description,
+            company_benefits:benefits,
+            onboarding_company_profile:{
+              ...setup,
+              company_name:companyName,
+              industry,
+              company_size:companySize,
+              headquarters,
+              website,
+              company_description:description,
+              company_benefits:benefits,
+              saved_at:new Date().toISOString()
+            },
+            employer_ai_profile:{
+              ...aiProfile,
+              company_name:companyName,
+              industry,
+              website,
+              company_description:description,
+              company_benefits:benefits
+            }
+          }
+        });
+
+        if(updateError) throw updateError;
+
+        if(updateData?.user){
+          state.currentUser=updateData.user;
+          if(state.session) state.session={...state.session,user:updateData.user};
+        }
+
+        const dbUpdate=await sb
+          .from('employer_verifications')
+          .update({
+            company_name:companyName,
+            industry,
+            company_size:companySize,
+            headquarters,
+            website,
+            company_description:description,
+            updated_at:new Date().toISOString()
+          })
+          .eq('user_id',user.id);
+
+        if(dbUpdate.error){
+          console.warn('Company profile metadata saved, but employer_verifications was not updated:',dbUpdate.error);
+        }else{
+          state.employerVerification={
+            ...(state.employerVerification||{}),
+            company_name:companyName,
+            industry,
+            company_size:companySize,
+            headquarters,
+            website,
+            company_description:description
+          };
+        }
+
+        renderCompany();
+        closeCompanyEditor();
+      }catch(error){
+        console.error(error);
+        message.textContent=error.message||'Could not save the company profile. Please try again.';
+        message.hidden=false;
+      }finally{
+        button.disabled=false;
+        button.textContent='Save Changes';
+      }
     }
 
     function renderCompany(){
@@ -1931,6 +2385,8 @@
       renderJobs();
       renderApplicants();
       renderActivity();
+      renderCompany();
+      renderAiProfileCard();
     }
 
     function openCandidate(id){
@@ -1965,7 +2421,9 @@
       $('sheet-insight-points').innerHTML = insightPoints.map(point => `<div class="insight-point">${escapeHtml(point)}</div>`).join('');
       $('resume-preview').textContent = data.resumeText
         ? String(data.resumeText).slice(0,320) + (String(data.resumeText).length > 320 ? '…' : '')
-        : data.resumeUrl ? 'Resume uploaded and ready to view.' : 'No resume has been uploaded yet.';
+        : (data.resumePath || data.resumeUrl || data.resumeData)
+          ? 'Resume uploaded and ready to view.'
+          : 'No resume has been uploaded yet.';
       $('candidate-timeline').textContent = `Application received ${timeAgo(application.applied_at || application.created_at)} • Current status: ${application.status || 'new'}.`;
 
       const skills = data.skills;
@@ -1973,11 +2431,22 @@
         ? skills.slice(0,12).map(skill => `<span class="detail-chip">${escapeHtml(skill)}</span>`).join('')
         : '<span class="detail-chip">No skills added yet</span>';
 
-      const resumeAvailable = Boolean(data.resumeUrl || data.resumeText);
+      const resumeAvailable = Boolean(
+        data.resumeUrl ||
+        data.resumePath ||
+        data.resumeText ||
+        data.resumeData
+      );
+
+      const downloadableResume = Boolean(
+        data.resumeUrl ||
+        data.resumePath
+      );
+
       $('view-resume-btn').disabled = !resumeAvailable;
-      $('download-resume-btn').disabled = !data.resumeUrl;
+      $('download-resume-btn').disabled = !downloadableResume;
       $('view-resume-btn').style.opacity = resumeAvailable ? '1' : '.45';
-      $('download-resume-btn').style.opacity = data.resumeUrl ? '1' : '.45';
+      $('download-resume-btn').style.opacity = downloadableResume ? '1' : '.45';
 
       const missing = [];
       if(!data.email) missing.push('email');
@@ -1993,6 +2462,8 @@
       }
 
       els.candidateSheet.hidden = false;
+      els.candidateSheet.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
     }
 
     async function updateApplicationStatus(status){
@@ -2117,7 +2588,248 @@
       }
     }
 
+    async function refreshCurrentUser(){
+      const {data,error}=await sb.auth.getUser();
+      if(!error&&data?.user){
+        state.currentUser=data.user;
+        if(state.session) state.session={...state.session,user:data.user};
+      }
+      return state.currentUser||state.session?.user||null;
+    }
+
+    async function loadEmployerCompanyData(){
+      const userId=state.currentUser?.id||state.session?.user?.id;
+      if(!userId) return;
+
+      const verificationResult=await sb
+        .from('employer_verifications')
+        .select('*')
+        .eq('user_id',userId)
+        .maybeSingle();
+
+      if(!verificationResult.error){
+        state.employerVerification=verificationResult.data||null;
+        const meta=state.currentUser?.user_metadata||{};
+        const currentCompanyId=String(
+          verificationResult.data?.company_id ||
+          state.companyRecord?.id ||
+          state.companyRecord?.company_id ||
+          ''
+        );
+        const completedCompanyId=String(meta.employer_ai_profile_complete_company_id||'');
+
+        state.aiProfileComplete=Boolean(
+          verificationResult.data?.profile_complete ||
+          (
+            meta.employer_ai_profile_complete &&
+            completedCompanyId &&
+            currentCompanyId &&
+            completedCompanyId===currentCompanyId
+          )
+        );
+        state.verificationStatus=verificationResult.data?.verification_status||'pending_review';
+      }else{
+        console.warn('Employer verification could not be loaded:',verificationResult.error);
+        const meta=state.currentUser?.user_metadata||{};
+        const currentCompanyId=String(state.companyRecord?.id||state.companyRecord?.company_id||'');
+        const completedCompanyId=String(meta.employer_ai_profile_complete_company_id||'');
+        state.aiProfileComplete=Boolean(
+          meta.employer_ai_profile_complete &&
+          completedCompanyId &&
+          currentCompanyId &&
+          completedCompanyId===currentCompanyId
+        );
+      }
+
+      const membershipResult=await sb
+        .from('company_members')
+        .select('company_id,companies(*)')
+        .eq('user_id',userId)
+        .eq('membership_status','active')
+        .limit(1)
+        .maybeSingle();
+
+      if(!membershipResult.error&&membershipResult.data){
+        state.companyRecord=Array.isArray(membershipResult.data.companies)
+          ? membershipResult.data.companies[0]||null
+          : membershipResult.data.companies||null;
+      }else if(membershipResult.error){
+        console.warn('Company membership could not be loaded:',membershipResult.error);
+      }
+    }
+
+    async function refreshCompanyProfile(){
+      await refreshCurrentUser();
+      await loadEmployerCompanyData();
+      renderCompany();
+      renderAiProfileCard();
+    }
+
+    function normalizedCompanyName(value){
+      return String(value||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ');
+    }
+
+    function scopedCompanyProfile(record,currentCompanyId,currentCompanyName,userId){
+      if(!record||typeof record!=='object')return {};
+
+      if(record.user_id&&String(record.user_id)!==String(userId))return {};
+
+      if(currentCompanyId&&record.company_id){
+        return String(record.company_id)===String(currentCompanyId)?record:{};
+      }
+
+      if(currentCompanyName&&record.company_name){
+        return normalizedCompanyName(record.company_name)===normalizedCompanyName(currentCompanyName)
+          ? record
+          : {};
+      }
+
+      // Never trust old unscoped profile objects for a different/new employer.
+      return {};
+    }
+
+    function calculateAiProfileProgress(){
+      const user=state.currentUser||state.session?.user||{};
+      const meta=user.user_metadata||{};
+      const verification=state.employerVerification||{};
+      const company=state.companyRecord||{};
+      const companyView=companyMetadata();
+
+      const currentCompanyId=String(
+        verification.company_id ||
+        company.id ||
+        company.company_id ||
+        ''
+      );
+
+      const currentCompanyName=companyView.name==='Your Company'?'':companyView.name;
+
+      const saved=scopedCompanyProfile(
+        meta.employer_ai_profile,
+        currentCompanyId,
+        currentCompanyName,
+        user.id
+      );
+
+      const setup=scopedCompanyProfile(
+        meta.onboarding_company_profile,
+        currentCompanyId,
+        currentCompanyName,
+        user.id
+      );
+
+      const scopedVerification=scopedCompanyProfile(
+        verification,
+        currentCompanyId,
+        currentCompanyName,
+        user.id
+      );
+
+      const values=[
+        firstValue(saved.industry,setup.industry,scopedVerification.industry,company.industry),
+        firstValue(saved.website,setup.website,scopedVerification.website,company.website),
+        firstValue(
+          saved.company_description,
+          setup.company_description,
+          scopedVerification.company_description,
+          company.company_description,
+          company.description
+        ),
+        firstValue(saved.company_voice,setup.company_voice,scopedVerification.company_voice),
+        firstValue(saved.company_strengths,saved.company_priorities,setup.company_priorities,scopedVerification.company_priorities),
+        firstValue(saved.hiring_priorities,saved.candidate_priorities,setup.candidate_priorities,scopedVerification.candidate_priorities),
+        firstValue(saved.success_qualities,saved.ideal_candidate),
+        firstValue(saved.unsuccessful_qualities,saved.deal_breakers)
+      ];
+
+      const completed=values.filter(value=>{
+        if(Array.isArray(value))return value.length>0;
+        return String(value||'').trim().length>0;
+      }).length;
+
+      return {
+        completed,
+        total:values.length,
+        percent:state.aiProfileComplete?100:Math.round((completed/values.length)*100)
+      };
+    }
+
+    function isAiProfileReady(){
+      const progress=calculateAiProfileProgress();
+      return Boolean(state.aiProfileComplete||progress.percent>=100);
+    }
+
+    function renderAiProfileCard(){
+      const card=$('ai-profile-card');
+      if(!card)return;
+
+      const progress=calculateAiProfileProgress();
+      const percent=Math.max(0,Math.min(100,progress.percent));
+      const isComplete=Boolean(state.aiProfileComplete||percent>=100);
+
+      // Once every required section is complete, remove this setup card.
+      state.aiProfileComplete=isComplete;
+      card.hidden=isComplete;
+      if(isComplete)return;
+
+      $('ai-profile-percent').textContent=`${percent}%`;
+      $('ai-profile-progress-fill').style.width=`${percent}%`;
+      $('ai-profile-progress').setAttribute(
+        'aria-label',
+        `Company AI Profile ${percent} percent complete`
+      );
+
+      if(percent===0){
+        document.querySelector('.ai-profile-title').textContent=
+          'Set up how Alygnn hires for your company.';
+        $('ai-profile-copy').textContent=
+          'Add your company details and hiring preferences to personalize job posts and candidate matching.';
+        $('complete-ai-profile').textContent='Start Company AI Profile';
+      }else{
+        document.querySelector('.ai-profile-title').textContent=
+          'Finish setting up how Alygnn hires for your company.';
+        $('ai-profile-copy').textContent=
+          `${progress.completed} of ${progress.total} profile sections completed. Review the saved information and finish the remaining questions.`;
+        $('complete-ai-profile').textContent='Complete Company AI Profile';
+      }
+    }
+
+    function currentCompanyIdForJobs(){
+      return String(
+        state.companyRecord?.id ||
+        state.companyRecord?.company_id ||
+        state.employerVerification?.company_id ||
+        ''
+      ).trim();
+    }
+
     async function queryJobs(userId){
+      /*
+       * Do not stop at the first valid column if it returns zero rows.
+       * Older and newer Alygnn job records can be linked by different
+       * ownership columns, and newer jobs may also be linked by company_id.
+       */
+      const collected = [];
+      const seen = new Set();
+
+      const addRows = rows => {
+        (rows || []).forEach(job => {
+          const key = String(
+            job?.id ||
+            [
+              job?.title,
+              job?.created_at,
+              job?.company_id,
+              job?.employer_id
+            ].join('|')
+          );
+
+          if(seen.has(key)) return;
+          seen.add(key);
+          collected.push(job);
+        });
+      };
+
       for(const column of ['employer_id','created_by','user_id','owner_id']){
         const result = await sb
           .from('jobs')
@@ -2125,10 +2837,66 @@
           .eq(column,userId)
           .order('created_at',{ascending:false});
 
-        if(!result.error) return result.data || [];
+        if(!result.error){
+          addRows(result.data);
+        }else{
+          console.warn(`Jobs query using ${column} failed:`,result.error);
+        }
       }
 
-      return [];
+      const companyId = currentCompanyIdForJobs();
+
+      if(companyId){
+        const companyResult = await sb
+          .from('jobs')
+          .select('*')
+          .eq('company_id',companyId)
+          .order('created_at',{ascending:false});
+
+        if(!companyResult.error){
+          addRows(companyResult.data);
+        }else{
+          console.warn('Jobs query using company_id failed:',companyResult.error);
+        }
+      }
+
+      collected.sort((a,b) => {
+        const aTime = new Date(a?.created_at || a?.updated_at || 0).getTime() || 0;
+        const bTime = new Date(b?.created_at || b?.updated_at || 0).getTime() || 0;
+        return bTime - aTime;
+      });
+
+      return collected;
+    }
+
+    async function refreshJobsView(){
+      if(!state.session?.user?.id) return;
+
+      try{
+        const jobs = await queryJobs(state.session.user.id);
+        state.jobs = jobs;
+
+        /*
+         * Explicitly refresh the pieces that depend on jobs.
+         * This makes My Jobs update immediately after publishing.
+         */
+        renderHero();
+        renderMetrics();
+        renderJobs();
+
+        console.log(
+          'Alygnn My Jobs refreshed:',
+          state.jobs.map(job => ({
+            id:job.id,
+            title:job.title,
+            status:job.status,
+            employer_id:job.employer_id,
+            company_id:job.company_id
+          }))
+        );
+      }catch(error){
+        console.error('Could not refresh My Jobs:',error);
+      }
     }
 
     async function initialize(){
@@ -2141,6 +2909,8 @@
         }
 
         state.session = data.session;
+        await refreshCurrentUser();
+        await loadEmployerCompanyData();
         state.jobs = await queryJobs(state.session.user.id);
 
         const jobIds = state.jobs.map(job => job.id).filter(Boolean);
@@ -2226,11 +2996,25 @@
     els.candidateSearch.addEventListener('input',renderApplicants);
     els.candidateSort.addEventListener('change',renderApplicants);
 
-    $('post-job-btn').onclick = $('post-job-btn-2').onclick = $('hero-post-job').onclick = () => {
-      location.href = 'app-post-job.html';
+    function openPostJob(){
+      // Company personality / hiring preferences were already collected during
+      // employer setup. The Company AI Profile is optional refinement and must
+      // never block creating a job.
+      location.href='app-post-job.html';
+    }
+
+    $('post-job-btn').onclick = $('post-job-btn-2').onclick = $('hero-post-job').onclick = openPostJob;
+    $('complete-ai-profile').onclick = () => {
+      location.href='app-employer-ai-profile.html';
     };
 
-    $('open-company-page').onclick = () => location.href = 'app-employer-account.html';
+    $('open-company-page').onclick = openCompanyEditor;
+    $('close-company-editor').onclick = closeCompanyEditor;
+    $('cancel-company-edit').onclick = closeCompanyEditor;
+    $('save-company-edit').onclick = saveCompanyEditor;
+    $('company-edit-modal').onclick = event => {
+      if(event.target===$('company-edit-modal')) closeCompanyEditor();
+    };
     $('preview-career-page').onclick = () => toast('Career page preview is ready for the next build.');
     $('notification-settings').onclick = () => {
       renderNotifications();
@@ -2264,34 +3048,96 @@
     });
     applyTheme(savedThemePreference());
 
-    $('view-resume-btn').onclick = () => {
+    $('view-resume-btn').onclick = async () => {
       const data = state.activeCandidate ? candidateData(state.activeCandidate) : null;
       if(!data) return;
-      if(data.resumeUrl){ window.open(data.resumeUrl,'_blank','noopener'); return; }
-      if(data.resumeText){
-        const win = window.open('','_blank');
-        if(win) win.document.write('<pre style="white-space:pre-wrap;font-family:Arial;padding:24px">'+escapeHtml(data.resumeText)+'</pre>');
-        return;
+
+      const button = $('view-resume-btn');
+      const original = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Opening…';
+
+      try{
+        const resumeUrl = await resolveCandidateResumeUrl(data);
+
+        if(resumeUrl){
+          /*
+           * Use the current WebView instead of a popup. Android WebView
+           * frequently blocks window.open() for signed private files.
+           */
+          window.location.href = resumeUrl;
+          return;
+        }
+
+        if(data.resumeText){
+          $('resume-preview').textContent = String(data.resumeText);
+          $('resume-preview').scrollIntoView({behavior:'smooth',block:'center'});
+          return;
+        }
+
+        if(data.resumeData){
+          const resumeDataText = typeof data.resumeData === 'string'
+            ? data.resumeData
+            : JSON.stringify(data.resumeData,null,2);
+
+          $('resume-preview').textContent = resumeDataText;
+          $('resume-preview').scrollIntoView({behavior:'smooth',block:'center'});
+          return;
+        }
+
+        toast('No resume has been uploaded.');
+      }catch(error){
+        console.error('Could not open candidate resume:',error);
+        toast('Could not open this resume.');
+      }finally{
+        button.disabled = false;
+        button.textContent = original;
       }
-      toast('No resume has been uploaded.');
     };
 
-    $('download-resume-btn').onclick = () => {
+    $('download-resume-btn').onclick = async () => {
       const data = state.activeCandidate ? candidateData(state.activeCandidate) : null;
-      if(!data?.resumeUrl){ toast('No downloadable resume is available.'); return; }
-      const link = document.createElement('a');
-      link.href = data.resumeUrl;
-      link.download = (data.name || 'candidate').replace(/[^a-z0-9]+/gi,'-') + '-resume';
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      if(!data) return;
+
+      const button = $('download-resume-btn');
+      const original = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Preparing…';
+
+      try{
+        const resumeUrl = await resolveCandidateResumeUrl(data);
+
+        if(!resumeUrl){
+          toast('No downloadable resume is available.');
+          return;
+        }
+
+        const link = document.createElement('a');
+        link.href = resumeUrl;
+        link.download = (data.name || 'candidate').replace(/[^a-z0-9]+/gi,'-') + '-resume';
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }catch(error){
+        console.error('Could not download candidate resume:',error);
+        toast('Could not download this resume.');
+      }finally{
+        button.disabled = false;
+        button.textContent = original;
+      }
     };
 
-    $('close-candidate').onclick = () => els.candidateSheet.hidden = true;
+    function closeCandidateSheet(){
+      els.candidateSheet.hidden = true;
+      els.candidateSheet.style.display = '';
+      document.body.style.overflow = '';
+    }
+
+    $('close-candidate').onclick = closeCandidateSheet;
 
     els.candidateSheet.addEventListener('click',event => {
-      if(event.target === els.candidateSheet) els.candidateSheet.hidden = true;
+      if(event.target === els.candidateSheet) closeCandidateSheet();
     });
 
     $('sign-out-btn').onclick = async () => {
@@ -2299,45 +3145,21 @@
       location.replace('app-employer-login.html?logout=1');
     };
 
+    document.addEventListener('visibilitychange',()=>{
+      if(document.visibilityState==='visible'){
+        refreshCompanyProfile().catch(error=>{
+          console.error('Could not refresh company profile:',error);
+        });
+      }
+    });
+
+    window.addEventListener('focus',()=>{
+      refreshCompanyProfile().catch(error=>{
+        console.error('Could not refresh company profile:',error);
+      });
+    });
+
     initialize();
   </script>
-<script>
-/* Alygnn employer workspace access guard V100 */
-(async function enforceEmployerWorkspaceAccess(){
-  try{
-    const client=window.sb||window.supabaseClient;
-    if(!client)return;
-    const {data:{session}}=await client.auth.getSession();
-    if(!session){location.replace('app-employer-login.html');return}
-
-    // Pending verification is ALLOWED in the employer dashboard.
-    // Verification gates publishing, not access to building the workspace.
-    const {data,error}=await client.from('employer_verifications')
-      .select('company_id,blueprint_complete,verification_status')
-      .eq('user_id',session.user.id).maybeSingle();
-
-    if(error){
-      console.warn('Employer verification state could not be loaded:',error);
-      return;
-    }
-
-    if(!data){
-      const savedCompanyId=localStorage.getItem('alygnn_company_id')||sessionStorage.getItem('alygnn_company_id')||'';
-      if(!savedCompanyId)location.replace('app-employer-onboarding.html');
-      return;
-    }
-
-    const status=String(data.verification_status||'pending_review').toLowerCase();
-    localStorage.setItem('alygnn_employer_verification_status',status);
-    if(data.company_id){
-      localStorage.setItem('alygnn_company_id',String(data.company_id));
-      sessionStorage.setItem('alygnn_company_id',String(data.company_id));
-    }
-  }catch(error){
-    // Never create a dashboard <-> verification-status redirect loop.
-    console.error('Employer workspace access guard failed:',error);
-  }
-})();
-</script>
 </body>
 </html>
