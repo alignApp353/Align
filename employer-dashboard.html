@@ -32,13 +32,16 @@
   .btn-logout { font-size: 13px; color: var(--text-muted); background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 14px; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
   .btn-logout:hover { border-color: var(--rose); color: var(--rose); }
 
-  .layout { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 64px); }
+  .layout { min-height: calc(100vh - 64px); }
 
   .sidebar {
     background: var(--card-bg); border-right: 1px solid var(--border);
-    padding: 32px 20px; position: sticky; top: 64px;
-    height: calc(100vh - 64px); overflow-y: auto;
+    padding: 32px 20px; position: fixed; top: 64px; left: 0;
+    width: 240px; height: calc(100vh - 64px); overflow-y: auto;
   }
+  /* .sidebar is fixed (out of normal flow), so .main gets a matching
+     left margin to sit beside it instead of sliding underneath. */
+  .main { margin-left: 240px; }
   .sidebar-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); font-weight: 500; margin-bottom: 10px; padding: 0 8px; }
   .nav-item {
     display: flex; align-items: center; gap: 10px;
@@ -289,8 +292,8 @@
   @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 
   @media (max-width: 860px) {
-    .layout { grid-template-columns: 1fr; }
     .sidebar { display: none; }
+    .main { margin-left: 0; }
     .stats-row { grid-template-columns: 1fr 1fr; }
     .form-grid { grid-template-columns: 1fr; }
     .pay-row { grid-template-columns: 1fr; }
@@ -1473,7 +1476,7 @@
     }
 
     const status = String(currentProfile?.verification_status || 'not_submitted').toLowerCase();
-    const submitted = ['pending', 'submitted', 'under_review', 'in_review'].includes(status);
+    const submitted = ['pending', 'pending_review', 'submitted', 'under_review', 'in_review'].includes(status);
 
     if (lockBox) {
       lockBox.style.display = 'block';
