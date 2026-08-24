@@ -94,7 +94,7 @@
   </style>
 </head>
 
-<body data-verification-status-build="97">
+<body data-verification-status-build="99">
   <main class="card">
     <div class="brand">Alygnn<span>.</span></div>
 
@@ -128,7 +128,9 @@
       </p>
     </div>
 
-    <button class="btn" id="primary" type="button">Continue to Employer Dashboard</button>
+    <button class="btn" id="primary" type="button">Build Company AI Profile</button>
+    <button class="btn secondary" id="workspace" type="button">Open Employer Dashboard</button>
+    <button class="btn secondary" id="verification-action" type="button" hidden>Upload Verification Document</button>
     <button class="btn secondary" id="refresh" type="button">Check Verification Status</button>
     <button class="btn secondary" id="signout" type="button">Sign out</button>
   </main>
@@ -144,6 +146,28 @@ const $ = id => document.getElementById(id);
 
 let currentStatus = 'pending_review';
 let companyId = '';
+let currentUserId = '';
+
+function setupCompleteKey(userId){
+  return `alygnn_employer_setup_complete_${userId}`;
+}
+function companyIdKey(userId){
+  return `alygnn_company_id_${userId}`;
+}
+function verificationStatusKey(userId){
+  return `alygnn_employer_verification_status_${userId}`;
+}
+function saveStatusState(status){
+  const normalized=normalizeStatus(status);
+  localStorage.setItem('alygnn_employer_verification_status',normalized);
+  if(currentUserId){
+    localStorage.setItem(verificationStatusKey(currentUserId),normalized);
+    localStorage.setItem(setupCompleteKey(currentUserId),'true');
+  }
+  if(companyId && currentUserId){
+    localStorage.setItem(companyIdKey(currentUserId),companyId);
+  }
+}
 
 function normalizeStatus(value){
   const status = String(value || '').toLowerCase().trim();
@@ -161,29 +185,49 @@ function formatStatus(value){
 
 function applyStatus(){
   $('status').textContent = formatStatus(currentStatus);
-  localStorage.setItem('alygnn_employer_verification_status', currentStatus);
+  saveStatusState(currentStatus);
+
+  // The verification page is always the checkpoint first.
+  // From here the employer chooses what to do next.
+  $('primary').textContent = 'Build Company AI Profile';
+  $('primary').onclick = () => {
+    sessionStorage.setItem(
+      'alygnnAiProfileReturnTo',
+      'app-employer-verification-status.html'
+    );
+    location.href =
+      'app-employer-ai-profile.html?return_to='+
+      encodeURIComponent('app-employer-verification-status.html');
+  };
+
+  $('workspace').hidden = false;
+  $('workspace').textContent = 'Open Employer Dashboard';
+  $('workspace').onclick = () => location.href='app-employer-dashboard.html';
+
+  $('verification-action').hidden = true;
 
   if(currentStatus === 'approved'){
     $('icon').textContent = '✓';
     $('badge').textContent = 'Business Verified';
     $('badge').style.background = '#E8F6EE';
     $('badge').style.color = '#18794E';
-    $('title').textContent = 'Your business is verified.';
-    $('copy').textContent = 'Your employer workspace is ready.';
-    $('primary').textContent = 'Open Employer Dashboard';
-    $('primary').onclick = () => location.replace('app-employer-dashboard.html');
+    $('title').textContent = 'Your business is approved.';
+    $('copy').textContent =
+      'Your business verification is complete. You can build or edit your Company AI Profile, then continue to your employer workspace.';
     return;
   }
 
   if(currentStatus === 'rejected'){
     $('icon').textContent = '!';
     $('badge').textContent = 'Verification Needs Attention';
-    $('title').textContent = 'We need another verification document.';
-    $('copy').textContent = 'Upload a new document so Alygnn can review your business again.';
-    $('primary').textContent = 'Upload New Document';
-    $('primary').onclick = () => {
+    $('title').textContent = 'Your verification needs attention.';
+    $('copy').textContent =
+      'Your company setup is saved. Update the requested verification document, then check your status again.';
+    $('verification-action').hidden = false;
+    $('verification-action').textContent = 'Upload New Verification Document';
+    $('verification-action').onclick = () => {
       const suffix = companyId ? `?company_id=${encodeURIComponent(companyId)}` : '';
-      location.replace('app-employer-document-upload.html' + suffix);
+      location.href='app-employer-document-upload.html'+suffix;
     };
     return;
   }
@@ -191,9 +235,8 @@ function applyStatus(){
   $('icon').textContent = '⌛';
   $('badge').textContent = 'Pending Business Verification';
   $('title').textContent = 'Your business is under review.';
-  $('copy').textContent = 'Alygnn is reviewing your company information. You can leave the app and come back at any time.';
-  $('primary').textContent = 'Continue to Employer Dashboard';
-  $('primary').onclick = () => location.replace('app-employer-dashboard.html');
+  $('copy').textContent =
+    'Alygnn is reviewing your company. Your setup is saved, and you can build your Company AI Profile while you wait.';
 }
 
 async function getMembershipCompany(userId){
@@ -229,8 +272,13 @@ async function getCompanyById(id){
 }
 
 async function loadDocumentStatus(id){
+  const verificationButton=$('verification-action');
+
   if(!id){
-    $('document-status').textContent = 'Submitted';
+    $('document-status').textContent =
+      localStorage.getItem('alygnn_verification_document_submitted')==='true'
+        ? 'Submitted'
+        : 'Checking…';
     return;
   }
 
@@ -244,27 +292,30 @@ async function loadDocumentStatus(id){
 
   if(error){
     console.warn('verification document lookup failed:', error);
-    $('document-status').textContent = 'Submitted';
+    $('document-status').textContent =
+      localStorage.getItem('alygnn_verification_document_submitted')==='true'
+        ? 'Submitted'
+        : 'Unable to check';
     return;
   }
 
   if(data){
     $('document-status').textContent = formatStatus(data.review_status);
-    localStorage.setItem('alygnn_verification_document_submitted', 'true');
+    localStorage.setItem('alygnn_verification_document_submitted','true');
     return;
   }
 
-  $('document-status').textContent =
-    localStorage.getItem('alygnn_verification_document_submitted') === 'true'
-      ? 'Submitted'
-      : 'Not submitted';
+  const wasSubmitted =
+    localStorage.getItem('alygnn_verification_document_submitted')==='true';
 
-  if(currentStatus !== 'approved' &&
-     localStorage.getItem('alygnn_verification_document_submitted') !== 'true'){
-    $('primary').textContent = 'Upload Verification Document';
-    $('primary').onclick = () => {
-      const suffix = companyId ? `?company_id=${encodeURIComponent(companyId)}` : '';
-      location.replace('app-employer-document-upload.html' + suffix);
+  $('document-status').textContent = wasSubmitted ? 'Submitted' : 'Not submitted';
+
+  if(!wasSubmitted && currentStatus!=='approved'){
+    verificationButton.hidden=false;
+    verificationButton.textContent='Upload Verification Document';
+    verificationButton.onclick=()=>{
+      const suffix=companyId?`?company_id=${encodeURIComponent(companyId)}`:'';
+      location.href='app-employer-document-upload.html'+suffix;
     };
   }
 }
@@ -277,49 +328,56 @@ async function load(){
     return;
   }
 
+  currentUserId=session.user.id;
+
   const localCompanyId =
+    localStorage.getItem(companyIdKey(currentUserId)) ||
     localStorage.getItem('alygnn_company_id') ||
     sessionStorage.getItem('alygnn_company_id') ||
     '';
 
-  const localStatus = localStorage.getItem('alygnn_employer_verification_status') || '';
+  const localStatus =
+    localStorage.getItem(verificationStatusKey(currentUserId)) ||
+    localStorage.getItem('alygnn_employer_verification_status') ||
+    'pending_review';
 
-  let company = null;
-  const membership = await getMembershipCompany(session.user.id);
+  companyId=localCompanyId;
+  currentStatus=normalizeStatus(localStatus);
+
+  let company=null;
+  const membership=await getMembershipCompany(currentUserId);
 
   if(membership?.company_id){
-    companyId = membership.company_id;
-    company = Array.isArray(membership.companies)
+    companyId=membership.company_id;
+    company=Array.isArray(membership.companies)
       ? membership.companies[0]
       : membership.companies;
 
-    localStorage.setItem('alygnn_company_id', companyId);
-    sessionStorage.setItem('alygnn_company_id', companyId);
-  } else if(localCompanyId){
-    // IMPORTANT: do not bounce back to onboarding just because the
-    // membership relation is temporarily unavailable.
-    companyId = localCompanyId;
-    company = await getCompanyById(companyId);
+    localStorage.setItem('alygnn_company_id',companyId);
+    localStorage.setItem(companyIdKey(currentUserId),companyId);
+    sessionStorage.setItem('alygnn_company_id',companyId);
+
+    currentStatus=normalizeStatus(
+      company?.verification_status || currentStatus
+    );
+  }else if(companyId){
+    company=await getCompanyById(companyId);
+    if(company?.verification_status){
+      currentStatus=normalizeStatus(company.verification_status);
+    }
   }
 
+  localStorage.setItem(setupCompleteKey(currentUserId),'true');
+
   if(company){
-    currentStatus = normalizeStatus(company.verification_status || localStatus);
     $('company').textContent =
       company.legal_name ||
       company.company_name ||
       'Your company';
-  } else {
-    // If setup already saved a company ID/status, remain on Pending Review.
-    // This prevents the verification -> onboarding -> verification loop.
-    currentStatus = normalizeStatus(localStatus || 'pending_review');
-    $('company').textContent = 'Your company';
-
-    // Only a truly brand-new employer with NO saved company and NO saved
-    // verification state should ever be sent back to onboarding.
-    if(!localCompanyId && !localStatus){
-      location.replace('app-employer-onboarding.html');
-      return;
-    }
+  }else{
+    // Do NOT bounce back to Employer Setup. A just-created company may take
+    // a moment to appear through the membership relation.
+    $('company').textContent='Your company';
   }
 
   applyStatus();
