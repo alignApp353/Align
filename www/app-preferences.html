@@ -2237,10 +2237,17 @@ async function savePreferences(){
 
     if(error)throw error;
 
-    showMessage('Preferences saved. Your job matching is ready.','success');
+    try{
+      const cacheKey=`alygnn_candidate_setup_${user.id}`;
+      let cached={};
+      try{cached=JSON.parse(localStorage.getItem(cacheKey)||'{}')||{};}catch(_error){}
+      localStorage.setItem(cacheKey,JSON.stringify({...cached,hasResume:true,previewReviewed:true,preferencesComplete:true,updatedAt:Date.now()}));
+    }catch(_error){}
+
+    showMessage(EDIT_MODE?'Preferences saved.':'Preferences saved. Your job matching is ready.','success');
 
     setTimeout(()=>{
-      window.location.href='app-swipe.html';
+      window.location.href=EDIT_MODE?'app-account.html':'app-swipe.html';
     },450);
   }catch(error){
     console.error(error);
@@ -2251,6 +2258,7 @@ async function savePreferences(){
 }
 
 async function initialize(){
+  if(EDIT_MODE && $('saveBtn'))$('saveBtn').textContent='Save Preferences';
   setCompensationType('yearly',false);
 
   const {data,error}=await sb.auth.getSession();
