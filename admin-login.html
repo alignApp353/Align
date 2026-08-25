@@ -207,10 +207,14 @@ const SUPABASE_URL='https://auth.alygnn.com';
 const SUPABASE_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
 const DESTINATION='employer-verification-admin.html';
 
+// Admin sessions use sessionStorage instead of the default localStorage so
+// they end automatically when the tab/browser closes — a deliberate
+// trade-off for this console (re-login each new session) that regular
+// employer/job-seeker accounts do not use.
 const sb=supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY,
-  {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
+  {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.sessionStorage}}
 );
 
 const email=document.getElementById('email');
