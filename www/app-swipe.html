@@ -385,7 +385,7 @@ body{
   overflow:hidden;
   display:-webkit-box;
   -webkit-box-orient:vertical;
-  -webkit-line-clamp:6;
+  -webkit-line-clamp:4;
 }
 
 .card-bottom{
@@ -407,6 +407,173 @@ body{
   text-decoration:none;
   font-size:13px;
   font-weight:900;
+}
+
+
+
+/* COMPACT ALYGNN MATCH */
+.alygnn-match-mini{
+  border:1px solid var(--border);
+  background:rgba(248,250,252,.82);
+  border-radius:19px;
+  padding:12px 13px;
+  margin:2px 0 16px;
+}
+
+.alygnn-match-mini-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.alygnn-match-mini-title{
+  font-size:12px;
+  font-weight:900;
+  color:var(--text);
+}
+
+.alygnn-match-mini-sub{
+  margin-top:2px;
+  font-size:9px;
+  color:var(--text-muted);
+  font-weight:700;
+}
+
+.alygnn-match-mini-body{
+  display:grid;
+  grid-template-columns:64px 1fr;
+  gap:13px;
+  align-items:center;
+}
+
+.alygnn-score-ring{
+  --score:0;
+  width:62px;
+  height:62px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  position:relative;
+  background:
+    conic-gradient(
+      var(--mint) calc(var(--score) * 1%),
+      rgba(93,127,163,.13) 0
+    );
+}
+
+.alygnn-score-ring::after{
+  content:'';
+  position:absolute;
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  background:var(--card-bg);
+  border:1px solid rgba(93,127,163,.08);
+}
+
+.alygnn-score-number{
+  position:relative;
+  z-index:1;
+  text-align:center;
+  font-size:16px;
+  line-height:1;
+  color:var(--text);
+  font-weight:900;
+}
+
+.alygnn-score-number small{
+  display:block;
+  margin-top:3px;
+  font-size:7px;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  color:var(--text-muted);
+  font-weight:900;
+}
+
+.alygnn-mini-metrics{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px 12px;
+}
+
+.alygnn-mini-row{
+  min-width:0;
+}
+
+.alygnn-mini-row-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+  margin-bottom:4px;
+}
+
+.alygnn-mini-label{
+  font-size:9px;
+  color:var(--text-muted);
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.alygnn-mini-value{
+  font-size:9px;
+  color:var(--brand-dark);
+  font-weight:900;
+}
+
+.alygnn-mini-track{
+  height:4px;
+  background:rgba(93,127,163,.12);
+  border-radius:999px;
+  overflow:hidden;
+}
+
+.alygnn-mini-fill{
+  height:100%;
+  width:0;
+  background:var(--mint);
+  border-radius:999px;
+}
+
+.details-match-wrap{
+  margin-top:14px;
+}
+
+@media(max-height:760px){
+  .alygnn-match-mini{
+    padding:10px 11px;
+    margin-bottom:12px;
+  }
+
+  .alygnn-match-mini-head{
+    margin-bottom:8px;
+  }
+
+  .alygnn-match-mini-body{
+    grid-template-columns:56px 1fr;
+    gap:10px;
+  }
+
+  .alygnn-score-ring{
+    width:54px;
+    height:54px;
+  }
+
+  .alygnn-score-ring::after{
+    width:40px;
+    height:40px;
+  }
+
+  .alygnn-score-number{
+    font-size:14px;
+  }
+
+  .alygnn-mini-metrics{
+    gap:6px 10px;
+  }
 }
 
 
@@ -816,6 +983,9 @@ const sb=supabase.createClient(
 );
 
 let session=null;
+let candidateProfile={};
+let candidatePreferences={};
+let candidateResume={};
 let jobs=[];
 let currentIndex=0;
 let applied=0;
@@ -874,6 +1044,426 @@ function normalizeList(value){
     .filter(Boolean);
 }
 
+
+function parseObject(value){
+  if(!value)return {};
+  if(typeof value==='object'&&!Array.isArray(value))return value;
+  if(typeof value==='string'){
+    try{
+      const parsed=JSON.parse(value);
+      return parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};
+    }catch(_error){
+      return {};
+    }
+  }
+  return {};
+}
+
+function normalizeMatchText(value){
+  return String(value||'')
+    .toLowerCase()
+    .replace(/&/g,' and ')
+    .replace(/[–—]/g,'-')
+    .replace(/[^a-z0-9+#.\s-]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+const MATCH_STOP_WORDS=new Set([
+  'a','an','and','are','as','at','be','by','for','from','in','is','it','of',
+  'on','or','the','to','with','your','you','our','we','this','that','will',
+  'job','role','position','work','working','team','candidate','company'
+]);
+
+function matchTokens(value){
+  return normalizeMatchText(value)
+    .split(/[\s/,_-]+/)
+    .map(token=>token.trim())
+    .filter(token=>token.length>1&&!MATCH_STOP_WORDS.has(token));
+}
+
+function textSimilarity(left,right){
+  const a=normalizeMatchText(left);
+  const b=normalizeMatchText(right);
+  if(!a||!b)return null;
+  if(a===b)return 100;
+  if(a.includes(b)||b.includes(a))return 95;
+  const aTokens=[...new Set(matchTokens(a))];
+  const bTokens=[...new Set(matchTokens(b))];
+  if(!aTokens.length||!bTokens.length)return 0;
+  const bSet=new Set(bTokens);
+  const overlap=aTokens.filter(token=>bSet.has(token)).length;
+  const denominator=Math.max(aTokens.length,bTokens.length);
+  if(!overlap)return 0;
+  return Math.min(100,Math.round((overlap/denominator)*100));
+}
+
+function canonicalWorkStyle(value){
+  const text=normalizeMatchText(value).replace(/\s+/g,'');
+  if(text.includes('remote'))return 'remote';
+  if(text.includes('hybrid'))return 'hybrid';
+  if(text.includes('onsite')||text.includes('on-site'))return 'onsite';
+  return text;
+}
+
+function canonicalJobType(value){
+  const text=normalizeMatchText(value).replace(/[\s-]+/g,'');
+  if(text.includes('fulltime'))return 'fulltime';
+  if(text.includes('parttime'))return 'parttime';
+  if(text.includes('contractor')||text.includes('contract'))return 'contract';
+  if(text.includes('internship')||text.includes('intern'))return 'intern';
+  if(text.includes('temporary')||text.includes('temp'))return 'temporary';
+  return text;
+}
+
+function splitLocation(value){
+  const raw=String(value||'').trim();
+  const parts=raw.split(',').map(part=>normalizeMatchText(part)).filter(Boolean);
+  return {raw:normalizeMatchText(raw),city:parts[0]||'',state:parts[1]||''};
+}
+
+function locationScore(job){
+  const wanted=candidatePreferences.location||[candidatePreferences.city,candidatePreferences.state].filter(Boolean).join(', ');
+  const offered=job.location||[job.location_city||job.city,job.location_state||job.state].filter(Boolean).join(', ');
+  if(!wanted||!offered)return null;
+  const preferredStyle=canonicalWorkStyle(candidatePreferences.workStyle);
+  const jobStyle=canonicalWorkStyle(job.work_style||job.work_arrangement);
+  if(jobStyle==='remote')return preferredStyle==='remote'?100:90;
+  const a=splitLocation(wanted);
+  const b=splitLocation(offered);
+  if(a.raw===b.raw)return 100;
+  if(a.city&&b.city&&a.city===b.city&&a.state&&b.state&&a.state===b.state)return 100;
+  if(a.city&&b.city&&a.city===b.city)return 90;
+  if(a.state&&b.state&&a.state===b.state)return 75;
+  return 20;
+}
+
+function workStyleScore(job){
+  const wanted=canonicalWorkStyle(candidatePreferences.workStyle);
+  const offered=canonicalWorkStyle(job.work_style||job.work_arrangement);
+  if(!wanted||!offered)return null;
+  if(wanted===offered)return 100;
+  if(wanted==='hybrid'&&(offered==='remote'||offered==='onsite'))return 65;
+  if(offered==='hybrid'&&(wanted==='remote'||wanted==='onsite'))return 65;
+  return 15;
+}
+
+function jobTypeScore(job){
+  const wantedRaw=Array.isArray(candidatePreferences.jobTypes)&&candidatePreferences.jobTypes.length
+    ?candidatePreferences.jobTypes
+    :[candidatePreferences.jobType].filter(Boolean);
+  if(!wantedRaw.length)return null;
+  const wanted=wantedRaw.map(canonicalJobType).filter(Boolean);
+  const offered=canonicalJobType(job.job_type||job.employment_type);
+  if(!offered)return null;
+  return wanted.includes(offered)?100:10;
+}
+
+function extractMoneyValues(text){
+  const source=String(text||'');
+  const values=[];
+  const regex=/\$?\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*([kK])?/g;
+  let match;
+  while((match=regex.exec(source))){
+    let value=Number(match[1].replace(/,/g,''));
+    if(match[2])value*=1000;
+    if(Number.isFinite(value))values.push(value);
+  }
+  return values;
+}
+
+function annualizePay(value,periodText){
+  if(!Number.isFinite(value))return null;
+  const period=normalizeMatchText(periodText);
+  if(period.includes('hour'))return value*2080;
+  if(period.includes('week'))return value*52;
+  if(period.includes('month'))return value*12;
+  if(period.includes('day'))return value*260;
+  return value;
+}
+
+function jobPayRange(job){
+  let min=Number(job.pay_min??job.salary_min??NaN);
+  let max=Number(job.pay_max??job.salary_max??NaN);
+  const salaryTextValue=job.salary||'';
+  const period=job.pay_period||salaryTextValue;
+  if(!Number.isFinite(min)&&!Number.isFinite(max)){
+    const numbers=extractMoneyValues(salaryTextValue);
+    if(numbers.length){
+      min=numbers[0];
+      max=numbers.length>1?numbers[1]:numbers[0];
+    }
+  }
+  if(!Number.isFinite(min)&&Number.isFinite(max))min=max;
+  if(!Number.isFinite(max)&&Number.isFinite(min))max=min;
+  if(!Number.isFinite(min)||!Number.isFinite(max))return null;
+  min=annualizePay(min,period);
+  max=annualizePay(max,period);
+  if(!Number.isFinite(min)||!Number.isFinite(max))return null;
+  if(min>max)[min,max]=[max,min];
+  return {min,max};
+}
+
+function salaryScore(job){
+  const wantedMin=Number(candidatePreferences.salary_min);
+  const wantedMax=Number(candidatePreferences.salary_max);
+  const offered=jobPayRange(job);
+  if(!Number.isFinite(wantedMin)||!Number.isFinite(wantedMax)||!offered)return null;
+  if(offered.max>=wantedMin&&offered.min<=wantedMax)return 100;
+  if(offered.min>wantedMax)return 95;
+  const gap=wantedMin-offered.max;
+  const denominator=Math.max(wantedMin,1);
+  return Math.max(0,Math.round(100-(gap/denominator)*160));
+}
+
+function candidateSkills(){
+  const direct=normalizeList(candidateResume.skills);
+  const profileSkills=normalizeList(candidateProfile.skills||candidateProfile.skill_list||candidateProfile.top_skills);
+  return [...new Set([...direct,...profileSkills].map(skill=>String(skill).trim()).filter(Boolean))];
+}
+
+function resumeRoleText(){
+  const personal=parseObject(candidateResume.personal);
+  const experiences=Array.isArray(candidateResume.experience)?candidateResume.experience:[];
+  return [
+    candidatePreferences.query,
+    candidateResume.title,
+    personal.professional_title,
+    ...experiences.map(item=>item?.title||item?.job_title||'')
+  ].filter(Boolean).join(' ');
+}
+
+function jobSearchText(job){
+  return [job.title,job.description,job.requirements,job.qualifications,job.skills,job.responsibilities,job.tasks,job.duties]
+    .flatMap(value=>Array.isArray(value)?value:[value])
+    .filter(Boolean)
+    .join(' ');
+}
+
+function roleScore(job){
+  const candidateRole=resumeRoleText();
+  const jobTitle=job.title||'';
+  if(!candidateRole||!jobTitle)return null;
+  if(candidatePreferences.query){
+    const preferred=textSimilarity(candidatePreferences.query,jobTitle);
+    if(preferred!=null&&preferred>=80)return preferred;
+  }
+  return textSimilarity(candidateRole,jobTitle);
+}
+
+function skillsScore(job){
+  const skills=candidateSkills();
+  if(!skills.length)return null;
+  const haystack=normalizeMatchText(jobSearchText(job));
+  if(!haystack)return null;
+  let matched=0;
+  skills.forEach(skill=>{
+    const normalized=normalizeMatchText(skill);
+    if(!normalized)return;
+    if(haystack.includes(normalized)){
+      matched++;
+      return;
+    }
+    const tokens=matchTokens(normalized);
+    if(tokens.length&&tokens.every(token=>haystack.includes(token)))matched++;
+  });
+  return Math.round((matched/skills.length)*100);
+}
+
+
+function experienceScore(job){
+  const experiences=Array.isArray(candidateResume.experience)
+    ?candidateResume.experience
+    :[];
+
+  if(!experiences.length)return null;
+
+  const jobTitle=job.title||'';
+  const jobText=normalizeMatchText(jobSearchText(job));
+
+  let bestTitle=0;
+  const experienceText=[];
+
+  experiences.forEach(item=>{
+    if(!item||typeof item!=='object')return;
+
+    const title=
+      item.title||
+      item.job_title||
+      item.position||
+      item.role||
+      '';
+
+    const description=
+      item.description||
+      item.details||
+      item.summary||
+      item.responsibilities||
+      '';
+
+    if(title){
+      const similarity=textSimilarity(title,jobTitle);
+      if(Number.isFinite(similarity)){
+        bestTitle=Math.max(bestTitle,similarity);
+      }
+    }
+
+    experienceText.push(
+      title,
+      item.company||item.company_name||'',
+      description
+    );
+  });
+
+  const candidateText=normalizeMatchText(experienceText.filter(Boolean).join(' '));
+
+  let keywordScore=0;
+
+  if(candidateText&&jobText){
+    const jobTokens=[...new Set(matchTokens(jobText))];
+    const candidateTokens=new Set(matchTokens(candidateText));
+
+    if(jobTokens.length){
+      const overlap=jobTokens.filter(token=>candidateTokens.has(token)).length;
+      keywordScore=Math.min(
+        100,
+        Math.round((overlap/Math.min(jobTokens.length,18))*100)
+      );
+    }
+  }
+
+  return Math.round(
+    Math.min(
+      100,
+      (bestTitle*.65)+(keywordScore*.35)
+    )
+  );
+}
+
+function scoreMetric(job,key){
+  const value=job?._alygnn_breakdown?.[key];
+  return Number.isFinite(Number(value))
+    ?Math.max(0,Math.min(100,Math.round(Number(value))))
+    :null;
+}
+
+function compactMetric(label,value){
+  const display=value==null?'—':value+'%';
+  const width=value==null?0:value;
+
+  return `
+    <div class="alygnn-mini-row">
+      <div class="alygnn-mini-row-top">
+        <span class="alygnn-mini-label">${escapeHtml(label)}</span>
+        <span class="alygnn-mini-value">${escapeHtml(display)}</span>
+      </div>
+      <div class="alygnn-mini-track">
+        <div class="alygnn-mini-fill" style="width:${width}%"></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCompactAlygnnMatch(job){
+  const score=Number.isFinite(Number(job?.match_score))
+    ?Math.max(0,Math.min(100,Math.round(Number(job.match_score))))
+    :null;
+
+  const breakdown=job?._alygnn_breakdown||{};
+
+  const skills=scoreMetric(job,'skills');
+  const experience=scoreMetric(job,'experience');
+  const salary=scoreMetric(job,'salary');
+  const location=scoreMetric(job,'location');
+
+  return `
+    <div class="alygnn-match-mini">
+      <div class="alygnn-match-mini-head">
+        <div>
+          <div class="alygnn-match-mini-title">Your Alygnn match</div>
+          <div class="alygnn-match-mini-sub">Based on your resume + preferences</div>
+        </div>
+      </div>
+
+      <div class="alygnn-match-mini-body">
+        <div
+          class="alygnn-score-ring"
+          style="--score:${score==null?0:score}"
+          aria-label="${score==null?'Alygnn score pending':score+' percent Alygnn match'}"
+        >
+          <div class="alygnn-score-number">
+            ${score==null?'—':score+'%'}
+            <small>Match</small>
+          </div>
+        </div>
+
+        <div class="alygnn-mini-metrics">
+          ${compactMetric('Skills',skills)}
+          ${compactMetric('Experience',experience)}
+          ${compactMetric('Salary',salary)}
+          ${compactMetric('Location',location)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+
+function benefitsScore(job){
+  const wanted=normalizeList(candidatePreferences.benefits);
+  const offeredText=normalizeMatchText(Array.isArray(job.benefits)?job.benefits.join(' '):(job.benefits||job.perks||''));
+  if(!wanted.length||!offeredText)return null;
+  let matches=0;
+  wanted.forEach(item=>{
+    const text=normalizeMatchText(item);
+    const tokens=matchTokens(text);
+    if(offeredText.includes(text)||(tokens.length&&tokens.some(token=>offeredText.includes(token))))matches++;
+  });
+  return Math.round((matches/wanted.length)*100);
+}
+
+function industryScore(job){
+  const wanted=normalizeList(candidatePreferences.industries);
+  const offered=job.industry||job.industry_name||job.category||'';
+  if(!wanted.length||!offered)return null;
+  return Math.max(...wanted.map(industry=>textSimilarity(industry,offered)??0));
+}
+
+function calculateAlygnnScore(job){
+  const criteria=[
+    {key:'role',weight:12,value:roleScore(job)},
+    {key:'skills',weight:20,value:skillsScore(job)},
+    {key:'experience',weight:15,value:experienceScore(job)},
+    {key:'location',weight:13,value:locationScore(job)},
+    {key:'workStyle',weight:10,value:workStyleScore(job)},
+    {key:'jobType',weight:10,value:jobTypeScore(job)},
+    {key:'salary',weight:15,value:salaryScore(job)},
+    {key:'benefits',weight:3,value:benefitsScore(job)},
+    {key:'industry',weight:2,value:industryScore(job)}
+  ];
+  const available=criteria.filter(item=>Number.isFinite(item.value));
+  if(!available.length)return {score:null,breakdown:{}};
+  const totalWeight=available.reduce((sum,item)=>sum+item.weight,0);
+  const weighted=available.reduce((sum,item)=>sum+(item.value*item.weight),0);
+  const score=Math.max(0,Math.min(100,Math.round(weighted/totalWeight)));
+  return {
+    score,
+    breakdown:Object.fromEntries(available.map(item=>[item.key,Math.round(item.value)]))
+  };
+}
+
+async function loadCandidateMatchingProfile(){
+  const {data,error}=await sb
+    .from('profiles')
+    .select('*')
+    .eq('id',session.user.id)
+    .maybeSingle();
+  if(error)throw error;
+  candidateProfile=data||{};
+  candidatePreferences=parseObject(candidateProfile.preferences);
+  candidateResume=parseObject(candidateProfile.resume_data);
+}
+
 function renderList(items,emptyText){
   const clean=normalizeList(items);
   if(!clean.length)return `<div class="details-empty">${escapeHtml(emptyText)}</div>`;
@@ -897,6 +1487,9 @@ function openJobDetails(index){
   const location=job.location||[job.city,job.state].filter(Boolean).join(', ')||'Location not listed';
   const type=job.job_type||job.employment_type||'Job';
   const style=job.work_style||'';
+  const alygnnScore=Number.isFinite(Number(job.match_score))
+    ?Math.round(Number(job.match_score))
+    :null;
   const lists=getJobLists(job);
   const companyAbout=job.company_description||job.company_headline||job.about_company||'';
 
@@ -914,6 +1507,10 @@ function openJobDetails(index){
         <span class="details-pill">▣ ${escapeHtml(type)}</span>
         ${style?`<span class="details-pill">⌂ ${escapeHtml(style)}</span>`:''}
         <span class="details-pill pay">${escapeHtml(salaryText(job))}</span>
+      </div>
+
+      <div class="details-match-wrap">
+        ${renderCompactAlygnnMatch(job)}
       </div>
     </article>
 
@@ -999,7 +1596,12 @@ function buildCard(job,index){
   const location=job.location||[job.city,job.state].filter(Boolean).join(', ')||'Location not listed';
   const type=job.job_type||job.employment_type||'Job';
   const style=job.work_style||'';
-  const match=job.match_score!=null?job.match_score+'% Match':'New Match';
+  const alygnnScore=Number.isFinite(Number(job.match_score))
+    ?Math.round(Number(job.match_score))
+    :null;
+  const match=alygnnScore!=null
+    ?alygnnScore+'% Match'
+    :'Match pending';
 
   card.innerHTML=`
     <div class="stamp stamp-apply">APPLY</div>
@@ -1031,20 +1633,7 @@ function buildCard(job,index){
       <span class="pill salary">$ ${escapeHtml(salaryText(job))}</span>
     </div>
 
-    <div class="quick-facts">
-      <div class="fact">
-        <div class="fact-label">Match</div>
-        <div class="fact-value">${escapeHtml(match)}</div>
-      </div>
-      <div class="fact">
-        <div class="fact-label">Work Style</div>
-        <div class="fact-value">${escapeHtml(style||'Flexible')}</div>
-      </div>
-      <div class="fact">
-        <div class="fact-label">Posted</div>
-        <div class="fact-value">${escapeHtml(postedText(job.created_at))}</div>
-      </div>
-    </div>
+    ${renderCompactAlygnnMatch(job)}
 
     <div class="card-desc">${escapeHtml(job.description||'Open this job to see the full details and requirements.')}</div>
 
@@ -1186,7 +1775,9 @@ async function createApplication(job){
     job_id:job.id,
     status:'applied',
     applied_at:new Date().toISOString(),
-    match_score:job.match_score??null
+    match_score:Number.isFinite(Number(job.match_score))
+      ?Math.round(Number(job.match_score))
+      :null
   });
 
   if(error)throw error;
@@ -1286,7 +1877,21 @@ async function loadJobs(){
     return;
   }
 
-  jobs=data||[];
+  jobs=(data||[])
+    .map(job=>{
+      const result=calculateAlygnnScore(job);
+      return {
+        ...job,
+        match_score:result.score,
+        _alygnn_breakdown:result.breakdown
+      };
+    })
+    .sort((a,b)=>{
+      const scoreA=Number.isFinite(Number(a.match_score))?Number(a.match_score):-1;
+      const scoreB=Number.isFinite(Number(b.match_score))?Number(b.match_score):-1;
+      return scoreB-scoreA;
+    });
+
   currentIndex=0;
   history=[];
   renderCards();
@@ -1361,6 +1966,14 @@ document.addEventListener('keydown',event=>{
     .eq('candidate_id',session.user.id);
 
   applied=count||0;
+
+  try{
+    await loadCandidateMatchingProfile();
+  }catch(profileError){
+    console.error('Could not load Alygnn matching profile:',profileError);
+    showToast('Could not load your Alygnn matching profile');
+  }
+
   await loadJobs();
 })();
 </script>
