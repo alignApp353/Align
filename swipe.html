@@ -193,13 +193,28 @@
   .job-card.expanded .card-highlights.preview,
   .job-card.expanded .card-benefits.preview { display: none; }
 
-  .back-to-swiping {
-    display: none; align-items: center; gap: 6px; background: none; border: none;
-    color: var(--brand); font-size: 12px; font-weight: 600; cursor: pointer;
-    padding: 0; font-family: inherit;
-  }
+  .back-to-swiping { display: none; align-items: center; gap: 6px; background: none; border: none; color: var(--brand); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; font-family: inherit; }
   .job-card.expanded .back-to-swiping { display: inline-flex; }
   .job-card.expanded .view-details-link { display: none; }
+
+  .match-section-full { display: none; margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+  .job-card.expanded .match-section-full.has-match { display: block; }
+  .match-section-top { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+  .score-ring {
+    --score: 0; width: 72px; height: 72px; flex: 0 0 72px; position: relative;
+    display: grid; place-items: center; border-radius: 50%;
+    background: conic-gradient(#6FBF8F calc(var(--score) * 1%), #E7ECEF 0);
+  }
+  .score-ring::before { content: ''; position: absolute; inset: 7px; border-radius: 50%; background: var(--card-bg); }
+  .score-number { position: relative; z-index: 1; text-align: center; color: var(--text); font-size: 17px; font-weight: 700; line-height: 1; }
+  .score-number small { display: block; margin-top: 3px; color: var(--text-muted); font-size: 8px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+  .match-copy { color: var(--text-muted); font-size: 12px; line-height: 1.55; }
+  .match-breakdown { display: grid; gap: 10px; }
+  .breakdown-row { display: grid; grid-template-columns: 74px 1fr 36px; align-items: center; gap: 10px; }
+  .breakdown-label { color: var(--text); font-size: 11px; font-weight: 700; }
+  .breakdown-bar { height: 6px; overflow: hidden; border-radius: 999px; background: #E7ECEF; }
+  .breakdown-fill { width: 0; height: 100%; border-radius: inherit; background: #6FBF8F; transition: width .55s ease; }
+  .breakdown-value { text-align: right; color: var(--brand); font-size: 11px; font-weight: 700; }
 
   .card-highlights { margin-bottom: 16px; }
   .highlights-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
@@ -626,6 +641,11 @@
           : `<div class="match-badge pending" data-job-id="${job.id}">Calculating match…</div>`)
       : '';
 
+    const matchSectionInner = cachedMatch ? buildMatchSectionHTML(cachedMatch) : '';
+    const matchSectionHTML = currentUserId
+      ? `<div class="match-section-full${matchSectionInner ? ' has-match' : ''}" data-match-section-for="${job.id}">${matchSectionInner}</div>`
+      : '';
+
     card.innerHTML = `
       <div class="stamp stamp-apply">APPLY ✓</div>
       <div class="stamp stamp-skip">SKIP ✕</div>
@@ -641,7 +661,10 @@
       <div class="card-desc">${escapeHtml(description)}</div>
       ${highlightsHTML}
       ${benefitsHTML}
-      <div class="card-details-full">${fullHighlightsHTML}${fullBenefitsHTML}</div>
+      <div class="card-details-full">
+        ${matchSectionHTML}
+        ${fullHighlightsHTML}${fullBenefitsHTML}
+      </div>
       <div class="card-bottom">
         <div class="posted-time">${timeAgo(job.created_at)}</div>
         <button class="view-details-link" type="button" onclick="toggleCardDetails(this)">View details →</button>
@@ -699,14 +722,14 @@
     try {
       const { data: cachedRows, error: cacheError } = await sb
         .from('job_matches')
-        .select('job_id, score, reason')
+        .select('*')
         .eq('candidate_id', currentUserId)
         .in('job_id', need);
 
       if (cacheError) console.warn('Could not read cached match scores:', cacheError);
 
       (cachedRows || []).forEach(row => {
-        matchScores[row.job_id] = { score: row.score, reason: row.reason };
+        matchScores[row.job_id] = { ...row, score: row.score, reason: row.reason };
       });
 
       const stillMissing = need.filter(id => !(id in matchScores));
@@ -720,7 +743,7 @@
           console.warn('score-job-match failed:', error);
         } else {
           (data?.scores || []).forEach(s => {
-            matchScores[s.job_id] = { score: s.score, reason: s.reason };
+            matchScores[s.job_id] = { ...s, score: s.score, reason: s.reason };
           });
         }
       }
@@ -738,11 +761,16 @@
   function patchRenderedBadges(jobIds) {
     jobIds.forEach(id => {
       const el = document.querySelector(`.match-badge[data-job-id="${CSS.escape(id)}"]`);
-      if (!el) return;
       const match = matchScores[id];
-      if (match) {
+      if (el && match) {
         el.textContent = `✦ ${match.score}% match`;
         el.classList.remove('pending');
+      }
+
+      const sectionEl = document.querySelector(`.match-section-full[data-match-section-for="${CSS.escape(id)}"]`);
+      if (sectionEl && match && !sectionEl.classList.contains('has-match')) {
+        sectionEl.innerHTML = buildMatchSectionHTML(match);
+        sectionEl.classList.add('has-match');
       }
     });
   }
@@ -762,6 +790,74 @@
     sb.rpc('increment_job_views', { p_job_id: topJob.id }).then(({ error }) => {
       if (error) console.warn('Could not record job view:', error);
     });
+  }
+
+  function clampScore(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return null;
+    return Math.max(0, Math.min(100, Math.round(number)));
+  }
+
+  function firstScore(...values) {
+    for (const value of values) {
+      const score = clampScore(value);
+      if (score !== null) return score;
+    }
+    return null;
+  }
+
+  function readBreakdownScore(match, key) {
+    const breakdown = match?.breakdown && typeof match.breakdown === 'object' ? match.breakdown : {};
+    const aliases = {
+      skills: [match?.skills_match, match?.skills_score, breakdown.skills, breakdown.skills_match, breakdown.skills_score],
+      experience: [match?.experience_match, match?.experience_score, breakdown.experience, breakdown.experience_match, breakdown.experience_score],
+      salary: [match?.salary_match, match?.salary_score, breakdown.salary, breakdown.salary_match, breakdown.salary_score],
+      location: [match?.location_match, match?.location_score, breakdown.location, breakdown.location_match, breakdown.location_score],
+    };
+    return firstScore(...(aliases[key] || []));
+  }
+
+  function defaultMatchCopy(score) {
+    if (score >= 90) return 'This role strongly aligns with your candidate profile, preferences, and career direction.';
+    if (score >= 75) return 'This role aligns well with several parts of your candidate profile and preferences.';
+    if (score >= 60) return 'This role matches several parts of your profile. Review the details to see where it fits best.';
+    return 'This role matches some of your preferences. Review the details before deciding whether to apply.';
+  }
+
+  // Builds the same match-breakdown markup as job-details.html (score ring,
+  // copy, four category bars), falling back to small offsets from the
+  // overall score when the scoring backend hasn't supplied real category
+  // scores — identical fallback behavior to that page.
+  function buildMatchSectionHTML(match) {
+    const score = clampScore(match?.score ?? match?.match_score);
+    if (score === null) return '';
+
+    const skills = readBreakdownScore(match, 'skills') ?? clampScore(score - 2);
+    const experience = readBreakdownScore(match, 'experience') ?? clampScore(score + 1);
+    const salary = readBreakdownScore(match, 'salary') ?? clampScore(score - 4);
+    const location = readBreakdownScore(match, 'location') ?? clampScore(score - 6);
+    const copy = match?.reason || defaultMatchCopy(score);
+
+    const row = (label, value) => `
+      <div class="breakdown-row">
+        <div class="breakdown-label">${label}</div>
+        <div class="breakdown-bar"><div class="breakdown-fill" style="width:${value ?? 0}%"></div></div>
+        <div class="breakdown-value">${value === null ? '—' : value + '%'}</div>
+      </div>`;
+
+    return `
+      <div class="match-section-top">
+        <div class="score-ring" style="--score:${score}">
+          <div class="score-number">${score}%<small>Match</small></div>
+        </div>
+        <div class="match-copy">${escapeHtml(copy)}</div>
+      </div>
+      <div class="match-breakdown">
+        ${row('Skills', skills)}
+        ${row('Experience', experience)}
+        ${row('Salary', salary)}
+        ${row('Location', location)}
+      </div>`;
   }
 
   function toggleCardDetails(button) {
