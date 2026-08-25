@@ -390,19 +390,20 @@ body{
 }
 
 .card-desc{
-  font-size:14px;
+  font-size:12px;
   color:var(--text-muted);
-  line-height:1.68;
-  flex:1;
+  line-height:1.55;
+  margin-top:2px;
+  max-width:100%;
   overflow:hidden;
   display:-webkit-box;
   -webkit-box-orient:vertical;
-  -webkit-line-clamp:4;
+  -webkit-line-clamp:3;
 }
 
 .card-bottom{
   border-top:1px solid var(--border);
-  padding-top:13px;
+  padding-top:11px;
   margin-top:auto;
   display:flex;
   justify-content:flex-end;
@@ -1371,10 +1372,22 @@ body.details-open{overflow:hidden}
 </section>
 
 <nav class="bottom-nav" aria-label="Candidate navigation">
-  <button class="nav-item" type="button" onclick="window.location.href='app-account.html'"><span class="nav-icon">◉</span><span>My Profile</span></button>
-  <button class="nav-item active" type="button"><span class="nav-icon">◇</span><span>Swipe</span></button>
-  <button class="nav-item" type="button" onclick="window.location.href='app-applied.html'"><span class="nav-icon">▣</span><span>My Jobs</span></button>
-  <button class="nav-item" type="button" onclick="window.location.href='app-account.html#settings'"><span class="nav-icon">⚙</span><span>Settings</span></button>
+  <button class="nav-item" type="button" onclick="window.location.href='app-account.html'">
+    <span class="nav-icon">♙</span>
+    <span>My Profile</span>
+  </button>
+  <button class="nav-item active" type="button" aria-current="page">
+    <span class="nav-icon">⌕</span>
+    <span>Discover</span>
+  </button>
+  <button class="nav-item" type="button" onclick="window.location.href='app-applied.html'">
+    <span class="nav-icon">▣</span>
+    <span>My Jobs</span>
+  </button>
+  <button class="nav-item" type="button" onclick="window.location.href='app-account.html#settings'">
+    <span class="nav-icon">⚙</span>
+    <span>Settings</span>
+  </button>
 </nav>
 
 
@@ -2054,6 +2067,10 @@ function buildCard(job,index){
       <span class="pill salary">$ ${escapeHtml(salaryText(job))}</span>
     </div>
 
+    <div class="card-desc">
+      ${escapeHtml(job.description||'Open the full job ad to review responsibilities, requirements, and company details.')}
+    </div>
+
     <div class="card-bottom">
       <button
         class="view-full-ad apply-link"
@@ -2151,13 +2168,22 @@ function dragMove(e){
 
   const applyStamp=activeCard.querySelector('.stamp-apply');
   const skipStamp=activeCard.querySelector('.stamp-skip');
-  const ratio=Math.min(Math.abs(currentX)/80,1);
 
-  if(currentX>20){
-    applyStamp.style.opacity=ratio;
+  // A swipe commits at 70px. Do not show a decision stamp during
+  // normal/small card movement. Fade it in only when the candidate
+  // is very close to committing the swipe.
+  const stampStart=55;
+  const swipeCommit=70;
+  const distance=Math.abs(currentX);
+  const stampOpacity=distance<=stampStart
+    ?0
+    :Math.min((distance-stampStart)/(swipeCommit-stampStart),1);
+
+  if(currentX>stampStart){
+    applyStamp.style.opacity=stampOpacity;
     skipStamp.style.opacity=0;
-  }else if(currentX<-20){
-    skipStamp.style.opacity=ratio;
+  }else if(currentX<-stampStart){
+    skipStamp.style.opacity=stampOpacity;
     applyStamp.style.opacity=0;
   }else{
     applyStamp.style.opacity=0;
@@ -2184,6 +2210,12 @@ function dragEnd(e){
   }else if(currentX<-70){
     animateSwipe('left');
   }else{
+    const applyStamp=activeCard.querySelector('.stamp-apply');
+    const skipStamp=activeCard.querySelector('.stamp-skip');
+
+    if(applyStamp)applyStamp.style.opacity=0;
+    if(skipStamp)skipStamp.style.opacity=0;
+
     activeCard.style.transition='transform .25s ease';
     activeCard.style.transform='';
     if(tapped)setTimeout(()=>openJobDetails(tappedIndex),40);
