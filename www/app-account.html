@@ -2107,8 +2107,16 @@ async function uploadDashboardResume(file){
 }
 
 function renderCandidateOnboardingGate({hasResume,previewReviewed,preferencesComplete}){
-  const complete=hasResume && preferencesComplete;
-  candidateOnboardingState={complete,hasResume,previewReviewed,preferencesComplete};
+  const complete=Boolean(hasResume && preferencesComplete);
+
+  candidateOnboardingState={
+    complete,
+    hasResume:Boolean(hasResume),
+    previewReviewed:Boolean(previewReviewed),
+    preferencesComplete:Boolean(preferencesComplete)
+  };
+
+  lockCandidateNavigation(!complete);
 
   const panel=$('onboarding-panel');
   const hero=$('profile-hero');
@@ -2116,93 +2124,35 @@ function renderCandidateOnboardingGate({hasResume,previewReviewed,preferencesCom
   const profileSection=$('profile-section');
   const setup=$('setup-section');
 
-  lockCandidateNavigation(!complete);
-
   if(complete){
     document.body.dataset.profileComplete='true';
-    if(panel) panel.hidden=true;
-
-    // Once onboarding is complete, the large completion hero is no longer useful.
-    if(hero) hero.hidden=true;
-
-    // Completed candidates no longer need the onboarding-style
-    // activity summary on the main dashboard.
-    if(snapshot) snapshot.hidden=true;
-    if(profileSection) profileSection.hidden=false;
-    if(setup) setup.hidden=true;
+    if(panel)panel.hidden=true;
+    if(hero)hero.hidden=true;
+    if(snapshot)snapshot.hidden=true;
+    if(profileSection)profileSection.hidden=false;
+    if(setup)setup.hidden=true;
 
     const completeActions=$('complete-actions');
     if(completeActions)completeActions.classList.add('show');
 
-    $('lead').textContent=
-      getCandidateTimeContext().completeLead;
-
-    return;
+    if($('lead')){
+      $('lead').textContent=getCandidateTimeContext().completeLead;
+    }
+    return false;
   }
 
+  /* Old dashboard 2-step onboarding is retired. */
   document.body.dataset.profileComplete='false';
-  if(panel) panel.hidden=false;
-  if(hero) hero.hidden=true;
 
-  const completeActions=$('complete-actions');
-  if(completeActions)completeActions.classList.remove('show');
-
-  if(snapshot) snapshot.hidden=true;
-  if(profileSection) profileSection.hidden=true;
-  if(setup) setup.hidden=true;
-
-  $('lead').textContent='Complete your setup to unlock personalized job matches.';
-
-  const completedSteps=(hasResume?1:0)+(preferencesComplete?1:0);
-  $('onboarding-count').textContent=`${completedSteps} of 2 complete`;
-  $('onboarding-progress-fill').style.width=`${completedSteps*50}%`;
-
-  const resumeStep=$('onboarding-resume-step');
-  const prefStep=$('onboarding-preferences-step');
-  const prefButton=$('dashboard-preferences-btn');
-  const resumeActions=$('onboarding-resume-actions');
-
-  resumeStep.classList.remove('active','done','locked');
-  prefStep.classList.remove('active','done','locked');
-
-  if(!hasResume){
-    resumeStep.classList.add('active');
-    prefStep.classList.add('locked');
-    $('onboarding-resume-number').textContent='1';
-    $('onboarding-resume-title').textContent='Add your resume';
-    $('onboarding-resume-copy').textContent='Upload a resume you already have or create one with Alygnn.';
-    if(resumeActions){
-      resumeActions.innerHTML=`<button class="step-btn primary" type="button" id="dashboard-upload-btn" onclick="chooseDashboardResume()">Upload Resume</button><button class="step-btn secondary" type="button" onclick="window.location.href='app-resume-builder.html'">Create Resume</button>`;
-    }
-    $('onboarding-preferences-number').textContent='2';
-    $('onboarding-preferences-title').textContent='Set your preferences';
-    $('onboarding-preferences-copy').textContent='This unlocks after your resume is added and reviewed.';
-    prefButton.disabled=true;
-  }else if(!previewReviewed){
-    resumeStep.classList.add('active');
-    prefStep.classList.add('locked');
-    $('onboarding-resume-number').textContent='✓';
-    $('onboarding-resume-title').textContent='Resume added — review it';
-    $('onboarding-resume-copy').textContent='Review what employers will see before you continue.';
-    if(resumeActions){
-      resumeActions.innerHTML=`<button class="step-btn primary" type="button" onclick="window.location.href='app-resume-preview.html'">Review Resume</button><button class="step-btn secondary" type="button" onclick="window.location.href='app-align-upload.html'">Change Resume</button>`;
-    }
-    $('onboarding-preferences-copy').textContent='Review your resume first, then preferences will unlock.';
-    prefButton.disabled=true;
-  }else{
-    resumeStep.classList.add('done');
-    prefStep.classList.add('active');
-    $('onboarding-resume-number').textContent='✓';
-    $('onboarding-resume-title').textContent='Resume ready';
-    $('onboarding-resume-copy').textContent='Your resume is saved and ready for matching.';
-    if(resumeActions){
-      resumeActions.innerHTML=`<button class="step-btn secondary" type="button" onclick="window.location.href='app-resume-preview.html'">View Resume</button>`;
-    }
-    $('onboarding-preferences-number').textContent='2';
-    $('onboarding-preferences-title').textContent='Set your preferences';
-    $('onboarding-preferences-copy').textContent='Tell Alygnn which roles, location, pay, and work style you want.';
-    prefButton.disabled=false;
+  let destination='app-align-upload.html';
+  if(hasResume && !previewReviewed){
+    destination='app-resume-preview.html';
+  }else if(hasResume && previewReviewed && !preferencesComplete){
+    destination='app-preferences.html';
   }
+
+  window.location.replace(destination);
+  return true;
 }
 
 async function countApplications(userId){
@@ -2586,9 +2536,9 @@ async function loadCandidateWorkspace(options={}){
     }
 
     renderCandidateOnboardingGate({
-      effectiveHasResume,
+      hasResume:effectiveHasResume,
       previewReviewed:effectivePreviewReviewed,
-      effectivePreferencesComplete
+      preferencesComplete:effectivePreferencesComplete
     });
 
   }catch(error){
