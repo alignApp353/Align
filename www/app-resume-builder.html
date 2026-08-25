@@ -4717,35 +4717,20 @@
     // IMPORTANT: resume_data is the source of truth for resumes created in
     // Alygnn. Save it FIRST. A storage/MIME policy problem must never prevent
     // the candidate from saving their resume or continuing to Preferences.
-    const profilePayload = {
-      resume_data: data,
-      resume_source: 'builder',
-      updated_at: new Date().toISOString()
-    };
-
-    // Save into the candidate's existing profile row. The preview-review state
-    // is already stored inside data._alygnn_onboarding, which is what the rest
-    // of the Alygnn candidate flow reads.
-    const { data: updatedProfile, error: updateError } = await sb
+    // Use the same save pattern already used successfully by Alygnn's
+    // candidate Account and Preferences pages. Do not chain .select() onto the
+    // write because some RLS setups permit the write but not the returned-row
+    // SELECT, which makes a successful save look like a failure.
+    const { error: profileSaveError } = await sb
       .from('profiles')
-      .update(profilePayload)
-      .eq('id', userId)
-      .select('id')
-      .maybeSingle();
+      .upsert({
+        id: userId,
+        resume_data: data,
+        resume_source: 'builder',
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
 
-    if (updateError) throw updateError;
-
-    // Fallback for an older account that somehow has no profiles row yet.
-    if (!updatedProfile) {
-      const { error: insertError } = await sb
-        .from('profiles')
-        .insert({
-          id: userId,
-          ...profilePayload
-        });
-
-      if (insertError) throw insertError;
-    }
+    if (profileSaveError) throw profileSaveError;
 
     // Best-effort secondary copy for pages that can open a stored resume file.
     // Some Supabase buckets are configured to accept only PDF/DOC/DOCX, so a
@@ -4862,13 +4847,25 @@
 
       const summary = document.getElementById('validationSummary');
       if (summary) {
+        const technicalMessage =
+          error?.message ||
+          error?.details ||
+          error?.hint ||
+          error?.code ||
+          'Unknown Supabase error';
+
         summary.innerHTML =
           '<strong>We could not finish saving your resume.</strong>' +
-          '<ul><li>Please try Save & continue again. If it still fails, the app could not sync the resume to your account.</li></ul>';
+          '<ul>' +
+            '<li>' + escapeHtml(technicalMessage) + '</li>' +
+          '</ul>';
         summary.hidden = false;
       }
 
-      setSaveStatus('We could not sync the resume to your account.', 'error');
+      setSaveStatus(
+        error?.message || 'We could not sync the resume to your account.',
+        'error'
+      );
       button.disabled = false;
       button.textContent = 'Save & continue →';
     }
