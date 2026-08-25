@@ -833,7 +833,15 @@ async function submit(){
       .eq('id',session.user.id)
       .select('id');
 
-    if(updateError||!updatedRows||updatedRows.length===0){
+    // A genuine "no row yet" case looks like: no error, zero rows updated.
+    // Any actual error (RLS denial, bad value, etc.) must be surfaced as-is —
+    // treating it as "row doesn't exist" and falling back to INSERT is what
+    // was causing a profiles_pkey collision, since the row already existed.
+    if(updateError){
+      throw updateError;
+    }
+
+    if(!updatedRows||updatedRows.length===0){
       const {error:insertError}=await sb
         .from('profiles')
         .insert({
