@@ -196,7 +196,7 @@ body{
   position:relative;
   width:100%;
   max-width:430px;
-  height:min(525px,calc(100vh - 305px));
+  height:min(440px,calc(100vh - 345px));
 }
 
 .job-card{
@@ -403,20 +403,24 @@ body{
 .card-bottom{
   border-top:1px solid var(--border);
   padding-top:13px;
-  margin-top:15px;
+  margin-top:auto;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
 }
 
 .view-full-ad{
-  width:100%;
-  min-height:44px;
-  border:1px solid var(--border);
-  border-radius:14px;
-  background:var(--brand-light);
+  width:auto;
+  min-height:36px;
+  padding:5px 2px 5px 12px;
+  border:none;
+  border-radius:10px;
+  background:transparent;
   color:var(--brand-dark);
-  display:flex;
+  display:inline-flex;
   align-items:center;
-  justify-content:center;
-  gap:8px;
+  justify-content:flex-end;
+  gap:7px;
   font-size:12px;
   font-weight:900;
   cursor:pointer;
@@ -424,7 +428,7 @@ body{
 }
 
 .view-full-ad:active{
-  transform:scale(.985);
+  opacity:.68;
 }
 
 .view-full-ad-arrow{
@@ -658,60 +662,123 @@ body{
 
 /* ACTIONS */
 .action-buttons{
-  display:flex;
-  align-items:flex-end;
-  gap:22px;
-  margin-top:20px;
-}
-
-.action-wrap{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:6px;
-}
-
-.action-label{
-  font-size:11px;
-  color:var(--text-muted);
-  font-weight:800;
+  width:100%;
+  max-width:430px;
+  display:grid;
+  grid-template-columns:82px minmax(0,1fr) minmax(0,1.45fr);
+  gap:10px;
+  margin-top:14px;
+  padding:11px;
+  border:1px solid var(--border);
+  border-radius:20px;
+  background:rgba(252,252,250,.94);
+  box-shadow:0 10px 30px rgba(27,43,63,.08);
 }
 
 .action-btn{
-  border:none;
-  border-radius:50%;
-  background:white;
-  border:1.5px solid var(--border);
-  box-shadow:0 5px 16px rgba(27,43,63,.10);
+  min-width:0;
+  height:68px;
+  border-radius:16px;
+  border:1px solid var(--border);
+  background:var(--card-bg);
+  color:var(--text);
   cursor:pointer;
   display:flex;
   align-items:center;
   justify-content:center;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .12s ease,opacity .12s ease;
 }
 
-.btn-undo,
-.btn-skip,
-.btn-apply{
-  width:60px;
-  height:60px;
-  flex:0 0 60px;
+.action-btn:active{
+  transform:scale(.985);
 }
 
 .btn-undo{
+  flex-direction:column;
+  gap:3px;
+}
+
+.action-undo-icon{
   font-size:22px;
-  color:var(--text);
+  line-height:1;
+}
+
+.action-main{
+  display:block;
+  font-size:12px;
+  line-height:1.15;
+  font-weight:900;
+  white-space:nowrap;
+}
+
+.action-sub{
+  display:block;
+  margin-top:4px;
+  font-size:9px;
+  line-height:1.1;
+  color:var(--text-muted);
+  font-weight:700;
+  white-space:nowrap;
 }
 
 .btn-skip{
-  font-size:27px;
-  color:#D25B67;
+  flex-direction:column;
+  padding:0 10px;
+  border-color:var(--brand);
+  background:transparent;
 }
 
 .btn-apply{
-  font-size:28px;
-  background:var(--brand);
-  color:white;
-  border:none;
+  position:relative;
+  flex-direction:column;
+  align-items:flex-start;
+  padding:0 34px 0 17px;
+  border-color:transparent;
+  background:linear-gradient(135deg,#4E7EAE,#73A2D1);
+  color:#fff;
+}
+
+.btn-apply .action-sub{
+  color:rgba(255,255,255,.76);
+}
+
+.action-arrow{
+  position:absolute;
+  right:15px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:20px;
+  line-height:1;
+}
+
+@media(max-width:390px){
+  .action-buttons{
+    grid-template-columns:72px minmax(0,1fr) minmax(0,1.35fr);
+    gap:8px;
+    padding:9px;
+  }
+
+  .action-btn{
+    height:64px;
+  }
+
+  .action-main{
+    font-size:11px;
+  }
+
+  .action-sub{
+    font-size:8px;
+  }
+
+  .btn-apply{
+    padding-left:13px;
+    padding-right:29px;
+  }
+
+  .action-arrow{
+    right:11px;
+  }
 }
 
 /* BOTTOM NAV */
@@ -815,7 +882,7 @@ body{
   .progress-shell{padding-top:7px}
   .progress-card{padding:9px 12px}
   .swipe-area{height:calc(100vh - 96px - 72px);padding-top:9px}
-  .card-stack{height:min(470px,calc(100vh - 270px))}
+  .card-stack{height:min(415px,calc(100vh - 315px))}
   .job-card{padding:19px}
   .job-title{font-size:25px}
   .card-desc{-webkit-line-clamp:5}
@@ -953,20 +1020,34 @@ body.details-open{overflow:hidden}
   }
 
   .save-btn,
-  .icon-btn,
-  .action-btn{
+  .icon-btn{
     background:#0B1D26 !important;
     color:var(--text);
     border-color:var(--border);
     box-shadow:0 5px 16px rgba(0,0,0,.20);
   }
 
+  .action-buttons{
+    background:rgba(9,29,38,.96);
+    border-color:var(--border);
+    box-shadow:0 12px 32px rgba(0,0,0,.22);
+  }
+
+  .action-btn{
+    background:#0B1D26;
+    color:var(--text);
+    border-color:var(--border);
+    box-shadow:none;
+  }
+
   .btn-skip{
-    color:#EE7884;
+    background:#0B1D26;
+    color:var(--text);
+    border-color:#5D86B1;
   }
 
   .btn-apply{
-    background:var(--brand) !important;
+    background:linear-gradient(135deg,#4E7EAE,#73A2D1) !important;
     color:#fff;
     border-color:transparent;
   }
@@ -1048,8 +1129,8 @@ body.details-open{overflow:hidden}
   }
 
   .view-full-ad{
-    background:#0B1D26;
-    border-color:#29404C;
+    background:transparent;
+    border-color:transparent;
     color:#78A7D6;
   }
 
@@ -1264,20 +1345,21 @@ body.details-open{overflow:hidden}
   <div class="card-stack" id="card-stack"></div>
 
   <div class="action-buttons">
-    <div class="action-wrap">
-      <button class="action-btn btn-undo" id="undo-button" type="button" aria-label="Undo last swipe">↩</button>
-      <div class="action-label">Undo</div>
-    </div>
+    <button class="action-btn btn-undo" id="undo-button" type="button" aria-label="Undo last choice">
+      <span class="action-undo-icon">↶</span>
+      <span class="action-main">Undo</span>
+    </button>
 
-    <div class="action-wrap">
-      <button class="action-btn btn-skip" id="skip-button" type="button" aria-label="Pass on job">✕</button>
-      <div class="action-label">Pass</div>
-    </div>
+    <button class="action-btn btn-skip" id="skip-button" type="button" aria-label="Not for me">
+      <span class="action-main">Not for me</span>
+      <span class="action-sub">Skip this job</span>
+    </button>
 
-    <div class="action-wrap">
-      <button class="action-btn btn-apply" id="apply-button" type="button" aria-label="Apply to job">✓</button>
-      <div class="action-label">Apply</div>
-    </div>
+    <button class="action-btn btn-apply" id="apply-button" type="button" aria-label="Apply now">
+      <span class="action-main">Apply now</span>
+      <span class="action-sub">Send my application</span>
+      <span class="action-arrow">→</span>
+    </button>
   </div>
 </main>
 
@@ -1971,10 +2053,6 @@ function buildCard(job,index){
       ${style?`<span class="pill">⌂ ${escapeHtml(style)}</span>`:''}
       <span class="pill salary">$ ${escapeHtml(salaryText(job))}</span>
     </div>
-
-    ${renderCompactAlygnnMatch(job)}
-
-    <div class="card-desc">${escapeHtml(job.description||'Open this job to see the full details and requirements.')}</div>
 
     <div class="card-bottom">
       <button
