@@ -89,6 +89,30 @@ h1{ font-family:'DM Serif Display', serif; font-size:2rem; letter-spacing:-.5px;
 .queue.loading{ opacity:.5; pointer-events:none; }
 .gate{ max-width:420px; margin:80px auto; text-align:center; padding:32px; border:1px solid var(--border); border-radius:20px; background:var(--card-bg); }
 
+.modal-overlay{
+  display:none; position:fixed; inset:0; z-index:200; background:rgba(26,37,48,.45);
+  align-items:center; justify-content:center; padding:20px;
+}
+.modal-overlay.show{ display:flex; }
+.modal-box{
+  width:100%; max-width:440px; background:var(--card-bg); border:1px solid var(--border);
+  border-radius:20px; padding:24px; max-height:90vh; overflow-y:auto;
+}
+.modal-title{ font-family:'DM Serif Display', serif; font-size:1.3rem; margin-bottom:8px; }
+.modal-sub{ color:var(--text-muted); font-size:13px; line-height:1.5; margin-bottom:18px; }
+.modal-label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:6px; display:block; }
+.modal-select, .modal-textarea{
+  width:100%; border:1px solid var(--border); border-radius:12px; background:var(--bg);
+  color:var(--text); font-size:13px; padding:10px 12px; font-family:inherit; outline:none;
+}
+.modal-select{ margin-bottom:16px; }
+.modal-textarea{ resize:vertical; min-height:90px; margin-bottom:18px; }
+.modal-select:focus, .modal-textarea:focus{ border-color:var(--brand); }
+.modal-actions{ display:flex; flex-direction:column; gap:10px; }
+.modal-btn{ min-height:44px; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; border:1px solid var(--border); background:var(--card-bg); color:var(--text); }
+.modal-btn.danger{ border:none; background:var(--rose); color:#fff; }
+.modal-btn:disabled{ opacity:.5; cursor:not-allowed; }
+
 @media(max-width:980px){ .summary{ grid-template-columns:repeat(2,1fr); } }@media(max-width:820px){ .facts{ grid-template-columns:1fr 1fr; } }@media(max-width:560px){ .summary{ grid-template-columns:1fr; } }
 </style>
 </head>
@@ -135,6 +159,33 @@ h1{ font-family:'DM Serif Display', serif; font-size:2rem; letter-spacing:-.5px;
     <div class="queue" id="queue"><div class="loading-state">Loading…</div></div>
   </div>
 </main>
+
+<div class="modal-overlay" id="reject-modal-overlay" onclick="if(event.target===this)closeRejectModal()">
+  <div class="modal-box">
+    <div class="modal-title">Reject employer</div>
+    <div class="modal-sub" id="reject-modal-sub">Reject this employer. The employer will need to correct the issue before being approved.</div>
+
+    <label class="modal-label" for="reject-reason-select">Reason</label>
+    <select class="modal-select" id="reject-reason-select">
+      <option value="" disabled selected>Choose a reason</option>
+      <option value="Verification issue">Verification issue</option>
+      <option value="Business information changed">Business information changed</option>
+      <option value="Fraud or misleading information">Fraud or misleading information</option>
+      <option value="Policy violation">Policy violation</option>
+      <option value="Duplicate company">Duplicate company</option>
+      <option value="Employer request">Employer request</option>
+      <option value="Other">Other</option>
+    </select>
+
+    <label class="modal-label" for="reject-reason-notes">Additional notes</label>
+    <textarea class="modal-textarea" id="reject-reason-notes" placeholder="Add details about this action…"></textarea>
+
+    <div class="modal-actions">
+      <button class="modal-btn" id="reject-modal-cancel" type="button" onclick="closeRejectModal()">Cancel</button>
+      <button class="modal-btn danger" id="reject-modal-confirm" type="button" onclick="submitRejectModal()">Reject Employer</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const SUPABASE_URL='https://auth.alygnn.com';
@@ -312,7 +363,7 @@ function renderRow(row){
   if(currentStatus==='pending_review'){
     actions=`<div class="actions">
       <button class="btn approve" ${documentReady?'':'disabled style="opacity:.45;cursor:not-allowed"'} onclick="reviewCompany('${esc(row.company_id)}','approved',this)">Approve employer</button>
-      <button class="btn reject" onclick="reviewCompany('${esc(row.company_id)}','rejected',this)">Decline</button>
+      <button class="btn reject" onclick="openRejectModal('${esc(row.company_id)}','${esc(row.company_name).replace(/'/g,"\\'")}',this)">Decline</button>
     </div>`;
   }else if(currentStatus==='approved'||currentStatus==='rejected'){
     actions=`<div class="actions">
@@ -438,7 +489,7 @@ async function loadCounts(){
     : '—';
 }
 
-async function reviewCompany(companyId,decision,button){
+async function reviewCompany(companyId,decision,button,preSuppliedReason){
   if(!companyId)return showMessage('This employer is missing a company ID.','error');
 
   const target=rows.find(row=>row.company_id===companyId);
@@ -449,8 +500,8 @@ async function reviewCompany(companyId,decision,button){
 
   let reason='';
   if(decision==='rejected'){
-    reason=prompt('Why are you declining this employer?')||'';
-    if(!reason.trim())return;
+    reason=(preSuppliedReason||'').trim();
+    if(!reason)return;
   }else if(!confirm('Approve this employer after reviewing the business information and verification PDF?')){
     return;
   }
@@ -470,6 +521,53 @@ async function reviewCompany(companyId,decision,button){
     showMessage(error.message||'Could not save this decision.','error');
     button.disabled=false;
     button.textContent=oldText;
+  }
+}
+
+// ---- Reject modal ----
+
+let rejectModalState={companyId:null,button:null};
+
+function openRejectModal(companyId,companyName,button){
+  rejectModalState={companyId,button};
+
+  const sub=document.getElementById('reject-modal-sub');
+  sub.textContent=`Reject ${companyName||'this employer'}. The employer will need to correct the issue before being approved.`;
+
+  document.getElementById('reject-reason-select').value='';
+  document.getElementById('reject-reason-notes').value='';
+  document.getElementById('reject-modal-overlay').classList.add('show');
+}
+
+function closeRejectModal(){
+  document.getElementById('reject-modal-overlay').classList.remove('show');
+  rejectModalState={companyId:null,button:null};
+}
+
+async function submitRejectModal(){
+  const reasonSelect=document.getElementById('reject-reason-select');
+  const notes=document.getElementById('reject-reason-notes').value.trim();
+  const reasonLabel=reasonSelect.value;
+
+  if(!reasonLabel){
+    reasonSelect.focus();
+    return;
+  }
+
+  const combinedReason=notes?`${reasonLabel} — ${notes}`:reasonLabel;
+  const {companyId,button}=rejectModalState;
+
+  const confirmBtn=document.getElementById('reject-modal-confirm');
+  const oldText=confirmBtn.textContent;
+  confirmBtn.disabled=true;
+  confirmBtn.textContent='Rejecting…';
+
+  try{
+    await reviewCompany(companyId,'rejected',button,combinedReason);
+  }finally{
+    confirmBtn.disabled=false;
+    confirmBtn.textContent=oldText;
+    closeRejectModal();
   }
 }
 
