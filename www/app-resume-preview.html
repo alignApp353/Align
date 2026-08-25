@@ -694,11 +694,23 @@ function preferencesAreComplete(){
 function configureResumeFlow(){
   const complete=preferencesAreComplete();
   $('continueBtn').textContent=complete?'Go to Preferences':'Continue to Preferences';
-  $('backBtn').setAttribute('aria-label','Back to dashboard');
+  $('backBtn').setAttribute('aria-label',complete?'Back to dashboard':'Back to resume options');
+}
+
+function setupCacheKey(userId){
+  return `alygnn_candidate_setup_${userId}`;
+}
+
+function writeSetupCache(userId,state){
+  try{
+    const raw=localStorage.getItem(setupCacheKey(userId));
+    const previous=raw?parseObject(raw):{};
+    localStorage.setItem(setupCacheKey(userId),JSON.stringify({...previous,...state,updatedAt:Date.now()}));
+  }catch(_error){}
 }
 
 function goBackFromResume(){
-  window.location.href='app-account.html';
+  window.location.href=preferencesAreComplete()?'app-account.html':'app-align-upload.html';
 }
 
 function editResume(){
@@ -732,7 +744,7 @@ async function initialize(){
   configureResumeFlow();
 
   if(!hasResume()){
-    window.location.replace('app-account.html');
+    window.location.replace('app-align-upload.html');
     return;
   }
 
@@ -752,11 +764,7 @@ async function initialize(){
 }
 
 async function continueToPreferences(){
-  if(preferencesAreComplete()){
-    window.location.href='app-preferences.html?edit=1';
-    return;
-  }
-
+  const preferencesComplete=preferencesAreComplete();
   const button=$('continueBtn');
   button.disabled=true;
   button.textContent='Saving…';
@@ -764,30 +772,19 @@ async function continueToPreferences(){
   try{
     const resumeData=parseObject(profile?.resume_data);
     const onboarding=parseObject(resumeData._alygnn_onboarding);
+    resumeData._alygnn_onboarding={...onboarding,preview_reviewed:true,preview_reviewed_at:new Date().toISOString()};
 
-    resumeData._alygnn_onboarding={
-      ...onboarding,
-      preview_reviewed:true,
-      preview_reviewed_at:new Date().toISOString()
-    };
-
-    const {error}=await sb
-      .from('profiles')
-      .update({
-        resume_data:resumeData,
-        updated_at:new Date().toISOString()
-      })
-      .eq('id',user.id);
-
+    const {error}=await sb.from('profiles').update({resume_data:resumeData,updated_at:new Date().toISOString()}).eq('id',user.id);
     if(error)throw error;
 
     profile.resume_data=resumeData;
-    window.location.href='app-preferences.html';
+    writeSetupCache(user.id,{hasResume:true,previewReviewed:true,preferencesComplete});
+    window.location.href=preferencesComplete?'app-preferences.html?edit=1':'app-preferences.html';
   }catch(error){
     console.error(error);
     showError(error?.message||'We could not save your resume review. Please try again.');
     button.disabled=false;
-    button.textContent='Continue to Preferences';
+    button.textContent=preferencesComplete?'Go to Preferences':'Continue to Preferences';
   }
 }
 
