@@ -480,10 +480,14 @@
         <div class="section-num">00 — What you're looking for</div>
         <div class="section-title">What job are you searching for?</div>
       </div>
-      <div class="role-input-wrap">
+      <div class="role-input-wrap" style="position:relative">
         <input type="text" class="input-field" id="role-input"
           placeholder="e.g. Marketing Manager, Data Analyst, Nurse..."
-          oninput="checkRoleSection()">
+          autocomplete="off"
+          oninput="checkRoleSection(); renderRoleSuggestions();"
+          onfocus="renderRoleSuggestions();"
+          onblur="setTimeout(hideRoleSuggestions, 150)">
+        <div class="city-suggestions" id="role-suggestions"></div>
       </div>
     </div>
 
@@ -813,6 +817,52 @@
     'Arts & Culture','Museums','Libraries','Research',
   ];
 
+  // Common job titles for the search-suggestion dropdown on "What job are
+  // you searching for?" — not exhaustive, so typing anything not listed
+  // here still saves and searches fine (this only affects suggestions).
+  const JOB_TITLES = [
+    'Sales Associate','Retail Sales Associate','Cashier','Store Manager',
+    'Assistant Store Manager','Customer Service Representative','Receptionist',
+    'Administrative Assistant','Office Manager','Data Entry Clerk','Bookkeeper',
+    'Accountant','Accounting Clerk','Payroll Specialist','Financial Analyst',
+    'Marketing Manager','Marketing Coordinator','Social Media Manager',
+    'Content Writer','Graphic Designer','UX/UI Designer','Product Manager',
+    'Project Manager','Business Analyst','Operations Manager','Operations Coordinator',
+    'Human Resources Manager','HR Coordinator','Recruiter','Talent Acquisition Specialist',
+    'Software Engineer','Software Developer','Web Developer','Front End Developer',
+    'Back End Developer','Full Stack Developer','QA Engineer','IT Support Specialist',
+    'Systems Administrator','Network Administrator','Data Analyst','Data Scientist',
+    'Registered Nurse','Licensed Practical Nurse','Certified Nursing Assistant',
+    'Medical Assistant','Home Health Aide','Physical Therapist','Occupational Therapist',
+    'Pharmacy Technician','Dental Assistant','Dental Hygienist','Veterinary Technician',
+    'Teacher','Substitute Teacher','Teaching Assistant','Tutor','School Counselor',
+    'Daycare Worker','Preschool Teacher','Warehouse Associate','Forklift Operator',
+    'Delivery Driver','Truck Driver','CDL Driver','Package Handler','Shipping and Receiving Clerk',
+    'Logistics Coordinator','Supply Chain Analyst','Inventory Specialist',
+    'Server','Bartender','Barista','Restaurant Manager','Assistant Restaurant Manager',
+    'Line Cook','Prep Cook','Sous Chef','Executive Chef','Dishwasher','Host/Hostess',
+    'Food Service Worker','Housekeeper','Hotel Front Desk Agent','Hotel Manager',
+    'Event Coordinator','Security Guard','Loss Prevention Officer',
+    'Electrician','Plumber','HVAC Technician','Carpenter','Construction Laborer',
+    'General Contractor','Welder','Machine Operator','Maintenance Technician',
+    'Automotive Technician','Mechanic','Diesel Technician',
+    'Landscaper','Groundskeeper','Janitor','Custodian',
+    'Paralegal','Legal Assistant','Executive Assistant','Personal Assistant',
+    'Customer Success Manager','Account Manager','Account Executive',
+    'Sales Representative','Inside Sales Representative','Outside Sales Representative',
+    'Real Estate Agent','Property Manager','Insurance Agent','Claims Adjuster',
+    'Bank Teller','Loan Officer','Financial Advisor',
+    'Social Worker','Case Manager','Mental Health Counselor',
+    'Graphic Artist','Photographer','Videographer','Video Editor',
+    'Journalist','Copywriter','Editor','Translator/Interpreter',
+    'Warehouse Manager','Production Supervisor','Quality Control Inspector',
+    'Machinist','Assembler','Packer','Custodial Worker',
+    'Barber','Hair Stylist','Cosmetologist','Massage Therapist','Esthetician',
+    'Personal Trainer','Fitness Instructor','Lifeguard',
+    'IT Manager','Cybersecurity Analyst','Network Engineer','Cloud Engineer',
+    'DevOps Engineer','Database Administrator',
+  ];
+
   // A representative list of major U.S. cities for the search-suggestion
   // dropdown — not exhaustive (there are tens of thousands of U.S. towns
   // and cities), so typing anything not listed here still works fine as
@@ -825,11 +875,25 @@
     'Jacksonville, FL','Fort Worth, TX','San Jose, CA','Columbus, OH','Charlotte, NC',
     'Raleigh, NC','Durham, NC','Greensboro, NC','Winston-Salem, NC','Wilmington, NC',
     'Fayetteville, NC','Cary, NC','High Point, NC','Asheville, NC','Concord, NC',
+    // Smaller towns around the Raleigh-Durham / Triangle area, where most of
+    // this platform's current job listings are actually based.
+    'Clayton, NC','Garner, NC','Apex, NC','Holly Springs, NC','Wake Forest, NC',
+    'Smithfield, NC','Selma, NC','Zebulon, NC','Knightdale, NC','Wendell, NC',
+    'Angier, NC','Fuquay-Varina, NC','Morrisville, NC','Chapel Hill, NC','Hillsborough, NC',
+    'Pittsboro, NC','Clinton, NC','Dunn, NC','Benson, NC','Four Oaks, NC',
+    'Goldsboro, NC','Kinston, NC','Rocky Mount, NC','Wilson, NC','Sanford, NC',
+    'Burlington, NC','Mebane, NC','Graham, NC','Roxboro, NC','Henderson, NC',
+    'Louisburg, NC','Oxford, NC','Siler City, NC','Southern Pines, NC','Pinehurst, NC',
+    'Hope Mills, NC','Spring Lake, NC','Lillington, NC','Elizabethtown, NC','Whiteville, NC',
+    'Jacksonville, NC','New Bern, NC','Havelock, NC','Morehead City, NC','Greenville, NC',
+    'Statesville, NC','Mooresville, NC','Salisbury, NC','Kannapolis, NC','Monroe, NC',
+    'Gastonia, NC','Shelby, NC','Hickory, NC','Lenoir, NC','Boone, NC',
+    'Hendersonville, NC','Brevard, NC','Waynesville, NC','Elizabeth City, NC','Edenton, NC',
     'San Francisco, CA','Indianapolis, IN','Seattle, WA','Denver, CO','Washington, DC',
     'Boston, MA','Nashville, TN','Detroit, MI','Portland, OR','Memphis, TN',
     'Oklahoma City, OK','Las Vegas, NV','Louisville, KY','Baltimore, MD','Milwaukee, WI',
     'Albuquerque, NM','Tucson, AZ','Fresno, CA','Sacramento, CA','Kansas City, MO',
-    'Mesa, AZ','Atlanta, GA','Omaha, NE','Colorado Springs, CO','Raleigh, NC',
+    'Mesa, AZ','Atlanta, GA','Omaha, NE','Colorado Springs, CO',
     'Miami, FL','Tampa, FL','Orlando, FL','Virginia Beach, VA','Long Beach, CA',
     'Oakland, CA','Minneapolis, MN','Tulsa, OK','Arlington, TX','New Orleans, LA',
     'Wichita, KS','Cleveland, OH','Bakersfield, CA','Aurora, CO','Anaheim, CA',
@@ -1384,6 +1448,44 @@
     const role = document.getElementById('role-input').value.trim();
     if (role) markDone('sc-role'); else clearDone('sc-role');
     updateProgress();
+  }
+
+  // ---- Job title search suggestions (same pattern as Industry/City,
+  // above). Free text still saves fine even if nothing matches — this
+  // only helps someone find a common title faster. ----
+  function renderRoleSuggestions() {
+    const input = document.getElementById('role-input');
+    const box = document.getElementById('role-suggestions');
+    const value = normalize(input.value);
+
+    if (!value) {
+      box.style.display = 'none';
+      box.innerHTML = '';
+      return;
+    }
+
+    const matches = JOB_TITLES.filter(title => normalize(title).includes(value)).slice(0, 8);
+
+    if (matches.length === 0) {
+      box.style.display = 'none';
+      box.innerHTML = '';
+      return;
+    }
+
+    box.innerHTML = matches.map(name =>
+      `<div class="city-suggestion-item" onclick="selectRoleSuggestion('${name.replace(/'/g, "\\'")}')">${name}</div>`
+    ).join('');
+    box.style.display = 'block';
+  }
+
+  function hideRoleSuggestions() {
+    document.getElementById('role-suggestions').style.display = 'none';
+  }
+
+  function selectRoleSuggestion(name) {
+    document.getElementById('role-input').value = name;
+    hideRoleSuggestions();
+    checkRoleSection();
   }
 
   function markDone(id) {
