@@ -495,24 +495,26 @@ body{
   justify-content:center;
 }
 
+.btn-undo,
+.btn-skip,
+.btn-apply{
+  width:60px;
+  height:60px;
+  flex:0 0 60px;
+}
+
 .btn-undo{
-  width:48px;
-  height:48px;
-  font-size:19px;
+  font-size:22px;
   color:var(--text);
 }
 
 .btn-skip{
-  width:60px;
-  height:60px;
   font-size:27px;
   color:#D25B67;
 }
 
 .btn-apply{
-  width:70px;
-  height:70px;
-  font-size:31px;
+  font-size:28px;
   background:var(--brand);
   color:white;
   border:none;
@@ -709,96 +711,6 @@ body.details-open{overflow:hidden}
 .bottom-nav .nav-icon{font-size:17px;line-height:1}
 </style>
 
-
-<script src="app-candidate-theme.js"></script>
-<link rel="stylesheet" href="app-candidate-theme.css">
-
-<style id="swipe-caught-up-fix">
-.empty-screen{
-  min-height:calc(100vh - 250px)!important;
-  height:auto!important;
-  padding:28px 18px 118px!important;
-}
-
-.empty-card{
-  width:100%;
-  max-width:430px;
-  margin:auto;
-  padding:28px 22px;
-  border:1px solid var(--border);
-  border-radius:26px;
-  background:#FFFFFF;
-  box-shadow:0 14px 36px rgba(23,35,51,.055);
-}
-
-.empty-kicker{
-  color:var(--brand-dark);
-  font-size:10px;
-  font-weight:900;
-  letter-spacing:1.2px;
-  text-transform:uppercase;
-  margin-bottom:10px;
-}
-
-.empty-title{
-  margin-bottom:9px!important;
-}
-
-.empty-sub{
-  margin:0 auto;
-}
-
-.empty-actions{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:9px;
-  margin-top:22px;
-}
-
-.empty-primary,
-.empty-secondary{
-  min-height:48px;
-  border-radius:15px;
-  font-size:12px;
-  font-weight:900;
-}
-
-.empty-primary{
-  border:0;
-  background:var(--brand-dark);
-  color:#fff;
-}
-
-.empty-secondary{
-  border:1px solid var(--border);
-  background:#fff;
-  color:var(--text);
-}
-
-/* Keep toast readable in dark mode. */
-html[data-effective-theme="dark"] .toast{
-  background:#22303C!important;
-  color:#F4F7F9!important;
-  border:1px solid #334452!important;
-  box-shadow:0 10px 30px rgba(0,0,0,.28)!important;
-}
-
-html[data-effective-theme="dark"] .empty-card{
-  background:#15202B!important;
-  border-color:#2B3946!important;
-  color:#F4F7F9!important;
-}
-
-html[data-effective-theme="dark"] .empty-secondary{
-  background:#101A23!important;
-  border-color:#2B3946!important;
-  color:#F4F7F9!important;
-}
-
-@media(max-width:390px){
-  .empty-actions{grid-template-columns:1fr}
-}
-</style>
 </head>
 
 <body>
@@ -864,21 +776,9 @@ html[data-effective-theme="dark"] .empty-secondary{
 </main>
 
 <section class="empty-screen" id="empty-screen">
-  <div class="empty-card">
-    <div class="empty-kicker">MATCHES REVIEWED</div>
-    <div class="empty-title">You're all caught up</div>
-    <div class="empty-sub">
-      You’ve reviewed every new job currently available to you. We’ll keep new matches ready as employers post them.
-    </div>
-
-    <div class="empty-actions">
-      <button class="empty-primary" type="button" onclick="window.location.href='app-applied.html'">
-        View My Jobs
-      </button>
-      <button class="empty-secondary" type="button" onclick="window.location.href='app-preferences.html?edit=1'">
-        Edit Preferences
-      </button>
-    </div>
+  <div class="empty-title">You're all caught up</div>
+  <div class="empty-sub">
+    You went through all your matches. More jobs will appear as Alygnn finds better fits for you.
   </div>
 </section>
 
@@ -1293,63 +1193,6 @@ async function createApplication(job){
   return false;
 }
 
-
-async function recordPassedJob(job){
-  if(!job?.id)return false;
-
-  const {data:existing,error:checkError}=await sb
-    .from('skipped_jobs')
-    .select('job_id')
-    .eq('candidate_id',session.user.id)
-    .eq('job_id',job.id)
-    .maybeSingle();
-
-  if(checkError){
-    console.warn('Could not check passed job:',checkError);
-  }
-
-  if(existing)return false;
-
-  const {error}=await sb
-    .from('skipped_jobs')
-    .insert({
-      candidate_id:session.user.id,
-      job_id:job.id
-    });
-
-  if(error){
-    // Duplicate-safe in case the table has a unique candidate/job constraint.
-    if(error.code==='23505')return false;
-    throw error;
-  }
-
-  return true;
-}
-
-async function removePassedJob(jobId){
-  if(!jobId)return;
-
-  const {error}=await sb
-    .from('skipped_jobs')
-    .delete()
-    .eq('candidate_id',session.user.id)
-    .eq('job_id',jobId);
-
-  if(error)throw error;
-}
-
-async function removeApplicationForUndo(jobId){
-  if(!jobId)return;
-
-  const {error}=await sb
-    .from('applications')
-    .delete()
-    .eq('candidate_id',session.user.id)
-    .eq('job_id',jobId);
-
-  if(error)throw error;
-}
-
 async function animateSwipe(direction){
   setupTopCard();
   if(!activeCard)return;
@@ -1357,18 +1200,11 @@ async function animateSwipe(direction){
   const job=jobs[Number(activeCard.dataset.index)];
   activeCard.classList.add(direction==='right'?'swipe-right':'swipe-left');
 
-  const historyEntry={
-    job,
-    direction,
-    index:currentIndex,
-    createdApplication:false,
-    createdPassed:false
-  };
+  history.push({job,direction,index:currentIndex});
 
   if(direction==='right'){
     try{
       const alreadyExists=await createApplication(job);
-      historyEntry.createdApplication=!alreadyExists;
       applied++;
       showToast(alreadyExists?'Already applied':'Application submitted');
     }catch(error){
@@ -1376,18 +1212,10 @@ async function animateSwipe(direction){
       showToast(error.message||'Could not apply');
     }
   }else{
-    try{
-      historyEntry.createdPassed=await recordPassedJob(job);
-      skipped++;
-      showToast('Passed · saved to My Jobs');
-    }catch(error){
-      console.error(error);
-      skipped++;
-      showToast('Passed');
-    }
+    skipped++;
+    showToast('Passed');
   }
 
-  history.push(historyEntry);
   currentIndex++;
 
   setTimeout(renderCards,350);
@@ -1403,7 +1231,7 @@ function applyCurrent(){
   if(activeCard)animateSwipe('right');
 }
 
-async function undo(){
+function undo(){
   if(!history.length){
     showToast('Nothing to undo');
     return;
@@ -1411,27 +1239,15 @@ async function undo(){
 
   const last=history.pop();
 
-  try{
-    if(last.direction==='right'){
-      if(last.createdApplication){
-        await removeApplicationForUndo(last.job?.id);
-      }
-      applied=Math.max(0,applied-1);
-    }else{
-      if(last.createdPassed){
-        await removePassedJob(last.job?.id);
-      }
-      skipped=Math.max(0,skipped-1);
-    }
-
-    currentIndex=last.index;
-    renderCards();
-    showToast('Undone');
-  }catch(error){
-    console.error('Could not undo swipe:',error);
-    history.push(last);
-    showToast('Could not undo');
+  if(last.direction==='right'){
+    applied=Math.max(0,applied-1);
+  }else{
+    skipped=Math.max(0,skipped-1);
   }
+
+  currentIndex=last.index;
+  renderCards();
+  showToast('Undone');
 }
 
 function updateStats(){
@@ -1456,63 +1272,21 @@ function showToast(message){
 }
 
 async function loadJobs(){
-  const [
-    jobsResult,
-    applicationsResult,
-    skippedResult
-  ]=await Promise.all([
-    sb
-      .from('jobs')
-      .select('*')
-      .eq('status','active')
-      .order('created_at',{ascending:false}),
+  const {data,error}=await sb
+    .from('jobs')
+    .select('*')
+    .eq('status','active')
+    .order('created_at',{ascending:false});
 
-    sb
-      .from('applications')
-      .select('job_id')
-      .eq('candidate_id',session.user.id),
-
-    sb
-      .from('skipped_jobs')
-      .select('job_id')
-      .eq('candidate_id',session.user.id)
-  ]);
-
-  if(jobsResult.error){
-    console.error(jobsResult.error);
-    showToast(jobsResult.error.message||'Could not load jobs');
+  if(error){
+    console.error(error);
+    showToast(error.message||'Could not load jobs');
     jobs=[];
     renderCards();
     return;
   }
 
-  const appliedIds=new Set(
-    (applicationsResult.data||[])
-      .map(row=>String(row.job_id||''))
-      .filter(Boolean)
-  );
-
-  const skippedIds=skippedResult.error
-    ?new Set()
-    :new Set(
-      (skippedResult.data||[])
-        .map(row=>String(row.job_id||''))
-        .filter(Boolean)
-    );
-
-  if(!applicationsResult.error){
-    applied=appliedIds.size;
-  }
-
-  if(!skippedResult.error){
-    skipped=skippedIds.size;
-  }
-
-  jobs=(jobsResult.data||[]).filter(job=>{
-    const id=String(job.id||'');
-    return id && !appliedIds.has(id) && !skippedIds.has(id);
-  });
-
+  jobs=data||[];
   currentIndex=0;
   history=[];
   renderCards();
