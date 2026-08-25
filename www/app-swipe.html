@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F6F8F7">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#071922">
 <title>Alygnn — Swipe Jobs</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -218,11 +221,20 @@ body{
 .job-card:nth-child(2){
   transform:scale(.97) translateY(10px);
   z-index:1;
+  pointer-events:none;
 }
 
 .job-card:nth-child(3){
   transform:scale(.94) translateY(20px);
   z-index:0;
+  pointer-events:none;
+}
+
+/* Background cards are only visual stack shells.
+   Hiding their children prevents duplicate footer/text from showing below
+   the active card. */
+.job-card:nth-child(n+2) > *{
+  visibility:hidden !important;
 }
 
 .job-card:first-child{
@@ -843,6 +855,298 @@ body.details-open{overflow:hidden}
 .tap-hint{font-size:11px;color:var(--brand-dark);font-weight:900}
 @media(min-width:700px){.job-details-overlay{align-items:center;justify-content:center;padding:24px}.job-details-sheet{max-width:560px;border-radius:30px;max-height:90vh}.details-footer{border-radius:0 0 30px 30px}}
 
+
+/* ==========================================================
+   SYSTEM DARK MODE
+   Follows Android/iPhone appearance automatically.
+   ========================================================== */
+@media (prefers-color-scheme: dark){
+
+  :root{
+    color-scheme:dark;
+
+    --brand:#5D86B1;
+    --brand-dark:#79A7D5;
+    --sage:#8FC6A2;
+
+    --bg:#061821;
+    --card-bg:#10232D;
+    --text:#F3F7FA;
+    --border:#29404C;
+    --mint:#71C795;
+    --rose:#E58C96;
+    --text-muted:#A9B8C5;
+
+    --brand-light:rgba(93,134,177,.18);
+    --mint-light:rgba(113,199,149,.13);
+    --rose-light:rgba(229,140,150,.13);
+  }
+
+  html,
+  body{
+    background:#061821 !important;
+    color:var(--text);
+  }
+
+  body{
+    background:
+      radial-gradient(circle at top,rgba(93,127,163,.12),transparent 31%),
+      #061821 !important;
+  }
+
+  .top-header{
+    background:rgba(5,24,33,.96) !important;
+    border-bottom-color:var(--border);
+  }
+
+  .back-btn{
+    background:#0D202A;
+    color:var(--text);
+    border:1px solid var(--border);
+  }
+
+  .logo{
+    color:#6F96BE;
+  }
+
+  .tagline{
+    color:var(--text-muted);
+  }
+
+  .progress-card{
+    background:#10232D !important;
+    border-color:var(--border);
+    box-shadow:0 8px 26px rgba(0,0,0,.20);
+  }
+
+  .progress-track{
+    background:#203640;
+  }
+
+  .job-card{
+    background:
+      radial-gradient(circle at top right,rgba(93,127,163,.12),transparent 28%),
+      var(--card-bg) !important;
+    border-color:var(--border);
+    box-shadow:0 22px 60px rgba(0,0,0,.30);
+  }
+
+  .match{
+    background:rgba(111,191,143,.12);
+    color:#83D6A6;
+    border-color:rgba(111,191,143,.26);
+  }
+
+  .save-btn,
+  .icon-btn,
+  .action-btn{
+    background:#0B1D26 !important;
+    color:var(--text);
+    border-color:var(--border);
+    box-shadow:0 5px 16px rgba(0,0,0,.20);
+  }
+
+  .btn-skip{
+    color:#EE7884;
+  }
+
+  .btn-apply{
+    background:var(--brand) !important;
+    color:#fff;
+    border-color:transparent;
+  }
+
+  .company-logo{
+    background:linear-gradient(145deg,#183343,#0E2530);
+    border-color:var(--border);
+    color:#8EB4DA;
+    box-shadow:none;
+  }
+
+  .job-title,
+  .stat-val,
+  .progress-copy{
+    color:var(--text);
+  }
+
+  .company-name,
+  .stat-label,
+  .action-label,
+  .posted-time,
+  .card-desc{
+    color:var(--text-muted);
+  }
+
+  .verified{
+    background:#638CB5;
+  }
+
+  .pill{
+    background:#0B1D26;
+    border-color:var(--border);
+    color:#BCC8D2;
+  }
+
+  .pill.salary{
+    background:rgba(93,127,163,.17);
+    color:#8EB4DA;
+  }
+
+  .alygnn-match-mini{
+    background:#0B1D26 !important;
+    border-color:var(--border);
+  }
+
+  .alygnn-match-mini-title,
+  .alygnn-score-number{
+    color:var(--text);
+  }
+
+  .alygnn-match-mini-sub,
+  .alygnn-mini-label{
+    color:var(--text-muted);
+  }
+
+  .alygnn-mini-value{
+    color:#8EB4DA;
+  }
+
+  .alygnn-score-ring{
+    background:
+      conic-gradient(
+        var(--mint) calc(var(--score) * 1%),
+        #203640 0
+      );
+  }
+
+  .alygnn-score-ring::after{
+    background:#10232D;
+    border-color:var(--border);
+  }
+
+  .alygnn-mini-track{
+    background:#203640;
+  }
+
+  .card-bottom{
+    border-top-color:var(--border);
+  }
+
+  .apply-link,
+  .tap-hint{
+    color:#78A7D6;
+  }
+
+  .empty-title{
+    color:var(--text);
+  }
+
+  .empty-sub{
+    color:var(--text-muted);
+  }
+
+  .bottom-nav{
+    background:rgba(6,24,33,.97) !important;
+    border-top-color:var(--border);
+  }
+
+  .bottom-nav .nav-item{
+    color:#7F92A1;
+  }
+
+  .bottom-nav .nav-item.active{
+    color:#6FA6DB;
+  }
+
+  .bottom-nav .nav-item.active:before{
+    background:#4D89C3;
+  }
+
+  .nav-icon{
+    background:#0B1D26;
+    border-color:var(--border);
+    color:var(--text);
+  }
+
+  .toast{
+    background:#EAF0F4;
+    color:#14222D;
+  }
+
+  /* Full job ad */
+  .job-details-overlay{
+    background:rgba(0,0,0,.62);
+  }
+
+  .job-details-sheet{
+    background:#061821;
+    box-shadow:0 -22px 70px rgba(0,0,0,.45);
+  }
+
+  .details-grip{
+    background:#415864;
+  }
+
+  .details-header{
+    background:rgba(6,24,33,.97);
+    border-bottom-color:var(--border);
+  }
+
+  .details-close,
+  .details-save{
+    background:#0B1D26;
+    border-color:var(--border);
+    color:var(--text);
+  }
+
+  .details-header-title{
+    color:var(--text);
+  }
+
+  .details-hero,
+  .details-section{
+    background:#10232D !important;
+    border-color:var(--border);
+    box-shadow:none;
+  }
+
+  .details-logo{
+    background:linear-gradient(145deg,#183343,#0E2530);
+    border-color:var(--border);
+    color:#8EB4DA;
+  }
+
+  .details-title,
+  .details-section h2{
+    color:var(--text);
+  }
+
+  .details-company,
+  .details-copy,
+  .details-list li,
+  .details-empty{
+    color:var(--text-muted);
+  }
+
+  .details-pill{
+    background:#0B1D26;
+    border-color:var(--border);
+    color:#BCC8D2;
+  }
+
+  .details-pill.pay{
+    background:rgba(93,127,163,.18);
+    color:#8EB4DA;
+    border-color:rgba(93,127,163,.28);
+  }
+
+  .details-footer{
+    background:rgba(6,24,33,.97);
+    border-top-color:var(--border);
+  }
+}
+
+
 </style>
 
 <style id="candidate-four-tab-nav">
@@ -876,6 +1180,20 @@ body.details-open{overflow:hidden}
   background:#35679A;
 }
 .bottom-nav .nav-icon{font-size:17px;line-height:1}
+
+@media (prefers-color-scheme: dark){
+  .bottom-nav .nav-item{
+    color:#7F92A1;
+  }
+
+  .bottom-nav .nav-item.active{
+    color:#6FA6DB;
+  }
+
+  .bottom-nav .nav-item.active:before{
+    background:#4D89C3;
+  }
+}
 </style>
 
 </head>
