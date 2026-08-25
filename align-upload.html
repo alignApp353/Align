@@ -1046,6 +1046,10 @@
   function formatEducation(edu) {
     if (!edu) return '—';
     if (typeof edu === 'string') return edu;
+    if (Array.isArray(edu)) {
+      const formatted = edu.map(formatEducation).filter(e => e && e !== '—');
+      return formatted.length > 0 ? formatted[0] : '—';
+    }
     if (typeof edu === 'object') {
       const parts = [];
       if (edu.degree) parts.push(edu.degree);
