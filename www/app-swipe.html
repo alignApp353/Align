@@ -402,23 +402,38 @@ body{
 
 .card-bottom{
   border-top:1px solid var(--border);
-  padding-top:15px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-top:17px;
+  padding-top:13px;
+  margin-top:15px;
 }
 
-.posted-time{
+.view-full-ad{
+  width:100%;
+  min-height:44px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--brand-light);
+  color:var(--brand-dark);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
   font-size:12px;
-  color:var(--text-muted);
+  font-weight:900;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+
+.view-full-ad:active{
+  transform:scale(.985);
+}
+
+.view-full-ad-arrow{
+  font-size:15px;
+  line-height:1;
 }
 
 .apply-link{
-  color:var(--brand-dark);
   text-decoration:none;
-  font-size:13px;
-  font-weight:900;
 }
 
 
@@ -1030,6 +1045,12 @@ body.details-open{overflow:hidden}
 
   .card-bottom{
     border-top-color:var(--border);
+  }
+
+  .view-full-ad{
+    background:#0B1D26;
+    border-color:#29404C;
+    color:#78A7D6;
   }
 
   .apply-link,
@@ -1817,7 +1838,7 @@ function openJobDetails(index){
         <div class="details-logo">${escapeHtml(initials(company))}</div>
         <div>
           <h1 class="details-title" id="details-job-title">${escapeHtml(job.title||'Job Opportunity')}</h1>
-          <div class="details-company">${escapeHtml(company)} · Verified employer</div>
+          <div class="details-company">${escapeHtml(company)}</div>
         </div>
       </div>
       <div class="details-pills">
@@ -1854,7 +1875,7 @@ function openJobDetails(index){
 
     <section class="details-section">
       <h2>About ${escapeHtml(company)}</h2>
-      <div class="details-copy">${escapeHtml(companyAbout||'This is a verified employer on Alygnn.')}</div>
+      <div class="details-copy">${escapeHtml(companyAbout||'Company information has not been added yet.')}</div>
     </section>
   `;
 
@@ -1956,10 +1977,25 @@ function buildCard(job,index){
     <div class="card-desc">${escapeHtml(job.description||'Open this job to see the full details and requirements.')}</div>
 
     <div class="card-bottom">
-      <div class="posted-time">Verified Alygnn listing</div>
-      <span class="apply-link tap-hint">Tap to view full ad →</span>
+      <button
+        class="view-full-ad apply-link"
+        type="button"
+        aria-label="View full job ad for ${escapeHtml(job.title||'this job')}"
+      >
+        <span>View full job ad</span>
+        <span class="view-full-ad-arrow">→</span>
+      </button>
     </div>
   `;
+
+  const viewFullAdButton=card.querySelector('.view-full-ad');
+  if(viewFullAdButton){
+    viewFullAdButton.addEventListener('click',event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      openJobDetails(index);
+    });
+  }
 
   setupDrag(card);
   return card;
@@ -2001,7 +2037,6 @@ function dragStart(e){
   setupTopCard();
   if(!activeCard||activeCard!==e.currentTarget)return;
   if(e.target.closest('button,.apply-link')){
-    if(e.target.closest('.apply-link'))openJobDetails(activeCard.dataset.index);
     return;
   }
 
