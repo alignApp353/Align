@@ -193,10 +193,13 @@ const SUPABASE_URL='https://auth.alygnn.com';
 const SUPABASE_ANON_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
 const ADMIN_API='https://alygnn.com/api/admin/employer-verifications';
 
+// Session-only storage — matches admin-login.html. This means an admin
+// session ends when the tab/browser closes, unlike regular employer/
+// job-seeker sessions which persist via localStorage.
 const sb=supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
-  {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
+  {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.sessionStorage}}
 );
 
 let session=null;
