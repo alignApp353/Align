@@ -186,6 +186,20 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+  .job-card.expanded .card-desc { -webkit-line-clamp: unset; }
+
+  .card-details-full { display: none; }
+  .job-card.expanded .card-details-full { display: block; }
+  .job-card.expanded .card-highlights.preview,
+  .job-card.expanded .card-benefits.preview { display: none; }
+
+  .back-to-swiping {
+    display: none; align-items: center; gap: 6px; background: none; border: none;
+    color: var(--brand); font-size: 12px; font-weight: 600; cursor: pointer;
+    padding: 0; font-family: inherit;
+  }
+  .job-card.expanded .back-to-swiping { display: inline-flex; }
+  .job-card.expanded .view-details-link { display: none; }
 
   .card-highlights { margin-bottom: 16px; }
   .highlights-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
@@ -577,15 +591,28 @@
 
     const requirements = (job.requirements || '').split('\n').map(r => r.trim()).filter(Boolean).slice(0, 4);
     const highlightsHTML = requirements.length
-      ? `<div class="card-highlights">
+      ? `<div class="card-highlights preview">
           <div class="highlights-label">Requirements</div>
           ${requirements.map(r => `<div class="highlight-item"><div class="highlight-dot"></div>${escapeHtml(r)}</div>`).join('')}
         </div>`
       : '';
 
+    const allRequirements = (job.requirements || '').split('\n').map(r => r.trim()).filter(Boolean);
+    const fullHighlightsHTML = allRequirements.length
+      ? `<div class="card-highlights">
+          <div class="highlights-label">Requirements</div>
+          ${allRequirements.map(r => `<div class="highlight-item"><div class="highlight-dot"></div>${escapeHtml(r)}</div>`).join('')}
+        </div>`
+      : '';
+
     const benefits = (job.benefits || '').split('\n').map(b => b.trim()).filter(Boolean).slice(0, 5);
     const benefitsHTML = benefits.length
-      ? `<div class="card-benefits">${benefits.map(b => `<span class="benefit-tag">${escapeHtml(b)}</span>`).join('')}</div>`
+      ? `<div class="card-benefits preview">${benefits.map(b => `<span class="benefit-tag">${escapeHtml(b)}</span>`).join('')}</div>`
+      : '';
+
+    const allBenefits = (job.benefits || '').split('\n').map(b => b.trim()).filter(Boolean);
+    const fullBenefitsHTML = allBenefits.length
+      ? `<div class="card-benefits">${allBenefits.map(b => `<span class="benefit-tag">${escapeHtml(b)}</span>`).join('')}</div>`
       : '';
 
     const description = job.description || 'No description available.';
@@ -614,9 +641,11 @@
       <div class="card-desc">${escapeHtml(description)}</div>
       ${highlightsHTML}
       ${benefitsHTML}
+      <div class="card-details-full">${fullHighlightsHTML}${fullBenefitsHTML}</div>
       <div class="card-bottom">
         <div class="posted-time">${timeAgo(job.created_at)}</div>
-        <a class="view-details-link" href="job-details.html?job=${encodeURIComponent(job.id)}" target="_blank" rel="noopener">View details →</a>
+        <button class="view-details-link" type="button" onclick="toggleCardDetails(this)">View details →</button>
+        <button class="back-to-swiping" type="button" onclick="toggleCardDetails(this)">← Back to swiping</button>
       </div>
     `;
 
@@ -735,6 +764,12 @@
     });
   }
 
+  function toggleCardDetails(button) {
+    const card = button.closest('.job-card');
+    if (!card) return;
+    card.classList.toggle('expanded');
+  }
+
   function setupTopCard() {
     const stack = document.getElementById('card-stack');
     activeCard = stack.querySelector('.job-card:first-child');
@@ -746,7 +781,8 @@
 
   function dragStart(e) {
     if (swipeLocked || isDragging) return;
-    if (e.target.closest('a')) return;
+    if (e.target.closest('a, button')) return;
+    if (e.currentTarget.classList.contains('expanded')) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
 
     // A previous short drag may still have a snap-back timer pending.
@@ -1014,6 +1050,7 @@
   function skipCurrent() {
     if (swipeLocked || isDragging) return;
     setupTopCard();
+    if (activeCard && activeCard.classList.contains('expanded')) return;
     if (activeCard) {
       animateSwipe('left');
     }
@@ -1022,6 +1059,7 @@
   function applyCurrent() {
     if (swipeLocked || isDragging) return;
     setupTopCard();
+    if (activeCard && activeCard.classList.contains('expanded')) return;
     if (activeCard) {
       animateSwipe('right');
     }
@@ -1080,6 +1118,7 @@
   document.addEventListener('keydown', e => {
     // Do not let a held key auto-repeat multiple swipes during one animation.
     if (e.repeat || swipeLocked || isDragging) return;
+    if (activeCard && activeCard.classList.contains('expanded')) return;
     if (e.key === 'ArrowLeft') skipCurrent();
     if (e.key === 'ArrowRight') applyCurrent();
     if (e.key === 'z' && (e.metaKey || e.ctrlKey)) undo();
