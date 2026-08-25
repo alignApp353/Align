@@ -2125,12 +2125,20 @@ async function initAccountPage(){
 
   const { data: profile, error } = await sb
     .from('profiles')
-    .select('has_password, role, full_name, resume_file_path, resume_data, preferences')
+    .select('has_password, role, full_name, resume_file_path, resume_data, preferences, is_admin')
     .eq('id', currentUserId)
     .maybeSingle();
 
   if(error && error.code !== 'PGRST116'){
     console.error('Failed to load profile:', error);
+  }
+
+  // An admin account has no real job-seeker profile — send it back to the
+  // admin console instead of falling through to the default 'seeker' view
+  // below, which would otherwise render this page with placeholder data.
+  if(profile?.is_admin === true){
+    window.location.href = 'employer-verification-admin.html';
+    return;
   }
 
   // Supabase already knows how someone authenticated via user.identities —
