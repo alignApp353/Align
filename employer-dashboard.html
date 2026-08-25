@@ -1834,6 +1834,15 @@
     if (error) {
       console.error('Failed to load jobs:', error);
       showToast('Could not load jobs from Supabase.');
+      document.getElementById('jobs-list').innerHTML = `
+        <div class="empty-state" id="jobs-error-state">
+          <div class="empty-icon">⚠️</div>
+          <div class="empty-title">Could not load your jobs</div>
+          <div style="font-size:13px; color:var(--text-muted); margin:6px 0 14px; word-break:break-word;">
+            ${escapeHtml(error.message || 'Unknown error.')}
+          </div>
+          <button class="btn-primary" onclick="loadJobs()">Retry</button>
+        </div>`;
       return;
     }
 
