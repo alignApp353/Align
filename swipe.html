@@ -489,20 +489,40 @@
         );
       }
 
-      // NEW: location filter. A remote job always passes regardless of the
-      // person's city preference (remote has no fixed location to match
-      // against); anything else must mention the preferred city/state
-      // somewhere in its location string. Uses `city` first since that now
-      // holds the full "City, State" the person typed on the preferences
-      // page, falling back to the old separate city/state fields for
-      // anyone whose preferences were saved before that change.
+      // Location matching:
+      // 1) Prefer the exact city the candidate selected.
+      // 2) Remote jobs always qualify.
+      // 3) If there are NO exact-city matches, fall back to jobs in the same
+      //    state so a candidate is not shown a blank screen just because
+      //    Alygnn does not yet have inventory in that exact city.
       const locationPref = (pref.city || pref.location || '').trim().toLowerCase();
       if (locationPref) {
-        results = results.filter(job =>
-          job.work_style === 'Remote' ||
-          (job.location || '').toLowerCase().includes(locationPref) ||
-          locationPref.includes((job.location || '').toLowerCase())
-        );
+        const beforeLocationFilter = [...results];
+        const exactLocationMatches = beforeLocationFilter.filter(job => {
+          const jobLocation = (job.location || '').trim().toLowerCase();
+          return job.work_style === 'Remote' ||
+            jobLocation.includes(locationPref) ||
+            locationPref.includes(jobLocation);
+        });
+
+        if (exactLocationMatches.length) {
+          results = exactLocationMatches;
+        } else {
+          const stateMatch = locationPref.match(/,\s*([a-z]{2})\s*$/i);
+          const preferredState = stateMatch ? stateMatch[1].toLowerCase() : '';
+
+          if (preferredState) {
+            const sameStateMatches = beforeLocationFilter.filter(job => {
+              if (job.work_style === 'Remote') return true;
+              const jobLocation = (job.location || '').trim().toLowerCase();
+              return new RegExp(`,\\s*${preferredState}(?:\\s|$)`, 'i').test(jobLocation);
+            });
+
+            results = sameStateMatches;
+          } else {
+            results = exactLocationMatches;
+          }
+        }
       }
 
       if (Array.isArray(pref.jobTypes) && pref.jobTypes.length) {
@@ -520,7 +540,9 @@
       }
 
       if (!results.length) {
-        throw new Error('No jobs match your preferences right now. Try widening your criteria in Preferences, or check back soon.');
+        const noMatchError = new Error('No jobs match your preferences right now. Try widening your criteria in Preferences, or check back soon.');
+        noMatchError.code = 'NO_MATCHES';
+        throw noMatchError;
       }
 
       jobs = results;
@@ -533,7 +555,21 @@
       showScreen('swipe');
     } catch (err) {
       console.error('loadJobs error:', err);
-      document.getElementById('error-msg').textContent = err.message || 'Failed to load jobs.';
+
+      const errorTitle = document.querySelector('#error-screen .error-title');
+      const errorIcon = document.querySelector('#error-screen .error-icon');
+      const errorMsg = document.getElementById('error-msg');
+
+      if (err?.code === 'NO_MATCHES') {
+        if (errorTitle) errorTitle.textContent = 'No matching jobs yet';
+        if (errorIcon) errorIcon.textContent = '⌕';
+        errorMsg.textContent = err.message;
+      } else {
+        if (errorTitle) errorTitle.textContent = "Couldn't load jobs";
+        if (errorIcon) errorIcon.textContent = '!';
+        errorMsg.textContent = err.message || 'Failed to load jobs.';
+      }
+
       showScreen('error');
     }
   }
