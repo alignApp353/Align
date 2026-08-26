@@ -389,11 +389,25 @@ body{
   color:var(--brand-dark);
 }
 
+.card-overview{
+  margin-top:12px;
+  padding-top:11px;
+  border-top:1px solid rgba(93,127,163,.18);
+}
+
+.card-overview-label{
+  margin-bottom:5px;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:1.15px;
+  text-transform:uppercase;
+  color:var(--brand-dark);
+}
+
 .card-desc{
   font-size:12px;
   color:var(--text-muted);
-  line-height:1.55;
-  margin-top:2px;
+  line-height:1.5;
   max-width:100%;
   overflow:hidden;
   display:-webkit-box;
@@ -1282,7 +1296,22 @@ body.details-open{overflow:hidden}
   border-radius:999px;
   background:#35679A;
 }
-.bottom-nav .nav-icon{font-size:17px;line-height:1}
+.bottom-nav .nav-icon{
+  width:20px;
+  height:20px;
+  display:grid;
+  place-items:center;
+  line-height:1;
+}
+
+.bottom-nav .nav-icon svg{
+  width:20px;
+  height:20px;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
 
 @media (prefers-color-scheme: dark){
   .bottom-nav .nav-item{
@@ -1301,7 +1330,7 @@ body.details-open{overflow:hidden}
 
 </head>
 
-<body>
+<body data-swipe-build="2026-08-25-final-nav-threshold">
 <header class="top-header">
   <button class="back-btn" id="back-button" type="button">
     <span aria-hidden="true">←</span>
@@ -1371,22 +1400,46 @@ body.details-open{overflow:hidden}
   </div>
 </section>
 
-<nav class="bottom-nav" aria-label="Candidate navigation">
+<nav class="bottom-nav" id="candidate-bottom-nav" aria-label="Candidate navigation">
   <button class="nav-item" type="button" onclick="window.location.href='app-account.html'">
-    <span class="nav-icon">♙</span>
-    <span>My Profile</span>
+    <span class="nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="7.5" r="3.5"></circle>
+        <path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6"></path>
+      </svg>
+    </span>
+    <span class="nav-label">My Profile</span>
   </button>
+
   <button class="nav-item active" type="button" aria-current="page">
-    <span class="nav-icon">⌕</span>
-    <span>Discover</span>
+    <span class="nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <circle cx="10.5" cy="10.5" r="5.5"></circle>
+        <path d="m15 15 4.5 4.5"></path>
+      </svg>
+    </span>
+    <span class="nav-label" id="discover-nav-label">Discover</span>
   </button>
+
   <button class="nav-item" type="button" onclick="window.location.href='app-applied.html'">
-    <span class="nav-icon">▣</span>
-    <span>My Jobs</span>
+    <span class="nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <rect x="4" y="7" width="16" height="12" rx="2"></rect>
+        <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"></path>
+        <path d="M4 11h16"></path>
+      </svg>
+    </span>
+    <span class="nav-label">My Jobs</span>
   </button>
+
   <button class="nav-item" type="button" onclick="window.location.href='app-account.html#settings'">
-    <span class="nav-icon">⚙</span>
-    <span>Settings</span>
+    <span class="nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9A1.7 1.7 0 0 0 21 10h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"></path>
+      </svg>
+    </span>
+    <span class="nav-label">Settings</span>
   </button>
 </nav>
 
@@ -1422,6 +1475,7 @@ let candidatePreferences={};
 let candidateResume={};
 let jobs=[];
 let currentIndex=0;
+const SWIPE_COMMIT_THRESHOLD=70;
 let applied=0;
 let skipped=0;
 let history=[];
@@ -2067,8 +2121,11 @@ function buildCard(job,index){
       <span class="pill salary">$ ${escapeHtml(salaryText(job))}</span>
     </div>
 
-    <div class="card-desc">
-      ${escapeHtml(job.description||'Open the full job ad to review responsibilities, requirements, and company details.')}
+    <div class="card-overview">
+      <div class="card-overview-label">Quick overview</div>
+      <div class="card-desc">
+        ${escapeHtml(job.description||'Open the full job ad to review responsibilities, requirements, and company details.')}
+      </div>
     </div>
 
     <div class="card-bottom">
@@ -2118,6 +2175,7 @@ function renderCards(){
 
   updateStats();
   setupTopCard();
+  resetDecisionStamps(activeCard);
 }
 
 function setupTopCard(){
@@ -2126,6 +2184,14 @@ function setupTopCard(){
 
 function setupDrag(card){
   card.addEventListener('pointerdown',dragStart,{passive:false});
+}
+
+function resetDecisionStamps(card=activeCard){
+  if(!card)return;
+  const applyStamp=card.querySelector('.stamp-apply');
+  const skipStamp=card.querySelector('.stamp-skip');
+  if(applyStamp)applyStamp.style.opacity=0;
+  if(skipStamp)skipStamp.style.opacity=0;
 }
 
 function dragStart(e){
@@ -2142,6 +2208,7 @@ function dragStart(e){
   startY=e.clientY;
   currentX=0;
   dragDistance=0;
+  resetDecisionStamps(activeCard);
 
   activeCard.classList.add('is-dragging');
   activeCard.style.transition='none';
@@ -2169,25 +2236,15 @@ function dragMove(e){
   const applyStamp=activeCard.querySelector('.stamp-apply');
   const skipStamp=activeCard.querySelector('.stamp-skip');
 
-  // A swipe commits at 70px. Do not show a decision stamp during
-  // normal/small card movement. Fade it in only when the candidate
-  // is very close to committing the swipe.
-  const stampStart=55;
-  const swipeCommit=70;
-  const distance=Math.abs(currentX);
-  const stampOpacity=distance<=stampStart
-    ?0
-    :Math.min((distance-stampStart)/(swipeCommit-stampStart),1);
-
-  if(currentX>stampStart){
-    applyStamp.style.opacity=stampOpacity;
-    skipStamp.style.opacity=0;
-  }else if(currentX<-stampStart){
-    skipStamp.style.opacity=stampOpacity;
-    applyStamp.style.opacity=0;
+  // No preview state. If a stamp is visible, releasing performs it.
+  if(currentX>=SWIPE_COMMIT_THRESHOLD){
+    if(applyStamp)applyStamp.style.opacity=1;
+    if(skipStamp)skipStamp.style.opacity=0;
+  }else if(currentX<=-SWIPE_COMMIT_THRESHOLD){
+    if(skipStamp)skipStamp.style.opacity=1;
+    if(applyStamp)applyStamp.style.opacity=0;
   }else{
-    applyStamp.style.opacity=0;
-    skipStamp.style.opacity=0;
+    resetDecisionStamps(activeCard);
   }
 }
 
@@ -2205,17 +2262,14 @@ function dragEnd(e){
   const tapped=dragDistance<9&&Math.abs(currentX)<9;
   const tappedIndex=activeCard.dataset.index;
 
-  if(currentX>70){
+  if(currentX>=SWIPE_COMMIT_THRESHOLD){
+    resetDecisionStamps(activeCard);
     animateSwipe('right');
-  }else if(currentX<-70){
+  }else if(currentX<=-SWIPE_COMMIT_THRESHOLD){
+    resetDecisionStamps(activeCard);
     animateSwipe('left');
   }else{
-    const applyStamp=activeCard.querySelector('.stamp-apply');
-    const skipStamp=activeCard.querySelector('.stamp-skip');
-
-    if(applyStamp)applyStamp.style.opacity=0;
-    if(skipStamp)skipStamp.style.opacity=0;
-
+    resetDecisionStamps(activeCard);
     activeCard.style.transition='transform .25s ease';
     activeCard.style.transform='';
     if(tapped)setTimeout(()=>openJobDetails(tappedIndex),40);
@@ -2405,6 +2459,13 @@ document.addEventListener('keydown',event=>{
   if(event.key==='Escape'&&document.getElementById('job-details-overlay').classList.contains('open'))closeJobDetails();
 });
 
+function enforceCandidateNav(){
+  const label=document.getElementById('discover-nav-label');
+  if(label&&label.textContent!=='Discover'){
+    label.textContent='Discover';
+  }
+}
+
 (async function initialize(){
   const {data,error}=await sb.auth.getSession();
 
@@ -2438,6 +2499,10 @@ document.addEventListener('keydown',event=>{
   }
 
   await loadJobs();
+
+  enforceCandidateNav();
+  setTimeout(enforceCandidateNav,250);
+  setTimeout(enforceCandidateNav,1000);
 })();
 </script>
 
