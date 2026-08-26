@@ -61,8 +61,20 @@ button{font:inherit;cursor:pointer}.app{width:100%;max-width:520px;min-height:10
 }
 
 .bottom-nav .nav-icon{
-  font-size:17px;
+  width:20px;
+  height:20px;
+  display:grid;
+  place-items:center;
   line-height:1;
+}
+
+.bottom-nav .nav-icon svg{
+  width:20px;
+  height:20px;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 
 .bottom-nav .nav-item.active{
@@ -92,7 +104,7 @@ html[data-effective-theme="dark"] .bottom-nav .nav-item.active::before{
 }
 </style>
 </head>
-<body>
+<body data-candidate-nav-build="2026-08-26-unified">
 <div class="app">
 <div class="topbar"><div class="logo">Alygnn.</div><button class="profile-btn" onclick="location.href='app-account.html'">A</button></div>
 <div class="title">My Jobs</div><div class="subtitle">Track applications and revisit jobs you passed on.</div>
@@ -110,11 +122,47 @@ html[data-effective-theme="dark"] .bottom-nav .nav-item.active::before{
 </div>
 <div id="message" class="message"></div><div id="content"><div class="loading">Loading your applications...</div></div>
 </div>
-<nav class="bottom-nav" aria-label="Candidate navigation">
-  <button class="nav-item" type="button" onclick="location.href='app-account.html'"><span class="nav-icon">◉</span><span>My Profile</span></button>
-  <button class="nav-item" type="button" onclick="location.href='app-swipe.html'"><span class="nav-icon">◇</span><span>Swipe</span></button>
-  <button class="nav-item active" type="button"><span class="nav-icon">▣</span><span>My Jobs</span></button>
-  <button class="nav-item" type="button" onclick="location.href='app-account.html#settings'"><span class="nav-icon">⚙</span><span>Settings</span></button>
+<nav class="bottom-nav" id="candidate-bottom-nav" aria-label="Candidate navigation">
+  <button class="nav-item" type="button" onclick="location.href='app-account.html'">
+    <span class="nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="7.5" r="3.5"></circle>
+        <path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6"></path>
+      </svg>
+    </span>
+    <span class="nav-label">My Profile</span>
+  </button>
+
+  <button class="nav-item" type="button" onclick="location.href='app-swipe.html'">
+    <span class="nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <circle cx="10.5" cy="10.5" r="5.5"></circle>
+        <path d="m15 15 4.5 4.5"></path>
+      </svg>
+    </span>
+    <span class="nav-label">Discover</span>
+  </button>
+
+  <button class="nav-item active" type="button" aria-current="page">
+    <span class="nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <rect x="4" y="7" width="16" height="12" rx="2"></rect>
+        <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"></path>
+        <path d="M4 11h16"></path>
+      </svg>
+    </span>
+    <span class="nav-label">My Jobs</span>
+  </button>
+
+  <button class="nav-item" type="button" onclick="location.href='app-account.html#settings'">
+    <span class="nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9A1.7 1.7 0 0 0 21 10h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"></path>
+      </svg>
+    </span>
+    <span class="nav-label">Settings</span>
+  </button>
 </nav>
 <script>
 const sb=supabase.createClient(
