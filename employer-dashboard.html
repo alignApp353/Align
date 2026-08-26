@@ -293,6 +293,14 @@
   .empty-state .empty-icon { font-size: 32px; margin-bottom: 12px; }
   .empty-state .empty-title { font-weight: 500; color: var(--text); margin-bottom: 6px; font-size: 15px; }
 
+  .test-entitlement-banner {
+    display:none; margin-top:14px; padding:12px 14px; border-radius:12px;
+    border:1px solid rgba(140,182,155,.55); background:rgba(140,182,155,.12);
+    color:var(--text); font-size:12px; line-height:1.5;
+  }
+  .test-entitlement-banner.show { display:block; }
+  .test-entitlement-banner strong { color:#4F9568; }
+
   .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--text); color: white; padding: 10px 20px; border-radius: 100px; font-size: 13px; font-weight: 500; transition: transform 0.3s ease; z-index: 200; white-space: nowrap; }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
@@ -398,6 +406,7 @@
       <div class="page-header">
         <div class="page-title">My Jobs</div>
         <div class="page-sub">Manage your job listings</div>
+        <div class="test-entitlement-banner" id="test-entitlement-banner"></div>
       </div>
       <div class="section-header">
         <div class="section-title">Job listings <span id="job-slot-usage" style="font-size:12px; font-weight:400; color:var(--text-muted); margin-left:8px;"></span></div>
@@ -658,7 +667,12 @@
     subscription_status: 'inactive',
     current_period_end: null,
     free_job_used: false,
-    paid_job_credits: 0
+    paid_job_credits: 0,
+    slot_limit: 1,
+    billing_period: null,
+    test_mode: false,
+    test_plan: null,
+    urgently_hiring: false
   };
 
   let selectedGooglePlace = null;
@@ -1249,79 +1263,97 @@
   }
 
   // ---- Employer job-slot entitlement / paywall ----
-  // Free: 1 reusable active/pending job slot.
-  // Business: 3 reusable active/pending job slots.
-  // Enterprise: 5 reusable active/pending job slots.
+  // Free:   1 reusable active/pending job slot.
+  // Launch: 3 reusable active/pending job slots.
+  // Growth: 5 reusable active/pending job slots + Urgently Hiring.
+  // Scale:  8 reusable active/pending job slots + Urgently Hiring.
+  // Weekly: 1 reusable active/pending job slot until its 7-day expiration.
   // Deleting/closing a job frees its slot so another listing can be posted.
   //
-  // IMPORTANT: the database trigger is still the real enforcement layer.
-  // The companion SQL migration must also be applied so the old one-time
-  // free_job_used rule does not block a replacement job after deletion.
+  // The database trigger is the real enforcement layer. Developer test packages
+  // are also server-backed; the dashboard never grants extra slots from URL or
+  // localStorage alone.
   async function loadBillingEntitlement() {
     billingReady = false;
 
+    const normalizeEntitlement = (data) => ({
+      plan: String(data?.plan || 'free').toLowerCase(),
+      subscription_status: String(data?.subscription_status || 'inactive').toLowerCase(),
+      current_period_end: data?.current_period_end || null,
+      free_job_used: data?.free_job_used === true,
+      paid_job_credits: Math.max(0, Number(data?.paid_job_credits || 0)),
+      slot_limit: Math.max(0, Number(data?.slot_limit || 0)),
+      billing_period: data?.billing_period ? String(data.billing_period).toLowerCase() : null,
+      test_mode: data?.test_mode === true,
+      test_plan: data?.test_plan ? String(data.test_plan).toLowerCase() : null,
+      urgently_hiring: data?.urgently_hiring === true
+    });
+
     try {
-      const { data, error } = await sb
+      // New schema used by Launch / Growth / Scale / Weekly and test-mode access.
+      let result = await sb
         .from('employer_entitlements')
-        .select('plan, subscription_status, current_period_end, free_job_used, paid_job_credits')
+        .select('plan, subscription_status, current_period_end, free_job_used, paid_job_credits, slot_limit, billing_period, test_mode, test_plan, urgently_hiring')
         .eq('employer_id', currentUser.id)
         .maybeSingle();
 
-      if (error) throw error;
+      // Keep the site usable before the new SQL migration is installed.
+      if (result.error && /slot_limit|billing_period|test_mode|test_plan|urgently_hiring/i.test(String(result.error.message || ''))) {
+        result = await sb
+          .from('employer_entitlements')
+          .select('plan, subscription_status, current_period_end, free_job_used, paid_job_credits')
+          .eq('employer_id', currentUser.id)
+          .maybeSingle();
+      }
 
-      if (data) {
-        billingEntitlement = {
-          plan: String(data.plan || 'free').toLowerCase(),
-          subscription_status: String(data.subscription_status || 'inactive').toLowerCase(),
-          current_period_end: data.current_period_end || null,
-          free_job_used: data.free_job_used === true,
-          paid_job_credits: Math.max(0, Number(data.paid_job_credits || 0))
-        };
+      if (result.error) throw result.error;
+
+      if (result.data) {
+        billingEntitlement = normalizeEntitlement(result.data);
       } else {
-        // Legacy billing fields are still loaded for compatibility, but posting
-        // access below is now based on reusable active/pending job slots.
-        billingEntitlement = {
+        billingEntitlement = normalizeEntitlement({
           plan: 'free',
           subscription_status: 'inactive',
-          current_period_end: null,
           free_job_used: jobs.length > 0,
-          paid_job_credits: 0
-        };
+          slot_limit: 1
+        });
       }
     } catch (error) {
-      // Keep a conservative entitlement fallback. Slot availability is still
-      // calculated from the employer's active/pending jobs below.
       console.error('Failed to load employer billing entitlement:', error);
-      billingEntitlement = {
+      billingEntitlement = normalizeEntitlement({
         plan: 'free',
         subscription_status: 'inactive',
-        current_period_end: null,
         free_job_used: jobs.length > 0,
-        paid_job_credits: 0
-      };
+        slot_limit: 1
+      });
     } finally {
       billingReady = true;
     }
+  }
+
+  function entitlementNotExpired() {
+    if (!billingEntitlement.current_period_end) return true;
+    const periodEnd = new Date(billingEntitlement.current_period_end).getTime();
+    return Number.isNaN(periodEnd) || periodEnd > Date.now();
   }
 
   function hasActivePaidPlan() {
     const plan = String(billingEntitlement.plan || '').toLowerCase();
     const status = String(billingEntitlement.subscription_status || '').toLowerCase();
 
-    if (!['business', 'enterprise'].includes(plan)) return false;
     if (!['active', 'trialing'].includes(status)) return false;
+    if (!entitlementNotExpired()) return false;
 
-    if (billingEntitlement.current_period_end) {
-      const periodEnd = new Date(billingEntitlement.current_period_end).getTime();
-      if (!Number.isNaN(periodEnd) && periodEnd <= Date.now()) return false;
-    }
+    // A server-authorized test entitlement is treated exactly like paid access
+    // for slot testing, while remaining clearly marked test_mode in the DB/UI.
+    if (billingEntitlement.test_mode === true && billingEntitlement.slot_limit > 0) return true;
 
-    return true;
+    return ['business', 'enterprise', 'launch', 'growth', 'scale', 'weekly_slot'].includes(plan);
   }
 
   function activeJobCount() {
-    // Pending jobs reserve a posting slot too, so an unverified paid employer
-    // cannot queue unlimited listings while waiting for approval.
+    // Pending jobs reserve a slot too, so an unverified employer cannot queue
+    // unlimited listings while waiting for business approval.
     return jobs.filter(job => {
       const status = String(job.status || 'active').toLowerCase();
       return status === 'active' || status === 'pending';
@@ -1329,7 +1361,28 @@
   }
 
   function paidJobLimit() {
-    return String(billingEntitlement.plan || '').toLowerCase() === 'enterprise' ? 5 : 3;
+    const serverLimit = Math.max(0, Number(billingEntitlement.slot_limit || 0));
+    if (serverLimit > 0) return serverLimit;
+
+    const plan = String(billingEntitlement.test_plan || billingEntitlement.plan || '').toLowerCase();
+    if (plan === 'weekly_slot') return 1;
+    if (plan === 'scale') return 8;
+    if (plan === 'growth') return 5;
+    if (plan === 'launch') return 3;
+
+    // Legacy compatibility until old entitlement rows are migrated.
+    if (plan === 'enterprise') return 5;
+    if (plan === 'business') return 3;
+    return 1;
+  }
+
+  function entitlementDisplayName() {
+    const plan = String(billingEntitlement.test_plan || billingEntitlement.plan || 'free').toLowerCase();
+    const names = {
+      free: 'Free', launch: 'Launch', growth: 'Growth', scale: 'Scale',
+      weekly_slot: 'Weekly', business: 'Launch', enterprise: 'Growth'
+    };
+    return names[plan] || plan;
   }
 
   function getPostingAccess() {
@@ -1339,21 +1392,18 @@
 
     const used = activeJobCount();
 
-    // Monthly plans are reusable slot plans.
     if (hasActivePaidPlan()) {
       const limit = paidJobLimit();
       return used < limit
         ? { allowed: true, reason: 'slot-available', label: '+ Post new job', used, limit }
-        : { allowed: false, reason: 'slot-limit', label: '+ Add a job ad', used, limit };
+        : { allowed: false, reason: 'slot-limit', label: '+ Add a job slot', used, limit };
     }
 
-    // Free employers have ONE reusable slot. The old free_job_used flag is
-    // intentionally NOT used here: once a job is deleted, used drops back to 0
-    // and the same slot becomes available again.
+    // Free employers have one reusable slot. Deleting or closing the job frees it.
     const limit = 1;
     return used < limit
       ? { allowed: true, reason: 'free-slot-available', label: '+ Post new job', used, limit }
-      : { allowed: false, reason: 'slot-limit', label: '+ Add a job ad', used, limit };
+      : { allowed: false, reason: 'slot-limit', label: '+ Add a job slot', used, limit };
   }
 
   function canCreateNewJob() {
@@ -1371,9 +1421,8 @@
     const sidebarButton = document.getElementById('sidebar-post-job-btn');
     const sidebarLabel = document.getElementById('sidebar-post-job-label');
     const slotUsage = document.getElementById('job-slot-usage');
+    const testBanner = document.getElementById('test-entitlement-banner');
 
-    // Verification no longer blocks the posting flow. Unverified employers
-    // may submit a listing, but the listing is saved with status='pending'.
     if (!billingReady) return;
 
     const access = getPostingAccess();
@@ -1382,19 +1431,34 @@
       slotUsage.textContent = `· ${access.used} of ${access.limit} ${access.limit === 1 ? 'slot' : 'slots'} used`;
     }
 
+    if (testBanner) {
+      if (billingEntitlement.test_mode === true && hasActivePaidPlan()) {
+        const billing = billingEntitlement.billing_period
+          ? billingEntitlement.billing_period.charAt(0).toUpperCase() + billingEntitlement.billing_period.slice(1)
+          : '';
+        const expiry = billingEntitlement.current_period_end
+          ? new Date(billingEntitlement.current_period_end).toLocaleString()
+          : 'No expiration set';
+        const urgent = billingEntitlement.urgently_hiring ? ' · Urgently Hiring enabled' : '';
+        testBanner.innerHTML = `<strong>TEST PACKAGE ACTIVE</strong> · ${entitlementDisplayName()}${billing ? ' · ' + billing : ''} · ${paidJobLimit()} job slot${paidJobLimit() === 1 ? '' : 's'}${urgent}<br>Expires: ${expiry} · No payment was charged.`;
+        testBanner.classList.add('show');
+      } else {
+        testBanner.classList.remove('show');
+        testBanner.textContent = '';
+      }
+    }
+
     if (topButton) {
       topButton.textContent = access.label;
       topButton.title = access.reason === 'slot-limit'
-        ? `All ${access.limit} job ${access.limit === 1 ? 'slot is' : 'slots are'} in use. Delete or close a job to free a slot, or choose a plan with more slots.`
+        ? `All ${access.limit} job ${access.limit === 1 ? 'slot is' : 'slots are'} in use. Delete or close a job to free a slot, or add more job-slot capacity.`
         : `You have ${access.limit - access.used} job ${access.limit - access.used === 1 ? 'slot' : 'slots'} available.`;
     }
 
-    if (sidebarButton) {
-      sidebarButton.title = topButton?.title || '';
-    }
+    if (sidebarButton) sidebarButton.title = topButton?.title || '';
 
     if (sidebarLabel) {
-      sidebarLabel.textContent = access.allowed ? 'Post a Job' : 'Job slot in use';
+      sidebarLabel.textContent = access.allowed ? 'Post a Job' : 'Add a job slot';
     }
 
     if (typeof renderWizardStep === 'function') renderWizardStep();
