@@ -4,827 +4,1095 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<title>Job details — Alygnn</title>
-
+<title>Alygnn — Find your match</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
-:root{
-  --brand:#5D7FA3;
-  --sage:#8CB69B;
-  --bg:#F6F8F7;
-  --card-bg:#FCFCFA;
-  --text:#1A2530;
-  --text-muted:#4A5968;
-  --border:#DDE3E8;
-}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-*, *::before, *::after{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
-  font-family:'DM Sans', Arial, sans-serif !important;
-}
+  :root {
+    --brand: #5D7FA3;
+    --sage: #8CB69B;
+    --bg: #F0F3F2;
+    --card-bg: #FCFCFA;
+    --text: #1A2530;
+    --border: #DDE3E8;
+    --mint: #6FBF8F;
+    --rose: #D79A9A;
+    --text-muted: #4A5968;
+    --brand-light: rgba(93,127,163,0.08);
+  }
 
-html, body{
-  min-height:100%;
-  background:var(--bg);
-  color:var(--text);
-}
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
 
-nav{
-  position:sticky;
-  top:0;
-  z-index:100;
-  height:64px;
-  padding:0 5%;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  background:rgba(246,248,247,.92);
-  backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--border);
-}
+  /* NAV */
+  nav {
+    background: rgba(246,248,247,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 5%;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px; flex-shrink: 0; z-index: 10;
+  }
+  .logo { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--brand); letter-spacing: -0.5px; text-decoration: none; }
+  .logo span { color: var(--sage); }
+  .nav-stats { display: flex; gap: 20px; }
+  .stat { text-align: center; }
+  .stat-val { font-size: 18px; font-weight: 500; color: var(--text); line-height: 1; }
+  .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .nav-back { font-size: 14px; color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+  .nav-back:hover { color: var(--text); }
 
-.logo{
-  font-family:'DM Serif Display', serif !important;
-  font-size:22px;
-  color:var(--brand);
-  letter-spacing:-.5px;
-  text-decoration:none;
-}
-.logo span{ font-family:'DM Serif Display', serif !important; color:var(--sage); }
+  /* LOADING STATE */
+  .loading-screen {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px;
+  }
+  .loading-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--brand);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .loading-text { font-size: 16px; color: var(--text-muted); }
+  .loading-sub { font-size: 13px; color: var(--text-muted); opacity: 0.7; }
 
-.nav-back{
-  color:var(--text-muted);
-  text-decoration:none;
-  font-size:14px;
-}
-.nav-back:hover{ color:var(--text); }
+  /* ERROR STATE */
+  .error-screen {
+    flex: 1; display: none; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px;
+    text-align: center; padding: 40px;
+  }
+  .error-icon { font-size: 40px; }
+  .error-title { font-size: 18px; font-weight: 500; }
+  .error-sub { font-size: 14px; color: var(--text-muted); max-width: 320px; line-height: 1.6; }
+  .btn-retry {
+    margin-top: 8px;
+    background: var(--brand); color: white;
+    border: none; border-radius: 100px;
+    padding: 12px 28px; font-size: 14px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer;
+  }
+  .state-actions {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    margin-top: 8px;
+  }
+  .state-actions .btn-retry, .state-actions .btn-reload { margin-top: 0; }
+  .btn-preferences {
+    background: transparent; color: var(--brand);
+    border: 1.5px solid var(--brand); border-radius: 100px;
+    padding: 11px 24px; font-size: 14px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-preferences:hover { background: var(--brand-light); transform: translateY(-1px); }
 
-.page{
-  max-width:720px;
-  margin:0 auto;
-  padding:48px 6% 100px;
-  opacity:0;
-  transform:translateY(8px);
-  transition:opacity .25s ease, transform .25s ease;
-}
-.page.ready{ opacity:1; transform:translateY(0); }
+  /* SWIPE AREA */
+  .swipe-area {
+    flex: 1; display: none;
+    flex-direction: column; align-items: center;
+    justify-content: center; padding: 20px;
+    position: relative;
+  }
 
-.loading, .error-state{
-  max-width:720px;
-  margin:0 auto;
-  padding:56px 6%;
-  color:var(--text-muted);
-  font-size:14px;
-}
-.loading.hide, .error-state.hide{ display:none; }
+  /* CARD STACK */
+  .card-stack { position: relative; width: 100%; max-width: 480px; height: 520px; }
 
-.job-header{
-  background:var(--card-bg);
-  border:1px solid var(--border);
-  border-radius:20px;
-  padding:32px;
-  margin-bottom:24px;
-}
+  .job-card {
+    position: absolute; inset: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 28px;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    transform-origin: center bottom;
+    transition: box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    display: flex; flex-direction: column;
+  }
+  .job-card:active { cursor: grabbing; }
+  .job-card.is-dragging { transition: none; box-shadow: 0 16px 48px rgba(0,0,0,0.16); }
+  .job-card.swipe-left { animation: swipeLeft 0.35s ease forwards; }
+  .job-card.swipe-right { animation: swipeRight 0.35s ease forwards; }
+  .action-buttons button:disabled { pointer-events: none; }
 
-.job-title{
-  font-family:'DM Serif Display', serif !important;
-  font-size:1.75rem;
-  letter-spacing:-.5px;
-  margin-bottom:8px;
-  color:var(--text);
-}
+  /* Behind cards */
+  .job-card:nth-child(2) { transform: scale(0.96) translateY(8px); z-index: 1; }
+  .job-card:nth-child(3) { transform: scale(0.92) translateY(16px); z-index: 0; }
+  .job-card:nth-child(n+4) { display: none; }
+  .job-card:first-child { z-index: 2; }
 
-.job-meta{
-  font-size:14px;
-  color:var(--text-muted);
-  margin-bottom:18px;
-}
+  /* LIKE/NOPE overlays */
+  .stamp {
+    position: absolute; top: 28px;
+    padding: 6px 16px; border-radius: 8px;
+    font-size: 22px; font-weight: 700;
+    letter-spacing: 2px; opacity: 0;
+    border: 3px solid;
+    pointer-events: none;
+    transition: opacity 0.1s;
+  }
+  .stamp-apply { right: 28px; color: var(--mint); border-color: var(--mint); transform: rotate(12deg); }
+  .stamp-skip  { left: 28px;  color: var(--rose); border-color: var(--rose); transform: rotate(-12deg); }
 
-.job-badges{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  align-items:center;
-}
+  /* CARD CONTENT */
+  .card-top { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+  .company-logo {
+    width: 52px; height: 52px; border-radius: 12px;
+    background: var(--brand-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 500; color: var(--brand); flex-shrink: 0; overflow: hidden;
+    border: 1px solid var(--border);
+    font-family: 'DM Serif Display', serif;
+  }
+  .card-top-text { flex: 1; min-width: 0; }
+  .job-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--text); letter-spacing: -0.3px; line-height: 1.2; margin-bottom: 3px; }
+  .company-name { font-size: 14px; color: var(--text-muted); }
 
-.badge{
-  font-size:12px;
-  font-weight:500;
-  padding:5px 14px;
-  border-radius:100px;
-  border:1px solid var(--border);
-  color:var(--text-muted);
-  white-space:nowrap;
-}
-.badge.status-accepted{ border-color:var(--sage); color:#2d8a57; background:rgba(140,182,155,.12); }
-.badge.status-rejected{ border-color:#D79A9A; color:#a05858; background:rgba(215,154,154,.12); }
-.badge.status-applied{ border-color:var(--brand); color:var(--brand); background:rgba(93,127,163,.08); }
-.badge.plain{ background:white; }
+  .card-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .pill {
+    font-size: 11px; padding: 4px 10px; border-radius: 100px;
+    border: 1px solid var(--border); color: var(--text-muted);
+  }
+  .pill.remote { background: rgba(111,191,143,0.1); color: #2e7a52; border-color: rgba(111,191,143,0.3); }
+  .pill.salary { background: var(--brand-light); color: var(--brand); border-color: rgba(93,127,163,0.2); }
+  .pill.urgent {
+    background: rgba(215,154,154,0.14);
+    color: #9a5151;
+    border-color: rgba(215,154,154,0.55);
+    font-weight: 700;
+  }
 
-.applied-note{
-  font-size:13px;
-  color:var(--text-muted);
-  margin-top:14px;
-}
+  .match-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(111,191,143,0.15); color: #3a9463;
+    font-size: 12px; font-weight: 500; padding: 4px 12px;
+    border-radius: 100px; margin-bottom: 12px;
+  }
+  .match-badge.pending { background: var(--border); color: var(--text-muted); }
 
+  .card-desc {
+    font-size: 13px; color: var(--text-muted); line-height: 1.65; margin-bottom: 16px;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 
-/* ALYGNN MATCH BREAKDOWN */
-.match-section{
-  display:none;
-}
+  .card-highlights { margin-bottom: 16px; }
+  .highlights-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+  .highlight-item { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; line-height: 1.4; }
+  .highlight-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--brand); margin-top: 5px; flex-shrink: 0; }
 
-.match-section.show{
-  display:block;
-}
+  .card-benefits { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .benefit-tag { font-size: 10px; padding: 3px 9px; border-radius: 100px; background: rgba(111,191,143,0.1); color: #2e7a52; }
 
-.match-intro{
-  margin-top:-4px;
-  margin-bottom:18px;
-  color:var(--text-muted);
-  font-size:13px;
-  line-height:1.55;
-}
+  .card-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 14px; border-top: 1px solid var(--border); margin-top: auto; }
+  .posted-time { font-size: 11px; color: var(--text-muted); }
+  .view-details-link {
+    font-size: 12px; font-weight: 500; color: var(--brand);
+    text-decoration: none; background: var(--brand-light);
+    padding: 5px 12px; border-radius: 100px; transition: opacity 0.2s;
+  }
+  .view-details-link:hover { opacity: 0.8; }
 
-.match-score-row{
-  display:flex;
-  align-items:center;
-  gap:22px;
-  margin-bottom:22px;
-}
+  /* ACTION BUTTONS */
+  .action-buttons { display: flex; align-items: center; gap: 16px; margin-top: 20px; }
+  .btn-skip {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: white; border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 22px; transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .btn-skip:hover { border-color: var(--rose); transform: scale(1.08); }
+  .btn-apply {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--brand); border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 26px; transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(93,127,163,0.35);
+  }
+  .btn-apply:hover { transform: scale(1.08); opacity: 0.9; }
+  .btn-undo {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: white; border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .btn-undo:hover { border-color: var(--brand); }
 
-.score-ring{
-  --score:0;
-  width:96px;
-  height:96px;
-  flex:0 0 96px;
-  position:relative;
-  display:grid;
-  place-items:center;
-  border-radius:50%;
-  background:conic-gradient(#6FBF8F calc(var(--score) * 1%), #E7ECEF 0);
-}
+  /* EMPTY STATE */
+  .empty-screen {
+    flex: 1; display: none;
+    flex-direction: column; align-items: center;
+    justify-content: center; gap: 12px; text-align: center; padding: 40px;
+  }
+  .empty-icon { font-size: 48px; }
+  .empty-title { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--text); }
+  .empty-sub { font-size: 15px; color: var(--text-muted); max-width: 300px; line-height: 1.6; }
+  .btn-reload {
+    margin-top: 8px; background: var(--brand); color: white;
+    border: none; border-radius: 100px;
+    padding: 14px 32px; font-size: 15px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-reload:hover { opacity: 0.88; transform: translateY(-1px); }
 
-.score-ring::before{
-  content:'';
-  position:absolute;
-  inset:9px;
-  border-radius:50%;
-  background:var(--card-bg);
-}
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--text); color: white;
+    padding: 10px 20px; border-radius: 100px;
+    font-size: 13px; font-weight: 500;
+    transition: transform 0.3s ease; z-index: 100;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
 
-.score-number{
-  position:relative;
-  z-index:1;
-  text-align:center;
-  color:var(--text);
-  font-size:22px;
-  font-weight:700;
-  line-height:1;
-}
-
-.score-number small{
-  display:block;
-  margin-top:5px;
-  color:var(--text-muted);
-  font-size:9px;
-  font-weight:700;
-  letter-spacing:.9px;
-  text-transform:uppercase;
-}
-
-.match-copy{
-  max-width:430px;
-  color:var(--text-muted);
-  font-size:14px;
-  line-height:1.6;
-}
-
-.match-breakdown{
-  display:grid;
-  gap:14px;
-}
-
-.breakdown-row{
-  display:grid;
-  grid-template-columns:92px 1fr 44px;
-  align-items:center;
-  gap:12px;
-}
-
-.breakdown-label{
-  color:var(--text);
-  font-size:12px;
-  font-weight:700;
-}
-
-.breakdown-bar{
-  height:8px;
-  overflow:hidden;
-  border-radius:999px;
-  background:#E7ECEF;
-}
-
-.breakdown-fill{
-  width:0;
-  height:100%;
-  border-radius:inherit;
-  background:#6FBF8F;
-  transition:width .55s ease;
-}
-
-.breakdown-value{
-  text-align:right;
-  color:var(--brand);
-  font-size:12px;
-  font-weight:700;
-}
-
-.match-loading{
-  color:var(--text-muted);
-  font-size:13px;
-}
-
-.section{
-  background:var(--card-bg);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:24px 28px;
-  margin-bottom:16px;
-}
-
-.section h2{
-  font-family:'DM Serif Display', serif !important;
-  font-size:1.05rem;
-  letter-spacing:-.2px;
-  margin-bottom:12px;
-  color:var(--text);
-}
-
-.section p, .section li{
-  font-size:14px;
-  line-height:1.65;
-  color:var(--text);
-  white-space:pre-wrap;
-}
-
-.section ul{
-  margin-left:18px;
-}
-
-.field-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:16px;
-}
-
-.field-grid .field-label{
-  font-size:12px;
-  font-weight:500;
-  color:var(--text-muted);
-  margin-bottom:4px;
-}
-
-.field-grid .field-value{
-  font-size:14px;
-  color:var(--text);
-}
-
-@media(max-width:600px){
-  .field-grid{ grid-template-columns:1fr; }
-
-  .match-score-row{ align-items:flex-start; gap:16px; }
-  .score-ring{ width:84px; height:84px; flex-basis:84px; }
-  .breakdown-row{ grid-template-columns:82px 1fr 40px; gap:9px; }
-}
-
-.mini-footer{ text-align:center; padding:24px 6% 40px; font-size:12px; color:var(--text-muted); }
-.mini-footer a{ color:var(--text-muted); text-decoration:none; }
-.mini-footer a:hover{ color:var(--brand); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes swipeLeft {
+    to { transform: translateX(-120%) rotate(-20deg); opacity: 0; }
+  }
+  @keyframes swipeRight {
+    to { transform: translateX(120%) rotate(20deg); opacity: 0; }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 </style>
 </head>
-
 <body>
 
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
-  <a href="account.html" class="nav-back" id="nav-back">← Back to account</a>
+  <div class="nav-stats">
+    <div class="stat"><div class="stat-val" id="stat-applied">0</div><div class="stat-label">Applied</div></div>
+    <div class="stat"><div class="stat-val" id="stat-skipped">0</div><div class="stat-label">Skipped</div></div>
+    <div class="stat"><div class="stat-val" id="stat-remaining">—</div><div class="stat-label">Left</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:20px;">
+    <a href="account.html" class="nav-back">👤 Account</a>
+    <a href="index.html" class="nav-back">← Back</a>
+  </div>
 </nav>
 
-<div class="loading" id="loading">Loading job details...</div>
-<div class="error-state hide" id="error-state">We couldn't find that job. It may have been removed.</div>
-
-<div class="page" id="page">
-
-  <div class="job-header">
-    <div class="job-title" id="job-title">—</div>
-    <div class="job-meta" id="job-meta">—</div>
-    <div class="job-badges" id="job-badges"></div>
-    <div class="applied-note" id="applied-note"></div>
-  </div>
-
-
-  <div class="section match-section" id="match-section">
-    <h2>Your Alygnn match</h2>
-    <p class="match-intro">A clear breakdown of how this job aligns with your profile.</p>
-
-    <div id="match-loading" class="match-loading">Calculating your match…</div>
-
-    <div id="match-content" style="display:none;">
-      <div class="match-score-row">
-        <div class="score-ring" id="score-ring">
-          <div class="score-number">
-            <span id="score-number">—</span>
-            <small>Match</small>
-          </div>
-        </div>
-
-        <div class="match-copy" id="match-copy"></div>
-      </div>
-
-      <div class="match-breakdown">
-        <div class="breakdown-row">
-          <div class="breakdown-label">Skills</div>
-          <div class="breakdown-bar"><div class="breakdown-fill" id="skills-bar"></div></div>
-          <div class="breakdown-value" id="skills-value">—</div>
-        </div>
-
-        <div class="breakdown-row">
-          <div class="breakdown-label">Experience</div>
-          <div class="breakdown-bar"><div class="breakdown-fill" id="experience-bar"></div></div>
-          <div class="breakdown-value" id="experience-value">—</div>
-        </div>
-
-        <div class="breakdown-row">
-          <div class="breakdown-label">Salary</div>
-          <div class="breakdown-bar"><div class="breakdown-fill" id="salary-bar"></div></div>
-          <div class="breakdown-value" id="salary-value">—</div>
-        </div>
-
-        <div class="breakdown-row">
-          <div class="breakdown-label">Location</div>
-          <div class="breakdown-bar"><div class="breakdown-fill" id="location-bar"></div></div>
-          <div class="breakdown-value" id="location-value">—</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="section" id="interview-section" style="display:none;">
-    <h2>Interview scheduled</h2>
-    <div class="field-grid" id="interview-field-grid"></div>
-    <p id="interview-notes" style="margin-top:12px;"></p>
-  </div>
-
-  <div class="section" id="description-section" style="display:none;">
-    <h2>Description</h2>
-    <p id="job-description"></p>
-  </div>
-
-  <div class="section" id="requirements-section" style="display:none;">
-    <h2>Requirements</h2>
-    <div id="job-requirements"></div>
-  </div>
-
-  <div class="section" id="benefits-section" style="display:none;">
-    <h2>Benefits</h2>
-    <div id="job-benefits"></div>
-  </div>
-
-  <div class="section" id="details-section" style="display:none;">
-    <h2>Details</h2>
-    <div class="field-grid" id="job-field-grid"></div>
-  </div>
-
+<!-- LOADING -->
+<div class="loading-screen" id="loading-screen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Finding your matches...</div>
+  <div class="loading-sub">Searching jobs based on your preferences</div>
 </div>
 
+<!-- ERROR -->
+<div class="error-screen" id="error-screen">
+  <div class="error-icon">😕</div>
+  <div class="error-title">Couldn't load jobs</div>
+  <div class="error-sub" id="error-msg">Something went wrong fetching jobs. Check your internet connection and try again.</div>
+  <div class="state-actions">
+    <button class="btn-retry" onclick="loadJobs()">Try again</button>
+    <button class="btn-preferences" onclick="goToPreferences()">Set preferences again</button>
+  </div>
+</div>
+
+<!-- SWIPE AREA -->
+<div class="swipe-area" id="swipe-area">
+  <div class="card-stack" id="card-stack"></div>
+  <div class="action-buttons">
+    <button class="btn-undo" onclick="undo()" title="Undo">↩</button>
+    <button class="btn-skip" onclick="skipCurrent()" title="Skip">✕</button>
+    <button class="btn-apply" onclick="applyCurrent()" title="Apply">✓</button>
+  </div>
+</div>
+
+<!-- EMPTY -->
+<div class="empty-screen" id="empty-screen">
+  <div class="empty-icon">🎉</div>
+  <div class="empty-title">You've seen them all!</div>
+  <div class="empty-sub">You went through all your matches. Load a fresh batch or update your preferences.</div>
+  <div class="state-actions">
+    <button class="btn-reload" onclick="loadJobs()">Load more jobs</button>
+    <button class="btn-preferences" onclick="goToPreferences()">Set preferences again</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
 <script>
-const SUPABASE_URL = 'https://auth.alygnn.com';
-const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const SUPABASE_URL = 'https://auth.alygnn.com';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const loadingEl = document.getElementById('loading');
-const errorEl = document.getElementById('error-state');
-const pageEl = document.getElementById('page');
+  let jobs = [];
+  let currentIndex = 0;
+  let applied = 0;
+  let skipped = 0;
+  let history = [];
+  let currentUserId = null;
+  // Tracks which job ids have already had their view counted this session,
+  // so re-rendering the same top card (e.g. after undo) doesn't double-count.
+  const viewedJobIds = new Set();
 
-function escapeHtml(value){
-  return String(value || '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
+  // AI match scores (candidate <-> job fit), keyed by job id. Populated
+  // lazily as cards come into view — see ensureScoresFor(). Cached
+  // server-side in job_matches, so this only ever hits the network for
+  // pairs that haven't been scored before (or went stale after a resume
+  // or job edit — see the invalidation triggers in setup-job-matches.sql).
+  const matchScores = {};
+  const scoreRequestInFlight = new Set();
 
-function showError(){
-  loadingEl.classList.add('hide');
-  errorEl.classList.remove('hide');
-}
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let currentX = 0;
+  let activeCard = null;
+  let activePointerId = null;
 
-function showPage(){
-  loadingEl.classList.add('hide');
-  pageEl.classList.add('ready');
-}
+  // Prevent double-swipes / rapid button taps from advancing the same card
+  // more than once while its 350ms exit animation is still running.
+  let swipeLocked = false;
+  let swipeFinishTimer = null;
+  let snapBackTimer = null;
 
-function fmtDate(value){
-  if(!value) return '';
-  const d = new Date(value);
-  if(isNaN(d.getTime())) return '';
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-}
-
-function fmtDateTime(value){
-  if(!value) return '';
-  const d = new Date(value);
-  if(isNaN(d.getTime())) return '';
-  return d.toLocaleString(undefined, {
-    weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit'
-  });
-}
-
-function fmtSalary(min, max){
-  const fmt = (n) => '$' + Number(n).toLocaleString();
-  if(min && max) return `${fmt(min)} – ${fmt(max)}`;
-  if(min) return `${fmt(min)}+`;
-  if(max) return `Up to ${fmt(max)}`;
-  return '';
-}
-
-// Renders a value that might be a JSON array, a newline-separated string,
-// or a comma-separated string, as a bullet list. Falls back to a plain
-// paragraph if it's just one short line.
-function renderListOrText(value){
-  let items = null;
-
-  if(Array.isArray(value)){
-    items = value;
-  } else if(typeof value === 'string'){
-    const trimmed = value.trim();
-    if(trimmed.startsWith('[')){
-      try{ items = JSON.parse(trimmed); } catch(e){ items = null; }
-    }
-    if(!items && trimmed.includes('\n')){
-      items = trimmed.split('\n').map(s => s.trim()).filter(Boolean);
-    }
+  function setSwipeControlsLocked(locked) {
+    document.querySelectorAll('.btn-undo, .btn-skip, .btn-apply').forEach(btn => {
+      btn.disabled = locked;
+      btn.setAttribute('aria-disabled', locked ? 'true' : 'false');
+    });
   }
 
-  if(Array.isArray(items) && items.length > 1){
-    return '<ul>' + items.map(i => `<li>${escapeHtml(i)}</li>`).join('') + '</ul>';
+  function resetSwipeInteractionState() {
+    clearTimeout(swipeFinishTimer);
+    clearTimeout(snapBackTimer);
+    swipeFinishTimer = null;
+    snapBackTimer = null;
+    isDragging = false;
+    activePointerId = null;
+    currentX = 0;
+    activeCard = null;
+    swipeLocked = false;
+    setSwipeControlsLocked(false);
   }
-  if(Array.isArray(items) && items.length === 1){
-    return `<p>${escapeHtml(items[0])}</p>`;
-  }
-  return `<p>${escapeHtml(value)}</p>`;
-}
 
-function getParam(name){
-  return new URLSearchParams(window.location.search).get(name);
-}
-
-
-function clampScore(value){
-  const number = Number(value);
-  if(!Number.isFinite(number)) return null;
-  return Math.max(0, Math.min(100, Math.round(number)));
-}
-
-function firstScore(...values){
-  for(const value of values){
-    const score = clampScore(value);
-    if(score !== null) return score;
-  }
-  return null;
-}
-
-function readBreakdownScore(match, key){
-  const breakdown = match?.breakdown && typeof match.breakdown === 'object'
-    ? match.breakdown
-    : {};
-
-  const aliases = {
-    skills: [match?.skills_match, match?.skills_score, breakdown.skills, breakdown.skills_match, breakdown.skills_score],
-    experience: [match?.experience_match, match?.experience_score, breakdown.experience, breakdown.experience_match, breakdown.experience_score],
-    salary: [match?.salary_match, match?.salary_score, breakdown.salary, breakdown.salary_match, breakdown.salary_score],
-    location: [match?.location_match, match?.location_score, breakdown.location, breakdown.location_match, breakdown.location_score],
+  // Maps the checkbox values saved on preferences.html (FULLTIME, PARTTIME,
+  // CONTRACTOR, INTERN) to how job_type is actually stored on the jobs table
+  // (Full-time, Part-time, Contract, Internship).
+  const JOB_TYPE_MAP = {
+    FULLTIME: 'Full-time',
+    PARTTIME: 'Part-time',
+    CONTRACTOR: 'Contract',
+    INTERN: 'Internship'
   };
 
-  return firstScore(...(aliases[key] || []));
-}
-
-function setBreakdownRow(id, value){
-  const score = clampScore(value);
-  if(score === null) return;
-
-  document.getElementById(`${id}-value`).textContent = `${score}%`;
-  requestAnimationFrame(() => {
-    document.getElementById(`${id}-bar`).style.width = `${score}%`;
-  });
-}
-
-function defaultMatchCopy(score){
-  if(score >= 90){
-    return 'This role strongly aligns with your candidate profile, preferences, and career direction.';
-  }
-  if(score >= 75){
-    return 'This role aligns well with several parts of your candidate profile and preferences.';
-  }
-  if(score >= 60){
-    return 'This role matches several parts of your profile. Review the details to see where it fits best.';
-  }
-  return 'This role matches some of your preferences. Review the details before deciding whether to apply.';
-}
-
-function renderMatchBreakdown(match){
-  const section = document.getElementById('match-section');
-  const loading = document.getElementById('match-loading');
-  const content = document.getElementById('match-content');
-
-  const score = clampScore(match?.score ?? match?.match_score);
-  if(score === null){
-    section.classList.remove('show');
-    return;
+  function getInitials(name) {
+    if (!name) return '🏢';
+    return name.trim().split(/\s+/).map(w => w[0]).join('').substring(0, 2).toUpperCase();
   }
 
-  section.classList.add('show');
-  loading.style.display = 'none';
-  content.style.display = '';
+  // Pulls jobs directly from Alygnn's own employer-posted jobs table —
+  // these only ever come from real business owners who created an
+  // employer account and posted through the dashboard, never from an
+  // outside job board or aggregator.
+  async function loadJobs() {
+    showScreen('loading');
 
-  document.getElementById('score-ring').style.setProperty('--score', score);
-  document.getElementById('score-number').textContent = `${score}%`;
-  document.getElementById('match-copy').textContent = match?.reason || defaultMatchCopy(score);
+    const { data: { session } } = await sb.auth.getSession();
+    currentUserId = session?.user?.id || null;
 
-  // Prefer real category scores if the scoring backend provides them.
-  // The Android job-details screen currently falls back to small offsets
-  // from the overall score, so the website mirrors that same behavior.
-  const skills = readBreakdownScore(match, 'skills') ?? clampScore(score - 2);
-  const experience = readBreakdownScore(match, 'experience') ?? clampScore(score + 1);
-  const salary = readBreakdownScore(match, 'salary') ?? clampScore(score - 4);
-  const location = readBreakdownScore(match, 'location') ?? clampScore(score - 6);
+    // FIX: this used to only ever read sessionStorage.getItem('preferences').
+    // That works during the very first onboarding pass (upload → preferences
+    // → swipe, before an account exists), but preferences.html deletes that
+    // sessionStorage entry immediately after saving to Supabase for anyone
+    // logged in — so on every subsequent visit, `pref` was silently just
+    // `{}` and none of salary/location/work style was ever actually being
+    // filtered on, even though the person had set it. Now: logged-in users
+    // get their real saved preferences from profiles.preferences; the
+    // sessionStorage fallback only covers the pre-login case.
+    let pref = {};
+    if (currentUserId) {
+      const { data: profile, error: profileError } = await sb
+        .from('profiles')
+        .select('preferences')
+        .eq('id', currentUserId)
+        .maybeSingle();
 
-  setBreakdownRow('skills', skills);
-  setBreakdownRow('experience', experience);
-  setBreakdownRow('salary', salary);
-  setBreakdownRow('location', location);
-}
-
-async function loadMatchInfo(jobId, candidateId){
-  const section = document.getElementById('match-section');
-  section.classList.add('show');
-
-  try{
-    const { data: cached, error: cacheError } = await sb
-      .from('job_matches')
-      .select('*')
-      .eq('job_id', jobId)
-      .eq('candidate_id', candidateId)
-      .maybeSingle();
-
-    if(!cacheError && cached?.score != null){
-      return cached;
+      if (profileError) {
+        console.warn('Could not load saved preferences:', profileError);
+      }
+      pref = profile?.preferences || {};
+    } else {
+      const prefRaw = sessionStorage.getItem('preferences');
+      pref = prefRaw ? JSON.parse(prefRaw) : {};
     }
 
-    const { data, error } = await sb.functions.invoke('score-job-match', {
-      body: { candidateId, jobIds: [jobId] },
+    try {
+      const { data, error } = await sb
+        .from('jobs')
+        .select('*')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      let results = data || [];
+
+      // Never show a job again once the person has applied to it — without
+      // this, the same job kept reappearing indefinitely, and nothing
+      // stopped duplicate applications from piling up for it. Same idea
+      // now applies to skipped jobs via the skipped_jobs table, so a
+      // left-swipe is a real, permanent decision rather than something
+      // that resurfaces on the next reload.
+      if (currentUserId) {
+        const [{ data: existingApps, error: appsError }, { data: existingSkips, error: skipsError }] = await Promise.all([
+          sb.from('applications').select('job_id').eq('candidate_id', currentUserId),
+          sb.from('skipped_jobs').select('job_id').eq('candidate_id', currentUserId),
+        ]);
+
+        if (appsError) {
+          console.warn('Could not load existing applications:', appsError);
+        } else {
+          const appliedJobIds = new Set((existingApps || []).map(a => a.job_id));
+          results = results.filter(job => !appliedJobIds.has(job.id));
+        }
+
+        if (skipsError) {
+          console.warn('Could not load existing skips:', skipsError);
+        } else {
+          const skippedJobIds = new Set((existingSkips || []).map(s => s.job_id));
+          results = results.filter(job => !skippedJobIds.has(job.id));
+        }
+      }
+
+      const queryText = (pref.query || '').trim().toLowerCase();
+      if (queryText) {
+        results = results.filter(job =>
+          (job.title || '').toLowerCase().includes(queryText) ||
+          (job.description || '').toLowerCase().includes(queryText)
+        );
+      }
+
+      // NEW: location filter. A remote job always passes regardless of the
+      // person's city preference (remote has no fixed location to match
+      // against); anything else must mention the preferred city/state
+      // somewhere in its location string. Uses `city` first since that now
+      // holds the full "City, State" the person typed on the preferences
+      // page, falling back to the old separate city/state fields for
+      // anyone whose preferences were saved before that change.
+      const locationPref = (pref.city || pref.location || '').trim().toLowerCase();
+      if (locationPref) {
+        results = results.filter(job =>
+          job.work_style === 'Remote' ||
+          (job.location || '').toLowerCase().includes(locationPref) ||
+          locationPref.includes((job.location || '').toLowerCase())
+        );
+      }
+
+      if (Array.isArray(pref.jobTypes) && pref.jobTypes.length) {
+        const wantedTypes = pref.jobTypes.map(t => JOB_TYPE_MAP[t] || t);
+        results = results.filter(job => wantedTypes.includes(job.job_type));
+      }
+
+      if (pref.workStyle) {
+        // "Remote" preference is treated as a strict filter since that's
+        // usually a hard requirement; other work styles are left loose so
+        // results don't get overly narrow.
+        if (pref.workStyle === 'Remote') {
+          results = results.filter(job => job.work_style === 'Remote');
+        }
+      }
+
+      if (!results.length) {
+        throw new Error('No jobs match your preferences right now. Try widening your criteria in Preferences, or check back soon.');
+      }
+
+      jobs = results;
+      currentIndex = 0;
+      applied = 0;
+      skipped = 0;
+      history = [];
+      updateStats();
+      renderCards();
+      showScreen('swipe');
+    } catch (err) {
+      console.error('loadJobs error:', err);
+      document.getElementById('error-msg').textContent = err.message || 'Failed to load jobs.';
+      showScreen('error');
+    }
+  }
+
+  function goToPreferences() {
+    window.location.href = 'preferences.html';
+  }
+
+  function showScreen(name) {
+    document.getElementById('loading-screen').style.display = name === 'loading' ? 'flex' : 'none';
+    document.getElementById('error-screen').style.display = name === 'error' ? 'flex' : 'none';
+    document.getElementById('swipe-area').style.display = name === 'swipe' ? 'flex' : 'none';
+    document.getElementById('empty-screen').style.display = name === 'empty' ? 'flex' : 'none';
+  }
+
+  function timeAgo(dateStr) {
+    if (!dateStr) return '';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days <= 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return days + ' days ago';
+    if (days < 30) return Math.floor(days / 7) + ' weeks ago';
+    return Math.floor(days / 30) + ' months ago';
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function buildCard(job, index) {
+    const card = document.createElement('div');
+    card.className = 'job-card';
+    card.dataset.index = index;
+
+    const pillsHTML = [
+      job.urgently_hiring === true ? '<span class="pill urgent">Urgently Hiring</span>' : '',
+      job.work_style === 'Remote' ? '<span class="pill remote">🌐 Remote</span>' : '',
+      job.location ? `<span class="pill">📍 ${escapeHtml(job.location)}</span>` : '',
+      job.job_type ? `<span class="pill">${escapeHtml(job.job_type)}</span>` : '',
+      job.salary ? `<span class="pill salary">${escapeHtml(job.salary)}</span>` : '',
+    ].filter(Boolean).join('');
+
+    const requirements = (job.requirements || '').split('\n').map(r => r.trim()).filter(Boolean).slice(0, 4);
+    const highlightsHTML = requirements.length
+      ? `<div class="card-highlights">
+          <div class="highlights-label">Requirements</div>
+          ${requirements.map(r => `<div class="highlight-item"><div class="highlight-dot"></div>${escapeHtml(r)}</div>`).join('')}
+        </div>`
+      : '';
+
+    const benefits = (job.benefits || '').split('\n').map(b => b.trim()).filter(Boolean).slice(0, 5);
+    const benefitsHTML = benefits.length
+      ? `<div class="card-benefits">${benefits.map(b => `<span class="benefit-tag">${escapeHtml(b)}</span>`).join('')}</div>`
+      : '';
+
+    const description = job.description || 'No description available.';
+
+    // Only shown to logged-in candidates — scoring needs their saved
+    // resume_data, which guests/pre-login sessions don't have yet.
+    const cachedMatch = matchScores[job.id];
+    const matchBadgeHTML = currentUserId
+      ? (cachedMatch
+          ? `<div class="match-badge" data-job-id="${job.id}">✦ ${cachedMatch.score}% match</div>`
+          : `<div class="match-badge pending" data-job-id="${job.id}">Calculating match…</div>`)
+      : '';
+
+    card.innerHTML = `
+      <div class="stamp stamp-apply">APPLY ✓</div>
+      <div class="stamp stamp-skip">SKIP ✕</div>
+      <div class="card-top">
+        <div class="company-logo">${getInitials(job.company)}</div>
+        <div class="card-top-text">
+          <div class="job-title">${escapeHtml(job.title || 'Untitled Role')}</div>
+          <div class="company-name">${escapeHtml(job.company || '')}</div>
+        </div>
+      </div>
+      ${matchBadgeHTML}
+      <div class="card-pills">${pillsHTML}</div>
+      <div class="card-desc">${escapeHtml(description)}</div>
+      ${highlightsHTML}
+      ${benefitsHTML}
+      <div class="card-bottom">
+        <div class="posted-time">${timeAgo(job.created_at)}</div>
+        <a class="view-details-link" href="job-details.html?job=${encodeURIComponent(job.id)}" target="_blank" rel="noopener">View details →</a>
+      </div>
+    `;
+
+    setupDrag(card);
+    return card;
+  }
+
+  function renderCards() {
+    const stack = document.getElementById('card-stack');
+
+    // Every render begins from a clean interaction state. This prevents a
+    // stale pointer capture, snap-back timeout, or swipe lock from leaving
+    // the next card unresponsive.
+    resetSwipeInteractionState();
+    stack.innerHTML = '';
+
+    const remaining = jobs.slice(currentIndex, currentIndex + 3);
+    if (!remaining.length) {
+      showScreen('empty');
+      return;
+    }
+
+    // IMPORTANT: First card in the DOM is the visible top card because CSS uses .job-card:first-child.
+    remaining.forEach((job, i) => {
+      stack.appendChild(buildCard(job, currentIndex + i));
     });
 
-    if(error) throw error;
+    updateStats();
+    setupTopCard();
+    trackViewForTopCard();
 
-    const scored = Array.isArray(data?.scores)
-      ? data.scores.find(item => String(item.job_id) === String(jobId))
-      : null;
-
-    return scored || null;
-  }catch(error){
-    console.warn('Could not load Alygnn match breakdown:', error);
-    return null;
-  }
-}
-
-async function loadApplicationInfo(jobId, appId, candidateId){
-  // Prefer the specific application row (passed in from account.html) so
-  // this is correct even if someone applied to the same job more than once
-  // historically; fall back to the most recent application for this job if
-  // no app id was given (e.g. someone lands here with just a job id).
-  if(appId){
-    const { data, error } = await sb
-      .from('applications')
-      .select('id, status, applied_at')
-      .eq('id', appId)
-      .eq('candidate_id', candidateId)
-      .maybeSingle();
-    if(!error && data) return data;
+    // Keep match scores ready a few cards ahead of what's currently
+    // visible, so by the time someone swipes to a card its score has
+    // usually already resolved instead of showing "Calculating…".
+    const lookahead = jobs.slice(currentIndex, currentIndex + 6).map(j => j.id);
+    ensureScoresFor(lookahead);
   }
 
-  const { data, error } = await sb
-    .from('applications')
-    .select('id, status, applied_at')
-    .eq('job_id', jobId)
-    .eq('candidate_id', candidateId)
-    .order('applied_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Fetches AI match scores for the given job ids, cache-first. Reads
+  // job_matches directly (cheap, no Edge Function call) for anything
+  // already scored in a previous visit; only calls the score-job-match
+  // Edge Function for pairs that have genuinely never been scored.
+  async function ensureScoresFor(jobIds) {
+    if (!currentUserId) return; // no resume_data to score against pre-login
 
-  return (!error && data) ? data : null;
-}
+    const need = jobIds.filter(id => !(id in matchScores) && !scoreRequestInFlight.has(id));
+    if (!need.length) return;
 
-// Requires the "Candidates view their own interviews" RLS policy on the
-// interviews table. Looked up by job_id + candidate_id rather than
-// application_id, since a candidate arriving here from my-interviews.html
-// only has the job id in the URL, not the application id.
-async function loadInterviewInfo(jobId, candidateId){
-  const { data, error } = await sb
-    .from('interviews')
-    .select('scheduled_at, location_or_link, video_link, notes')
-    .eq('job_id', jobId)
-    .eq('candidate_id', candidateId)
-    .maybeSingle();
+    need.forEach(id => scoreRequestInFlight.add(id));
 
-  return (!error && data) ? data : null;
-}
+    try {
+      const { data: cachedRows, error: cacheError } = await sb
+        .from('job_matches')
+        .select('job_id, score, reason')
+        .eq('candidate_id', currentUserId)
+        .in('job_id', need);
 
-// Known job-table fields we know how to present nicely, in display order.
-// Fields not in this list (e.g. internal ids, employer_id, view counters)
-// are simply skipped rather than dumped raw onto the page.
-const DETAIL_FIELD_MAP = [
-  { key: 'job_type', label: 'Job type' },
-  { key: 'work_style', label: 'Work style' },
-  { key: 'remote_type', label: 'Work style' },
-  { key: 'experience_level', label: 'Experience level' },
-  { key: 'department', label: 'Department' },
-  { key: 'industry', label: 'Industry' },
-];
+      if (cacheError) console.warn('Could not read cached match scores:', cacheError);
 
-function renderJob(job, appInfo, interviewInfo){
-  document.title = `${job.title || 'Job'} — Alygnn`;
+      (cachedRows || []).forEach(row => {
+        matchScores[row.job_id] = { score: row.score, reason: row.reason };
+      });
 
-  document.getElementById('job-title').textContent = job.title || 'Untitled role';
+      const stillMissing = need.filter(id => !(id in matchScores));
 
-  const metaParts = [job.company, job.location].filter(Boolean).join(' · ');
-  document.getElementById('job-meta').textContent = metaParts || '';
+      if (stillMissing.length) {
+        const { data, error } = await sb.functions.invoke('score-job-match', {
+          body: { candidateId: currentUserId, jobIds: stillMissing },
+        });
 
-  // Badges: job type + salary range (if present) as plain info badges.
-  const badgesEl = document.getElementById('job-badges');
-  const badges = [];
-  if(job.job_type) badges.push({ text: job.job_type, cls: 'plain' });
-  const salaryText = job.salary || fmtSalary(job.salary_min, job.salary_max);
-  if(salaryText) badges.push({ text: salaryText, cls: 'plain' });
-
-  if(appInfo){
-    const statusCls = appInfo.status === 'accepted' ? 'status-accepted'
-      : appInfo.status === 'rejected' ? 'status-rejected' : 'status-applied';
-    const statusLabel = appInfo.status === 'accepted' ? 'Accepted'
-      : appInfo.status === 'rejected' ? 'Not selected' : 'Applied';
-    badges.push({ text: statusLabel, cls: statusCls });
-  }
-
-  badgesEl.innerHTML = badges.map(b => `<span class="badge ${b.cls}">${escapeHtml(b.text)}</span>`).join('');
-
-  const appliedNoteEl = document.getElementById('applied-note');
-  if(appInfo?.applied_at){
-    appliedNoteEl.textContent = `You applied on ${fmtDate(appInfo.applied_at)}`;
-  }
-
-  if(interviewInfo){
-    document.getElementById('interview-section').style.display = '';
-
-    const ivGridEl = document.getElementById('interview-field-grid');
-    const ivFields = [
-      { label: 'Date & time', value: fmtDateTime(interviewInfo.scheduled_at) },
-      interviewInfo.location_or_link ? { label: 'Location', value: interviewInfo.location_or_link } : null,
-      interviewInfo.video_link ? { label: 'Video link', value: interviewInfo.video_link, isLink: true } : null,
-    ].filter(Boolean);
-
-    ivGridEl.innerHTML = ivFields.map(f => `
-      <div>
-        <div class="field-label">${escapeHtml(f.label)}</div>
-        <div class="field-value">${f.isLink
-          ? `<a href="${escapeHtml(f.value)}" target="_blank" rel="noopener" style="color:var(--brand);">${escapeHtml(f.value)}</a>`
-          : escapeHtml(f.value)}</div>
-      </div>
-    `).join('');
-
-    const notesEl = document.getElementById('interview-notes');
-    if(interviewInfo.notes){
-      notesEl.textContent = interviewInfo.notes;
-      notesEl.style.display = '';
-    } else {
-      notesEl.style.display = 'none';
+        if (error) {
+          console.warn('score-job-match failed:', error);
+        } else {
+          (data?.scores || []).forEach(s => {
+            matchScores[s.job_id] = { score: s.score, reason: s.reason };
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Could not compute match scores:', err);
+    } finally {
+      need.forEach(id => scoreRequestInFlight.delete(id));
+      patchRenderedBadges(need);
     }
   }
 
-  if(job.description){
-    document.getElementById('description-section').style.display = '';
-    document.getElementById('job-description').textContent = job.description;
-  }
-
-  if(job.requirements){
-    document.getElementById('requirements-section').style.display = '';
-    document.getElementById('job-requirements').innerHTML = renderListOrText(job.requirements);
-  }
-
-  if(job.benefits){
-    document.getElementById('benefits-section').style.display = '';
-    document.getElementById('job-benefits').innerHTML = renderListOrText(job.benefits);
-  }
-
-  const gridEl = document.getElementById('job-field-grid');
-  const seenLabels = new Set();
-  const gridHtml = DETAIL_FIELD_MAP
-    .filter(f => job[f.key] && !seenLabels.has(f.label) && seenLabels.add(f.label))
-    .map(f => `
-      <div>
-        <div class="field-label">${escapeHtml(f.label)}</div>
-        <div class="field-value">${escapeHtml(job[f.key])}</div>
-      </div>
-    `).join('');
-
-  if(gridHtml){
-    document.getElementById('details-section').style.display = '';
-    gridEl.innerHTML = gridHtml;
-  }
-}
-
-async function initJobDetailsPage(){
-  // job-details.html is shared: candidates reach it from account.html to
-  // see a job they applied to, and employers now reach it from
-  // employer-dashboard.html to preview one of their own postings. The
-  // back link needs to return to wherever the visitor actually came from,
-  // not always the candidate account page.
-  if(getParam('from') === 'employer'){
-    const navBack = document.getElementById('nav-back');
-    navBack.href = 'employer-dashboard.html#jobs';
-    navBack.textContent = '← Back to job listing';
-  }
-
-  if(getParam('from') === 'swipe'){
-    const navBack = document.getElementById('nav-back');
-    navBack.href = 'swipe.html';
-    navBack.textContent = '← Continue swiping';
-  }
-
-  const { data: { session } } = await sb.auth.getSession();
-  if(!session){
-    window.location.href = 'login.html';
-    return;
-  }
-
-  const isEmployerView = getParam('from') === 'employer';
-
-  const jobId = getParam('job');
-  const appId = getParam('app');
-
-  if(!jobId){
-    showError();
-    return;
-  }
-
-  const { data: job, error: jobError } = await sb
-    .from('jobs')
-    .select('*')
-    .eq('id', jobId)
-    .maybeSingle();
-
-  if(jobError || !job){
-    console.error('Failed to load job:', jobError);
-    showError();
-    return;
-  }
-
-  // Application/interview status only makes sense for a candidate looking
-  // at their own application — an employer previewing their own posting
-  // has no application against it (or, if their account happens to also
-  // have applied to a job as a candidate elsewhere, that status has
-  // nothing to do with this preview and would be actively misleading).
-  const appInfo = isEmployerView ? null : await loadApplicationInfo(jobId, appId, session.user.id);
-  const interviewInfo = isEmployerView ? null : await loadInterviewInfo(jobId, session.user.id);
-
-  renderJob(job, appInfo, interviewInfo);
-  showPage();
-
-  if(!isEmployerView){
-    loadMatchInfo(jobId, session.user.id).then(matchInfo => {
-      if(matchInfo){
-        renderMatchBreakdown(matchInfo);
-      } else {
-        document.getElementById('match-section').classList.remove('show');
+  // Updates any currently-rendered cards' badges in place once their
+  // score resolves, without a full re-render (which would restart the
+  // card's drag/animation state).
+  function patchRenderedBadges(jobIds) {
+    jobIds.forEach(id => {
+      const el = document.querySelector(`.match-badge[data-job-id="${CSS.escape(id)}"]`);
+      if (!el) return;
+      const match = matchScores[id];
+      if (match) {
+        el.textContent = `✦ ${match.score}% match`;
+        el.classList.remove('pending');
       }
     });
   }
-}
 
-initJobDetailsPage();
+  // Counts a "view" the first time a job actually reaches the top of the
+  // stack (i.e. the person can see it), not just because it exists in the
+  // fetched results. Uses a security-definer RPC since a job seeker isn't
+  // allowed to write to the jobs table directly under RLS — only the
+  // owning employer can, so a plain .update() here would be silently
+  // blocked the same way the old "applied" counter was.
+  function trackViewForTopCard() {
+    const topJob = jobs[currentIndex];
+    if (!topJob?.id || viewedJobIds.has(topJob.id)) return;
+
+    viewedJobIds.add(topJob.id);
+
+    sb.rpc('increment_job_views', { p_job_id: topJob.id }).then(({ error }) => {
+      if (error) console.warn('Could not record job view:', error);
+    });
+  }
+
+  function setupTopCard() {
+    const stack = document.getElementById('card-stack');
+    activeCard = stack.querySelector('.job-card:first-child');
+  }
+
+  function setupDrag(card) {
+    card.addEventListener('pointerdown', dragStart, { passive: false });
+  }
+
+  function dragStart(e) {
+    if (swipeLocked || isDragging) return;
+    if (e.target.closest('a')) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+    // A previous short drag may still have a snap-back timer pending.
+    // Cancel it so it cannot change transition styles in the middle of
+    // this new drag (the main cause of the intermittent "stuck" feeling).
+    clearTimeout(snapBackTimer);
+    snapBackTimer = null;
+
+    setupTopCard();
+
+    if (!activeCard || activeCard !== e.currentTarget) return;
+
+    e.preventDefault();
+
+    isDragging = true;
+    activePointerId = e.pointerId;
+    startX = e.clientX;
+    startY = e.clientY;
+    currentX = 0;
+
+    activeCard.classList.add('is-dragging');
+    activeCard.style.transition = 'none';
+
+    try {
+      activeCard.setPointerCapture(e.pointerId);
+    } catch (err) {
+      console.warn('Pointer capture not supported:', err);
+    }
+
+    activeCard.addEventListener('pointermove', dragMove, { passive: false });
+    activeCard.addEventListener('pointerup', dragEnd);
+    activeCard.addEventListener('pointercancel', dragCancel);
+  }
+
+  function dragMove(e) {
+    if (swipeLocked || !isDragging || !activeCard) return;
+    if (activePointerId !== null && e.pointerId !== activePointerId) return;
+
+    e.preventDefault();
+
+    currentX = e.clientX - startX;
+    const currentY = e.clientY - startY;
+    const rotate = currentX * 0.08;
+
+    activeCard.style.transform = `translate(${currentX}px, ${currentY * 0.25}px) rotate(${rotate}deg)`;
+
+    const applyStamp = activeCard.querySelector('.stamp-apply');
+    const skipStamp = activeCard.querySelector('.stamp-skip');
+    const ratio = Math.min(Math.abs(currentX) / 80, 1);
+
+    if (currentX > 20) {
+      applyStamp.style.opacity = ratio;
+      skipStamp.style.opacity = 0;
+    } else if (currentX < -20) {
+      skipStamp.style.opacity = ratio;
+      applyStamp.style.opacity = 0;
+    } else {
+      applyStamp.style.opacity = 0;
+      skipStamp.style.opacity = 0;
+    }
+  }
+
+  function detachDragListeners(card) {
+    if (!card) return;
+    card.removeEventListener('pointermove', dragMove);
+    card.removeEventListener('pointerup', dragEnd);
+    card.removeEventListener('pointercancel', dragCancel);
+  }
+
+  function releaseActivePointer(e) {
+    if (!activeCard) return;
+    try {
+      if (activePointerId !== null && activeCard.hasPointerCapture?.(activePointerId)) {
+        activeCard.releasePointerCapture(activePointerId);
+      } else if (e?.pointerId != null) {
+        activeCard.releasePointerCapture(e.pointerId);
+      }
+    } catch (err) {}
+  }
+
+  function resetCardToCenter(card) {
+    if (!card) return;
+    const applyStamp = card.querySelector('.stamp-apply');
+    const skipStamp = card.querySelector('.stamp-skip');
+    if (applyStamp) applyStamp.style.opacity = 0;
+    if (skipStamp) skipStamp.style.opacity = 0;
+
+    card.classList.remove('is-dragging');
+    card.style.transition = 'transform 0.25s ease';
+    card.style.transform = '';
+
+    clearTimeout(snapBackTimer);
+    snapBackTimer = setTimeout(() => {
+      // Only clear the transition if this is still the same live card and
+      // the user has not begun another drag or swipe.
+      if (card === activeCard && !isDragging && !swipeLocked) {
+        card.style.transition = '';
+      }
+      snapBackTimer = null;
+    }, 270);
+  }
+
+  function dragCancel(e) {
+    if (!isDragging || !activeCard) return;
+    if (activePointerId !== null && e.pointerId !== activePointerId) return;
+
+    const card = activeCard;
+    detachDragListeners(card);
+    releaseActivePointer(e);
+    isDragging = false;
+    activePointerId = null;
+    currentX = 0;
+    resetCardToCenter(card);
+  }
+
+  function dragEnd(e) {
+    if (!isDragging || !activeCard) return;
+    if (activePointerId !== null && e.pointerId !== activePointerId) return;
+
+    const card = activeCard;
+    const releasedX = currentX;
+
+    detachDragListeners(card);
+    releaseActivePointer(e);
+    isDragging = false;
+    activePointerId = null;
+    card.classList.remove('is-dragging');
+
+    const threshold = 70;
+
+    if (releasedX > threshold) {
+      animateSwipe('right');
+    } else if (releasedX < -threshold) {
+      animateSwipe('left');
+    } else {
+      currentX = 0;
+      resetCardToCenter(card);
+    }
+  }
+
+  // Inserts the actual application row candidates already have RLS rights
+  // to write ("Candidates manage their applications" — auth.uid() =
+  // candidate_id). This is what makes the application show up on the
+  // employer's Candidates page. The previous version of this function only
+  // tried to bump jobs.applied directly, which is blocked by RLS for
+  // anyone who isn't the job's employer, and so silently failed every time.
+  async function recordApplication(job) {
+    if (!currentUserId || !job?.id) return;
+    try {
+      const { error } = await sb
+        .from('applications')
+        .insert({
+          candidate_id: currentUserId,
+          job_id: job.id,
+          status: 'applied'
+        });
+
+      if (error) {
+        // Duplicate application (already applied to this job) isn't a
+        // real failure from the person's perspective — everything else is
+        // worth surfacing in the console for debugging.
+        if (error.code !== '23505') {
+          console.warn('Could not record application:', error);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not record application server-side:', err);
+    }
+  }
+
+  // Mirrors recordApplication() for a left-swipe. Previously a skip only
+  // ever changed the in-memory `skipped` counter for this session — nothing
+  // was written to Supabase, so account.html's "Skipped jobs" list had
+  // nothing to read. This writes to the new skipped_jobs table (candidates
+  // have RLS rights on their own rows there, same pattern as applications).
+  async function recordSkip(job) {
+    if (!currentUserId || !job?.id) return;
+    try {
+      const { error } = await sb
+        .from('skipped_jobs')
+        .insert({
+          candidate_id: currentUserId,
+          job_id: job.id
+        });
+
+      if (error) {
+        // Duplicate skip (already skipped this job before) isn't a real
+        // failure from the person's perspective.
+        if (error.code !== '23505') {
+          console.warn('Could not record skip:', error);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not record skip server-side:', err);
+    }
+  }
+
+  function animateSwipe(direction) {
+    // A swipe lasts 350ms. Without a lock, a fast double-click, held arrow
+    // key, or pointer-up + button click can advance currentIndex multiple
+    // times before renderCards() replaces the card.
+    if (swipeLocked) return;
+
+    setupTopCard();
+    if (!activeCard) return;
+
+    const cardToSwipe = activeCard;
+    const jobIndex = Number.parseInt(cardToSwipe.dataset.index, 10);
+    const job = jobs[jobIndex];
+    if (!job) {
+      renderCards();
+      return;
+    }
+
+    swipeLocked = true;
+    setSwipeControlsLocked(true);
+    clearTimeout(snapBackTimer);
+    snapBackTimer = null;
+
+    // Make sure no leftover drag listeners/pointer state survive into the
+    // exit animation.
+    detachDragListeners(cardToSwipe);
+    isDragging = false;
+    activePointerId = null;
+    currentX = 0;
+    cardToSwipe.style.transition = '';
+    cardToSwipe.style.pointerEvents = 'none';
+
+    const historyIndex = currentIndex;
+    cardToSwipe.classList.add(direction === 'right' ? 'swipe-right' : 'swipe-left');
+
+    history.push({ job, direction, index: historyIndex });
+
+    if (direction === 'right') {
+      applied++;
+      showToast('✓ Added to applications!');
+      recordApplication(job);
+    } else {
+      skipped++;
+      showToast('Skipped');
+      recordSkip(job);
+    }
+
+    currentIndex = historyIndex + 1;
+    updateStats();
+
+    let finished = false;
+    const finishSwipe = (event) => {
+      if (finished) return;
+      if (event && event.target !== cardToSwipe) return;
+      finished = true;
+      cardToSwipe.removeEventListener('animationend', finishSwipe);
+      clearTimeout(swipeFinishTimer);
+      swipeFinishTimer = null;
+      renderCards();
+    };
+
+    // Prefer the real CSS animation completion. The timeout is a safety net
+    // for browsers that drop animationend during tab switches / interrupted
+    // pointer sequences.
+    cardToSwipe.addEventListener('animationend', finishSwipe);
+    swipeFinishTimer = setTimeout(() => finishSwipe(null), 500);
+  }
+
+  function skipCurrent() {
+    if (swipeLocked || isDragging) return;
+    setupTopCard();
+    if (activeCard) {
+      animateSwipe('left');
+    }
+  }
+
+  function applyCurrent() {
+    if (swipeLocked || isDragging) return;
+    setupTopCard();
+    if (activeCard) {
+      animateSwipe('right');
+    }
+  }
+
+  async function undoPersistedRecord(last) {
+    if (!currentUserId || !last.job?.id) return;
+    try {
+      if (last.direction === 'right') {
+        await sb.from('applications').delete()
+          .eq('candidate_id', currentUserId).eq('job_id', last.job.id);
+      } else {
+        await sb.from('skipped_jobs').delete()
+          .eq('candidate_id', currentUserId).eq('job_id', last.job.id);
+      }
+    } catch (err) {
+      console.warn('Could not undo persisted record:', err);
+    }
+  }
+
+  function undo() {
+    if (swipeLocked || isDragging) return;
+
+    if (!history.length) {
+      showToast('Nothing to undo');
+      return;
+    }
+
+    const last = history.pop();
+
+    if (last.direction === 'right') applied = Math.max(0, applied - 1);
+    else skipped = Math.max(0, skipped - 1);
+
+    currentIndex = last.index;
+    undoPersistedRecord(last);
+    renderCards();
+    showToast('↩ Undone');
+  }
+
+  function updateStats() {
+    document.getElementById('stat-applied').textContent = applied;
+    document.getElementById('stat-skipped').textContent = skipped;
+    document.getElementById('stat-remaining').textContent = Math.max(0, jobs.length - currentIndex);
+  }
+
+  let toastTimer;
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  document.addEventListener('keydown', e => {
+    // Do not let a held key auto-repeat multiple swipes during one animation.
+    if (e.repeat || swipeLocked || isDragging) return;
+    if (e.key === 'ArrowLeft') skipCurrent();
+    if (e.key === 'ArrowRight') applyCurrent();
+    if (e.key === 'z' && (e.metaKey || e.ctrlKey)) undo();
+  });
+
+  loadJobs();
 </script>
-
-<div class="mini-footer">
-  <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>
-</div>
-
 </body>
 </html>
