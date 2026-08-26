@@ -136,19 +136,6 @@
   .job-card:nth-child(n+4) { display: none; }
   .job-card:first-child { z-index: 2; }
 
-  /* LIKE/NOPE overlays */
-  .stamp {
-    position: absolute; top: 28px;
-    padding: 6px 16px; border-radius: 8px;
-    font-size: 22px; font-weight: 700;
-    letter-spacing: 2px; opacity: 0;
-    border: 3px solid;
-    pointer-events: none;
-    transition: opacity 0.1s;
-  }
-  .stamp-apply { right: 28px; color: var(--mint); border-color: var(--mint); transform: rotate(12deg); }
-  .stamp-skip  { left: 28px;  color: var(--rose); border-color: var(--rose); transform: rotate(-12deg); }
-
   /* CARD CONTENT */
   .card-top { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
   .company-logo {
@@ -205,31 +192,30 @@
   .view-details-link:hover { opacity: 0.8; }
 
   /* ACTION BUTTONS */
-  .action-buttons { display: flex; align-items: center; gap: 16px; margin-top: 20px; }
-  .btn-skip {
-    width: 56px; height: 56px; border-radius: 50%;
-    background: white; border: 1.5px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 22px; transition: all 0.2s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  .action-buttons { display: flex; align-items: stretch; gap: 12px; margin-top: 20px; width: 100%; max-width: 480px; }
+  .btn-skip, .btn-apply, .btn-undo {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600;
+    border-radius: 14px; transition: all 0.2s;
   }
-  .btn-skip:hover { border-color: var(--rose); transform: scale(1.08); }
-  .btn-apply {
-    width: 64px; height: 64px; border-radius: 50%;
-    background: var(--brand); border: none;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 26px; transition: all 0.2s;
-    box-shadow: 0 4px 16px rgba(93,127,163,0.35);
-  }
-  .btn-apply:hover { transform: scale(1.08); opacity: 0.9; }
   .btn-undo {
-    width: 44px; height: 44px; border-radius: 50%;
-    background: white; border: 1.5px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 16px; transition: all 0.2s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    flex: 0 0 auto; width: 52px;
+    background: white; border: 1.5px solid var(--border); color: var(--text-muted);
+    font-size: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
-  .btn-undo:hover { border-color: var(--brand); }
+  .btn-undo:hover { border-color: var(--brand); color: var(--brand); }
+  .btn-skip {
+    flex: 1; height: 52px;
+    background: white; border: 1.5px solid var(--border); color: var(--rose);
+    font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .btn-skip:hover { border-color: var(--rose); background: rgba(215,154,154,0.06); }
+  .btn-apply {
+    flex: 1; height: 52px;
+    background: var(--brand); border: none; color: white;
+    font-size: 14px; box-shadow: 0 4px 16px rgba(93,127,163,0.3);
+  }
+  .btn-apply:hover { opacity: 0.9; transform: translateY(-1px); }
 
   /* EMPTY STATE */
   .empty-screen {
@@ -310,8 +296,8 @@
   <div class="card-stack" id="card-stack"></div>
   <div class="action-buttons">
     <button class="btn-undo" onclick="undo()" title="Undo">↩</button>
-    <button class="btn-skip" onclick="skipCurrent()" title="Skip">✕</button>
-    <button class="btn-apply" onclick="applyCurrent()" title="Apply">✓</button>
+    <button class="btn-skip" onclick="skipCurrent()">✕ Skip</button>
+    <button class="btn-apply" onclick="applyCurrent()">✓ Apply</button>
   </div>
 </div>
 
@@ -611,8 +597,6 @@
       : '';
 
     card.innerHTML = `
-      <div class="stamp stamp-apply">APPLY ✓</div>
-      <div class="stamp stamp-skip">SKIP ✕</div>
       <div class="card-top">
         <div class="company-logo">${getInitials(job.company)}</div>
         <div class="card-top-text">
@@ -804,21 +788,6 @@
     const rotate = currentX * 0.08;
 
     activeCard.style.transform = `translate(${currentX}px, ${currentY * 0.25}px) rotate(${rotate}deg)`;
-
-    const applyStamp = activeCard.querySelector('.stamp-apply');
-    const skipStamp = activeCard.querySelector('.stamp-skip');
-    const ratio = Math.min(Math.abs(currentX) / 80, 1);
-
-    if (currentX > 20) {
-      applyStamp.style.opacity = ratio;
-      skipStamp.style.opacity = 0;
-    } else if (currentX < -20) {
-      skipStamp.style.opacity = ratio;
-      applyStamp.style.opacity = 0;
-    } else {
-      applyStamp.style.opacity = 0;
-      skipStamp.style.opacity = 0;
-    }
   }
 
   function detachDragListeners(card) {
@@ -841,10 +810,6 @@
 
   function resetCardToCenter(card) {
     if (!card) return;
-    const applyStamp = card.querySelector('.stamp-apply');
-    const skipStamp = card.querySelector('.stamp-skip');
-    if (applyStamp) applyStamp.style.opacity = 0;
-    if (skipStamp) skipStamp.style.opacity = 0;
 
     card.classList.remove('is-dragging');
     card.style.transition = 'transform 0.25s ease';
