@@ -136,16 +136,18 @@
   .job-card:nth-child(n+4) { display: none; }
   .job-card:first-child { z-index: 2; }
 
-  /* Drag feedback badges — shown while dragging the top card, not a
-     rotated Tinder-style stamp, just a simple pill that fades in. */
-  .drag-badge {
-    position: absolute; top: 24px;
-    padding: 6px 16px; border-radius: 999px;
-    font-size: 13px; font-weight: 700; letter-spacing: .3px;
-    opacity: 0; pointer-events: none; transition: opacity 0.1s;
+  /* LIKE/NOPE overlays */
+  .stamp {
+    position: absolute; top: 28px;
+    padding: 6px 16px; border-radius: 8px;
+    font-size: 22px; font-weight: 700;
+    letter-spacing: 2px; opacity: 0;
+    border: 3px solid;
+    pointer-events: none;
+    transition: opacity 0.1s;
   }
-  .drag-badge-left { left: 24px; background: rgba(215,154,154,.14); color: var(--rose); border: 1.5px solid var(--rose); }
-  .drag-badge-right { right: 24px; background: rgba(111,191,143,.14); color: #2e7a52; border: 1.5px solid #6FBF8F; }
+  .stamp-apply { right: 28px; color: var(--mint); border-color: var(--mint); transform: rotate(12deg); }
+  .stamp-skip  { left: 28px;  color: var(--rose); border-color: var(--rose); transform: rotate(-12deg); }
 
   /* CARD CONTENT */
   .card-top { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
@@ -168,6 +170,12 @@
   }
   .pill.remote { background: rgba(111,191,143,0.1); color: #2e7a52; border-color: rgba(111,191,143,0.3); }
   .pill.salary { background: var(--brand-light); color: var(--brand); border-color: rgba(93,127,163,0.2); }
+  .pill.urgent {
+    background: rgba(215,154,154,0.14);
+    color: #9a5151;
+    border-color: rgba(215,154,154,0.55);
+    font-weight: 700;
+  }
 
   .match-badge {
     display: inline-flex; align-items: center; gap: 5px;
@@ -203,44 +211,31 @@
   .view-details-link:hover { opacity: 0.8; }
 
   /* ACTION BUTTONS */
-  .action-buttons {
-    width: 100%; max-width: 480px;
-    display: grid; grid-template-columns: 82px minmax(0,1fr) minmax(0,1.45fr);
-    gap: 10px; margin-top: 14px; padding: 11px;
-    border: 1px solid var(--border); border-radius: 20px;
-    background: rgba(252,252,250,.94);
-    box-shadow: 0 10px 30px rgba(27,43,63,.08);
+  .action-buttons { display: flex; align-items: center; gap: 16px; margin-top: 20px; }
+  .btn-skip {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: white; border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 22px; transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
-  .action-btn {
-    min-width: 0; height: 68px; border-radius: 16px;
-    border: 1px solid var(--border); background: var(--card-bg); color: var(--text);
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    -webkit-tap-highlight-color: transparent;
-    transition: transform .12s ease, opacity .12s ease;
-    font-family: 'DM Sans', sans-serif;
-  }
-  .action-btn:active { transform: scale(.985); }
-  .btn-undo { flex-direction: column; gap: 3px; }
-  .action-undo-icon { font-size: 22px; line-height: 1; }
-  .action-main { display: block; font-size: 12px; line-height: 1.15; font-weight: 900; white-space: nowrap; }
-  .action-sub { display: block; margin-top: 4px; font-size: 9px; line-height: 1.1; color: var(--text-muted); font-weight: 700; white-space: nowrap; }
-  .btn-skip { flex-direction: column; padding: 0 10px; border-color: var(--brand); background: transparent; }
+  .btn-skip:hover { border-color: var(--rose); transform: scale(1.08); }
   .btn-apply {
-    position: relative; flex-direction: column; align-items: flex-start;
-    padding: 0 34px 0 17px; border-color: transparent;
-    background: linear-gradient(135deg,#4E7EAE,#73A2D1); color: #fff;
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--brand); border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 26px; transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(93,127,163,0.35);
   }
-  .btn-apply .action-sub { color: rgba(255,255,255,.76); }
-  .action-arrow { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 20px; line-height: 1; }
-
-  @media (max-width: 390px) {
-    .action-buttons { grid-template-columns: 72px minmax(0,1fr) minmax(0,1.35fr); gap: 8px; padding: 9px; }
-    .action-btn { height: 64px; }
-    .action-main { font-size: 11px; }
-    .action-sub { font-size: 8px; }
-    .btn-apply { padding-left: 13px; padding-right: 29px; }
-    .action-arrow { right: 11px; }
+  .btn-apply:hover { transform: scale(1.08); opacity: 0.9; }
+  .btn-undo {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: white; border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
+  .btn-undo:hover { border-color: var(--brand); }
 
   /* EMPTY STATE */
   .empty-screen {
@@ -320,21 +315,9 @@
 <div class="swipe-area" id="swipe-area">
   <div class="card-stack" id="card-stack"></div>
   <div class="action-buttons">
-    <button class="action-btn btn-undo" onclick="undo()" type="button" aria-label="Undo last choice">
-      <span class="action-undo-icon">↶</span>
-      <span class="action-main">Undo</span>
-    </button>
-
-    <button class="action-btn btn-skip" onclick="skipCurrent()" type="button" aria-label="Not for me">
-      <span class="action-main">Not for me</span>
-      <span class="action-sub">Skip this job</span>
-    </button>
-
-    <button class="action-btn btn-apply" onclick="applyCurrent()" type="button" aria-label="Apply now">
-      <span class="action-main">Apply now</span>
-      <span class="action-sub">Send my application</span>
-      <span class="action-arrow">→</span>
-    </button>
+    <button class="btn-undo" onclick="undo()" title="Undo">↩</button>
+    <button class="btn-skip" onclick="skipCurrent()" title="Skip">✕</button>
+    <button class="btn-apply" onclick="applyCurrent()" title="Apply">✓</button>
   </div>
 </div>
 
@@ -545,17 +528,6 @@
       applied = 0;
       skipped = 0;
       history = [];
-
-      // If we're returning from job-details.html (they tapped "View
-      // details" then "Continue swiping"), resume at the same job instead
-      // of restarting the deck from the top.
-      const resumeJobId = sessionStorage.getItem('swipeResumeJobId');
-      if (resumeJobId) {
-        sessionStorage.removeItem('swipeResumeJobId');
-        const resumeIndex = jobs.findIndex(j => j.id === resumeJobId);
-        if (resumeIndex !== -1) currentIndex = resumeIndex;
-      }
-
       updateStats();
       renderCards();
       showScreen('swipe');
@@ -603,6 +575,7 @@
     card.dataset.index = index;
 
     const pillsHTML = [
+      job.urgently_hiring === true ? '<span class="pill urgent">Urgently Hiring</span>' : '',
       job.work_style === 'Remote' ? '<span class="pill remote">🌐 Remote</span>' : '',
       job.location ? `<span class="pill">📍 ${escapeHtml(job.location)}</span>` : '',
       job.job_type ? `<span class="pill">${escapeHtml(job.job_type)}</span>` : '',
@@ -634,8 +607,8 @@
       : '';
 
     card.innerHTML = `
-      <div class="drag-badge drag-badge-left">Pass</div>
-      <div class="drag-badge drag-badge-right">Applied</div>
+      <div class="stamp stamp-apply">APPLY ✓</div>
+      <div class="stamp stamp-skip">SKIP ✕</div>
       <div class="card-top">
         <div class="company-logo">${getInitials(job.company)}</div>
         <div class="card-top-text">
@@ -650,8 +623,7 @@
       ${benefitsHTML}
       <div class="card-bottom">
         <div class="posted-time">${timeAgo(job.created_at)}</div>
-        <a class="view-details-link" href="job-details.html?job=${encodeURIComponent(job.id)}&from=swipe"
-           onclick="sessionStorage.setItem('swipeResumeJobId', '${job.id}')">View details →</a>
+        <a class="view-details-link" href="job-details.html?job=${encodeURIComponent(job.id)}" target="_blank" rel="noopener">View details →</a>
       </div>
     `;
 
@@ -828,19 +800,19 @@
 
     activeCard.style.transform = `translate(${currentX}px, ${currentY * 0.25}px) rotate(${rotate}deg)`;
 
-    const passBadge = activeCard.querySelector('.drag-badge-left');
-    const appliedBadge = activeCard.querySelector('.drag-badge-right');
+    const applyStamp = activeCard.querySelector('.stamp-apply');
+    const skipStamp = activeCard.querySelector('.stamp-skip');
     const ratio = Math.min(Math.abs(currentX) / 80, 1);
 
-    if (currentX < -20) {
-      passBadge.style.opacity = ratio;
-      appliedBadge.style.opacity = 0;
-    } else if (currentX > 20) {
-      appliedBadge.style.opacity = ratio;
-      passBadge.style.opacity = 0;
+    if (currentX > 20) {
+      applyStamp.style.opacity = ratio;
+      skipStamp.style.opacity = 0;
+    } else if (currentX < -20) {
+      skipStamp.style.opacity = ratio;
+      applyStamp.style.opacity = 0;
     } else {
-      passBadge.style.opacity = 0;
-      appliedBadge.style.opacity = 0;
+      applyStamp.style.opacity = 0;
+      skipStamp.style.opacity = 0;
     }
   }
 
@@ -864,11 +836,10 @@
 
   function resetCardToCenter(card) {
     if (!card) return;
-
-    const passBadge = card.querySelector('.drag-badge-left');
-    const appliedBadge = card.querySelector('.drag-badge-right');
-    if (passBadge) passBadge.style.opacity = 0;
-    if (appliedBadge) appliedBadge.style.opacity = 0;
+    const applyStamp = card.querySelector('.stamp-apply');
+    const skipStamp = card.querySelector('.stamp-skip');
+    if (applyStamp) applyStamp.style.opacity = 0;
+    if (skipStamp) skipStamp.style.opacity = 0;
 
     card.classList.remove('is-dragging');
     card.style.transition = 'transform 0.25s ease';
