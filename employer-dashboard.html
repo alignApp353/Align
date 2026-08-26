@@ -512,13 +512,13 @@
             <div class="form-group">
               <label class="form-label">Location</label>
               <div class="chip-search-wrap">
-                <input type="text" class="form-input" id="f-location" placeholder="Start typing a city, like Raleigh, NC" autocomplete="off"
+                <input type="text" class="form-input" id="f-location" placeholder="Search any U.S. city or state, like Myrtle Beach, SC" autocomplete="off"
                   oninput="updatePreview(); renderLocationSuggestions();"
                   onfocus="renderLocationSuggestions();"
                   onblur="setTimeout(hideLocationSuggestions, 150)">
                 <div class="chip-results" id="location-suggestions"></div>
               </div>
-              <small style="font-size:11px; color:var(--text-muted); margin-top:2px;">Pick a city from the list, or type your own in "City, ST" format.</small>
+              <small style="font-size:11px; color:var(--text-muted); margin-top:2px;">Search any U.S. city or state. If a city is not suggested, you can still type it in "City, ST" format.</small>
             </div>
           </div>
 
@@ -681,8 +681,13 @@
   // ---- Search-to-add picker state ----
   const REQUIREMENT_PRESETS = [
     'High school diploma or equivalent',
-    "Bachelor's degree",
+    'Some college',
     'Associate degree',
+    "Bachelor's degree",
+    "Master's degree",
+    'Doctoral degree',
+    'Professional degree',
+    'Trade school or vocational certificate',
     '1+ years of experience',
     '2+ years of experience',
     '3+ years of experience',
@@ -1018,38 +1023,239 @@
     syncChipHiddenField(type);
   }
 
-  // A representative list of common job titles across industries — like the
-  // requirements/benefits presets, not exhaustive (job titles are
-  // effectively unlimited), so typing anything not listed here still
-  // works fine as free text; this just makes common ones easy to pick.
-  // Kept in sync with the same list job seekers pick from when adding
-  // work experience on their own account page.
+  // Broad job-title catalog used only for autocomplete/suggestions.
+  // Employers can still type a valid title that is not in this list.
   const JOB_TITLE_OPTIONS = [
-    'Cashier', 'Sales Associate', 'Retail Associate', 'Customer Service Representative',
-    'Server', 'Bartender', 'Barista', 'Host / Hostess', 'Line Cook', 'Prep Cook',
-    'Kitchen Manager', 'Restaurant Manager', 'Shift Supervisor', 'Store Manager',
-    'Assistant Manager', 'Warehouse Associate', 'Delivery Driver', 'Forklift Operator',
-    'Receptionist', 'Administrative Assistant', 'Office Manager', 'Executive Assistant',
-    'Data Entry Clerk', 'Bookkeeper', 'Accountant', 'Accounts Payable Clerk',
-    'Payroll Specialist', 'Financial Analyst', 'HR Coordinator', 'HR Generalist',
-    'Recruiter', 'Sales Representative', 'Account Executive', 'Account Manager',
-    'Business Development Representative', 'Marketing Coordinator', 'Marketing Manager',
-    'Social Media Manager', 'Content Writer', 'Graphic Designer', 'Web Developer',
-    'Software Engineer', 'IT Support Specialist', 'Systems Administrator', 'Data Analyst',
-    'Project Manager', 'Product Manager', 'Operations Manager', 'General Manager',
-    'Teacher', 'Teaching Assistant', 'Tutor', 'Childcare Provider', 'Nanny',
-    'Camp Counselor', 'Registered Nurse', 'Certified Nursing Assistant', 'Medical Assistant',
-    'Pharmacy Technician', 'Dental Assistant', 'Physical Therapist Assistant',
-    'Personal Trainer', 'Fitness Instructor', 'Security Guard', 'Custodian',
-    'Maintenance Technician', 'Electrician', 'Plumber', 'HVAC Technician',
-    'Construction Laborer', 'Landscaper', 'Auto Mechanic', 'Truck Driver',
-    'Real Estate Agent', 'Property Manager', 'Paralegal', 'Legal Assistant',
-    'Photographer', 'Event Coordinator', 'Hair Stylist', 'Esthetician',
-    'Veterinary Assistant', 'Research Assistant', 'Intern', 'Welder', 'Machinist',
-    'Quality Control Inspector', 'Production Supervisor', 'Field Technician',
-    'Volleyball Coach', 'Coach', 'Chef', 'Sous Chef', 'Housekeeper',
-    'Front Desk Agent', 'Concierge', 'Call Center Representative'
+    // Retail / customer service
+    'Cashier','Sales Associate','Retail Associate','Retail Sales Associate','Customer Service Representative',
+    'Customer Support Representative','Customer Success Representative','Customer Success Manager',
+    'Guest Services Associate','Member Services Representative','Store Associate','Stock Associate',
+    'Merchandising Associate','Visual Merchandiser','Key Holder','Shift Lead','Shift Supervisor',
+    'Assistant Store Manager','Store Manager','District Manager','Call Center Representative',
+    'Contact Center Representative','Client Services Representative','Front Desk Associate',
+
+    // Sales / business development
+    'Sales Representative','Outside Sales Representative','Inside Sales Representative','Field Sales Representative',
+    'Sales Development Representative','Business Development Representative','Business Development Associate',
+    'Business Development Manager','Account Representative','Account Executive','Account Manager',
+    'Key Account Manager','Territory Sales Representative','Territory Manager','Regional Sales Manager',
+    'Sales Manager','Sales Director','Sales Operations Analyst','Sales Operations Manager',
+    'Sales Coordinator','Sales Support Specialist','Client Relationship Manager','Client Success Manager',
+    'Partnerships Manager','Channel Sales Manager','Brand Ambassador',
+
+    // Marketing / advertising / communications
+    'Marketing Assistant','Marketing Associate','Marketing Coordinator','Marketing Specialist','Marketing Manager',
+    'Marketing Director','Marketing Analyst','Market Analyst','Market Research Analyst','Market Research Associate',
+    'Consumer Insights Analyst','Growth Marketing Manager','Growth Marketing Specialist','Digital Marketing Specialist',
+    'Digital Marketing Manager','Performance Marketing Manager','Product Marketing Manager','Email Marketing Specialist',
+    'Content Marketing Specialist','Content Marketing Manager','Social Media Coordinator','Social Media Specialist',
+    'Social Media Manager','Communications Coordinator','Communications Specialist','Communications Manager',
+    'Public Relations Coordinator','Public Relations Specialist','Public Relations Manager','Media Buyer',
+    'Media Planner','Advertising Coordinator','Advertising Account Executive','SEO Specialist','SEM Specialist',
+    'Copywriter','Content Writer','Content Strategist','Brand Manager','Brand Strategist','Community Manager',
+    'Event Coordinator','Event Manager',
+
+    // Finance / accounting / banking
+    'Accountant','Staff Accountant','Senior Accountant','Junior Accountant','Accounting Assistant',
+    'Accounting Clerk','Accounts Payable Clerk','Accounts Payable Specialist','Accounts Receivable Clerk',
+    'Accounts Receivable Specialist','Bookkeeper','Payroll Specialist','Payroll Coordinator','Financial Analyst',
+    'Senior Financial Analyst','FP&A Analyst','Budget Analyst','Credit Analyst','Investment Analyst',
+    'Risk Analyst','Treasury Analyst','Tax Associate','Tax Accountant','Auditor','Internal Auditor',
+    'Bank Teller','Personal Banker','Relationship Banker','Loan Officer','Mortgage Loan Officer',
+    'Underwriter','Insurance Underwriter','Claims Adjuster','Claims Specialist','Insurance Agent',
+    'Financial Advisor','Controller','Finance Manager',
+
+    // Human resources / recruiting
+    'HR Assistant','HR Coordinator','HR Specialist','HR Generalist','HR Manager','Human Resources Manager',
+    'Recruiting Coordinator','Recruiter','Corporate Recruiter','Technical Recruiter','Talent Acquisition Specialist',
+    'Talent Acquisition Partner','Talent Acquisition Manager','Benefits Specialist','Compensation Analyst',
+    'People Operations Coordinator','People Operations Manager','Training Coordinator','Training Specialist',
+    'Learning and Development Specialist','Employee Relations Specialist',
+
+    // Administrative / office
+    'Administrative Assistant','Administrative Coordinator','Executive Assistant','Office Assistant','Office Coordinator',
+    'Office Manager','Receptionist','Data Entry Clerk','Data Entry Specialist','Records Clerk','File Clerk',
+    'Operations Assistant','Operations Coordinator','Operations Specialist','Operations Analyst','Operations Manager',
+    'Business Operations Analyst','Business Analyst','Management Analyst','Executive Coordinator',
+    'Program Coordinator','Program Manager','Project Coordinator','Project Manager','Senior Project Manager',
+    'Project Administrator','Scheduler','Dispatcher',
+
+    // Technology / data / engineering
+    'Software Engineer','Software Developer','Frontend Developer','Front End Developer','Backend Developer',
+    'Back End Developer','Full Stack Developer','Web Developer','Mobile Developer','iOS Developer','Android Developer',
+    'Application Developer','Cloud Engineer','DevOps Engineer','Site Reliability Engineer','Systems Engineer',
+    'Systems Administrator','Network Administrator','Network Engineer','IT Support Specialist','Help Desk Technician',
+    'Desktop Support Technician','Technical Support Specialist','IT Technician','IT Manager','Cybersecurity Analyst',
+    'Security Analyst','Information Security Analyst','SOC Analyst','Data Analyst','Senior Data Analyst',
+    'Business Intelligence Analyst','BI Analyst','Data Scientist','Data Engineer','Database Administrator',
+    'Database Developer','Machine Learning Engineer','AI Engineer','QA Analyst','Quality Assurance Analyst',
+    'QA Engineer','Software Test Engineer','Automation Engineer','Solutions Engineer','Sales Engineer',
+    'Technical Account Manager','Technical Project Manager','Product Manager','Product Owner','Product Analyst',
+    'UX Designer','UI Designer','UX Researcher','Product Designer','Graphic Designer',
+
+    // Healthcare / medical
+    'Registered Nurse','Licensed Practical Nurse','Licensed Vocational Nurse','Certified Nursing Assistant',
+    'Nursing Assistant','Medical Assistant','Medical Receptionist','Medical Biller','Medical Coder',
+    'Patient Care Technician','Patient Care Coordinator','Patient Services Representative','Pharmacy Technician',
+    'Pharmacist','Dental Assistant','Dental Hygienist','Physical Therapist','Physical Therapist Assistant',
+    'Occupational Therapist','Occupational Therapy Assistant','Respiratory Therapist','Radiologic Technologist',
+    'X-Ray Technician','Ultrasound Technician','Surgical Technician','Medical Technologist','Laboratory Technician',
+    'Clinical Research Coordinator','Clinical Research Associate','Case Manager','Care Coordinator',
+    'Home Health Aide','Caregiver','Behavior Technician','Mental Health Technician','Therapist','Counselor',
+
+    // Education / childcare
+    'Teacher','Elementary School Teacher','Middle School Teacher','High School Teacher','Preschool Teacher',
+    'Teaching Assistant','Teacher Assistant','Substitute Teacher','Tutor','Academic Advisor','School Counselor',
+    'Special Education Teacher','Instructional Assistant','Childcare Provider','Daycare Teacher','Nanny',
+    'Camp Counselor','Coach','Athletic Coach','Volleyball Coach','Basketball Coach','Soccer Coach',
+
+    // Hospitality / food service
+    'Server','Bartender','Barista','Host','Hostess','Host / Hostess','Busser','Food Runner','Dishwasher',
+    'Line Cook','Prep Cook','Cook','Chef','Sous Chef','Executive Chef','Kitchen Manager','Restaurant Manager',
+    'Assistant Restaurant Manager','Catering Coordinator','Catering Manager','Banquet Server','Hotel Front Desk Agent',
+    'Front Desk Agent','Guest Services Agent','Concierge','Housekeeper','Housekeeping Supervisor',
+    'Hotel Manager','General Manager','Food Service Manager',
+
+    // Warehouse / logistics / transportation
+    'Warehouse Associate','Warehouse Worker','Warehouse Clerk','Warehouse Lead','Warehouse Supervisor',
+    'Warehouse Manager','Picker Packer','Order Picker','Packer','Material Handler','Forklift Operator',
+    'Inventory Associate','Inventory Specialist','Inventory Control Specialist','Shipping Clerk','Receiving Clerk',
+    'Shipping and Receiving Clerk','Logistics Coordinator','Logistics Specialist','Logistics Analyst',
+    'Supply Chain Analyst','Supply Chain Coordinator','Supply Chain Manager','Procurement Specialist',
+    'Purchasing Agent','Buyer','Delivery Driver','Courier','Truck Driver','CDL Driver','Route Driver',
+    'Dispatcher','Transportation Coordinator','Fleet Manager',
+
+    // Skilled trades / construction / maintenance
+    'Construction Laborer','Construction Worker','Carpenter','Electrician','Plumber','HVAC Technician',
+    'HVAC Installer','Maintenance Technician','Maintenance Worker','Maintenance Supervisor','Facilities Technician',
+    'Facilities Manager','Building Engineer','Welder','Machinist','CNC Machinist','CNC Operator',
+    'Millwright','Pipefitter','Sheet Metal Worker','Equipment Operator','Heavy Equipment Operator',
+    'Field Technician','Service Technician','Installation Technician','Cable Technician','Utility Technician',
+    'Painter','Roofer','Concrete Finisher','Estimator','Construction Estimator','Project Engineer',
+    'Construction Project Manager','Site Superintendent','Construction Superintendent','Safety Coordinator',
+    'Safety Manager',
+
+    // Manufacturing / quality
+    'Production Associate','Production Worker','Assembler','Assembly Technician','Machine Operator',
+    'Production Operator','Manufacturing Technician','Manufacturing Engineer','Process Engineer',
+    'Industrial Engineer','Quality Inspector','Quality Control Inspector','Quality Technician',
+    'Quality Assurance Specialist','Quality Engineer','Production Supervisor','Production Manager',
+    'Plant Manager','Operations Supervisor',
+
+    // Automotive
+    'Auto Mechanic','Automotive Technician','Service Advisor','Automotive Service Advisor',
+    'Diesel Mechanic','Body Shop Technician','Auto Body Technician','Detailer','Automotive Detailer',
+    'Parts Specialist','Parts Advisor','Service Manager',
+
+    // Real estate / property
+    'Real Estate Agent','Real Estate Broker','Leasing Consultant','Leasing Agent','Property Manager',
+    'Assistant Property Manager','Community Manager','Maintenance Coordinator','Property Administrator',
+    'Real Estate Analyst','Acquisitions Analyst','Asset Manager',
+
+    // Legal / compliance
+    'Legal Assistant','Paralegal','Legal Secretary','Law Clerk','Compliance Analyst','Compliance Specialist',
+    'Compliance Officer','Contract Administrator','Contracts Specialist','Risk and Compliance Analyst',
+
+    // Security / public safety
+    'Security Guard','Security Officer','Loss Prevention Associate','Loss Prevention Specialist',
+    'Public Safety Officer','Emergency Dispatcher','911 Dispatcher',
+
+    // Science / research
+    'Research Assistant','Research Associate','Research Analyst','Research Coordinator','Laboratory Assistant',
+    'Lab Technician','Laboratory Technician','Research Scientist','Scientist','Chemist','Biologist',
+    'Environmental Scientist','Environmental Technician',
+
+    // Creative / media
+    'Photographer','Videographer','Video Editor','Graphic Designer','Motion Graphics Designer',
+    'Creative Coordinator','Creative Director','Art Director','Production Assistant','Producer',
+    'Social Media Content Creator',
+
+    // Beauty / wellness / fitness
+    'Hair Stylist','Barber','Esthetician','Nail Technician','Massage Therapist',
+    'Personal Trainer','Fitness Instructor','Group Fitness Instructor','Wellness Coordinator',
+
+    // Veterinary / animal care
+    'Veterinary Assistant','Veterinary Technician','Veterinary Receptionist','Animal Care Technician',
+    'Kennel Technician','Pet Groomer',
+
+    // General entry-level / internships
+    'Intern','Marketing Intern','Sales Intern','Finance Intern','Accounting Intern','HR Intern',
+    'Software Engineering Intern','Data Analyst Intern','Operations Intern','Management Trainee',
+    'Sales Trainee','Leadership Trainee','Graduate Trainee'
   ];
+
+  const JOB_TITLE_SEARCH_ALIASES = {
+    'market analysis': ['Market Analyst','Marketing Analyst','Market Research Analyst','Consumer Insights Analyst'],
+    'marketing analysis': ['Marketing Analyst','Market Research Analyst','Consumer Insights Analyst'],
+    'business analysis': ['Business Analyst','Business Operations Analyst','Management Analyst'],
+    'data analysis': ['Data Analyst','Business Intelligence Analyst','BI Analyst'],
+    'financial analysis': ['Financial Analyst','FP&A Analyst','Budget Analyst'],
+    'sales': ['Sales Representative','Sales Associate','Account Executive','Account Manager','Business Development Representative'],
+    'customer service': ['Customer Service Representative','Customer Support Representative','Client Services Representative'],
+    'software': ['Software Engineer','Software Developer','Full Stack Developer','Frontend Developer','Backend Developer'],
+    'warehouse': ['Warehouse Associate','Warehouse Worker','Material Handler','Forklift Operator'],
+    'admin': ['Administrative Assistant','Administrative Coordinator','Office Assistant','Office Coordinator'],
+    'marketing': ['Marketing Coordinator','Marketing Specialist','Marketing Manager','Marketing Analyst'],
+    'hr': ['HR Coordinator','HR Specialist','HR Generalist','Recruiter'],
+    'human resources': ['HR Coordinator','HR Specialist','HR Generalist','Human Resources Manager'],
+    'accounting': ['Accountant','Staff Accountant','Accounting Assistant','Bookkeeper'],
+    'finance': ['Financial Analyst','Finance Manager','Budget Analyst','FP&A Analyst']
+  };
+
+  function normalizeTitleSearchToken(token) {
+    const map = {
+      analysis:'analyst',
+      analytics:'analyst',
+      marketing:'market',
+      markets:'market',
+      developer:'develop',
+      development:'develop',
+      engineering:'engineer',
+      representative:'rep',
+      representatives:'rep',
+      assistant:'assist',
+      coordinator:'coordinat',
+      specialist:'special',
+      technician:'tech',
+      management:'manager',
+      administrator:'admin',
+      administration:'admin',
+      accounting:'account',
+      recruiter:'recruit'
+    };
+    return map[token] || token
+      .replace(/ies$/, 'y')
+      .replace(/ing$/, '')
+      .replace(/ed$/, '')
+      .replace(/s$/, '');
+  }
+
+  function titleSearchScore(title, query) {
+    const t = title.toLowerCase();
+    const q = query.toLowerCase().trim();
+
+    if (!q) return 1;
+    if (t === q) return 1000;
+    if (t.startsWith(q)) return 900;
+    if (t.includes(q)) return 800;
+
+    const qTokens = q.split(/\s+/).filter(Boolean).map(normalizeTitleSearchToken);
+    const tTokens = t.split(/[^a-z0-9]+/).filter(Boolean).map(normalizeTitleSearchToken);
+
+    let matched = 0;
+    for (const qToken of qTokens) {
+      const hit = tTokens.some(tToken =>
+        tToken === qToken ||
+        tToken.startsWith(qToken) ||
+        qToken.startsWith(tToken)
+      );
+      if (hit) matched++;
+    }
+
+    if (matched === qTokens.length && matched > 0) return 700 + matched;
+    if (matched > 0) return 400 + matched;
+    return 0;
+  }
 
   function renderTitleSuggestions() {
     const input = document.getElementById('f-title');
@@ -1057,14 +1263,33 @@
     if (!input || !box) return;
 
     const query = input.value.trim().toLowerCase();
-    const matches = (query === ''
-      ? JOB_TITLE_OPTIONS
-      : JOB_TITLE_OPTIONS.filter(t => t.toLowerCase().includes(query))
-    ).slice(0, MAX_RESULTS_SHOWN);
+
+    const aliasMatches = [];
+    Object.entries(JOB_TITLE_SEARCH_ALIASES).forEach(([alias, titles]) => {
+      if (query && (
+        alias.includes(query) ||
+        query.includes(alias) ||
+        titleSearchScore(alias, query) >= 700
+      )) {
+        aliasMatches.push(...titles);
+      }
+    });
+
+    const scored = JOB_TITLE_OPTIONS
+      .map(title => ({ title, score: titleSearchScore(title, query) }))
+      .filter(item => query === '' || item.score > 0)
+      .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
+      .map(item => item.title);
+
+    const matches = [...new Set([...aliasMatches, ...scored])].slice(0, 12);
 
     if (matches.length === 0) {
-      box.classList.remove('show');
-      box.innerHTML = '';
+      // Don't make an employer think the title is invalid just because it
+      // isn't in the suggestion catalog. Valid free-text titles still work.
+      box.innerHTML = `<div class="chip-result-row" style="cursor:default;color:var(--text-muted);">
+        No exact suggestion — you can keep “${escapeHtml(input.value.trim())}”
+      </div>`;
+      box.classList.add('show');
       return;
     }
 
@@ -1074,6 +1299,7 @@
     }).join('');
     box.classList.add('show');
   }
+
 
   function selectTitleSuggestion(title) {
     const input = document.getElementById('f-title');
@@ -1087,19 +1313,39 @@
     if (box) box.classList.remove('show');
   }
 
-  // A representative list of major U.S. cities for the location
-  // suggestion dropdown — not exhaustive (there are tens of thousands of
-  // U.S. towns and cities), so typing anything not listed here still
-  // works fine as free text; this just makes common ones easy to pick.
-  // Same list and pattern used on the job-seeker preferences page, and
-  // replaces the old Google Places Autocomplete dependency entirely
-  // (that API key was failing to load — "This page can't load Google
-  // Maps correctly" — which also meant isValidLocation() could never be
-  // satisfied for non-remote jobs, silently blocking every employer from
-  // posting an on-site or hybrid role).
+  // Location autocomplete:
+  // - Includes every U.S. state, DC, and U.S. territories below.
+  // - Keeps a large city suggestion catalog for quick selection.
+  // - Uses typo-tolerant matching, so e.g. "mrtle beach" still finds
+  //   "Myrtle Beach, SC".
+  // - The city list is intentionally NOT a gate: employers may type ANY
+  //   legitimate U.S. city in "City, ST" format even if it is not in the
+  //   suggestion catalog.
+  const US_STATES = [
+    ['Alabama','AL'],['Alaska','AK'],['Arizona','AZ'],['Arkansas','AR'],
+    ['California','CA'],['Colorado','CO'],['Connecticut','CT'],['Delaware','DE'],
+    ['District of Columbia','DC'],['Florida','FL'],['Georgia','GA'],['Hawaii','HI'],
+    ['Idaho','ID'],['Illinois','IL'],['Indiana','IN'],['Iowa','IA'],['Kansas','KS'],
+    ['Kentucky','KY'],['Louisiana','LA'],['Maine','ME'],['Maryland','MD'],
+    ['Massachusetts','MA'],['Michigan','MI'],['Minnesota','MN'],['Mississippi','MS'],
+    ['Missouri','MO'],['Montana','MT'],['Nebraska','NE'],['Nevada','NV'],
+    ['New Hampshire','NH'],['New Jersey','NJ'],['New Mexico','NM'],['New York','NY'],
+    ['North Carolina','NC'],['North Dakota','ND'],['Ohio','OH'],['Oklahoma','OK'],
+    ['Oregon','OR'],['Pennsylvania','PA'],['Rhode Island','RI'],
+    ['South Carolina','SC'],['South Dakota','SD'],['Tennessee','TN'],['Texas','TX'],
+    ['Utah','UT'],['Vermont','VT'],['Virginia','VA'],['Washington','WA'],
+    ['West Virginia','WV'],['Wisconsin','WI'],['Wyoming','WY'],
+    ['Puerto Rico','PR'],['Guam','GU'],['U.S. Virgin Islands','VI'],
+    ['American Samoa','AS'],['Northern Mariana Islands','MP']
+  ];
+
+  const STATE_NAME_TO_ABBR = Object.fromEntries(
+    US_STATES.map(([name, abbr]) => [name.toLowerCase(), abbr])
+  );
+  const STATE_ABBR_SET = new Set(US_STATES.map(([, abbr]) => abbr));
+
   const KNOWN_CITIES = [
-    // North Carolina — include larger cities plus smaller towns so employers
-    // can post jobs outside the major metros without having to free-type them.
+    // North Carolina
     'Albemarle, NC','Angier, NC','Apex, NC','Archdale, NC','Archer Lodge, NC',
     'Asheboro, NC','Asheville, NC','Ayden, NC','Beaufort, NC','Belmont, NC',
     'Benson, NC','Bessemer City, NC','Black Mountain, NC','Boone, NC','Brevard, NC',
@@ -1127,7 +1373,7 @@
     'Williamston, NC','Wilmington, NC','Wilson, NC','Winston-Salem, NC','Winterville, NC',
     'Youngsville, NC','Zebulon, NC',
 
-    // Other common U.S. markets.
+    // Major and commonly searched U.S. cities
     'New York, NY','Los Angeles, CA','Chicago, IL','Houston, TX','Phoenix, AZ',
     'Philadelphia, PA','San Antonio, TX','San Diego, CA','Dallas, TX','Austin, TX',
     'Jacksonville, FL','Fort Worth, TX','San Jose, CA','Columbus, OH',
@@ -1141,36 +1387,157 @@
     'Cleveland, OH','Bakersfield, CA','Aurora, CO','Anaheim, CA','Honolulu, HI',
     'Santa Ana, CA','Riverside, CA','Corpus Christi, TX','Lexington, KY','Stockton, CA',
     'Henderson, NV','St. Paul, MN','St. Louis, MO','Cincinnati, OH','Pittsburgh, PA',
-    'Greenville, SC','Columbia, SC','Charleston, SC','Richmond, VA','Norfolk, VA',
-    'Chesapeake, VA','Newport News, VA','Baton Rouge, LA','Shreveport, LA','Boise, ID',
-    'Spokane, WA','Tacoma, WA','Bellevue, WA','Salt Lake City, UT','Provo, UT',
-    'Albany, NY','Buffalo, NY','Rochester, NY','Syracuse, NY','Hartford, CT',
-    'Providence, RI','Jersey City, NJ','Newark, NJ','Trenton, NJ','Chattanooga, TN',
-    'Knoxville, TN','Jackson, MS','Little Rock, AR','Des Moines, IA','Madison, WI',
-    'Green Bay, WI','Fort Lauderdale, FL','St. Petersburg, FL','Tallahassee, FL',
-    'Savannah, GA','Augusta, GA','Athens, GA','Myrtle Beach, SC'
+    'Greenville, SC','Columbia, SC','Charleston, SC','Myrtle Beach, SC',
+    'Richmond, VA','Norfolk, VA','Chesapeake, VA','Newport News, VA',
+    'Baton Rouge, LA','Shreveport, LA','Boise, ID','Spokane, WA','Tacoma, WA',
+    'Bellevue, WA','Salt Lake City, UT','Provo, UT','Albany, NY','Buffalo, NY',
+    'Rochester, NY','Syracuse, NY','Hartford, CT','Providence, RI',
+    'Jersey City, NJ','Newark, NJ','Trenton, NJ','Chattanooga, TN','Knoxville, TN',
+    'Jackson, MS','Little Rock, AR','Des Moines, IA','Madison, WI','Green Bay, WI',
+    'Fort Lauderdale, FL','St. Petersburg, FL','Tallahassee, FL','Savannah, GA',
+    'Augusta, GA','Athens, GA','Birmingham, AL','Montgomery, AL','Mobile, AL',
+    'Huntsville, AL','Anchorage, AK','Fairbanks, AK','Juneau, AK','Little Rock, AR',
+    'Fayetteville, AR','Bentonville, AR','Scottsdale, AZ','Tempe, AZ','Chandler, AZ',
+    'Glendale, AZ','Irvine, CA','Pasadena, CA','Santa Monica, CA','Burbank, CA',
+    'Berkeley, CA','Palo Alto, CA','Mountain View, CA','Sunnyvale, CA','Santa Clara, CA',
+    'Santa Barbara, CA','Palm Springs, CA','Oxnard, CA','Ventura, CA','Modesto, CA',
+    'Santa Rosa, CA','Boulder, CO','Fort Collins, CO','Lakewood, CO','Pueblo, CO',
+    'New Haven, CT','Stamford, CT','Bridgeport, CT','Wilmington, DE','Dover, DE',
+    'Gainesville, FL','Naples, FL','Sarasota, FL','Cape Coral, FL','Pensacola, FL',
+    'Daytona Beach, FL','West Palm Beach, FL','Fort Myers, FL','Kissimmee, FL',
+    'Macon, GA','Columbus, GA','Roswell, GA','Marietta, GA','Alpharetta, GA',
+    'Savannah, GA','Hilo, HI','Kailua, HI','Idaho Falls, ID','Coeur d\\'Alene, ID',
+    'Springfield, IL','Peoria, IL','Rockford, IL','Naperville, IL','Fort Wayne, IN',
+    'Evansville, IN','South Bend, IN','Cedar Rapids, IA','Davenport, IA','Iowa City, IA',
+    'Overland Park, KS','Topeka, KS','Lawrence, KS','Bowling Green, KY',
+    'Baton Rouge, LA','Lafayette, LA','Lake Charles, LA','Portland, ME','Bangor, ME',
+    'Annapolis, MD','Frederick, MD','Rockville, MD','Silver Spring, MD',
+    'Cambridge, MA','Worcester, MA','Springfield, MA','Ann Arbor, MI','Grand Rapids, MI',
+    'Lansing, MI','Flint, MI','Duluth, MN','Rochester, MN','Bloomington, MN',
+    'Gulfport, MS','Hattiesburg, MS','Oxford, MS','Springfield, MO','Columbia, MO',
+    'Billings, MT','Bozeman, MT','Missoula, MT','Lincoln, NE','Reno, NV',
+    'Carson City, NV','Manchester, NH','Nashua, NH','Atlantic City, NJ',
+    'Princeton, NJ','Santa Fe, NM','Las Cruces, NM','Yonkers, NY','White Plains, NY',
+    'Fargo, ND','Bismarck, ND','Akron, OH','Dayton, OH','Toledo, OH','Norman, OK',
+    'Eugene, OR','Salem, OR','Bend, OR','Allentown, PA','Harrisburg, PA','Erie, PA',
+    'Scranton, PA','San Juan, PR','Ponce, PR','Caguas, PR','Cranston, RI',
+    'Sioux Falls, SD','Rapid City, SD','Murfreesboro, TN','Franklin, TN',
+    'El Paso, TX','Plano, TX','Frisco, TX','Irving, TX','Garland, TX','McKinney, TX',
+    'Lubbock, TX','Amarillo, TX','Waco, TX','College Station, TX','Round Rock, TX',
+    'Brownsville, TX','McAllen, TX','Killeen, TX','Denton, TX','Tyler, TX',
+    'Ogden, UT','St. George, UT','Burlington, VT','Roanoke, VA','Alexandria, VA',
+    'Arlington, VA','Fairfax, VA','Fredericksburg, VA','Charlottesville, VA',
+    'Vancouver, WA','Olympia, WA','Everett, WA','Yakima, WA','Charleston, WV',
+    'Morgantown, WV','Huntington, WV','Kenosha, WI','Appleton, WI','Eau Claire, WI',
+    'Cheyenne, WY','Casper, WY'
   ];
+
+  function normalizeLocationSearch(value) {
+    return String(value || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  }
+
+  function levenshteinDistance(a, b) {
+    a = normalizeLocationSearch(a);
+    b = normalizeLocationSearch(b);
+    if (!a) return b.length;
+    if (!b) return a.length;
+
+    const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      let last = prev[0];
+      prev[0] = i;
+      for (let j = 1; j <= b.length; j++) {
+        const old = prev[j];
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, last + cost);
+        last = old;
+      }
+    }
+    return prev[b.length];
+  }
+
+  function locationSearchScore(option, query) {
+    const o = normalizeLocationSearch(option);
+    const q = normalizeLocationSearch(query);
+    if (!q) return 1;
+    if (o === q) return 1000;
+    if (o.startsWith(q)) return 900;
+    if (o.includes(q)) return 800;
+
+    const optionCity = normalizeLocationSearch(option.split(',')[0]);
+    const dist = levenshteinDistance(optionCity, q);
+    const allowed = q.length <= 5 ? 1 : q.length <= 9 ? 2 : 3;
+    if (dist <= allowed) return 700 - dist * 20;
+
+    const qTokens = q.split(' ').filter(Boolean);
+    const oTokens = o.split(' ').filter(Boolean);
+    const tokenHits = qTokens.filter(qt =>
+      oTokens.some(ot => ot.startsWith(qt) || qt.startsWith(ot) || levenshteinDistance(ot, qt) <= 1)
+    ).length;
+
+    return tokenHits ? 400 + tokenHits : 0;
+  }
+
+  function getStateSuggestions(query) {
+    const q = normalizeLocationSearch(query);
+    return US_STATES
+      .map(([name, abbr]) => ({
+        value: name,
+        label: `${name} (${abbr})`,
+        score: Math.max(
+          locationSearchScore(name, q),
+          locationSearchScore(abbr, q)
+        )
+      }))
+      .filter(item => !q || item.score > 0)
+      .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
+  }
 
   function renderLocationSuggestions() {
     const input = document.getElementById('f-location');
     const box = document.getElementById('location-suggestions');
     if (!input || !box) return;
 
-    const query = input.value.trim().toLowerCase();
-    const matches = (query === ''
-      ? KNOWN_CITIES
-      : KNOWN_CITIES.filter(c => c.toLowerCase().includes(query))
-    ).slice(0, 60);
+    const rawQuery = input.value.trim();
+    const query = normalizeLocationSearch(rawQuery);
 
-    if (matches.length === 0) {
-      box.classList.remove('show');
-      box.innerHTML = '';
+    const cityMatches = KNOWN_CITIES
+      .map(city => ({ value: city, label: city, score: locationSearchScore(city, query) }))
+      .filter(item => !query || item.score > 0)
+      .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
+
+    const stateMatches = getStateSuggestions(query);
+
+    const combined = [...cityMatches, ...stateMatches]
+      .filter((item, index, arr) =>
+        arr.findIndex(other => other.value.toLowerCase() === item.value.toLowerCase()) === index
+      )
+      .slice(0, 60);
+
+    // If the employer already typed a properly shaped city/state that is not
+    // in our suggestion catalog, explicitly offer it instead of blocking them.
+    const typedCityState = /^[A-Za-z .'-]{2,},\s*[A-Za-z]{2,}$/.test(rawQuery)
+      ? { value: rawQuery, label: `Use “${rawQuery}”`, score: 1200 }
+      : null;
+
+    const results = typedCityState ? [typedCityState, ...combined] : combined;
+
+    if (results.length === 0) {
+      box.innerHTML = `<div class="chip-result-row" style="cursor:default;color:var(--text-muted);">
+        Keep typing — you can enter any U.S. city in “City, ST” format.
+      </div>`;
+      box.classList.add('show');
       return;
     }
 
-    box.innerHTML = matches.map(city => {
-      const escaped = city.replace(/'/g, "\\'");
-      return `<div class="chip-result-row" onmousedown="event.preventDefault(); selectLocationSuggestion('${escaped}')">${escapeHtml(city)}</div>`;
+    box.innerHTML = results.map(item => {
+      const escaped = item.value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      return `<div class="chip-result-row" onmousedown="event.preventDefault(); selectLocationSuggestion('${escaped}')">${escapeHtml(item.label)}</div>`;
     }).join('');
     box.classList.add('show');
   }
@@ -1222,8 +1589,6 @@
       return;
     }
 
-    document.body.classList.add('auth-ready');
-
     currentProfile = profile || {};
     employerVerified =
       profile?.employer_verified === true &&
@@ -1255,10 +1620,18 @@
     updatePostingAccessUI();
 
     const initialPanel = getPanelFromHash();
+
+    // IMPORTANT: keep the dashboard hidden until the slot entitlement check is
+    // finished. If someone follows employer-dashboard.html#post with every
+    // slot already occupied, send them straight to Pricing without briefly
+    // painting the Post a Job panel first.
     if (initialPanel === 'post' && !editingJobId && !canCreateNewJob()) {
       redirectToPricing(getPostingAccess().reason);
       return;
     }
+
+    document.body.classList.add('auth-ready');
+    applyPanelVisual(initialPanel);
     loadPanelData(initialPanel);
   }
 
@@ -2577,12 +2950,15 @@
       return /remote|united states|usa|u\.s\.|[A-Za-z]{3,}/i.test(clean);
     }
 
-    // No longer checks window.google/selectedGooglePlace — the location
-    // field is now backed by our own KNOWN_CITIES list rather than Google
-    // Places Autocomplete (see renderLocationSuggestions), so any
-    // "City, ST"-shaped text is accepted whether it came from a
-    // suggestion click or was typed by hand.
-    return /^[A-Za-z .'-]{3,},\s*[A-Za-z]{2,}(,\s*[A-Za-z .'-]+)?$/.test(clean);
+    // The suggestion catalog is convenience only, never a gate.
+    // Accept any "City, ST" / "City, State" location, plus statewide postings
+    // using a full state/territory name.
+    const cityStateShape = /^[A-Za-z .'-]{2,},\s*[A-Za-z .'-]{2,}$/.test(clean);
+    const stateOnly = US_STATES.some(([name, abbr]) =>
+      clean.toLowerCase() === name.toLowerCase() ||
+      clean.toUpperCase() === abbr
+    );
+    return cityStateShape || stateOnly;
   }
 
   function isValidSalary(salary) {
