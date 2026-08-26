@@ -380,19 +380,31 @@ nav{
 .setup-cta:hover{ opacity:0.88; }
 
 .profile-card{
+  position:relative;
+  overflow:hidden;
   display:flex;
   align-items:center;
-  gap:22px;
-  background:var(--card-bg);
+  gap:24px;
+  background:linear-gradient(135deg, rgba(93,127,163,.10), rgba(140,182,155,.10) 60%, var(--card-bg) 100%);
   border:1px solid var(--border);
-  border-radius:20px;
+  border-radius:22px;
   padding:32px;
-  margin-bottom:40px;
+  margin-bottom:20px;
+}
+
+.profile-card::before{
+  content:'';
+  position:absolute;
+  top:-60px; right:-60px;
+  width:220px; height:220px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(93,127,163,.14), transparent 70%);
+  pointer-events:none;
 }
 
 .avatar{
-  width:76px;
-  height:76px;
+  width:80px;
+  height:80px;
   border-radius:50%;
   background:var(--brand);
   color:white;
@@ -401,7 +413,10 @@ nav{
   justify-content:center;
   flex-shrink:0;
   font-family:'DM Serif Display', serif !important;
-  font-size:1.7rem;
+  font-size:1.8rem;
+  box-shadow:0 0 0 4px rgba(255,255,255,.6), 0 6px 18px rgba(93,127,163,.25);
+  position:relative;
+  z-index:1;
 }
 
 .avatar span{
@@ -411,6 +426,8 @@ nav{
 .profile-info{
   flex:1;
   min-width:0;
+  position:relative;
+  z-index:1;
 }
 
 .profile-info h1{
@@ -442,6 +459,49 @@ nav{
 
 .name-lock-note a:hover{
   text-decoration:underline;
+}
+
+.stats-strip{
+  display:flex;
+  gap:10px;
+  margin-bottom:40px;
+  flex-wrap:wrap;
+}
+
+.stat-pill{
+  flex:1;
+  min-width:120px;
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:16px 18px;
+}
+
+.stat-pill .stat-number{
+  font-family:'DM Serif Display', serif !important;
+  font-size:1.7rem;
+  color:var(--text);
+  line-height:1;
+  margin-bottom:4px;
+}
+
+.stat-pill .stat-label{
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.6px;
+  text-transform:uppercase;
+  color:var(--text-muted);
+}
+
+.stat-pill.accent-accepted .stat-number{ color:#2d8a57; }
+
+.section-eyebrow{
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:var(--brand);
+  margin-bottom:6px;
 }
 
 .name-change-form{
@@ -694,19 +754,27 @@ select.form-input{
 .job-row-item{
   background:var(--card-bg);
   border:1px solid var(--border);
-  border-radius:14px;
+  border-radius:16px;
   padding:16px 20px;
   margin-bottom:10px;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:12px;
+  gap:14px;
   cursor:pointer;
-  transition:border-color .2s, transform .2s;
+  transition:border-color .2s, transform .2s, box-shadow .2s;
 }
 .job-row-item:hover{
   border-color:var(--brand);
   transform:translateY(-1px);
+  box-shadow:0 8px 20px rgba(93,127,163,.10);
+}
+.job-row-main{ display:flex; align-items:center; gap:14px; flex:1; min-width:0; }
+.job-row-avatar{
+  width:38px; height:38px; border-radius:11px; flex-shrink:0;
+  background:rgba(93,127,163,.12); color:var(--brand);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'DM Serif Display', serif !important; font-size:.95rem;
 }
 .job-row-title{ font-size:14px; font-weight:500; color:var(--text); margin-bottom:3px; }
 .job-row-meta{ font-size:12px; color:var(--text-muted); }
@@ -797,22 +865,26 @@ select.form-input{
   display:block;
   background:var(--card-bg);
   border:1px solid var(--border);
-  border-radius:14px;
+  border-radius:16px;
   padding:20px;
   text-decoration:none;
   color:var(--text);
-  transition:border-color .2s, transform .2s;
+  transition:border-color .2s, transform .2s, box-shadow .2s;
 }
 
 .link-card:hover{
   border-color:var(--brand);
   transform:translateY(-2px);
+  box-shadow:0 10px 24px rgba(93,127,163,.10);
 }
 
 .link-card .icon{
-  font-size:1.3rem;
-  margin-bottom:8px;
-  display:block;
+  width:36px; height:36px;
+  border-radius:11px;
+  background:rgba(93,127,163,.10);
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.05rem;
+  margin-bottom:12px;
 }
 
 .link-card .label{
@@ -973,9 +1045,27 @@ select.form-input{
     </div>
   </div>
 
+  <div class="stats-strip">
+    <div class="stat-pill">
+      <div class="stat-number" id="stat-applied-count">0</div>
+      <div class="stat-label">Applied</div>
+    </div>
+    <div class="stat-pill accent-accepted">
+      <div class="stat-number" id="stat-accepted-count">0</div>
+      <div class="stat-label">Accepted</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-number" id="stat-skipped-count">0</div>
+      <div class="stat-label">Skipped</div>
+    </div>
+  </div>
+
   <div class="section">
     <div class="section-header">
-      <h2>Applied jobs</h2>
+      <div>
+        <div class="section-eyebrow">Your applications</div>
+        <h2>Applied jobs</h2>
+      </div>
     </div>
     <!-- Search filters any element with class "job-row-item" inside #applied-jobs-list
          by its text content. Works today with zero applied jobs; once real applied-job
@@ -989,7 +1079,10 @@ select.form-input{
 
   <div class="section">
     <div class="section-header">
-      <h2>Skipped jobs</h2>
+      <div>
+        <div class="section-eyebrow">Passed on</div>
+        <h2>Skipped jobs</h2>
+      </div>
     </div>
     <input type="text" class="form-input" id="skipped-search-input" placeholder="Search skipped jobs by title or company…" autocomplete="off" oninput="filterJobList('skipped')" style="margin-bottom: 12px;">
     <div id="skipped-jobs-list">
@@ -999,7 +1092,10 @@ select.form-input{
 
   <div class="section">
     <div class="section-header">
-      <h2>Settings</h2>
+      <div>
+        <div class="section-eyebrow">Manage</div>
+        <h2>Settings</h2>
+      </div>
     </div>
 
     <div class="links-row">
@@ -1751,6 +1847,13 @@ async function loadAppliedJobs(){
     return;
   }
 
+  const appliedTotal = (apps || []).length;
+  const acceptedTotal = (apps || []).filter(a => a.status === 'accepted').length;
+  const appliedCountEl = document.getElementById('stat-applied-count');
+  const acceptedCountEl = document.getElementById('stat-accepted-count');
+  if(appliedCountEl) appliedCountEl.textContent = String(appliedTotal);
+  if(acceptedCountEl) acceptedCountEl.textContent = String(acceptedTotal);
+
   if(!apps || apps.length === 0){
     return; // static empty state in the HTML already covers this
   }
@@ -1798,9 +1901,12 @@ async function loadAppliedJobs(){
       <div class="job-row-item" role="button" tabindex="0"
         onclick="window.location.href='${detailsUrl}'"
         onkeydown="if(event.key==='Enter'){ window.location.href='${detailsUrl}'; }">
-        <div style="flex:1; min-width:0;">
-          <div class="job-row-title">${escapeHtml(job.title || 'Untitled role')}</div>
-          <div class="job-row-meta">${escapeHtml(metaParts)}</div>
+        <div class="job-row-main">
+          <div class="job-row-avatar">${escapeHtml(getInitials(job.company))}</div>
+          <div style="flex:1; min-width:0;">
+            <div class="job-row-title">${escapeHtml(job.title || 'Untitled role')}</div>
+            <div class="job-row-meta">${escapeHtml(metaParts)}</div>
+          </div>
         </div>
         <div class="job-row-actions job-row-actions-inline">
           <span class="job-row-status ${statusClass}">${statusLabel}</span>
@@ -1868,6 +1974,9 @@ async function loadSkippedJobs(){
     return;
   }
 
+  const skippedCountEl = document.getElementById('stat-skipped-count');
+  if(skippedCountEl) skippedCountEl.textContent = String((skips || []).length);
+
   if(!skips || skips.length === 0){
     return; // static empty state in the HTML already covers this
   }
@@ -1901,9 +2010,12 @@ async function loadSkippedJobs(){
       <div class="job-row-item" role="button" tabindex="0"
         onclick="window.location.href='${detailsUrl}'"
         onkeydown="if(event.key==='Enter'){ window.location.href='${detailsUrl}'; }">
-        <div>
-          <div class="job-row-title">${escapeHtml(job.title || 'Untitled role')}</div>
-          <div class="job-row-meta">${escapeHtml(metaParts)}</div>
+        <div class="job-row-main">
+          <div class="job-row-avatar">${escapeHtml(getInitials(job.company))}</div>
+          <div>
+            <div class="job-row-title">${escapeHtml(job.title || 'Untitled role')}</div>
+            <div class="job-row-meta">${escapeHtml(metaParts)}</div>
+          </div>
         </div>
         <div class="job-row-actions">
           <div class="job-row-buttons">
