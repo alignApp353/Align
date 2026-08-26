@@ -136,6 +136,17 @@
   .job-card:nth-child(n+4) { display: none; }
   .job-card:first-child { z-index: 2; }
 
+  /* Drag feedback badges — shown while dragging the top card, not a
+     rotated Tinder-style stamp, just a simple pill that fades in. */
+  .drag-badge {
+    position: absolute; top: 24px;
+    padding: 6px 16px; border-radius: 999px;
+    font-size: 13px; font-weight: 700; letter-spacing: .3px;
+    opacity: 0; pointer-events: none; transition: opacity 0.1s;
+  }
+  .drag-badge-left { left: 24px; background: rgba(215,154,154,.14); color: var(--rose); border: 1.5px solid var(--rose); }
+  .drag-badge-right { right: 24px; background: rgba(111,191,143,.14); color: #2e7a52; border: 1.5px solid #6FBF8F; }
+
   /* CARD CONTENT */
   .card-top { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
   .company-logo {
@@ -623,6 +634,8 @@
       : '';
 
     card.innerHTML = `
+      <div class="drag-badge drag-badge-left">Pass</div>
+      <div class="drag-badge drag-badge-right">Applied</div>
       <div class="card-top">
         <div class="company-logo">${getInitials(job.company)}</div>
         <div class="card-top-text">
@@ -814,6 +827,21 @@
     const rotate = currentX * 0.08;
 
     activeCard.style.transform = `translate(${currentX}px, ${currentY * 0.25}px) rotate(${rotate}deg)`;
+
+    const passBadge = activeCard.querySelector('.drag-badge-left');
+    const appliedBadge = activeCard.querySelector('.drag-badge-right');
+    const ratio = Math.min(Math.abs(currentX) / 80, 1);
+
+    if (currentX < -20) {
+      passBadge.style.opacity = ratio;
+      appliedBadge.style.opacity = 0;
+    } else if (currentX > 20) {
+      appliedBadge.style.opacity = ratio;
+      passBadge.style.opacity = 0;
+    } else {
+      passBadge.style.opacity = 0;
+      appliedBadge.style.opacity = 0;
+    }
   }
 
   function detachDragListeners(card) {
@@ -836,6 +864,11 @@
 
   function resetCardToCenter(card) {
     if (!card) return;
+
+    const passBadge = card.querySelector('.drag-badge-left');
+    const appliedBadge = card.querySelector('.drag-badge-right');
+    if (passBadge) passBadge.style.opacity = 0;
+    if (appliedBadge) appliedBadge.style.opacity = 0;
 
     card.classList.remove('is-dragging');
     card.style.transition = 'transform 0.25s ease';
