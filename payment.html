@@ -17,7 +17,7 @@
     --danger:#B45A5A;--white:#fff;
   }
   body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-  nav{height:68px;padding:0 5%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(246,248,247,.94);backdrop-filter:blur(12px)}
+  nav{height:68px;padding:0 5%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(246,248,247,.94);backdrop-filter:blur(12px);position:sticky;top:0;z-index:20}
   .logo{font-family:'DM Serif Display',serif;font-size:23px;color:var(--brand);text-decoration:none}.logo span{color:var(--sage)}
   .nav-right{display:flex;align-items:center;gap:18px}.nav-link{font-size:14px;color:var(--muted);text-decoration:none}.nav-link:hover{color:var(--text)}
   .dashboard-btn{border:0;border-radius:999px;background:var(--brand);color:white;padding:10px 20px;font:500 14px 'DM Sans',sans-serif;cursor:pointer}
@@ -25,26 +25,46 @@
   body.ready #auth-loading{display:none}
   main{max-width:1080px;margin:0 auto;padding:58px 5% 80px}
   .back{display:inline-flex;align-items:center;gap:7px;color:var(--muted);text-decoration:none;font-size:13px;margin-bottom:24px}.back:hover{color:var(--text)}
-  .heading{margin-bottom:34px}.eyebrow{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1.1px;color:var(--brand);margin-bottom:8px}
-  h1{font-family:'DM Serif Display',serif;font-size:clamp(34px,4vw,46px);letter-spacing:-1px}.heading p{margin-top:10px;color:var(--muted);font-size:15px;line-height:1.6}
+  .heading{margin-bottom:32px}.eyebrow{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1.1px;color:var(--brand);margin-bottom:8px}
+  h1{font-family:'DM Serif Display',serif;font-size:clamp(34px,4vw,46px);letter-spacing:-1px}.heading p{margin-top:10px;color:var(--muted);font-size:15px;line-height:1.6;max-width:760px}
   .checkout-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:start}
   .panel{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;box-shadow:0 10px 35px rgba(26,37,48,.04)}
-  .panel-title{font-size:16px;font-weight:600;margin-bottom:18px}.small-title{font-size:13px;color:var(--muted);margin-bottom:10px}
-  .plan-options{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:26px}
-  .plan-option{border:1px solid var(--border);border-radius:15px;background:white;padding:17px;cursor:pointer;text-align:left;transition:.2s}
+  .panel-title{font-size:16px;font-weight:600;margin-bottom:18px}.panel-title:not(:first-child){margin-top:30px}
+
+  .billing-tabs{display:inline-flex;gap:4px;padding:5px;border:1px solid var(--border);border-radius:999px;background:white;margin-bottom:18px}
+  .billing-tab{border:0;background:transparent;color:var(--muted);padding:9px 18px;border-radius:999px;font:500 12px 'DM Sans',sans-serif;cursor:pointer;transition:.2s}
+  .billing-tab.active{background:var(--brand);color:white}
+
+  .plan-options{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:10px}
+  .plan-options.weekly{grid-template-columns:minmax(0,1fr)}
+  .plan-option{border:1px solid var(--border);border-radius:15px;background:white;padding:17px;cursor:pointer;text-align:left;transition:.2s;position:relative;min-height:112px}
   .plan-option:hover{border-color:var(--brand)}.plan-option.active{border:2px solid var(--brand);padding:16px;background:#F8FBFD}
   .plan-option .name{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}.plan-option .price{font-family:'DM Serif Display',serif;font-size:25px;margin-top:5px}.plan-option .price span{font-family:'DM Sans',sans-serif;font-size:12px;color:var(--muted);font-weight:400}
-  .account-card{display:flex;gap:12px;align-items:center;border:1px solid var(--border);background:white;border-radius:14px;padding:15px;margin-bottom:26px}.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#E9F0F7;color:var(--brand);font-weight:700}.acct-main{font-size:13px;font-weight:600}.acct-sub{font-size:12px;color:var(--muted);margin-top:2px;word-break:break-word}
+  .plan-option .slots{font-size:11px;color:var(--brand);font-weight:600;margin-top:6px;line-height:1.35}
+  .popular-tag{position:absolute;top:-10px;right:12px;padding:4px 8px;border-radius:999px;background:var(--brand);color:#fff;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  .enterprise-note{margin-top:12px;font-size:12px;color:var(--muted);line-height:1.5}.enterprise-note a{color:var(--brand);font-weight:600;text-decoration:none}.enterprise-note a:hover{text-decoration:underline}
+
+  .account-card{display:flex;gap:12px;align-items:center;border:1px solid var(--border);background:white;border-radius:14px;padding:15px}.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#E9F0F7;color:var(--brand);font-weight:700}.acct-main{font-size:13px;font-weight:600}.acct-sub{font-size:12px;color:var(--muted);margin-top:2px;word-break:break-word}
   .secure-box{border:1px solid var(--border);border-radius:16px;background:white;padding:20px}.secure-row{display:flex;gap:12px;align-items:flex-start}.lock{width:34px;height:34px;border-radius:10px;background:#EDF6F0;display:grid;place-items:center;color:#4F9568;font-size:16px;flex:none}.secure-title{font-size:14px;font-weight:600}.secure-copy{font-size:12px;line-height:1.55;color:var(--muted);margin-top:3px}
-  .checkout-btn{width:100%;margin-top:18px;border:0;border-radius:999px;background:var(--brand);color:white;padding:14px 18px;font:600 14px 'DM Sans',sans-serif;cursor:pointer;transition:.2s}.checkout-btn:hover{opacity:.9}.checkout-btn:disabled{opacity:.55;cursor:not-allowed}
+
+  .terms-box{margin-top:18px;border:1px solid var(--border);border-radius:13px;background:#FBFCFC;padding:14px}
+  .terms-label{display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12px;line-height:1.55;color:var(--text)}
+  .terms-label input{width:17px;height:17px;margin-top:1px;accent-color:var(--brand);flex:none;cursor:pointer}
+  .terms-label a{color:var(--brand);font-weight:600;text-decoration:none}.terms-label a:hover{text-decoration:underline}
+  .authorization{font-size:11px;color:var(--muted);line-height:1.55;margin:9px 0 0 27px}
+  .checkout-btn{width:100%;margin-top:16px;border:0;border-radius:999px;background:var(--brand);color:white;padding:14px 18px;font:600 14px 'DM Sans',sans-serif;cursor:pointer;transition:.2s}.checkout-btn:hover:not(:disabled){opacity:.9}.checkout-btn:disabled{opacity:.45;cursor:not-allowed}
   .message{display:none;margin-top:14px;padding:12px 14px;border-radius:12px;font-size:12px;line-height:1.5}.message.error{display:block;background:#FFF1F1;color:#8A4545;border:1px solid #F0CECE}.message.info{display:block;background:#EEF4F9;color:#466580;border:1px solid #D6E3EE}
-  .fineprint{font-size:11px;color:var(--muted);line-height:1.6;text-align:center;margin-top:12px}
-  .summary{position:sticky;top:92px}.summary-top{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--border)}.summary-name{font-size:15px;font-weight:600}.pill{font-size:11px;padding:5px 9px;border-radius:999px;background:#EDF6F0;color:#4F9568}
+  .fineprint{font-size:10px;color:var(--muted);line-height:1.55;text-align:center;margin-top:10px}
+
+  .summary{position:sticky;top:92px}.summary-top{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--border);gap:12px}.summary-name{font-size:15px;font-weight:600}.pill{font-size:11px;padding:5px 9px;border-radius:999px;background:#EDF6F0;color:#4F9568;white-space:nowrap}
   .summary-price{font-family:'DM Serif Display',serif;font-size:36px;margin:18px 0 3px}.summary-price span{font:400 13px 'DM Sans',sans-serif;color:var(--muted)}
-  .summary-sub{font-size:12px;color:var(--muted);margin-bottom:20px}.features{list-style:none}.features li{padding:9px 0 9px 22px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);position:relative}.features li:first-child{border-top:0}.features li::before{content:'✓';position:absolute;left:0;color:var(--sage);font-weight:700}
-  .total{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}.total-row{display:flex;justify-content:space-between;gap:15px;font-size:13px;margin:8px 0}.total-row.muted{color:var(--muted);font-size:12px}.total-row.final{font-weight:700;font-size:15px;margin-top:14px}
-  .trust{margin-top:16px;display:flex;gap:8px;align-items:center;justify-content:center;font-size:11px;color:var(--muted)}
-  @media(max-width:800px){.checkout-grid{grid-template-columns:1fr}.summary{position:static}.nav-link{display:none}.plan-options{grid-template-columns:1fr}main{padding-top:35px}.panel{padding:22px}}
+  .summary-sub{font-size:12px;color:var(--brand);font-weight:600;margin-bottom:20px}.features{list-style:none}.features li{padding:9px 0 9px 22px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);position:relative;line-height:1.4}.features li:first-child{border-top:0}.features li::before{content:'✓';position:absolute;left:0;color:var(--sage);font-weight:700}
+  .total{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}.total-row{display:flex;justify-content:space-between;gap:15px;font-size:13px;margin:8px 0}.total-row.muted{color:var(--muted);font-size:12px}.total-row.final{font-weight:700;font-size:15px;margin-top:14px}.total-row span:last-child{text-align:right}
+  .trust{margin-top:16px;display:flex;gap:8px;align-items:center;justify-content:center;font-size:11px;color:var(--muted);text-align:center;line-height:1.45}
+
+  @media(max-width:800px){
+    .checkout-grid{grid-template-columns:1fr}.summary{position:static}.nav-link{display:none}.plan-options{grid-template-columns:1fr}.billing-tabs{width:100%;display:grid;grid-template-columns:repeat(3,1fr)}.billing-tab{padding-left:8px;padding-right:8px}main{padding-top:35px}.panel{padding:22px}
+  }
 </style>
 </head>
 <body>
@@ -62,27 +82,20 @@
   <a class="back" href="pricing.html">← Back to pricing</a>
   <div class="heading">
     <div class="eyebrow">Employer checkout</div>
-    <h1>Choose how you want to hire.</h1>
-    <p>Buy one additional job posting or choose a monthly plan. Access is unlocked only after secure payment is confirmed.</p>
+    <h1>Confirm your job-slot plan.</h1>
+    <p>Choose your billing period and job-slot capacity. Your access is activated only after secure payment is confirmed.</p>
   </div>
 
   <div class="checkout-grid">
     <section class="panel">
       <div class="panel-title">1. Confirm your plan</div>
-      <div class="plan-options">
-        <button type="button" class="plan-option" id="single-job-option" onclick="setPlan('single_job')">
-          <div class="name">Additional Job</div>
-          <div class="price">$90 <span>one time</span></div>
-        </button>
-        <button type="button" class="plan-option" id="business-option" onclick="setPlan('business')">
-          <div class="name">Business</div>
-          <div class="price">$149 <span>/ month</span></div>
-        </button>
-        <button type="button" class="plan-option" id="enterprise-option" onclick="setPlan('enterprise')">
-          <div class="name">Enterprise</div>
-          <div class="price">$249 <span>/ month</span></div>
-        </button>
+      <div class="billing-tabs" role="tablist" aria-label="Billing period">
+        <button type="button" class="billing-tab" id="billing-quarterly" onclick="setBilling('quarterly')">Quarterly</button>
+        <button type="button" class="billing-tab" id="billing-monthly" onclick="setBilling('monthly')">Monthly</button>
+        <button type="button" class="billing-tab" id="billing-weekly" onclick="setBilling('weekly')">Weekly</button>
       </div>
+      <div class="plan-options" id="plan-options"></div>
+      <div class="enterprise-note" id="enterprise-note">Need 15+ active job slots? <a href="contact.html?topic=enterprise">Contact sales for Enterprise.</a></div>
 
       <div class="panel-title">2. Employer account</div>
       <div class="account-card">
@@ -99,29 +112,38 @@
           <div class="lock">🔒</div>
           <div>
             <div class="secure-title">Secure payment checkout</div>
-            <div class="secure-copy">Alygnn should never store raw card numbers in Supabase. This button is ready to hand the signed-in employer to your secure payment endpoint, where the payment provider completes the transaction.</div>
+            <div class="secure-copy">You’ll be redirected to our secure payment provider to complete checkout. Alygnn does not store your full payment-card number or card security code.</div>
           </div>
         </div>
-        <button class="checkout-btn" id="checkout-btn" onclick="startCheckout()">Continue to secure payment — $149</button>
+
+        <div class="terms-box">
+          <label class="terms-label" for="terms-accept">
+            <input type="checkbox" id="terms-accept" onchange="updateCheckoutState()">
+            <span>I agree to Alygnn’s <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+          </label>
+          <div class="authorization" id="authorization-copy"></div>
+        </div>
+
+        <button class="checkout-btn" id="checkout-btn" onclick="startCheckout()" disabled>Accept terms to continue</button>
         <div class="message" id="message"></div>
-        <div class="fineprint" id="fineprint">By continuing, you agree to Alygnn's Terms and authorize the selected monthly subscription. Cancel according to your subscription terms.</div>
+        <div class="fineprint">You must accept the Terms of Service and Privacy Policy before proceeding to payment.</div>
       </div>
     </section>
 
     <aside class="panel summary">
       <div class="summary-top">
-        <div class="summary-name" id="summary-name">Business</div>
-        <div class="pill" id="summary-billing">Monthly</div>
+        <div class="summary-name" id="summary-name">Launch</div>
+        <div class="pill" id="summary-billing">Quarterly</div>
       </div>
-      <div class="summary-price" id="summary-price">$149 <span>/ month</span></div>
-      <div class="summary-sub" id="summary-sub">3 active job postings</div>
+      <div class="summary-price" id="summary-price">$750 <span>/ 3 months</span></div>
+      <div class="summary-sub" id="summary-sub">3 active reusable job slots</div>
       <ul class="features" id="summary-features"></ul>
       <div class="total">
-        <div class="total-row"><span>Plan subtotal</span><span id="subtotal">$149.00</span></div>
+        <div class="total-row"><span>Plan subtotal</span><span id="subtotal">$750.00</span></div>
         <div class="total-row muted"><span>Tax</span><span>Calculated at checkout</span></div>
-        <div class="total-row final"><span>Due today</span><span id="due-total">$149.00 + tax</span></div>
+        <div class="total-row final"><span>Due today</span><span id="due-total">$750.00 + tax</span></div>
       </div>
-      <div class="trust" id="trust-copy">🔒 Secure checkout · Subscription billed monthly</div>
+      <div class="trust" id="trust-copy">🔒 Secure checkout · 3 months paid upfront</div>
     </aside>
   </div>
 </main>
@@ -132,67 +154,209 @@
   const { createClient } = supabase;
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // Your server/Edge Function should create the real checkout session and return { url }.
-  // Keep secret payment-provider keys on the server only — never in this HTML file.
+  // Your server/Edge Function must map plan + billing to the real payment-provider price.
+  // Keep all secret payment-provider keys on the server only.
   const CHECKOUT_ENDPOINT = '/api/create-checkout-session';
+  const TERMS_VERSION = '2026-08-26';
 
-  const PLANS = {
-    single_job: {
-      name:'Additional Job', price:90, suffix:'one time', billing:'One-time', kind:'one_time', postings:'1 paid job posting credit',
-      features:['1 additional job posting','AI candidate matching','Applicant dashboard','No monthly commitment']
+  const CATALOG = {
+    quarterly: {
+      launch: {
+        name:'Launch', price:750, suffix:'/ 3 months', billing:'Quarterly', kind:'fixed_term', slots:'3 active reusable job slots',
+        features:['AI candidate matching','Candidate filtering','Applicant management','Resume access and downloads','Hiring analytics','Optional Job Boost · $15/day']
+      },
+      growth: {
+        name:'Growth', price:1140, suffix:'/ 3 months', billing:'Quarterly', kind:'fixed_term', slots:'5 active reusable job slots', popular:true,
+        features:['Everything in Launch','Urgently Hiring badge on jobs','Advanced candidate filtering','Featured listings','Advanced hiring analytics','Optional Job Boost · $15/day']
+      },
+      scale: {
+        name:'Scale', price:1700, suffix:'/ 3 months', billing:'Quarterly', kind:'fixed_term', slots:'8 active reusable job slots',
+        features:['Everything in Growth','Urgently Hiring badge on jobs','High-volume hiring capacity','Advanced candidate tools','Team access and priority support','Optional Job Boost · $15/day']
+      }
     },
-    business: {
-      name:'Business', price:149, suffix:'/ month', billing:'Monthly', kind:'subscription', postings:'3 active job postings',
-      features:['Review up to 100 applicant profiles','Advanced AI matching','Candidate filtering','Applicant management','Hiring analytics','Featured listings']
+    monthly: {
+      launch: {
+        name:'Launch', price:299, suffix:'/ month', billing:'Monthly', kind:'subscription', slots:'3 active reusable job slots',
+        features:['AI candidate matching','Candidate filtering','Applicant management','Resume access and downloads','Hiring analytics','Optional Job Boost · $15/day']
+      },
+      growth: {
+        name:'Growth', price:449, suffix:'/ month', billing:'Monthly', kind:'subscription', slots:'5 active reusable job slots', popular:true,
+        features:['Everything in Launch','Urgently Hiring badge on jobs','Advanced candidate filtering','Featured listings','Advanced hiring analytics','Optional Job Boost · $15/day']
+      },
+      scale: {
+        name:'Scale', price:649, suffix:'/ month', billing:'Monthly', kind:'subscription', slots:'8 active reusable job slots',
+        features:['Everything in Growth','Urgently Hiring badge on jobs','High-volume hiring capacity','Advanced candidate tools','Team access and priority support','Optional Job Boost · $15/day']
+      }
     },
-    enterprise: {
-      name:'Enterprise', price:249, suffix:'/ month', billing:'Monthly', kind:'subscription', postings:'5 active job postings',
-      features:['Review up to 300 applicant profiles','Advanced AI matching','Advanced candidate filtering','Featured listings','Advanced analytics','Team access','Priority support']
+    weekly: {
+      weekly_slot: {
+        name:'Weekly Job Slot', price:99, suffix:'/ 7 days', billing:'Weekly', kind:'fixed_term', slots:'1 active reusable job slot',
+        features:['Starts immediately after purchase','Expires 7 days after purchase','AI candidate matching and applicant management','No monthly subscription required','Optional Job Boost · $15/day']
+      }
     }
   };
 
-  let selectedPlan = 'business';
+  const LEGACY_PLAN_ALIASES = {
+    business:'launch',
+    enterprise:'growth',
+    single_job:'weekly_slot'
+  };
+
+  let selectedBilling = 'quarterly';
+  let selectedPlan = 'launch';
   let session = null;
 
-  function money(n){ return '$' + Number(n).toFixed(2); }
+  function money(n){
+    return '$' + Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+
+  function displayPrice(n){
+    return '$' + Number(n).toLocaleString('en-US');
+  }
+
   function showMessage(text,type='error'){
     const el=document.getElementById('message');
-    el.textContent=text; el.className='message '+type;
+    el.textContent=text;
+    el.className='message '+type;
   }
-  function clearMessage(){ const el=document.getElementById('message'); el.className='message'; el.textContent=''; }
 
-  function setPlan(plan){
-    if(!PLANS[plan]) plan='business';
-    selectedPlan=plan;
-    const p=PLANS[plan];
-    document.getElementById('single-job-option').classList.toggle('active',plan==='single_job');
-    document.getElementById('business-option').classList.toggle('active',plan==='business');
-    document.getElementById('enterprise-option').classList.toggle('active',plan==='enterprise');
+  function clearMessage(){
+    const el=document.getElementById('message');
+    el.className='message';
+    el.textContent='';
+  }
+
+  function activeProduct(){
+    return CATALOG[selectedBilling]?.[selectedPlan] || CATALOG.quarterly.launch;
+  }
+
+  function resetTermsAcceptance(){
+    const box=document.getElementById('terms-accept');
+    if(box) box.checked=false;
+    updateCheckoutState();
+  }
+
+  function updateUrl(){
+    const url=new URL(location.href);
+    url.searchParams.set('plan',selectedPlan);
+    url.searchParams.set('billing',selectedBilling);
+    history.replaceState({},'',url);
+  }
+
+  function renderPlanOptions(){
+    const options=document.getElementById('plan-options');
+    const plans=CATALOG[selectedBilling];
+    options.classList.toggle('weekly',selectedBilling==='weekly');
+    options.innerHTML=Object.entries(plans).map(([key,p])=>`
+      <button type="button" class="plan-option ${key===selectedPlan?'active':''}" onclick="setPlan('${key}')">
+        ${p.popular?'<span class="popular-tag">Most popular</span>':''}
+        <div class="name">${p.name}</div>
+        <div class="price">${displayPrice(p.price)} <span>${p.suffix}</span></div>
+        <div class="slots">${p.slots}</div>
+      </button>
+    `).join('');
+
+    document.getElementById('enterprise-note').style.display=selectedBilling==='weekly'?'none':'block';
+  }
+
+  function renderSummary(){
+    const p=activeProduct();
     document.getElementById('summary-name').textContent=p.name;
     document.getElementById('summary-billing').textContent=p.billing;
-    document.getElementById('summary-price').innerHTML=`$${p.price} <span>${p.suffix}</span>`;
-    document.getElementById('summary-sub').textContent=p.postings;
+    document.getElementById('summary-price').innerHTML=`${displayPrice(p.price)} <span>${p.suffix}</span>`;
+    document.getElementById('summary-sub').textContent=p.slots;
     document.getElementById('summary-features').innerHTML=p.features.map(x=>`<li>${x}</li>`).join('');
     document.getElementById('subtotal').textContent=money(p.price);
     document.getElementById('due-total').textContent=money(p.price)+' + tax';
-    document.getElementById('checkout-btn').textContent=`Continue to secure payment — $${p.price}`;
-    document.getElementById('trust-copy').textContent = p.kind === 'one_time'
-      ? '🔒 Secure checkout · One-time payment'
-      : '🔒 Secure checkout · Subscription billed monthly';
-    document.getElementById('fineprint').textContent = p.kind === 'one_time'
-      ? "By continuing, you agree to Alygnn's Terms and authorize this one-time $90 job-posting purchase."
-      : "By continuing, you agree to Alygnn's Terms and authorize the selected monthly subscription. Cancel according to your subscription terms.";
-    const url=new URL(location.href); url.searchParams.set('plan',plan); history.replaceState({},'',url);
+
+    if(selectedBilling==='monthly'){
+      document.getElementById('trust-copy').textContent='🔒 Secure checkout · Subscription billed monthly';
+      document.getElementById('authorization-copy').textContent=`By continuing, you authorize ${displayPrice(p.price)} plus applicable tax each month until canceled according to the Terms.`;
+    }else if(selectedBilling==='quarterly'){
+      document.getElementById('trust-copy').textContent='🔒 Secure checkout · 3 months paid upfront';
+      document.getElementById('authorization-copy').textContent=`By continuing, you authorize a ${displayPrice(p.price)} plus applicable tax upfront payment for the three-month ${p.name} term.`;
+    }else{
+      document.getElementById('trust-copy').textContent='🔒 Secure checkout · 7-day job slot';
+      document.getElementById('authorization-copy').textContent=`By continuing, you authorize a ${displayPrice(p.price)} plus applicable tax payment for one 7-day weekly job slot.`;
+    }
+
+    updateCheckoutState();
+  }
+
+  function renderBillingTabs(){
+    ['quarterly','monthly','weekly'].forEach(key=>{
+      document.getElementById('billing-'+key).classList.toggle('active',key===selectedBilling);
+    });
+  }
+
+  function setBilling(billing, preserveAcceptance=false){
+    if(!CATALOG[billing]) billing='quarterly';
+    const oldBilling=selectedBilling;
+    selectedBilling=billing;
+
+    if(!CATALOG[selectedBilling][selectedPlan]){
+      selectedPlan=selectedBilling==='weekly'?'weekly_slot':'launch';
+    }
+
+    renderBillingTabs();
+    renderPlanOptions();
+    renderSummary();
+    updateUrl();
     clearMessage();
+    if(!preserveAcceptance && oldBilling!==selectedBilling) resetTermsAcceptance();
+  }
+
+  function setPlan(plan, preserveAcceptance=false){
+    if(!CATALOG[selectedBilling][plan]){
+      plan=selectedBilling==='weekly'?'weekly_slot':'launch';
+    }
+    const changed=selectedPlan!==plan;
+    selectedPlan=plan;
+    renderPlanOptions();
+    renderSummary();
+    updateUrl();
+    clearMessage();
+    if(!preserveAcceptance && changed) resetTermsAcceptance();
+  }
+
+  function updateCheckoutState(){
+    const accepted=document.getElementById('terms-accept').checked;
+    const button=document.getElementById('checkout-btn');
+    const p=activeProduct();
+    button.disabled=!accepted;
+    button.textContent=accepted
+      ? `Continue to secure payment — ${displayPrice(p.price)}`
+      : 'Accept terms to continue';
+  }
+
+  function normalizeRequestedPlan(plan,billing){
+    let normalized=(plan||'').toLowerCase();
+    if(LEGACY_PLAN_ALIASES[normalized]) normalized=LEGACY_PLAN_ALIASES[normalized];
+    if(billing==='weekly') return 'weekly_slot';
+    if(normalized==='weekly_slot') return billing==='weekly'?'weekly_slot':'launch';
+    return CATALOG[billing]?.[normalized] ? normalized : (billing==='weekly'?'weekly_slot':'launch');
   }
 
   async function init(){
-    const requested=(new URLSearchParams(location.search).get('plan')||'business').toLowerCase();
-    setPlan(PLANS[requested]?requested:'business');
+    const params=new URLSearchParams(location.search);
+    let requestedBilling=(params.get('billing')||'quarterly').toLowerCase();
+    if(!CATALOG[requestedBilling]) requestedBilling='quarterly';
+    let requestedPlan=normalizeRequestedPlan(params.get('plan'),requestedBilling);
+
+    selectedBilling=requestedBilling;
+    selectedPlan=requestedPlan;
+    renderBillingTabs();
+    renderPlanOptions();
+    renderSummary();
+    updateUrl();
+    resetTermsAcceptance();
 
     const { data:{ session:activeSession }, error } = await sb.auth.getSession();
     if(error || !activeSession){
-      try{localStorage.setItem('alygnn_pending_plan',selectedPlan)}catch(e){}
+      try{
+        localStorage.setItem('alygnn_pending_plan',selectedPlan);
+        localStorage.setItem('alygnn_pending_billing',selectedBilling);
+      }catch(e){}
       location.replace('login.html?role=employer');
       return;
     }
@@ -217,8 +381,19 @@
   }
 
   async function startCheckout(){
-    if(!session){ location.replace('login.html?role=employer'); return; }
+    if(!session){
+      location.replace('login.html?role=employer');
+      return;
+    }
+
+    const accepted=document.getElementById('terms-accept').checked;
+    if(!accepted){
+      showMessage('Please accept the Terms of Service and Privacy Policy before continuing.');
+      return;
+    }
+
     const button=document.getElementById('checkout-btn');
+    const p=activeProduct();
     clearMessage();
     button.disabled=true;
     const original=button.textContent;
@@ -229,18 +404,26 @@
       const response=await fetch(CHECKOUT_ENDPOINT,{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-        body:JSON.stringify({plan:selectedPlan,purchase_type:PLANS[selectedPlan].kind,success_url:location.origin+'/employer-dashboard.html?payment=success&purchase='+encodeURIComponent(selectedPlan),cancel_url:location.href})
+        body:JSON.stringify({
+          plan:selectedPlan,
+          billing:selectedBilling,
+          purchase_type:p.kind,
+          terms_accepted:true,
+          terms_version:TERMS_VERSION,
+          success_url:location.origin+'/employer-dashboard.html?payment=success&plan='+encodeURIComponent(selectedPlan)+'&billing='+encodeURIComponent(selectedBilling),
+          cancel_url:location.href
+        })
       });
 
       let data={};
-      try{ data=await response.json(); }catch(e){}
+      try{data=await response.json();}catch(e){}
       if(!response.ok || !data.url){
         throw new Error(data.error||'Payment checkout is not connected yet.');
       }
       location.href=data.url;
     }catch(error){
       console.error(error);
-      showMessage('The payment page is ready, but the secure checkout endpoint still needs to be connected. Use /api/create-checkout-session (or change CHECKOUT_ENDPOINT in this file) and have it create either a one-time $90 payment for single_job or a $149/month Business or $249/month Enterprise subscription, then return a checkout URL.','info');
+      showMessage('The checkout page is updated, but /api/create-checkout-session must also recognize the new Launch, Growth, Scale, quarterly, monthly, and weekly price IDs before payments can complete.','info');
       button.disabled=false;
       button.textContent=original;
     }
