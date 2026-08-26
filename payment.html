@@ -61,6 +61,12 @@
   .summary-sub{font-size:12px;color:var(--brand);font-weight:600;margin-bottom:20px}.features{list-style:none}.features li{padding:9px 0 9px 22px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);position:relative;line-height:1.4}.features li:first-child{border-top:0}.features li::before{content:'✓';position:absolute;left:0;color:var(--sage);font-weight:700}
   .total{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}.total-row{display:flex;justify-content:space-between;gap:15px;font-size:13px;margin:8px 0}.total-row.muted{color:var(--muted);font-size:12px}.total-row.final{font-weight:700;font-size:15px;margin-top:14px}.total-row span:last-child{text-align:right}
   .trust{margin-top:16px;display:flex;gap:8px;align-items:center;justify-content:center;font-size:11px;color:var(--muted);text-align:center;line-height:1.45}
+  .test-banner{display:none;margin:0 0 18px;padding:12px 14px;border:1px solid rgba(140,182,155,.55);background:rgba(140,182,155,.12);border-radius:12px;font-size:12px;line-height:1.5;color:var(--text)}
+  body.test-mode .test-banner{display:block}
+  body.test-mode .secure-box{border-color:rgba(140,182,155,.7);background:rgba(140,182,155,.05)}
+  body.test-mode .checkout-btn{background:var(--sage)}
+  .test-pill{display:none;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:5px 9px;border-radius:999px;background:rgba(140,182,155,.16);color:#4F9568;margin-left:8px}
+  body.test-mode .test-pill{display:inline-flex}
 
   @media(max-width:800px){
     .checkout-grid{grid-template-columns:1fr}.summary{position:static}.nav-link{display:none}.plan-options{grid-template-columns:1fr}.billing-tabs{width:100%;display:grid;grid-template-columns:repeat(3,1fr)}.billing-tab{padding-left:8px;padding-right:8px}main{padding-top:35px}.panel{padding:22px}
@@ -86,6 +92,8 @@
     <p>Choose your billing period and job-slot capacity. Your access is activated only after secure payment is confirmed.</p>
   </div>
 
+  <div class="test-banner" id="test-banner"><strong>Developer test mode</strong> — No payment will be charged on this account. Choose a package below to simulate access.</div>
+
   <div class="checkout-grid">
     <section class="panel">
       <div class="panel-title">1. Confirm your plan</div>
@@ -106,13 +114,13 @@
         </div>
       </div>
 
-      <div class="panel-title">3. Payment</div>
+      <div class="panel-title" id="payment-section-title">3. Payment</div>
       <div class="secure-box">
         <div class="secure-row">
           <div class="lock">🔒</div>
           <div>
-            <div class="secure-title">Secure payment checkout</div>
-            <div class="secure-copy">You’ll be redirected to our secure payment provider to complete checkout. Alygnn does not store your full payment-card number or card security code.</div>
+            <div class="secure-title" id="secure-title">Secure payment checkout</div>
+            <div class="secure-copy" id="secure-copy">You’ll be redirected to our secure payment provider to complete checkout. Alygnn does not store your full payment-card number or card security code.</div>
           </div>
         </div>
 
@@ -133,14 +141,14 @@
     <aside class="panel summary">
       <div class="summary-top">
         <div class="summary-name" id="summary-name">Launch</div>
-        <div class="pill" id="summary-billing">Quarterly</div>
+        <div><span class="pill" id="summary-billing">Quarterly</span><span class="test-pill">Test mode</span></div>
       </div>
       <div class="summary-price" id="summary-price">$750 <span>/ 3 months</span></div>
       <div class="summary-sub" id="summary-sub">3 active reusable job slots</div>
       <ul class="features" id="summary-features"></ul>
       <div class="total">
         <div class="total-row"><span>Plan subtotal</span><span id="subtotal">$750.00</span></div>
-        <div class="total-row muted"><span>Tax</span><span>Calculated at checkout</span></div>
+        <div class="total-row muted" id="tax-row"><span>Tax</span><span>Calculated at checkout</span></div>
         <div class="total-row final"><span>Due today</span><span id="due-total">$750.00 + tax</span></div>
       </div>
       <div class="trust" id="trust-copy">🔒 Secure checkout · 3 months paid upfront</div>
@@ -158,6 +166,10 @@
   // Keep all secret payment-provider keys on the server only.
   const CHECKOUT_ENDPOINT = '/api/create-checkout-session';
   const TERMS_VERSION = '2026-08-26';
+
+  // Developer-only checkout bypass. Keep this allowlist limited to test accounts.
+  const TEST_MODE_EMAILS = ['simoninn18@gmail.com'];
+  let developerTestMode = false;
 
   const CATALOG = {
     quarterly: {
@@ -259,6 +271,34 @@
     document.getElementById('enterprise-note').style.display=selectedBilling==='weekly'?'none':'block';
   }
 
+  function slotLimitFor(plan,billing){
+    if(billing==='weekly') return 1;
+    if(plan==='growth') return 5;
+    if(plan==='scale') return 8;
+    return 3;
+  }
+
+  function testExpiresAt(billing){
+    const d=new Date();
+    if(billing==='weekly') d.setDate(d.getDate()+7);
+    else if(billing==='quarterly') d.setMonth(d.getMonth()+3);
+    else d.setMonth(d.getMonth()+1);
+    return d.toISOString();
+  }
+
+  function applyDeveloperTestMode(){
+    if(!session) return;
+    const email=String(session.user?.email||'').toLowerCase();
+    developerTestMode=TEST_MODE_EMAILS.includes(email);
+    document.body.classList.toggle('test-mode',developerTestMode);
+    if(developerTestMode){
+      document.getElementById('payment-section-title').textContent='3. Test activation';
+      document.getElementById('secure-title').textContent='Activate package for testing';
+      document.getElementById('secure-copy').textContent='No payment will be taken from this account. Your selected package will be stored as a developer test entitlement so you can test the Alygnn flow.';
+    }
+    renderSummary();
+  }
+
   function renderSummary(){
     const p=activeProduct();
     document.getElementById('summary-name').textContent=p.name;
@@ -267,17 +307,25 @@
     document.getElementById('summary-sub').textContent=p.slots;
     document.getElementById('summary-features').innerHTML=p.features.map(x=>`<li>${x}</li>`).join('');
     document.getElementById('subtotal').textContent=money(p.price);
-    document.getElementById('due-total').textContent=money(p.price)+' + tax';
 
-    if(selectedBilling==='monthly'){
-      document.getElementById('trust-copy').textContent='🔒 Secure checkout · Subscription billed monthly';
-      document.getElementById('authorization-copy').textContent=`By continuing, you authorize ${displayPrice(p.price)} plus applicable tax each month until canceled according to the Terms.`;
-    }else if(selectedBilling==='quarterly'){
-      document.getElementById('trust-copy').textContent='🔒 Secure checkout · 3 months paid upfront';
-      document.getElementById('authorization-copy').textContent=`By continuing, you authorize a ${displayPrice(p.price)} plus applicable tax upfront payment for the three-month ${p.name} term.`;
+    if(developerTestMode){
+      document.getElementById('tax-row').style.display='none';
+      document.getElementById('due-total').textContent='$0.00';
+      document.getElementById('trust-copy').textContent='Developer test mode · No charge';
+      document.getElementById('authorization-copy').textContent=`By continuing, you confirm this is a test activation of the ${p.name} ${p.billing.toLowerCase()} package. No payment will be processed.`;
     }else{
-      document.getElementById('trust-copy').textContent='🔒 Secure checkout · 7-day job slot';
-      document.getElementById('authorization-copy').textContent=`By continuing, you authorize a ${displayPrice(p.price)} plus applicable tax payment for one 7-day weekly job slot.`;
+      document.getElementById('tax-row').style.display='flex';
+      document.getElementById('due-total').textContent=money(p.price)+' + tax';
+      if(selectedBilling==='monthly'){
+        document.getElementById('trust-copy').textContent='🔒 Secure checkout · Subscription billed monthly';
+        document.getElementById('authorization-copy').textContent=`By continuing, you authorize ${displayPrice(p.price)} plus applicable tax each month until canceled according to the Terms.`;
+      }else if(selectedBilling==='quarterly'){
+        document.getElementById('trust-copy').textContent='🔒 Secure checkout · 3 months paid upfront';
+        document.getElementById('authorization-copy').textContent=`By continuing, you authorize a ${displayPrice(p.price)} plus applicable tax upfront payment for the three-month ${p.name} term.`;
+      }else{
+        document.getElementById('trust-copy').textContent='🔒 Secure checkout · 7-day job slot';
+        document.getElementById('authorization-copy').textContent=`By continuing, you authorize a ${displayPrice(p.price)} plus applicable tax payment for one 7-day weekly job slot.`;
+      }
     }
 
     updateCheckoutState();
@@ -325,7 +373,7 @@
     const p=activeProduct();
     button.disabled=!accepted;
     button.textContent=accepted
-      ? `Continue to secure payment — ${displayPrice(p.price)}`
+      ? (developerTestMode ? `Activate ${p.name} test package — $0` : `Continue to secure payment — ${displayPrice(p.price)}`)
       : 'Accept terms to continue';
   }
 
@@ -377,6 +425,7 @@
     const email=session.user.email||'Employer account';
     document.getElementById('account-email').textContent=email;
     document.getElementById('account-avatar').textContent=(email[0]||'A').toUpperCase();
+    applyDeveloperTestMode();
     document.body.classList.add('ready');
   }
 
@@ -395,6 +444,59 @@
     const button=document.getElementById('checkout-btn');
     const p=activeProduct();
     clearMessage();
+
+    if(developerTestMode){
+      button.disabled=true;
+      button.textContent='Activating test package…';
+
+      // The server-backed RPC updates employer_entitlements, so the database
+      // trigger and the dashboard both recognize the same test slot limit.
+      // No payment-provider request is made in this branch.
+      const { data:testData, error:testError } = await sb.rpc('activate_employer_test_plan',{
+        p_plan:selectedPlan,
+        p_billing:selectedBilling
+      });
+
+      if(testError){
+        console.error('Test package activation failed:',testError);
+        showMessage('Test activation is not installed in Supabase yet. Run the Alygnn test-entitlement SQL once, then try again. No payment was processed.','info');
+        button.disabled=false;
+        updateCheckoutState();
+        return;
+      }
+
+      const testEntitlement={
+        test_mode:true,
+        server_activated:true,
+        employer_id:session.user.id,
+        email:session.user.email||'',
+        plan:selectedPlan,
+        billing:selectedBilling,
+        slot_limit:Number(testData?.slot_limit || slotLimitFor(selectedPlan,selectedBilling)),
+        urgently_hiring:testData?.urgently_hiring === true || ['growth','scale'].includes(selectedPlan),
+        activated_at:testData?.activated_at || new Date().toISOString(),
+        expires_at:testData?.expires_at || testExpiresAt(selectedBilling),
+        original_price:p.price,
+        charged_amount:0,
+        terms_accepted:true,
+        terms_version:TERMS_VERSION
+      };
+
+      try{
+        // Local copy is only for convenient test diagnostics. Access itself is
+        // granted by the server entitlement written by the RPC above.
+        localStorage.setItem('alygnn_test_entitlement',JSON.stringify(testEntitlement));
+      }catch(e){
+        console.warn('Could not save local test diagnostic:',e);
+      }
+
+      button.textContent='Test package activated ✓';
+      showMessage(`${p.name} test package activated with ${testEntitlement.slot_limit} job slot${testEntitlement.slot_limit===1?'':'s'}. No payment was processed.`,'info');
+      setTimeout(()=>{
+        location.href='employer-dashboard.html?test_plan=1&plan='+encodeURIComponent(selectedPlan)+'&billing='+encodeURIComponent(selectedBilling);
+      },700);
+      return;
+    }
     button.disabled=true;
     const original=button.textContent;
     button.textContent='Opening secure checkout…';
