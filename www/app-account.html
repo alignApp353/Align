@@ -628,8 +628,20 @@ button{
 }
 
 .nav-icon{
-  font-size:17px;
+  width:20px;
+  height:20px;
+  display:grid;
+  place-items:center;
   line-height:1;
+}
+
+.nav-icon svg{
+  width:20px;
+  height:20px;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 
 /* =====================================================
@@ -1087,7 +1099,7 @@ body[data-profile-complete="true"] #snapshot-section{display:none!important}
 
 </head>
 
-<body>
+<body data-candidate-nav-build="2026-08-26-unified">
 
 <div class="loading" id="loading">
   <div style="text-align:center">
@@ -1325,7 +1337,7 @@ body[data-profile-complete="true"] #snapshot-section{display:none!important}
           class="setup-item"
           id="resume-setup"
           type="button"
-          onclick="openResumeSetup()"
+          onclick="window.location.href='app-align-upload.html'"
         >
           <div class="setup-status" id="resume-setup-status">!</div>
 
@@ -1498,11 +1510,47 @@ body[data-profile-complete="true"] #snapshot-section{display:none!important}
   </button>
 </main>
 
-<nav class="bottom-nav" aria-label="Candidate navigation">
-  <button class="nav-item active" id="nav-profile" type="button" onclick="openProfileView()"><span class="nav-icon">◉</span><span>My Profile</span></button>
-  <button class="nav-item" id="nav-swipe" type="button" onclick="openCandidateDestination('app-swipe.html')"><span class="nav-icon">◇</span><span>Swipe</span></button>
-  <button class="nav-item" id="nav-jobs" type="button" onclick="openCandidateDestination('app-applied.html')"><span class="nav-icon">▣</span><span>My Jobs</span></button>
-  <button class="nav-item" id="nav-settings" type="button" onclick="openSettingsView()"><span class="nav-icon">⚙</span><span>Settings</span></button>
+<nav class="bottom-nav" id="candidate-bottom-nav" aria-label="Candidate navigation">
+  <button class="nav-item active" id="nav-profile" type="button" onclick="openProfileView()">
+    <span class="nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="7.5" r="3.5"></circle>
+        <path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6"></path>
+      </svg>
+    </span>
+    <span class="nav-label">My Profile</span>
+  </button>
+
+  <button class="nav-item" id="nav-swipe" type="button" onclick="openCandidateDestination('app-swipe.html')">
+    <span class="nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <circle cx="10.5" cy="10.5" r="5.5"></circle>
+        <path d="m15 15 4.5 4.5"></path>
+      </svg>
+    </span>
+    <span class="nav-label">Discover</span>
+  </button>
+
+  <button class="nav-item" id="nav-jobs" type="button" onclick="openCandidateDestination('app-applied.html')">
+    <span class="nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <rect x="4" y="7" width="16" height="12" rx="2"></rect>
+        <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"></path>
+        <path d="M4 11h16"></path>
+      </svg>
+    </span>
+    <span class="nav-label">My Jobs</span>
+  </button>
+
+  <button class="nav-item" id="nav-settings" type="button" onclick="openSettingsView()">
+    <span class="nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9A1.7 1.7 0 0 0 21 10h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"></path>
+      </svg>
+    </span>
+    <span class="nav-label">Settings</span>
+  </button>
 </nav>
 
 <script>
@@ -2006,22 +2054,6 @@ function openCandidateDestination(url){
   showOnboardingMessage('Complete your resume and job preferences to unlock job matches.');
 }
 
-function openResumeSetup(){
-  clearOnboardingMessage();
-
-  if(candidateOnboardingState.hasResume){
-    window.location.href='app-resume-preview.html';
-    return;
-  }
-
-  openProfileView();
-  const panel=$('onboarding-panel');
-  if(panel){
-    panel.hidden=false;
-    panel.scrollIntoView({behavior:'smooth',block:'start'});
-  }
-}
-
 function openPreferencesFromSettings(){
   if(!candidateOnboardingState.hasResume){
     openProfileView();
@@ -2132,13 +2164,13 @@ function renderCandidateOnboardingGate({hasResume,previewReviewed,preferencesCom
     preferencesComplete:Boolean(preferencesComplete)
   };
 
+  lockCandidateNavigation(!complete);
+
   const panel=$('onboarding-panel');
   const hero=$('profile-hero');
   const snapshot=$('snapshot-section');
   const profileSection=$('profile-section');
   const setup=$('setup-section');
-
-  lockCandidateNavigation(!complete);
 
   if(complete){
     document.body.dataset.profileComplete='true';
@@ -2150,77 +2182,25 @@ function renderCandidateOnboardingGate({hasResume,previewReviewed,preferencesCom
 
     const completeActions=$('complete-actions');
     if(completeActions)completeActions.classList.add('show');
-    if($('lead'))$('lead').textContent=getCandidateTimeContext().completeLead;
-    return;
+
+    if($('lead')){
+      $('lead').textContent=getCandidateTimeContext().completeLead;
+    }
+    return false;
   }
 
-  // Incomplete candidate setup now stays inside app-account.html.
-  // The old app-align-upload.html screen is retired.
+  /* Old dashboard 2-step onboarding is retired. */
   document.body.dataset.profileComplete='false';
-  if(panel)panel.hidden=false;
-  if(hero)hero.hidden=true;
-  if(snapshot)snapshot.hidden=true;
-  if(profileSection)profileSection.hidden=true;
-  if(setup)setup.hidden=true;
 
-  const completeActions=$('complete-actions');
-  if(completeActions)completeActions.classList.remove('show');
-  if($('lead'))$('lead').textContent='Complete your setup to unlock personalized job matches.';
-
-  const completedSteps=(hasResume?1:0)+(preferencesComplete?1:0);
-  if($('onboarding-count'))$('onboarding-count').textContent=`${completedSteps} of 2 complete`;
-  if($('onboarding-progress-fill'))$('onboarding-progress-fill').style.width=`${completedSteps*50}%`;
-
-  const resumeStep=$('onboarding-resume-step');
-  const prefStep=$('onboarding-preferences-step');
-  const prefButton=$('dashboard-preferences-btn');
-  const resumeActions=$('onboarding-resume-actions');
-
-  resumeStep?.classList.remove('active','done','locked');
-  prefStep?.classList.remove('active','done','locked');
-
-  if(!hasResume){
-    resumeStep?.classList.add('active');
-    prefStep?.classList.add('locked');
-    if($('onboarding-resume-number'))$('onboarding-resume-number').textContent='1';
-    if($('onboarding-resume-title'))$('onboarding-resume-title').textContent='Add your resume';
-    if($('onboarding-resume-copy'))$('onboarding-resume-copy').textContent='Upload a resume you already have or create one with Alygnn.';
-    if(resumeActions){
-      resumeActions.innerHTML=`<button class="step-btn primary" type="button" id="dashboard-upload-btn" onclick="chooseDashboardResume()">Upload Resume</button><button class="step-btn secondary" type="button" onclick="window.location.href='app-resume-builder.html'">Create Resume</button>`;
-    }
-    if($('onboarding-preferences-number'))$('onboarding-preferences-number').textContent='2';
-    if($('onboarding-preferences-title'))$('onboarding-preferences-title').textContent='Set your preferences';
-    if($('onboarding-preferences-copy'))$('onboarding-preferences-copy').textContent='This unlocks after your resume is added and reviewed.';
-    if(prefButton)prefButton.disabled=true;
-    return;
+  let destination='app-align-upload.html';
+  if(hasResume && !previewReviewed){
+    destination='app-resume-preview.html';
+  }else if(hasResume && previewReviewed && !preferencesComplete){
+    destination='app-preferences.html';
   }
 
-  if(!previewReviewed){
-    resumeStep?.classList.add('active');
-    prefStep?.classList.add('locked');
-    if($('onboarding-resume-number'))$('onboarding-resume-number').textContent='✓';
-    if($('onboarding-resume-title'))$('onboarding-resume-title').textContent='Resume added — review it';
-    if($('onboarding-resume-copy'))$('onboarding-resume-copy').textContent='Review what employers will see before you continue.';
-    if(resumeActions){
-      resumeActions.innerHTML=`<button class="step-btn primary" type="button" onclick="window.location.href='app-resume-preview.html'">Review Resume</button><button class="step-btn secondary" type="button" onclick="chooseDashboardResume()">Replace Upload</button>`;
-    }
-    if($('onboarding-preferences-copy'))$('onboarding-preferences-copy').textContent='Review your resume first, then preferences will unlock.';
-    if(prefButton)prefButton.disabled=true;
-    return;
-  }
-
-  resumeStep?.classList.add('done');
-  prefStep?.classList.add('active');
-  if($('onboarding-resume-number'))$('onboarding-resume-number').textContent='✓';
-  if($('onboarding-resume-title'))$('onboarding-resume-title').textContent='Resume ready';
-  if($('onboarding-resume-copy'))$('onboarding-resume-copy').textContent='Your resume is saved and ready for matching.';
-  if(resumeActions){
-    resumeActions.innerHTML=`<button class="step-btn secondary" type="button" onclick="window.location.href='app-resume-preview.html'">View Resume</button>`;
-  }
-  if($('onboarding-preferences-number'))$('onboarding-preferences-number').textContent='2';
-  if($('onboarding-preferences-title'))$('onboarding-preferences-title').textContent='Set your preferences';
-  if($('onboarding-preferences-copy'))$('onboarding-preferences-copy').textContent='Tell Alygnn which roles, location, pay, and work style you want.';
-  if(prefButton)prefButton.disabled=false;
+  window.location.replace(destination);
+  return true;
 }
 
 async function countApplications(userId){
@@ -2547,7 +2527,7 @@ async function loadCandidateWorkspace(options={}){
       $('resume-note').textContent='Upload or build a resume to strengthen your profile.';
       $('hero-resume-btn').textContent='Build Resume';
       $('hero-resume-btn').onclick=()=>{
-        openResumeSetup();
+        window.location.href='app-align-upload.html';
       };
     }
 
