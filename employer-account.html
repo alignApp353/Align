@@ -503,11 +503,31 @@
     flex-shrink:0;
   }
   .account-job-info{ flex:1; min-width:0; }
+  .account-job-title-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:3px;
+  }
   .account-job-title{
     font-size:15px;
     font-weight:500;
     color:var(--text);
-    margin-bottom:3px;
+    margin-bottom:0;
+  }
+  .account-job-urgent{
+    display:inline-flex;
+    align-items:center;
+    font-size:10px;
+    font-weight:700;
+    line-height:1;
+    padding:5px 9px;
+    border-radius:100px;
+    color:#9a5151;
+    background:rgba(215,154,154,.14);
+    border:1px solid rgba(215,154,154,.5);
+    white-space:nowrap;
   }
   .account-job-meta{
     font-size:12px;
@@ -630,7 +650,7 @@
       </div>
     </div>
     <span class="nav-name" id="nav-name"></span>
-    <a href="employer-dashboard.html#post" class="nav-post-job">+ Post a job</a>
+    <a href="employer-dashboard.html#post" class="nav-post-job" id="account-post-job-btn" onclick="handleAccountPostJob(event)">+ Post a job</a>
     <button class="nav-cta" id="dashboard-btn" onclick="goToDashboard()">Dashboard</button>
     <button class="nav-signout" onclick="signOut()">Sign out</button>
   </div>
@@ -732,7 +752,7 @@
   <div class="section">
     <div class="section-header">
       <h2>Posted jobs</h2>
-      <a href="employer-dashboard.html" class="section-link">Post a job →</a>
+      <a href="employer-dashboard.html#post" class="section-link" id="account-post-job-link" onclick="handleAccountPostJob(event)">Post a job →</a>
     </div>
     <div id="posted-jobs-list">
       <div class="empty-state">No jobs posted yet. Once you post a role, it'll show up here.</div>
@@ -783,6 +803,7 @@
   // up which job title an application belongs to, same as
   // employer-dashboard.html does.
   let employerJobs = [];
+  let accountPostingAccess = null;
 
   async function waitForSession(maxWaitMs = 5000) {
     const started = Date.now();
@@ -1073,6 +1094,115 @@
       .replaceAll("'", '&#039;');
   }
 
+  function accountEntitlementNotExpired(entitlement) {
+    if (!entitlement?.current_period_end) return true;
+    const periodEnd = new Date(entitlement.current_period_end).getTime();
+    return Number.isNaN(periodEnd) || periodEnd > Date.now();
+  }
+
+  function accountActiveSlotCount() {
+    return employerJobs.filter(job => {
+      const status = String(job.status || 'active').toLowerCase();
+      return status === 'active' || status === 'pending';
+    }).length;
+  }
+
+  function accountPaidLimit(entitlement) {
+    const serverLimit = Math.max(0, Number(entitlement?.slot_limit || 0));
+    if (serverLimit > 0) return serverLimit;
+
+    const plan = String(entitlement?.test_plan || entitlement?.plan || '').toLowerCase();
+    if (plan === 'weekly_slot') return 1;
+    if (plan === 'launch' || plan === 'business') return 3;
+    if (plan === 'growth' || plan === 'enterprise') return 5;
+    if (plan === 'scale') return 8;
+    return 1;
+  }
+
+  async function loadAccountPostingAccess() {
+    if (!currentUserId) return null;
+
+    let result = await sb
+      .from('employer_entitlements')
+      .select('plan, subscription_status, current_period_end, slot_limit, billing_period, test_mode, test_plan')
+      .eq('employer_id', currentUserId)
+      .maybeSingle();
+
+    // Backward-compatible fallback if the newer entitlement columns are not
+    // installed yet.
+    if (result.error && /slot_limit|billing_period|test_mode|test_plan/i.test(String(result.error.message || ''))) {
+      result = await sb
+        .from('employer_entitlements')
+        .select('plan, subscription_status, current_period_end')
+        .eq('employer_id', currentUserId)
+        .maybeSingle();
+    }
+
+    const ent = result.data || {};
+    const status = String(ent.subscription_status || 'inactive').toLowerCase();
+    const plan = String(ent.test_plan || ent.plan || 'free').toLowerCase();
+    const activePaid =
+      ['active', 'trialing'].includes(status) &&
+      accountEntitlementNotExpired(ent) &&
+      (
+        (ent.test_mode === true && Number(ent.slot_limit || 0) > 0) ||
+        ['launch','growth','scale','weekly_slot','business','enterprise'].includes(plan)
+      );
+
+    const limit = activePaid ? accountPaidLimit(ent) : 1;
+    const used = accountActiveSlotCount();
+
+    accountPostingAccess = {
+      allowed: used < limit,
+      used,
+      limit,
+      reason: used < limit ? 'slot-available' : 'slot-limit'
+    };
+
+    updateAccountPostingButtons();
+    return accountPostingAccess;
+  }
+
+  function updateAccountPostingButtons() {
+    if (!accountPostingAccess) return;
+
+    const full = !accountPostingAccess.allowed;
+    const top = document.getElementById('account-post-job-btn');
+    const section = document.getElementById('account-post-job-link');
+
+    if (top) {
+      top.textContent = full ? '+ Add a job slot' : '+ Post a job';
+      top.href = full
+        ? 'pricing.html?reason=slot-limit'
+        : 'employer-dashboard.html#post';
+      top.title = full
+        ? `All ${accountPostingAccess.limit} job ${accountPostingAccess.limit === 1 ? 'slot is' : 'slots are'} in use.`
+        : `${accountPostingAccess.limit - accountPostingAccess.used} job slot${accountPostingAccess.limit - accountPostingAccess.used === 1 ? '' : 's'} available.`;
+    }
+
+    if (section) {
+      section.textContent = full ? 'Add a job slot →' : 'Post a job →';
+      section.href = full
+        ? 'pricing.html?reason=slot-limit'
+        : 'employer-dashboard.html#post';
+    }
+  }
+
+  async function handleAccountPostJob(event) {
+    if (event) event.preventDefault();
+
+    // Re-check before navigating so the decision is fresh even if another tab
+    // just posted/deleted a job or changed the employer's package.
+    const access = await loadAccountPostingAccess();
+
+    if (access && !access.allowed) {
+      window.location.href = 'pricing.html?reason=slot-limit';
+      return;
+    }
+
+    window.location.href = 'employer-dashboard.html#post';
+  }
+
   async function loadEmployerJobs() {
     if (!currentUserId) return;
 
@@ -1081,7 +1211,7 @@
 
     const { data: jobs, error } = await sb
       .from('jobs')
-      .select('id, title, location, job_type, work_style, salary, status, created_at')
+      .select('id, title, location, job_type, work_style, salary, status, created_at, urgently_hiring')
       .eq('employer_id', currentUserId)
       .order('created_at', { ascending: false });
 
@@ -1107,7 +1237,10 @@
       <div class="account-job-row">
         <div class="account-job-dot"></div>
         <div class="account-job-info">
-          <div class="account-job-title">${escapeHtml(job.title)}</div>
+          <div class="account-job-title-row">
+            <div class="account-job-title">${escapeHtml(job.title)}</div>
+            ${job.urgently_hiring === true ? '<span class="account-job-urgent">Urgently Hiring</span>' : ''}
+          </div>
           <div class="account-job-meta">${escapeHtml(job.job_type || '')} · ${escapeHtml(job.work_style || '')}${job.location ? ' · ' + escapeHtml(job.location) : ''}${job.salary ? ' · ' + escapeHtml(job.salary) : ''}</div>
         </div>
         <a href="employer-dashboard.html" class="section-link">Manage →</a>
@@ -1576,6 +1709,7 @@
 
     updateVerificationBanner();
     await loadEmployerJobs();
+    await loadAccountPostingAccess();
     await loadCandidates();
     initNotifications();
   }
