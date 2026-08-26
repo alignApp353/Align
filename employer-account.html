@@ -68,6 +68,13 @@
   .notif-view-all:hover{ opacity:.8; }
   .nav-signout:hover{ border-color:var(--brand); color:var(--brand); }
   .nav-cta{ background:var(--brand); color:white; border:none; border-radius:100px; padding:9px 22px; font-size:14px; font-family:'DM Sans',sans-serif; cursor:pointer; transition:opacity 0.2s; }
+  .nav-post-job{
+    display:inline-flex; align-items:center; gap:4px;
+    background:transparent; color:var(--brand); border:1.5px solid var(--brand);
+    border-radius:100px; padding:8px 18px; font-size:14px; font-weight:500;
+    text-decoration:none; white-space:nowrap; transition:background .2s, color .2s;
+  }
+  .nav-post-job:hover{ background:var(--brand); color:white; }
   .nav-cta:hover{ opacity:0.88; }
 
   .page{ max-width:880px; margin:0 auto; padding:56px 6% 100px; }
@@ -623,6 +630,7 @@
       </div>
     </div>
     <span class="nav-name" id="nav-name"></span>
+    <a href="employer-dashboard.html#post" class="nav-post-job">+ Post a job</a>
     <button class="nav-cta" id="dashboard-btn" onclick="goToDashboard()">Dashboard</button>
     <button class="nav-signout" onclick="signOut()">Sign out</button>
   </div>
@@ -1502,15 +1510,27 @@
       .eq('id', currentUserId)
       .single();
 
-    if (error && error.code !== 'PGRST116') console.error('Failed to load employer profile', error);
+    // A genuine load failure (network hiccup, an RLS policy issue, etc.)
+    // must NEVER be treated as "this employer hasn't submitted their
+    // business profile yet" — that silently sent already-verified
+    // employers back through onboarding whenever this query happened to
+    // fail for any reason, which is both wrong and needlessly disruptive.
+    // Show a real error and stop here instead of guessing their status.
+    if (error && error.code !== 'PGRST116') {
+      console.error('Failed to load employer profile', error);
+      const loadingEl = document.getElementById('auth-loading');
+      loadingEl.innerHTML = `
+        <div style="text-align:center; max-width:360px; padding:0 20px;">
+          <div style="font-size:14px; color:var(--text); margin-bottom:6px;">Could not load your account</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:16px; word-break:break-word;">${escapeHtml(error.message || 'Unknown error.')}</div>
+          <button onclick="location.reload()" style="background:var(--brand); color:#fff; border:none; border-radius:100px; padding:9px 20px; font-size:13px; font-family:inherit; cursor:pointer;">Retry</button>
+        </div>`;
+      return;
+    }
 
-    // A session merely proves someone is logged in — it says nothing about
-    // whether they're an employer. profiles.role is set once onboarding
-    // completes, but a brand-new employer mid-onboarding won't have that
-    // yet, so user_metadata.role (set at signup) is checked too. Only
-    // reject if NEITHER source says "employer" — anyone else (a job
-    // seeker's session, or no session-linked profile at all) gets sent to
-    // log in as an employer instead of silently seeing this page half-built.
+    // A role check happens above this fetch already, so by this point we
+    // know profile is either a real row or genuinely absent (PGRST116) —
+    // not the product of a failed query.
     const role = String(profile?.role || session.user.user_metadata?.role || '').toLowerCase();
     if (role !== 'employer') { window.location.replace('login.html?role=employer'); return; }
 
