@@ -397,8 +397,24 @@
       }
       return;
     }
-    await savePendingPreferences(data.user);
     const r = data.user?.user_metadata?.role || 'seeker';
+
+    // The tab they picked (currentRole) is what they're asserting about
+    // their own account — if it doesn't match the account's real role,
+    // sign them back out immediately rather than silently redirecting
+    // into the other experience under the wrong context. Checked before
+    // savePendingPreferences so a rejected login attempt has no side effects.
+    if (r !== currentRole) {
+      await sb.auth.signOut();
+      if (currentRole === 'employer') {
+        showMsg('This is not an employer account. Switch to the Job Seeker tab to sign in, or create a new employer account.');
+      } else {
+        showMsg('This is an employer account. Switch to the Employer tab above to sign in.');
+      }
+      return;
+    }
+
+    await savePendingPreferences(data.user);
     window.location.href = redirectFor(r);
   }
 
