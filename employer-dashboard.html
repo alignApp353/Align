@@ -411,6 +411,9 @@
     <button class="nav-item active" onclick="showPanel('jobs', this)">
       <span class="nav-icon">💼</span> My Jobs
     </button>
+    <button class="nav-item" onclick="openAllCandidates()">
+      <span class="nav-icon">👥</span> Candidates
+    </button>
     <button class="nav-item" id="sidebar-post-job-btn" onclick="openPostJob()">
       <span class="nav-icon">➕</span> <span id="sidebar-post-job-label">Post a Job</span>
     </button>
@@ -442,8 +445,8 @@
       </div>
     </div>
 
-    <!-- CANDIDATES (single job — reached only via the "Candidates" button
-         on a job row in My Jobs; never shows more than one job's list) -->
+    <!-- CANDIDATES — shows all applicants by default. When opened from a
+         specific job row, it filters to that job's applicants. -->
     <div class="panel" id="panel-candidates">
       <a href="#" onclick="showPanel('jobs'); return false;" class="nav-back-link" style="display:block; font-size:13px; color:var(--text-muted); margin-bottom:14px;">← Back to My Jobs</a>
       <div class="page-header">
@@ -2217,13 +2220,36 @@
       return;
     }
 
-    list.innerHTML = items.slice(0, 6).map(n => `
-      <a class="notif-item ${n.read_at ? '' : 'unread'}" href="${n.link ? escapeHtml(n.link) : '#'}" onclick="markNotificationRead('${n.id}')">
-        <div class="notif-item-title">${escapeHtml(n.title)}</div>
-        ${n.body ? `<div class="notif-item-body">${escapeHtml(n.body)}</div>` : ''}
-        <div class="notif-item-time">${timeAgo(n.created_at)}</div>
-      </a>
-    `).join('');
+    list.innerHTML = items.slice(0, 6).map(n => {
+      const link = n.link || '#';
+      const isCandidateLink =
+        link === '#candidates' ||
+        link.endsWith('employer-dashboard.html#candidates') ||
+        String(n.type || '').toLowerCase().includes('applicant');
+
+      const clickHandler = isCandidateLink
+        ? `handleCandidateNotification(event, '${n.id}')`
+        : `markNotificationRead('${n.id}')`;
+
+      const href = isCandidateLink ? 'employer-dashboard.html#candidates' : escapeHtml(link);
+
+      return `
+        <a class="notif-item ${n.read_at ? '' : 'unread'}" href="${href}" onclick="${clickHandler}">
+          <div class="notif-item-title">${escapeHtml(n.title)}</div>
+          ${n.body ? `<div class="notif-item-body">${escapeHtml(n.body)}</div>` : ''}
+          <div class="notif-item-time">${timeAgo(n.created_at)}</div>
+        </a>
+      `;
+    }).join('');
+  }
+
+  async function handleCandidateNotification(event, id) {
+    if (event) event.preventDefault();
+    await markNotificationRead(id);
+    candidateJobFilter = null;
+    const dropdown = document.getElementById('notif-dropdown');
+    if (dropdown) dropdown.style.display = 'none';
+    showPanel('candidates');
   }
 
   async function markNotificationRead(id) {
@@ -2428,14 +2454,17 @@
     renderCandidates();
   }
 
-  // Which job's candidates are currently shown — always exactly one job.
-  // This panel has no sidebar entry of its own; it's only reached via the
-  // "Candidates" button on a job row in My Jobs.
+  // Optional job filter for the Candidates page.
+  // null = show every applicant across this employer's jobs.
   let candidateJobFilter = null;
 
-  // Called from the "Candidates" button on a job row in My Jobs — jumps
-  // straight to that job's applicants instead of making the employer
-  // switch panels and then find the right tab themselves.
+  // Global Candidates navigation: always opens the complete applicant list.
+  function openAllCandidates() {
+    candidateJobFilter = null;
+    showPanel('candidates');
+  }
+
+  // Called from the Candidates button on a specific job row.
   function viewCandidatesForJob(jobId) {
     candidateJobFilter = jobId;
     showPanel('candidates');
@@ -2443,30 +2472,31 @@
 
   function renderCandidates() {
     const grid = document.getElementById('candidates-grid');
+    if (!grid) return;
 
     const job = jobs.find(j => j.id === candidateJobFilter) || null;
     const titleEl = document.getElementById('candidates-page-title');
     const subEl = document.getElementById('candidates-page-sub');
-    if (titleEl) titleEl.textContent = job ? job.title : 'Candidates';
-    if (subEl) subEl.textContent = job ? 'Job seekers who swiped right on this listing' : 'Job seekers who swiped right on your listings';
 
-    if (!candidateJobFilter) {
-      grid.innerHTML = `
-        <div class="empty-state" style="grid-column:1/-1" id="candidates-empty-state">
-          <div class="empty-icon">👥</div>
-          <div class="empty-title">No job selected</div>
-          Open a job in My Jobs and click "Candidates" to see its applicants here.
-        </div>`;
-      return;
+    if (titleEl) titleEl.textContent = job ? job.title : 'Candidates';
+    if (subEl) {
+      subEl.textContent = job
+        ? 'Applicants to this job'
+        : 'Applicants across all of your job listings';
     }
 
-    const visible = candidates.filter(c => (c.job ? c.job.id : 'unknown') === candidateJobFilter);
+    const visible = candidateJobFilter
+      ? candidates.filter(c => (c.job ? c.job.id : 'unknown') === candidateJobFilter)
+      : candidates;
 
     if (visible.length === 0) {
       grid.innerHTML = `
         <div class="empty-state" style="grid-column:1/-1" id="candidates-empty-state">
           <div class="empty-icon">👥</div>
-          <div class="empty-title">No candidates for this job yet</div>
+          <div class="empty-title">${candidateJobFilter ? 'No candidates for this job yet' : 'No candidates yet'}</div>
+          ${candidateJobFilter
+            ? 'Candidates will appear here after they apply to this job.'
+            : 'New applicants will appear here as soon as they apply to any of your active jobs.'}
         </div>`;
       return;
     }
