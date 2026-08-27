@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>Candidates — Alygnn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--card:#FCFCFA;
+    --text:#1A2530;--muted:#4A5968;--border:#DDE3E8;
+    --mint:#6FBF8F;--rose:#D79A9A;--brand-light:rgba(93,127,163,.10);
+    --mint-light:rgba(111,191,143,.13);--rose-light:rgba(215,154,154,.13);
+  }
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;visibility:hidden}
+  body.auth-ready{visibility:visible}
+  #auth-loading{
+    visibility:visible;position:fixed;inset:0;background:var(--bg);z-index:9999;
+    display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px
+  }
+  body.auth-ready #auth-loading{display:none}
+
+  nav{
+    height:64px;padding:0 5%;display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid var(--border);background:rgba(246,248,247,.94);
+    backdrop-filter:blur(12px);position:sticky;top:0;z-index:100
+  }
+  .logo{font-family:'DM Serif Display',serif;font-size:22px;color:var(--brand);text-decoration:none}
+  .logo span{color:var(--sage)}
+  .nav-right{display:flex;align-items:center;gap:12px}
+  .nav-user{font-size:13px;color:var(--muted)}
+  .nav-link{
+    border:1px solid var(--border);background:white;color:var(--text);border-radius:999px;
+    padding:9px 16px;text-decoration:none;font-size:13px;font-weight:600
+  }
+  .nav-primary{background:var(--brand);color:white;border-color:var(--brand)}
+
+  .layout{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:calc(100vh - 64px)}
+  .sidebar{border-right:1px solid var(--border);padding:28px 18px;background:rgba(252,252,250,.65)}
+  .sidebar-label{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:#8794A0;margin:0 10px 10px}
+  .side-link{
+    display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;border-radius:10px;
+    color:var(--muted);text-decoration:none;font-size:13px;font-weight:500;margin-bottom:5px
+  }
+  .side-link:hover{background:white;color:var(--text)}
+  .side-link.active{background:var(--brand-light);color:var(--brand)}
+  .side-icon{width:18px;text-align:center;font-weight:700}
+  .sidebar hr{border:0;border-top:1px solid var(--border);margin:18px 0}
+
+  main{padding:42px 4.5% 90px;max-width:1400px;width:100%;margin:0 auto}
+  .page-top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:28px}
+  .page-kicker{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--brand);font-weight:700;margin-bottom:6px}
+  h1{font-family:'DM Serif Display',serif;font-size:36px;line-height:1.05;letter-spacing:-.6px;margin-bottom:7px}
+  .page-sub{font-size:13px;color:var(--muted);line-height:1.55;max-width:680px}
+
+  .toolbar{
+    display:grid;grid-template-columns:minmax(260px,1fr) 190px;gap:10px;margin-bottom:22px
+  }
+  .field{
+    width:100%;border:1px solid var(--border);border-radius:12px;background:white;
+    color:var(--text);padding:11px 13px;font:13px 'DM Sans',sans-serif;outline:none
+  }
+  .field:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,127,163,.08)}
+
+  .info-note{
+    border:1px solid rgba(93,127,163,.16);background:rgba(93,127,163,.055);
+    padding:12px 14px;border-radius:12px;color:var(--muted);font-size:11.5px;line-height:1.55;
+    margin-bottom:24px
+  }
+  .info-note strong{color:var(--text)}
+
+  .jobs-groups{display:grid;gap:16px}
+  .job-group{
+    background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;
+    box-shadow:0 8px 28px rgba(38,54,70,.035)
+  }
+  .job-group.focused{border-color:rgba(93,127,163,.55);box-shadow:0 0 0 3px rgba(93,127,163,.07)}
+  .job-group-head{
+    width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;
+    background:transparent;border:0;padding:20px 22px;text-align:left;cursor:pointer;font-family:inherit
+  }
+  .job-group-head:hover{background:rgba(93,127,163,.025)}
+  .job-head-left{min-width:0}
+  .job-title-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:5px}
+  .job-title{font-family:'DM Serif Display',serif;font-size:21px;color:var(--text)}
+  .job-status{
+    display:inline-flex;padding:3px 8px;border-radius:999px;font-size:9px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.35px;border:1px solid var(--border);color:var(--muted)
+  }
+  .job-status.active{color:#2c7e50;background:var(--mint-light);border-color:rgba(111,191,143,.3)}
+  .job-status.pending{color:#8a6d2f;background:rgba(231,184,109,.12);border-color:rgba(231,184,109,.3)}
+  .job-meta{font-size:11.5px;color:var(--muted)}
+  .job-head-right{display:flex;align-items:center;gap:14px;flex-shrink:0}
+  .count-badge{
+    min-width:34px;height:30px;padding:0 10px;border-radius:999px;background:var(--brand-light);
+    color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700
+  }
+  .chevron{font-size:16px;color:var(--muted);transition:transform .2s}
+  .job-group.open .chevron{transform:rotate(180deg)}
+  .job-group-body{display:none;border-top:1px solid var(--border);padding:18px 22px 22px}
+  .job-group.open .job-group-body{display:block}
+
+  .group-tools{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px
+  }
+  .group-label{font-size:11px;color:var(--muted)}
+  .group-sort{
+    border:1px solid var(--border);background:white;border-radius:999px;padding:7px 10px;
+    color:var(--muted);font:11px 'DM Sans',sans-serif
+  }
+
+  .candidate-list{display:grid;gap:10px}
+  .candidate-card{
+    display:grid;grid-template-columns:minmax(0,1fr) 118px auto;gap:18px;align-items:center;
+    border:1px solid var(--border);border-radius:14px;background:white;padding:16px 17px;
+    transition:border-color .2s,box-shadow .2s,transform .2s
+  }
+  .candidate-card:hover{border-color:rgba(93,127,163,.35);transform:translateY(-1px);box-shadow:0 8px 18px rgba(38,54,70,.04)}
+  .candidate-card.notification-focus{
+    border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,127,163,.09)
+  }
+  .candidate-main{min-width:0}
+  .candidate-top{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+  .candidate-avatar{
+    width:40px;height:40px;border-radius:12px;background:var(--brand-light);color:var(--brand);
+    display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:15px;flex-shrink:0
+  }
+  .candidate-name-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .candidate-name{font-size:14px;font-weight:700;color:var(--text)}
+  .candidate-status{
+    display:inline-flex;padding:3px 8px;border-radius:999px;border:1px solid var(--border);
+    font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.25px;color:var(--muted)
+  }
+  .candidate-status.accepted{color:#2c7e50;background:var(--mint-light);border-color:rgba(111,191,143,.3)}
+  .candidate-status.rejected{color:#995858;background:var(--rose-light);border-color:rgba(215,154,154,.3)}
+  .new-label{
+    display:inline-flex;padding:3px 8px;border-radius:999px;background:var(--brand-light);
+    color:var(--brand);font-size:9px;font-weight:700;text-transform:uppercase
+  }
+  .applied-time{font-size:10.5px;color:#8794A0;margin-top:2px}
+  .candidate-summary{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px;max-width:700px}
+  .candidate-tags{display:flex;gap:5px;flex-wrap:wrap}
+  .tag{font-size:9.5px;padding:3px 8px;border-radius:999px;background:rgba(111,191,143,.09);color:#397153}
+
+  .match-box{text-align:center}
+  .match-score{
+    width:72px;height:72px;margin:0 auto 5px;border-radius:50%;
+    background:conic-gradient(var(--brand) calc(var(--score) * 1%), #E8EDF0 0);
+    display:grid;place-items:center;position:relative
+  }
+  .match-score::after{content:'';position:absolute;inset:6px;border-radius:50%;background:white}
+  .match-num{position:relative;z-index:1;font-size:17px;font-weight:700;color:var(--text)}
+  .match-label{font-size:9px;text-transform:uppercase;letter-spacing:.55px;color:var(--muted);font-weight:700}
+  .match-band{font-size:10px;color:var(--brand);font-weight:600;margin-top:2px}
+
+  .candidate-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+  .btn{
+    border:1px solid var(--border);background:white;color:var(--text);border-radius:9px;
+    padding:8px 11px;font:600 11px 'DM Sans',sans-serif;cursor:pointer;white-space:nowrap
+  }
+  .btn:hover{border-color:var(--brand);color:var(--brand)}
+  .btn.accept{background:var(--mint);border-color:var(--mint);color:white}
+  .btn.pass:hover{border-color:var(--rose);color:#995858}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+
+  .empty{
+    border:1px dashed var(--border);border-radius:14px;padding:28px 20px;text-align:center;
+    color:var(--muted);font-size:12px
+  }
+  .empty-title{font-family:'DM Serif Display',serif;color:var(--text);font-size:19px;margin-bottom:5px}
+
+  .modal-overlay{
+    display:none;position:fixed;inset:0;background:rgba(26,37,48,.45);z-index:300;
+    align-items:center;justify-content:center;padding:24px
+  }
+  .modal-overlay.show{display:flex}
+  .modal{
+    background:var(--card);border-radius:20px;width:min(700px,100%);max-height:88vh;overflow-y:auto;
+    padding:30px;position:relative
+  }
+  .modal-close{position:absolute;top:18px;right:18px;border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer}
+  .profile-head{display:flex;gap:14px;align-items:center;padding-right:35px;margin-bottom:16px}
+  .profile-avatar{
+    width:58px;height:58px;border-radius:16px;background:var(--brand-light);color:var(--brand);
+    display:grid;place-items:center;font-family:'DM Serif Display',serif;font-size:20px
+  }
+  .profile-name{font-family:'DM Serif Display',serif;font-size:24px}
+  .profile-role{font-size:12px;color:var(--muted);margin-top:2px}
+  .profile-match{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;
+    border:1px solid rgba(93,127,163,.17);background:var(--brand-light);border-radius:12px;margin:16px 0
+  }
+  .profile-match strong{font-size:13px}
+  .profile-match-score{font-size:22px;font-weight:700;color:var(--brand)}
+  .breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:16px}
+  .break-item{border:1px solid var(--border);border-radius:11px;padding:10px 11px;background:white}
+  .break-name{font-size:10px;color:var(--muted);margin-bottom:4px}
+  .break-value{font-size:13px;font-weight:700;color:var(--text)}
+  .match-reasons{margin:0 0 16px 18px;color:var(--muted);font-size:11.5px;line-height:1.6}
+  .section-title{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:18px 0 8px}
+  .profile-text{font-size:13px;line-height:1.62;color:var(--text)}
+  .profile-tags{display:flex;gap:6px;flex-wrap:wrap}
+  .profile-list{padding-left:18px;color:var(--text);font-size:12.5px;line-height:1.65}
+  .resume-btn{
+    display:inline-flex;border:0;border-radius:10px;background:var(--brand);color:white;
+    padding:10px 14px;font:600 12px 'DM Sans',sans-serif;cursor:pointer
+  }
+  .profile-actions{display:flex;gap:8px;margin-top:22px}
+  .profile-actions .btn{flex:1;padding:10px 12px}
+  .contact{font-size:11.5px;color:var(--muted);margin-top:5px}
+
+  .toast{
+    position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(70px);
+    background:var(--text);color:white;padding:10px 16px;border-radius:999px;font-size:12px;
+    opacity:0;transition:.25s;z-index:500
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media(max-width:900px){
+    .layout{grid-template-columns:1fr}.sidebar{display:none}
+    .candidate-card{grid-template-columns:1fr 96px}.candidate-actions{grid-column:1/-1;justify-content:flex-start}
+  }
+  @media(max-width:620px){
+    main{padding:28px 18px 70px}.page-top{align-items:flex-start;flex-direction:column}
+    .toolbar{grid-template-columns:1fr}.candidate-card{grid-template-columns:1fr}
+    .match-box{text-align:left;display:flex;align-items:center;gap:10px}
+    .match-score{width:58px;height:58px;margin:0}.candidate-actions{justify-content:flex-start}
+    .breakdown{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div id="auth-loading">Loading candidates…</div>
+
+<nav>
+  <a href="index.html" class="logo">Alygnn<span>.</span></a>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user-name"></span>
+    <a href="employer-dashboard.html" class="nav-link nav-primary">Dashboard</a>
+  </div>
+</nav>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-label">Employer</div>
+    <a href="employer-dashboard.html" class="side-link"><span class="side-icon">▣</span> My Jobs</a>
+    <a href="candidates.html" class="side-link active"><span class="side-icon">◎</span> Candidates</a>
+    <a href="employer-dashboard.html#post" class="side-link"><span class="side-icon">＋</span> Post a Job</a>
+    <hr>
+    <a href="employer-account.html" class="side-link"><span class="side-icon">←</span> My account</a>
+  </aside>
+
+  <main>
+    <div class="page-top">
+      <div>
+        <div class="page-kicker">Applicant workspace</div>
+        <h1>Candidates by job</h1>
+        <div class="page-sub">Review candidates inside the job they applied to instead of mixing every applicant into one list.</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <input class="field" id="search-input" type="text" placeholder="Search a job, candidate, skill, or experience…" oninput="renderGroups()">
+      <select class="field" id="global-sort" onchange="renderGroups()">
+        <option value="newest">Candidates: newest first</option>
+        <option value="match">Candidates: match score</option>
+        <option value="name">Candidates: name</option>
+      </select>
+    </div>
+
+    <div class="info-note">
+      <strong>Alygnn Match</strong> compares job-related information from the posting with information available in the candidate’s resume, such as skills, experience, role history, and explicitly required education. It does not use protected traits and does not make the hiring decision for you.
+    </div>
+
+    <div class="jobs-groups" id="jobs-groups">
+      <div class="empty"><div class="empty-title">Loading applications…</div></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="profile-overlay" onclick="if(event.target===this) closeProfile()">
+  <div class="modal" id="profile-modal"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://auth.alygnn.com';
+const SUPABASE_ANON_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+const {createClient}=supabase;
+const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+let currentUser=null;
+let currentProfile=null;
+let jobs=[];
+let candidates=[];
+let focusedJobId=null;
+let focusedApplicationId=null;
+
+const STOP_WORDS=new Set([
+  'the','and','for','with','that','this','from','your','you','our','are','will','have','has',
+  'job','role','work','team','position','candidate','company','years','year','plus','required',
+  'preferred','ability','strong','excellent','including','using','into','within','about','who',
+  'but','not','all','any','can','may','must','should','their','they','them','our','per','full',
+  'time','part','remote','hybrid','person','responsible','responsibilities'
+]);
+
+function escapeHtml(v){
+  return String(v||'')
+    .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
+    .replaceAll('"','&quot;').replaceAll("'",'&#039;');
+}
+
+function getInitials(name){
+  return String(name||'Candidate').trim().split(/\s+/).map(x=>x[0]||'').join('').slice(0,2).toUpperCase()||'C';
+}
+
+function timeAgo(iso){
+  if(!iso)return '';
+  const diff=Date.now()-new Date(iso).getTime();
+  const mins=Math.floor(diff/60000);
+  if(mins<1)return 'just now';
+  if(mins<60)return mins+'m ago';
+  const hrs=Math.floor(mins/60);
+  if(hrs<24)return hrs+'h ago';
+  const days=Math.floor(hrs/24);
+  if(days<7)return days+'d ago';
+  return new Date(iso).toLocaleDateString();
+}
+
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(showToast._timer);
+  showToast._timer=setTimeout(()=>el.classList.remove('show'),2200);
+}
+
+function parseResume(profile){
+  try{
+    return typeof profile?.resume_data==='string'
+      ? JSON.parse(profile.resume_data)
+      : (profile?.resume_data||{});
+  }catch(e){ return {}; }
+}
+
+function normalizeWord(word){
+  return String(word||'').toLowerCase()
+    .replace(/[^a-z0-9+#.]/g,'')
+    .replace(/ies$/,'y')
+    .replace(/ing$/,'')
+    .replace(/ed$/,'')
+    .replace(/s$/,'');
+}
+
+function tokens(value){
+  return [...new Set(
+    String(value||'').toLowerCase()
+      .split(/[^a-z0-9+#.]+/)
+      .map(normalizeWord)
+      .filter(w=>w.length>=3&&!STOP_WORDS.has(w))
+  )];
+}
+
+function objectText(value){
+  if(value==null)return '';
+  if(typeof value==='string')return value;
+  if(Array.isArray(value))return value.map(objectText).join(' ');
+  if(typeof value==='object')return Object.values(value).map(objectText).join(' ');
+  return String(value);
+}
+
+function candidateResumeText(resume){
+  return [
+    resume.summary,
+    objectText(resume.skills),
+    objectText(resume.experience),
+    objectText(resume.education),
+    objectText(resume.certifications),
+    objectText(resume.awards)
+  ].filter(Boolean).join(' ');
+}
+
+function experienceText(resume){
+  return objectText(resume.experience||[]);
+}
+
+function educationText(resume){
+  return objectText(resume.education||[]);
+}
+
+function skillList(resume){
+  if(Array.isArray(resume.skills)){
+    return resume.skills.map(s=>typeof s==='string'?s:objectText(s)).filter(Boolean);
+  }
+  if(typeof resume.skills==='string'){
+    return resume.skills.split(/[,;\n]/).map(s=>s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function overlapPercent(sourceTokens,targetTokens){
+  if(!targetTokens.length)return 0;
+  const source=new Set(sourceTokens);
+  const hits=targetTokens.filter(t=>source.has(t)).length;
+  return Math.round((hits/targetTokens.length)*100);
+}
+
+function educationLevel(text){
+  const t=String(text||'').toLowerCase();
+  if(/doctor|ph\.?d|doctoral|md\b|juris|j\.?d\b/.test(t))return 5;
+  if(/master|mba|m\.?s\b|m\.?a\b/.test(t))return 4;
+  if(/bachelor|b\.?s\b|b\.?a\b/.test(t))return 3;
+  if(/associate|a\.?s\b|a\.?a\b/.test(t))return 2;
+  if(/high school|ged|diploma/.test(t))return 1;
+  return 0;
+}
+
+function requirementLines(job){
+  return String(job?.requirements||'')
+    .split(/\n|;/)
+    .map(s=>s.trim())
+    .filter(Boolean);
+}
+
+function jobKeywordTokens(job){
+  return tokens([
+    job?.title,
+    job?.description,
+    job?.requirements
+  ].filter(Boolean).join(' '));
+}
+
+function matchRequirement(line,resume,resumeText){
+  const lower=line.toLowerCase();
+
+  // Education criteria.
+  if(/high school|ged|associate|bachelor|master|doctoral|doctorate|ph\.?d|degree/.test(lower)){
+    const need=educationLevel(lower);
+    const have=educationLevel(educationText(resume));
+    return {matched:need>0&&have>=need,type:'education'};
+  }
+
+  // Years of experience criteria. Use explicit years text where present.
+  const yearsMatch=lower.match(/(\d+)\s*\+?\s*years?/);
+  if(yearsMatch){
+    const need=Number(yearsMatch[1]);
+    const expText=experienceText(resume).toLowerCase();
+    const explicit=[...expText.matchAll(/(\d+)\s*\+?\s*years?/g)].map(m=>Number(m[1]));
+    const maxExplicit=explicit.length?Math.max(...explicit):0;
+
+    // If the resume does not state total years explicitly, do not treat it as
+    // a hard mismatch; use relevant experience entries as partial evidence.
+    if(maxExplicit)return {matched:maxExplicit>=need,type:'experience-years'};
+    const entries=Array.isArray(resume.experience)?resume.experience.length:0;
+    return {matched:entries>=Math.min(need,3),type:'experience-years',estimated:true};
+  }
+
+  const reqTokens=tokens(line);
+  const resTokens=tokens(resumeText);
+  if(!reqTokens.length)return {matched:false,type:'other'};
+  const pct=overlapPercent(resTokens,reqTokens);
+  return {matched:pct>=50,type:'other',pct};
+}
+
+function calculateMatch(job,profile){
+  const resume=parseResume(profile);
+  const resumeText=candidateResumeText(resume);
+  const resumeTokens=tokens(resumeText);
+  const jobTokens=jobKeywordTokens(job);
+  const requirements=requirementLines(job);
+
+  const reqResults=requirements.map(line=>({line,...matchRequirement(line,resume,resumeText)}));
+  const educationReq=reqResults.filter(r=>r.type==='education');
+  const nonEducationReq=reqResults.filter(r=>r.type!=='education');
+
+  const requirementsPct=nonEducationReq.length
+    ? Math.round(nonEducationReq.filter(r=>r.matched).length/nonEducationReq.length*100)
+    : overlapPercent(resumeTokens,tokens(job?.requirements||job?.description||''));
+
+  const expTokens=tokens(experienceText(resume));
+  const titleTokens=tokens(job?.title||'');
+  const descriptionCore=tokens(job?.description||'').slice(0,35);
+  const experienceTarget=[...new Set([...titleTokens,...descriptionCore])];
+  const experiencePct=experienceTarget.length
+    ? Math.min(100,Math.round(overlapPercent(expTokens,experienceTarget)*1.45))
+    : 0;
+
+  const skills=skillList(resume);
+  const skillsTokens=tokens(skills.join(' '));
+  const skillsPct=jobTokens.length
+    ? Math.min(100,Math.round(overlapPercent(skillsTokens,jobTokens)*2.2))
+    : 0;
+
+  const educationPct=educationReq.length
+    ? (educationReq.every(r=>r.matched)?100:0)
+    : null;
+
+  const summaryPct=Math.min(
+    100,
+    Math.round(
+      overlapPercent(tokens([resume.summary,profile?.full_name].filter(Boolean).join(' ')),[...titleTokens,...descriptionCore.slice(0,12)])*1.8
+    )
+  );
+
+  const components=[
+    {key:'Requirements',value:requirementsPct,weight:40},
+    {key:'Experience',value:experiencePct,weight:30},
+    {key:'Skills',value:skillsPct,weight:20},
+    {key:'Role alignment',value:summaryPct,weight:10}
+  ];
+
+  if(educationPct!==null){
+    components.push({key:'Education',value:educationPct,weight:15});
+  }
+
+  const weightTotal=components.reduce((s,c)=>s+c.weight,0);
+  const weighted=components.reduce((s,c)=>s+c.value*c.weight,0);
+  let score=Math.round(weighted/weightTotal);
+
+  // Keep empty/incomplete resumes from appearing as confidently matched.
+  const hasResumeSignal=resumeTokens.length>=5;
+  if(!hasResumeSignal)score=Math.min(score,35);
+
+  const reasons=[];
+  if(nonEducationReq.length){
+    const matched=nonEducationReq.filter(r=>r.matched).length;
+    reasons.push(`${matched} of ${nonEducationReq.length} listed requirement${nonEducationReq.length===1?'':'s'} matched in the resume`);
+  }
+  if(educationReq.length){
+    reasons.push(educationPct===100
+      ? 'Resume education meets the posting’s stated degree requirement'
+      : 'Resume does not clearly show the posting’s stated degree requirement');
+  }
+
+  const overlapSkills=skills.filter(skill=>{
+    const st=tokens(skill);
+    return st.some(t=>jobTokens.includes(t));
+  }).slice(0,4);
+  if(overlapSkills.length)reasons.push('Relevant skills: '+overlapSkills.join(', '));
+
+  if(experiencePct>=55)reasons.push('Resume experience is strongly related to the role');
+  else if(experiencePct>=30)reasons.push('Resume shows some role-related experience');
+  else reasons.push('Limited role-related experience was detected in the available resume text');
+
+  if(!hasResumeSignal)reasons.push('Resume data is limited, so this score has lower confidence');
+
+  return {score,components,reasons,resume};
+}
+
+function scoreBand(score){
+  if(score>=80)return 'Strong match';
+  if(score>=65)return 'Good match';
+  if(score>=45)return 'Possible match';
+  return 'Limited match';
+}
+
+function statusLabel(status){
+  const s=String(status||'applied').toLowerCase();
+  if(s==='accepted')return ['Accepted','accepted'];
+  if(s==='rejected')return ['Passed','rejected'];
+  return ['New applicant',''];
+}
+
+async function loadData(){
+  const {data:{session},error:sessionError}=await sb.auth.getSession();
+  if(sessionError||!session){
+    location.replace('login.html?role=employer');
+    return;
+  }
+  currentUser=session.user;
+
+  const {data:profile,error:profileError}=await sb
+    .from('profiles')
+    .select('id,role,company_name,full_name')
+    .eq('id',currentUser.id)
+    .maybeSingle();
+
+  if(profileError){
+    console.error(profileError);
+    location.replace('login.html?role=employer');
+    return;
+  }
+  if(String(profile?.role||currentUser.user_metadata?.role||'').toLowerCase()!=='employer'){
+    location.replace('login.html?role=employer');
+    return;
+  }
+  currentProfile=profile||{};
+  document.getElementById('nav-user-name').textContent=
+    profile?.company_name||profile?.full_name||currentUser.user_metadata?.company_name||'';
+
+  const {data:jobsData,error:jobsError}=await sb
+    .from('jobs')
+    .select('*')
+    .eq('employer_id',currentUser.id)
+    .order('created_at',{ascending:false});
+
+  if(jobsError){
+    console.error(jobsError);
+    document.getElementById('jobs-groups').innerHTML='<div class="empty"><div class="empty-title">Could not load your jobs</div>Try again in a moment.</div>';
+    document.body.classList.add('auth-ready');
+    return;
+  }
+  jobs=jobsData||[];
+
+  if(!jobs.length){
+    document.getElementById('jobs-groups').innerHTML='<div class="empty"><div class="empty-title">No jobs yet</div>Post a job before reviewing candidates.</div>';
+    document.body.classList.add('auth-ready');
+    return;
+  }
+
+  const jobIds=jobs.map(j=>j.id);
+  const {data:apps,error:appsError}=await sb
+    .from('applications')
+    .select('id,job_id,candidate_id,status,applied_at')
+    .in('job_id',jobIds)
+    .order('applied_at',{ascending:false});
+
+  if(appsError){
+    console.error(appsError);
+    document.getElementById('jobs-groups').innerHTML='<div class="empty"><div class="empty-title">Could not load applications</div>Check your Supabase employer application policy.</div>';
+    document.body.classList.add('auth-ready');
+    return;
+  }
+
+  const candidateIds=[...new Set((apps||[]).map(a=>a.candidate_id))];
+  let profilesData=[];
+  if(candidateIds.length){
+    const result=await sb
+      .from('profiles')
+      .select('id,full_name,resume_file_path,resume_data')
+      .in('id',candidateIds);
+    if(result.error)console.error(result.error);
+    profilesData=result.data||[];
+  }
+
+  const profileMap=Object.fromEntries(profilesData.map(p=>[p.id,p]));
+  const jobMap=Object.fromEntries(jobs.map(j=>[j.id,j]));
+
+  candidates=(apps||[]).map(app=>{
+    const job=jobMap[app.job_id]||null;
+    const profile=profileMap[app.candidate_id]||null;
+    if(!job||!profile)return null;
+    const match=calculateMatch(job,profile);
+    return {
+      applicationId:app.id,
+      status:app.status||'applied',
+      appliedAt:app.applied_at,
+      job,
+      profile,
+      match
+    };
+  }).filter(Boolean);
+
+  const params=new URLSearchParams(location.search);
+  focusedJobId=params.get('job');
+  focusedApplicationId=params.get('application');
+
+  renderGroups();
+  document.body.classList.add('auth-ready');
+
+  if(focusedJobId){
+    requestAnimationFrame(()=>{
+      const group=document.querySelector(`[data-job-id="${CSS.escape(focusedJobId)}"]`);
+      if(group){
+        group.classList.add('open','focused');
+        group.scrollIntoView({behavior:'smooth',block:'start'});
+      }
+      if(focusedApplicationId){
+        const c=candidates.find(x=>x.applicationId===focusedApplicationId);
+        if(c){
+          setTimeout(()=>openProfile(c.applicationId),350);
+        }
+      }
+    });
+  }
+}
+
+function orderedCandidates(list,sort){
+  const copy=[...list];
+  if(sort==='match')return copy.sort((a,b)=>b.match.score-a.match.score||new Date(b.appliedAt)-new Date(a.appliedAt));
+  if(sort==='name')return copy.sort((a,b)=>String(a.profile.full_name||'').localeCompare(String(b.profile.full_name||'')));
+  return copy.sort((a,b)=>new Date(b.appliedAt||0)-new Date(a.appliedAt||0));
+}
+
+function renderGroups(){
+  const box=document.getElementById('jobs-groups');
+  const query=(document.getElementById('search-input')?.value||'').trim().toLowerCase();
+  const sort=document.getElementById('global-sort')?.value||'newest';
+
+  const filteredJobs=jobs.filter(job=>{
+    const jobCandidates=candidates.filter(c=>c.job.id===job.id);
+    if(!query)return true;
+    const jobText=[job.title,job.location,job.job_type,job.description,job.requirements].join(' ').toLowerCase();
+    const candidateText=jobCandidates.map(c=>[
+      c.profile.full_name,
+      candidateResumeText(c.match.resume),
+      c.match.score
+    ].join(' ')).join(' ').toLowerCase();
+    return (jobText+' '+candidateText).includes(query);
+  });
+
+  if(!filteredJobs.length){
+    box.innerHTML='<div class="empty"><div class="empty-title">No matches</div>Try another job, candidate, skill, or experience search.</div>';
+    return;
+  }
+
+  box.innerHTML=filteredJobs.map(job=>{
+    const rawStatus=String(job.status||'active').toLowerCase();
+    const jobCandidates=orderedCandidates(candidates.filter(c=>c.job.id===job.id),sort);
+    const shouldOpen=focusedJobId===job.id||!!query;
+    return `
+      <section class="job-group ${shouldOpen?'open':''} ${focusedJobId===job.id?'focused':''}" data-job-id="${escapeHtml(job.id)}">
+        <button class="job-group-head" type="button" onclick="toggleGroup('${job.id}')">
+          <div class="job-head-left">
+            <div class="job-title-row">
+              <div class="job-title">${escapeHtml(job.title||'Untitled job')}</div>
+              <span class="job-status ${rawStatus==='active'?'active':rawStatus==='pending'?'pending':''}">${escapeHtml(rawStatus==='pending'?'Pending':rawStatus)}</span>
+            </div>
+            <div class="job-meta">${escapeHtml(job.location||'')}${job.location&&job.job_type?' · ':''}${escapeHtml(job.job_type||'')} · ${jobCandidates.length} applicant${jobCandidates.length===1?'':'s'}</div>
+          </div>
+          <div class="job-head-right">
+            <span class="count-badge">${jobCandidates.length}</span>
+            <span class="chevron">⌄</span>
+          </div>
+        </button>
+        <div class="job-group-body">
+          <div class="group-tools">
+            <div class="group-label">Candidates are grouped under this job. Match score is informational and based only on job-related resume content.</div>
+          </div>
+          ${jobCandidates.length
+            ? `<div class="candidate-list">${jobCandidates.map(c=>renderCandidate(c)).join('')}</div>`
+            : `<div class="empty"><div class="empty-title">No candidates yet</div>Applications to this job will appear here.</div>`}
+        </div>
+      </section>
+    `;
+  }).join('');
+}
+
+function toggleGroup(jobId){
+  const el=document.querySelector(`[data-job-id="${CSS.escape(jobId)}"]`);
+  if(el)el.classList.toggle('open');
+}
+
+function renderCandidate(c){
+  const [statusText,statusClass]=statusLabel(c.status);
+  const resume=c.match.resume||{};
+  const skills=skillList(resume).slice(0,4);
+  const summary=String(resume.summary||'').trim();
+  const snippet=summary.length>150?summary.slice(0,150).trim()+'…':summary;
+  const isDecided=['accepted','rejected'].includes(String(c.status||'').toLowerCase());
+  const focus=c.applicationId===focusedApplicationId;
+
+  return `
+    <article class="candidate-card ${focus?'notification-focus':''}" data-application-id="${escapeHtml(c.applicationId)}">
+      <div class="candidate-main">
+        <div class="candidate-top">
+          <div class="candidate-avatar">${escapeHtml(getInitials(c.profile.full_name))}</div>
+          <div>
+            <div class="candidate-name-row">
+              <div class="candidate-name">${escapeHtml(c.profile.full_name||'Candidate')}</div>
+              <span class="candidate-status ${statusClass}">${escapeHtml(statusText)}</span>
+              ${focus?'<span class="new-label">From notification</span>':''}
+            </div>
+            <div class="applied-time">Applied ${escapeHtml(timeAgo(c.appliedAt))}</div>
+          </div>
+        </div>
+        ${snippet?`<div class="candidate-summary">${escapeHtml(snippet)}</div>`:''}
+        <div class="candidate-tags">${skills.map(s=>`<span class="tag">${escapeHtml(s)}</span>`).join('')}</div>
+      </div>
+
+      <div class="match-box" title="Job-related resume match; not an automated hiring decision.">
+        <div class="match-score" style="--score:${c.match.score}">
+          <span class="match-num">${c.match.score}%</span>
+        </div>
+        <div class="match-label">Alygnn Match</div>
+        <div class="match-band">${escapeHtml(scoreBand(c.match.score))}</div>
+      </div>
+
+      <div class="candidate-actions">
+        <button class="btn" onclick="openProfile('${c.applicationId}')">View profile</button>
+        <button class="btn accept" ${isDecided?'disabled':''} onclick="updateStatus('${c.applicationId}','accepted')">Accept</button>
+        <button class="btn pass" ${isDecided?'disabled':''} onclick="updateStatus('${c.applicationId}','rejected')">Pass</button>
+      </div>
+    </article>
+  `;
+}
+
+function openProfile(applicationId){
+  const c=candidates.find(x=>x.applicationId===applicationId);
+  if(!c)return;
+
+  const resume=c.match.resume||{};
+  const skills=skillList(resume);
+  const experience=Array.isArray(resume.experience)?resume.experience:[];
+  const education=Array.isArray(resume.education)?resume.education:[];
+  const summary=typeof resume.summary==='string'?resume.summary:'';
+  const email=resume.email||'';
+  const phone=resume.phone||'';
+  const [statusText,statusClass]=statusLabel(c.status);
+  const isDecided=['accepted','rejected'].includes(String(c.status||'').toLowerCase());
+
+  const expHtml=experience.length
+    ? `<ul class="profile-list">${experience.map(exp=>{
+        const label=typeof exp==='string'?exp:[
+          exp.title||exp.role||exp.position,
+          exp.company||exp.employer,
+          exp.dates||exp.date_range||[exp.start_date,exp.end_date].filter(Boolean).join(' – ')
+        ].filter(Boolean).join(' — ');
+        return `<li>${escapeHtml(label)}</li>`;
+      }).join('')}</ul>`
+    : '<div class="profile-text" style="color:var(--muted)">No work experience listed.</div>';
+
+  const eduHtml=education.length
+    ? `<ul class="profile-list">${education.map(ed=>{
+        const label=typeof ed==='string'?ed:[
+          ed.degree,
+          ed.field||ed.field_of_study,
+          ed.school||ed.institution,
+          ed.dates||ed.date_range
+        ].filter(Boolean).join(' — ');
+        return `<li>${escapeHtml(label)}</li>`;
+      }).join('')}</ul>`
+    : '<div class="profile-text" style="color:var(--muted)">No education listed.</div>';
+
+  document.getElementById('profile-modal').innerHTML=`
+    <button class="modal-close" type="button" onclick="closeProfile()">✕</button>
+    <div class="profile-head">
+      <div class="profile-avatar">${escapeHtml(getInitials(c.profile.full_name))}</div>
+      <div>
+        <div class="profile-name">${escapeHtml(c.profile.full_name||'Candidate')}</div>
+        <div class="profile-role">Applied to ${escapeHtml(c.job.title||'this job')} · <span class="candidate-status ${statusClass}">${escapeHtml(statusText)}</span></div>
+        ${email||phone?`<div class="contact">${[email,phone].filter(Boolean).map(escapeHtml).join(' · ')}</div>`:''}
+      </div>
+    </div>
+
+    <div class="profile-match">
+      <div>
+        <strong>Alygnn Match for this job</strong>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:2px">Based on job-related resume content only</div>
+      </div>
+      <div class="profile-match-score">${c.match.score}%</div>
+    </div>
+
+    <div class="breakdown">
+      ${c.match.components.map(comp=>`
+        <div class="break-item">
+          <div class="break-name">${escapeHtml(comp.key)}</div>
+          <div class="break-value">${comp.value}%</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <ul class="match-reasons">${c.match.reasons.map(r=>`<li>${escapeHtml(r)}</li>`).join('')}</ul>
+
+    ${summary?`<div class="section-title">Summary</div><div class="profile-text">${escapeHtml(summary)}</div>`:''}
+
+    <div class="section-title">Skills</div>
+    ${skills.length?`<div class="profile-tags">${skills.map(s=>`<span class="tag">${escapeHtml(s)}</span>`).join('')}</div>`:'<div class="profile-text" style="color:var(--muted)">No skills listed.</div>'}
+
+    <div class="section-title">Experience</div>
+    ${expHtml}
+
+    <div class="section-title">Education</div>
+    ${eduHtml}
+
+    <div class="section-title">Resume</div>
+    ${c.profile.resume_file_path
+      ? `<button class="resume-btn" id="resume-btn-${escapeHtml(c.applicationId)}" onclick="openResume('${escapeHtml(c.profile.resume_file_path)}',this)">View resume</button>`
+      : '<div class="profile-text" style="color:var(--muted)">No resume file uploaded.</div>'}
+
+    <div class="profile-actions">
+      <button class="btn accept" ${isDecided?'disabled':''} onclick="updateStatus('${c.applicationId}','accepted'); closeProfile();">Accept</button>
+      <button class="btn pass" ${isDecided?'disabled':''} onclick="updateStatus('${c.applicationId}','rejected'); closeProfile();">Pass</button>
+    </div>
+  `;
+  document.getElementById('profile-overlay').classList.add('show');
+}
+
+function closeProfile(){
+  document.getElementById('profile-overlay').classList.remove('show');
+}
+
+async function openResume(path,btn){
+  const old=btn.textContent;
+  btn.disabled=true;btn.textContent='Opening…';
+  try{
+    const {data,error}=await sb.storage.from('resumes').createSignedUrl(path,60);
+    if(error||!data?.signedUrl)throw error||new Error('No signed URL');
+    window.open(data.signedUrl,'_blank','noopener');
+  }catch(e){
+    console.error(e);showToast('Could not open the resume.');
+  }finally{
+    btn.disabled=false;btn.textContent=old;
+  }
+}
+
+async function updateStatus(applicationId,status){
+  const {error}=await sb
+    .from('applications')
+    .update({status})
+    .eq('id',applicationId);
+  if(error){
+    console.error(error);showToast('Could not update this application.');
+    return;
+  }
+  const c=candidates.find(x=>x.applicationId===applicationId);
+  if(c)c.status=status;
+  showToast(status==='accepted'?'Candidate accepted.':'Candidate passed.');
+  renderGroups();
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeProfile();
+});
+
+loadData();
+</script>
+</body>
+</html>
