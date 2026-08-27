@@ -48,7 +48,7 @@
   }
   .side-link:hover{background:white;color:var(--text)}
   .side-link.active{background:var(--brand-light);color:var(--brand)}
-  .side-icon{width:18px;text-align:center;font-weight:700}
+  .side-icon{font-size:16px;width:20px;text-align:center;font-weight:400;flex-shrink:0}
   .sidebar hr{border:0;border-top:1px solid var(--border);margin:18px 0}
 
   main{padding:42px 4.5% 90px;max-width:1400px;width:100%;margin:0 auto}
@@ -103,6 +103,31 @@
   .job-group.open .chevron{transform:rotate(180deg)}
   .job-group-body{display:none;border-top:1px solid var(--border);padding:18px 22px 22px}
   .job-group.open .job-group-body{display:block}
+
+  .job-overview-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .view-candidates-btn{
+    border:1px solid var(--brand);background:white;color:var(--brand);
+    border-radius:999px;padding:9px 14px;font:700 11px 'DM Sans',sans-serif;
+    cursor:pointer;white-space:nowrap;transition:.2s
+  }
+  .view-candidates-btn:hover{background:var(--brand);color:white}
+  .back-candidates-btn{
+    display:inline-flex;align-items:center;gap:7px;margin-bottom:16px;
+    color:var(--brand);text-decoration:none;font-size:12px;font-weight:700
+  }
+  .pagination{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    margin-top:16px;padding-top:16px;border-top:1px solid var(--border)
+  }
+  .pagination-copy{font-size:11px;color:var(--muted)}
+  .pagination-actions{display:flex;align-items:center;gap:8px}
+  .page-btn{
+    border:1px solid var(--border);background:white;color:var(--text);
+    border-radius:9px;padding:8px 11px;font:600 11px 'DM Sans',sans-serif;cursor:pointer
+  }
+  .page-btn:hover:not(:disabled){border-color:var(--brand);color:var(--brand)}
+  .page-btn:disabled{opacity:.4;cursor:not-allowed}
+  .page-number{font-size:11px;color:var(--muted);min-width:82px;text-align:center}
 
   .group-tools{
     display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px
@@ -247,9 +272,9 @@
 <div class="layout">
   <aside class="sidebar">
     <div class="sidebar-label">Employer</div>
-    <a href="employer-dashboard.html" class="side-link"><span class="side-icon">▣</span> My Jobs</a>
+    <a href="employer-dashboard.html" class="side-link"><span class="side-icon">💼</span> My Jobs</a>
     <a href="candidates.html" class="side-link active"><span class="side-icon">◎</span> Candidates</a>
-    <a href="employer-dashboard.html#post" class="side-link"><span class="side-icon">＋</span> Post a Job</a>
+    <a href="employer-dashboard.html#post" class="side-link"><span class="side-icon">➕</span> <span id="candidate-post-label">Post a Job</span></a>
     <hr>
     <a href="employer-account.html" class="side-link"><span class="side-icon">←</span> My account</a>
   </aside>
@@ -257,15 +282,16 @@
   <main>
     <div class="page-top">
       <div>
-        <div class="page-kicker">Applicant workspace</div>
-        <h1>Candidates by job</h1>
-        <div class="page-sub">Review candidates inside the job they applied to instead of mixing every applicant into one list.</div>
+        <a class="back-candidates-btn" id="back-to-jobs" href="candidates.html" style="display:none">← All jobs</a>
+        <div class="page-kicker" id="page-kicker">Applicant workspace</div>
+        <h1 id="page-title">Candidates by job</h1>
+        <div class="page-sub" id="page-sub">Choose a job to review its candidates. Applicant lists stay separated by the role they applied to.</div>
       </div>
     </div>
 
-    <div class="toolbar">
-      <input class="field" id="search-input" type="text" placeholder="Search a job, candidate, skill, or experience…" oninput="renderGroups()">
-      <select class="field" id="global-sort" onchange="renderGroups()">
+    <div class="toolbar" id="candidate-toolbar">
+      <input class="field" id="search-input" type="text" placeholder="Search jobs…" oninput="currentPage=1; renderGroups()">
+      <select class="field" id="global-sort" onchange="currentPage=1; renderGroups()">
         <option value="newest">Candidates: newest first</option>
         <option value="match">Candidates: match score</option>
         <option value="name">Candidates: name</option>
@@ -300,6 +326,8 @@ let jobs=[];
 let candidates=[];
 let focusedJobId=null;
 let focusedApplicationId=null;
+let currentPage=1;
+const CANDIDATES_PER_PAGE=25;
 
 const STOP_WORDS=new Set([
   'the','and','for','with','that','this','from','your','you','our','are','will','have','has',
@@ -330,6 +358,52 @@ function timeAgo(iso){
   const days=Math.floor(hrs/24);
   if(days<7)return days+'d ago';
   return new Date(iso).toLocaleDateString();
+}
+
+async function syncSidebarPostLabel(){
+  const label=document.getElementById('candidate-post-label');
+  const link=label?.closest('a');
+  if(!label||!link||!currentUser)return;
+
+  try{
+    const [{data:ent},{data:jobRows}]=await Promise.all([
+      sb.from('employer_entitlements')
+        .select('plan,subscription_status,current_period_end,slot_limit,test_mode,test_plan')
+        .eq('employer_id',currentUser.id)
+        .maybeSingle(),
+      sb.from('jobs')
+        .select('id,status')
+        .eq('employer_id',currentUser.id)
+    ]);
+
+    const activeJobs=(jobRows||[]).filter(job=>{
+      const s=String(job.status||'active').toLowerCase();
+      return s==='active'||s==='pending';
+    }).length;
+
+    const status=String(ent?.subscription_status||'inactive').toLowerCase();
+    const unexpired=!ent?.current_period_end||new Date(ent.current_period_end).getTime()>Date.now();
+    const plan=String(ent?.test_plan||ent?.plan||'free').toLowerCase();
+
+    let limit=Math.max(0,Number(ent?.slot_limit||0));
+    if(!limit){
+      if(plan==='weekly_slot')limit=1;
+      else if(plan==='launch'||plan==='business')limit=3;
+      else if(plan==='growth')limit=5;
+      else if(plan==='scale')limit=8;
+      else if(plan==='enterprise')limit=15;
+      else limit=1;
+    }
+
+    const paidActive=['active','trialing'].includes(status)&&unexpired;
+    if(!paidActive)limit=1;
+
+    const full=activeJobs>=limit;
+    label.textContent=full?'Add a job slot':'Post a Job';
+    link.href=full?'pricing.html?reason=slot-limit':'employer-dashboard.html#post';
+  }catch(error){
+    console.warn('Could not sync candidate sidebar posting label:',error);
+  }
 }
 
 function showToast(msg){
@@ -573,6 +647,7 @@ async function loadData(){
     return;
   }
   currentUser=session.user;
+  syncSidebarPostLabel();
 
   const {data:profile,error:profileError}=await sb
     .from('profiles')
@@ -660,23 +735,22 @@ async function loadData(){
   focusedJobId=params.get('job');
   focusedApplicationId=params.get('application');
 
+  if(focusedJobId && focusedApplicationId){
+    // Put the notification's applicant on the page that contains them.
+    const jobCandidates=orderedCandidates(
+      candidates.filter(c=>c.job.id===focusedJobId),
+      document.getElementById('global-sort')?.value||'newest'
+    );
+    const index=jobCandidates.findIndex(c=>c.applicationId===focusedApplicationId);
+    if(index>=0) currentPage=Math.floor(index/CANDIDATES_PER_PAGE)+1;
+  }
+
   renderGroups();
   document.body.classList.add('auth-ready');
 
-  if(focusedJobId){
-    requestAnimationFrame(()=>{
-      const group=document.querySelector(`[data-job-id="${CSS.escape(focusedJobId)}"]`);
-      if(group){
-        group.classList.add('open','focused');
-        group.scrollIntoView({behavior:'smooth',block:'start'});
-      }
-      if(focusedApplicationId){
-        const c=candidates.find(x=>x.applicationId===focusedApplicationId);
-        if(c){
-          setTimeout(()=>openProfile(c.applicationId),350);
-        }
-      }
-    });
+  if(focusedApplicationId){
+    const c=candidates.find(x=>x.applicationId===focusedApplicationId);
+    if(c) setTimeout(()=>openProfile(c.applicationId),350);
   }
 }
 
@@ -687,63 +761,151 @@ function orderedCandidates(list,sort){
   return copy.sort((a,b)=>new Date(b.appliedAt||0)-new Date(a.appliedAt||0));
 }
 
+function goToJobCandidates(jobId){
+  window.location.href='candidates.html?job='+encodeURIComponent(jobId);
+}
+
+function changeCandidatePage(nextPage){
+  currentPage=Math.max(1,nextPage);
+  renderGroups();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
 function renderGroups(){
   const box=document.getElementById('jobs-groups');
   const query=(document.getElementById('search-input')?.value||'').trim().toLowerCase();
   const sort=document.getElementById('global-sort')?.value||'newest';
+  const pageTitle=document.getElementById('page-title');
+  const pageSub=document.getElementById('page-sub');
+  const pageKicker=document.getElementById('page-kicker');
+  const back=document.getElementById('back-to-jobs');
+  const sortSelect=document.getElementById('global-sort');
+  const searchInput=document.getElementById('search-input');
 
-  const filteredJobs=jobs.filter(job=>{
-    const jobCandidates=candidates.filter(c=>c.job.id===job.id);
-    if(!query)return true;
-    const jobText=[job.title,job.location,job.job_type,job.description,job.requirements].join(' ').toLowerCase();
-    const candidateText=jobCandidates.map(c=>[
-      c.profile.full_name,
-      candidateResumeText(c.match.resume),
-      c.match.score
-    ].join(' ')).join(' ').toLowerCase();
-    return (jobText+' '+candidateText).includes(query);
-  });
+  // OVERVIEW MODE:
+  // One clean row per job. Never dump hundreds of applicants onto this screen.
+  if(!focusedJobId){
+    if(pageKicker)pageKicker.textContent='Applicant workspace';
+    if(pageTitle)pageTitle.textContent='Candidates by job';
+    if(pageSub)pageSub.textContent='Choose a job to review its candidates. Applicant lists stay separated by the role they applied to.';
+    if(back)back.style.display='none';
+    if(sortSelect)sortSelect.style.display='none';
+    if(searchInput)searchInput.placeholder='Search jobs…';
 
-  if(!filteredJobs.length){
-    box.innerHTML='<div class="empty"><div class="empty-title">No matches</div>Try another job, candidate, skill, or experience search.</div>';
+    const filteredJobs=jobs.filter(job=>{
+      if(!query)return true;
+      return [job.title,job.location,job.job_type,job.status]
+        .join(' ').toLowerCase().includes(query);
+    });
+
+    if(!filteredJobs.length){
+      box.innerHTML='<div class="empty"><div class="empty-title">No jobs found</div>Try a different job search.</div>';
+      return;
+    }
+
+    box.innerHTML=filteredJobs.map(job=>{
+      const rawStatus=String(job.status||'active').toLowerCase();
+      const jobCandidates=candidates.filter(c=>c.job.id===job.id);
+      const newCount=jobCandidates.filter(c=>!['accepted','rejected'].includes(String(c.status||'').toLowerCase())).length;
+      const strongCount=jobCandidates.filter(c=>c.match.score>=80).length;
+
+      return `
+        <section class="job-group">
+          <div class="job-group-head" style="cursor:default">
+            <div class="job-head-left">
+              <div class="job-title-row">
+                <div class="job-title">${escapeHtml(job.title||'Untitled job')}</div>
+                <span class="job-status ${rawStatus==='active'?'active':rawStatus==='pending'?'pending':''}">${escapeHtml(rawStatus==='pending'?'Pending':rawStatus)}</span>
+              </div>
+              <div class="job-meta">
+                ${escapeHtml(job.location||'')}${job.location&&job.job_type?' · ':''}${escapeHtml(job.job_type||'')}
+                · ${jobCandidates.length} applicant${jobCandidates.length===1?'':'s'}
+                ${newCount?` · ${newCount} new`:''}
+                ${strongCount?` · ${strongCount} strong match${strongCount===1?'':'es'}`:''}
+              </div>
+            </div>
+            <div class="job-overview-actions">
+              <span class="count-badge">${jobCandidates.length}</span>
+              <button class="view-candidates-btn" type="button" onclick="goToJobCandidates('${job.id}')">
+                View candidates →
+              </button>
+            </div>
+          </div>
+        </section>
+      `;
+    }).join('');
     return;
   }
 
-  box.innerHTML=filteredJobs.map(job=>{
-    const rawStatus=String(job.status||'active').toLowerCase();
-    const jobCandidates=orderedCandidates(candidates.filter(c=>c.job.id===job.id),sort);
-    const shouldOpen=focusedJobId===job.id||!!query;
-    return `
-      <section class="job-group ${shouldOpen?'open':''} ${focusedJobId===job.id?'focused':''}" data-job-id="${escapeHtml(job.id)}">
-        <button class="job-group-head" type="button" onclick="toggleGroup('${job.id}')">
-          <div class="job-head-left">
-            <div class="job-title-row">
-              <div class="job-title">${escapeHtml(job.title||'Untitled job')}</div>
-              <span class="job-status ${rawStatus==='active'?'active':rawStatus==='pending'?'pending':''}">${escapeHtml(rawStatus==='pending'?'Pending':rawStatus)}</span>
-            </div>
-            <div class="job-meta">${escapeHtml(job.location||'')}${job.location&&job.job_type?' · ':''}${escapeHtml(job.job_type||'')} · ${jobCandidates.length} applicant${jobCandidates.length===1?'':'s'}</div>
-          </div>
-          <div class="job-head-right">
-            <span class="count-badge">${jobCandidates.length}</span>
-            <span class="chevron">⌄</span>
-          </div>
-        </button>
-        <div class="job-group-body">
-          <div class="group-tools">
-            <div class="group-label">Candidates are grouped under this job. Match score is informational and based only on job-related resume content.</div>
-          </div>
-          ${jobCandidates.length
-            ? `<div class="candidate-list">${jobCandidates.map(c=>renderCandidate(c)).join('')}</div>`
-            : `<div class="empty"><div class="empty-title">No candidates yet</div>Applications to this job will appear here.</div>`}
-        </div>
-      </section>
-    `;
-  }).join('');
-}
+  // JOB MODE:
+  // Only candidates for ONE job, paginated so 1,000 applicants stays usable.
+  const job=jobs.find(j=>j.id===focusedJobId);
+  if(!job){
+    box.innerHTML='<div class="empty"><div class="empty-title">Job not found</div><a href="candidates.html">Back to all jobs</a></div>';
+    return;
+  }
 
-function toggleGroup(jobId){
-  const el=document.querySelector(`[data-job-id="${CSS.escape(jobId)}"]`);
-  if(el)el.classList.toggle('open');
+  if(pageKicker)pageKicker.textContent='Candidates for this job';
+  if(pageTitle)pageTitle.textContent=job.title||'Candidates';
+  if(pageSub)pageSub.textContent=[
+    job.location,
+    job.job_type,
+    `${candidates.filter(c=>c.job.id===job.id).length} total applicants`
+  ].filter(Boolean).join(' · ');
+  if(back)back.style.display='inline-flex';
+  if(sortSelect)sortSelect.style.display='';
+  if(searchInput)searchInput.placeholder='Search candidates, skills, or experience…';
+
+  let jobCandidates=candidates.filter(c=>c.job.id===job.id);
+
+  if(query){
+    jobCandidates=jobCandidates.filter(c=>{
+      const resumeText=candidateResumeText(c.match.resume);
+      return [
+        c.profile.full_name,
+        resumeText,
+        c.match.score,
+        scoreBand(c.match.score)
+      ].join(' ').toLowerCase().includes(query);
+    });
+  }
+
+  jobCandidates=orderedCandidates(jobCandidates,sort);
+
+  const total=jobCandidates.length;
+  const totalPages=Math.max(1,Math.ceil(total/CANDIDATES_PER_PAGE));
+  if(currentPage>totalPages)currentPage=totalPages;
+  const startIndex=(currentPage-1)*CANDIDATES_PER_PAGE;
+  const pageCandidates=jobCandidates.slice(startIndex,startIndex+CANDIDATES_PER_PAGE);
+  const firstShown=total?startIndex+1:0;
+  const lastShown=Math.min(startIndex+CANDIDATES_PER_PAGE,total);
+
+  box.innerHTML=`
+    <section class="job-group open focused" data-job-id="${escapeHtml(job.id)}">
+      <div class="job-group-body" style="display:block;border-top:0">
+        <div class="group-tools">
+          <div class="group-label">
+            Showing ${firstShown}–${lastShown} of ${total} candidate${total===1?'':'s'}.
+            Alygnn Match is informational and based only on job-related resume content.
+          </div>
+        </div>
+
+        ${pageCandidates.length
+          ? `<div class="candidate-list">${pageCandidates.map(c=>renderCandidate(c)).join('')}</div>`
+          : `<div class="empty"><div class="empty-title">No candidates found</div>Try changing your search.</div>`}
+
+        ${totalPages>1?`
+          <div class="pagination">
+            <div class="pagination-copy">${CANDIDATES_PER_PAGE} candidates per page</div>
+            <div class="pagination-actions">
+              <button class="page-btn" ${currentPage<=1?'disabled':''} onclick="changeCandidatePage(${currentPage-1})">← Previous</button>
+              <div class="page-number">Page ${currentPage} of ${totalPages}</div>
+              <button class="page-btn" ${currentPage>=totalPages?'disabled':''} onclick="changeCandidatePage(${currentPage+1})">Next →</button>
+            </div>
+          </div>`:''}
+      </div>
+    </section>
+  `;
 }
 
 function renderCandidate(c){
