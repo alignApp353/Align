@@ -625,6 +625,18 @@
         throw noMatchError;
       }
 
+      // Job Boost priority placement: any job with an active boosted_until
+      // timestamp comes before non-boosted matches. Within each group, keep
+      // newest jobs first. This changes placement only; it never bypasses the
+      // candidate's preference filters.
+      const nowMs = Date.now();
+      results.sort((a,b) => {
+        const aBoosted = a.boosted_until && new Date(a.boosted_until).getTime() > nowMs ? 1 : 0;
+        const bBoosted = b.boosted_until && new Date(b.boosted_until).getTime() > nowMs ? 1 : 0;
+        if (aBoosted !== bBoosted) return bBoosted - aBoosted;
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      });
+
       jobs = results;
       currentIndex = 0;
       applied = 0;
