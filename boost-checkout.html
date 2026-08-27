@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>Job Boost Checkout — Alygnn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--card:#FCFCFA;--text:#1A2530;--muted:#4A5968;--border:#DDE3E8;--mint:#6FBF8F}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;visibility:hidden}
+body.ready{visibility:visible}
+nav{height:64px;padding:0 5%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(246,248,247,.94)}
+.logo{font-family:'DM Serif Display',serif;font-size:22px;color:var(--brand);text-decoration:none}.logo span{color:var(--sage)}
+.nav-right{display:flex;gap:12px;align-items:center}.nav-link{font-size:13px;color:var(--muted);text-decoration:none}.dashboard-btn{background:var(--brand);color:#fff;border:0;border-radius:999px;padding:10px 18px;font:600 13px 'DM Sans';cursor:pointer}
+main{max-width:940px;margin:0 auto;padding:50px 6% 90px}
+.back{display:inline-block;margin-bottom:28px;color:var(--brand);font-size:13px;text-decoration:none}
+.eyebrow{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--brand);font-weight:700;margin-bottom:7px}
+h1{font-family:'DM Serif Display',serif;font-size:42px;line-height:1.08;margin-bottom:10px}
+.heading p{font-size:14px;color:var(--muted);line-height:1.6;max-width:650px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:28px;margin-top:32px;align-items:start}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px}
+.panel-title{font-size:14px;font-weight:700;margin-bottom:14px}
+.job-card{padding:16px;border:1px solid var(--border);border-radius:14px;background:white;margin-bottom:24px}
+.job-title{font-size:17px;font-weight:700;margin-bottom:4px}.job-meta{font-size:12px;color:var(--muted)}
+.secure-row{display:flex;gap:12px;align-items:flex-start}.lock{width:38px;height:38px;border-radius:11px;background:rgba(111,191,143,.12);display:grid;place-items:center}
+.secure-title{font-size:14px;font-weight:700;margin-bottom:4px}.secure-copy{font-size:12px;color:var(--muted);line-height:1.55}
+.terms-box{margin:20px 0 16px;padding:15px;border:1px solid var(--border);border-radius:13px;background:white}
+.terms-label{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--muted);line-height:1.55}.terms-label input{margin-top:3px}.terms-label a{color:var(--brand)}
+.authorization{font-size:11px;color:var(--muted);line-height:1.45;margin-top:10px;padding-left:24px}
+.checkout-btn{width:100%;border:0;border-radius:999px;background:var(--brand);color:white;padding:14px 18px;font:700 14px 'DM Sans';cursor:pointer}.checkout-btn:disabled{opacity:.45;cursor:not-allowed}
+.message{display:none;margin-top:12px;padding:11px 13px;border-radius:10px;font-size:12px;line-height:1.45}.message.show{display:block}.message.info{background:rgba(93,127,163,.09);color:var(--brand)}.message.error{background:rgba(215,154,154,.14);color:#8b4d4d}
+.summary{position:sticky;top:84px}.summary-name{font-size:14px;font-weight:700}.price{font-family:'DM Serif Display',serif;font-size:46px;margin:22px 0 2px}.price span{font:400 13px 'DM Sans';color:var(--muted)}
+.summary-sub{font-size:12px;color:var(--brand);font-weight:600;margin-bottom:20px}
+.feature{padding:10px 0;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}.feature:before{content:'✓';color:var(--mint);font-weight:700;margin-right:8px}
+.total{border-top:1px solid var(--border);margin-top:20px;padding-top:16px;display:flex;justify-content:space-between;font-weight:700}
+.test-banner{display:none;margin-top:22px;padding:12px 14px;border:1px solid rgba(111,191,143,.35);background:rgba(111,191,143,.11);border-radius:12px;font-size:12px;color:#2d7a50}
+body.test-mode .test-banner{display:block}
+body.test-mode .paid-only{display:none}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.summary{position:static}h1{font-size:34px}}
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="employers.html">Alygnn<span>.</span></a>
+  <div class="nav-right">
+    <a class="nav-link" href="pricing.html">Pricing</a>
+    <button class="dashboard-btn" onclick="location.href='employer-dashboard.html#jobs'">Dashboard</button>
+  </div>
+</nav>
+
+<main>
+  <a class="back" href="employer-dashboard.html?action=boost#jobs">← Choose a different job</a>
+
+  <div class="heading">
+    <div class="eyebrow">24-hour visibility add-on</div>
+    <h1>Boost this job for $15.</h1>
+    <p>Give one active job priority placement in Alygnn candidate discovery for the next 24 hours. The boost does not extend the job slot itself.</p>
+  </div>
+
+  <div class="test-banner" id="test-banner"><strong>Developer test mode</strong> — you can activate this Job Boost for $0 while testing. No payment will be processed.</div>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-title">1. Selected job</div>
+      <div class="job-card">
+        <div class="job-title" id="job-title">Loading job…</div>
+        <div class="job-meta" id="job-meta"></div>
+      </div>
+
+      <div class="panel-title">2. Confirm Job Boost</div>
+      <div class="secure-row">
+        <div class="lock">🔒</div>
+        <div>
+          <div class="secure-title" id="secure-title">Secure payment checkout</div>
+          <div class="secure-copy" id="secure-copy">You’ll be redirected to the secure payment provider to complete the $15 purchase.</div>
+        </div>
+      </div>
+
+      <div class="terms-box">
+        <label class="terms-label" for="terms-accept">
+          <input type="checkbox" id="terms-accept" onchange="updateButton()">
+          <span>I agree to Alygnn’s <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+        </label>
+        <div class="authorization" id="authorization-copy">By continuing, you authorize a $15 plus applicable tax payment for one 24-hour Job Boost.</div>
+      </div>
+
+      <button class="checkout-btn" id="checkout-btn" onclick="startBoostCheckout()" disabled>Accept terms to continue</button>
+      <div class="message" id="message"></div>
+    </section>
+
+    <aside class="panel summary">
+      <div class="summary-name">Job Boost</div>
+      <div class="price">$15 <span>/ 24 hours</span></div>
+      <div class="summary-sub">Applies to one active job</div>
+      <div class="feature">Priority placement in candidate discovery</div>
+      <div class="feature">Starts when the boost is activated</div>
+      <div class="feature">Does not extend your job-slot expiration</div>
+      <div class="feature">Available with every Alygnn job-slot option</div>
+      <div class="total"><span>Due today</span><span id="due-total">$15.00 + tax</span></div>
+    </aside>
+  </div>
+</main>
+
+<script>
+const SUPABASE_URL='https://auth.alygnn.com';
+const SUPABASE_ANON_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+const {createClient}=supabase;
+const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const CHECKOUT_ENDPOINT='/api/create-checkout-session';
+const TERMS_VERSION='2026-08-26';
+
+let session=null;
+let job=null;
+let developerTestMode=false;
+
+function showMessage(text,type='error'){
+  const el=document.getElementById('message');
+  el.textContent=text;
+  el.className='message show '+type;
+}
+
+function updateButton(){
+  const accepted=document.getElementById('terms-accept').checked;
+  const btn=document.getElementById('checkout-btn');
+  btn.disabled=!accepted;
+  btn.textContent=accepted
+    ? (developerTestMode ? 'Activate test Job Boost — $0' : 'Continue to secure payment — $15')
+    : 'Accept terms to continue';
+}
+
+async function init(){
+  const {data:{session:activeSession},error}=await sb.auth.getSession();
+  if(error || !activeSession){
+    location.replace('login.html?role=employer');
+    return;
+  }
+  session=activeSession;
+
+  const jobId=new URLSearchParams(location.search).get('job');
+  if(!jobId){
+    location.replace('employer-dashboard.html?action=boost#jobs');
+    return;
+  }
+
+  const {data:jobData,error:jobError}=await sb
+    .from('jobs')
+    .select('id,title,location,status,employer_id,boosted_until')
+    .eq('id',jobId)
+    .eq('employer_id',session.user.id)
+    .maybeSingle();
+
+  if(jobError || !jobData){
+    location.replace('employer-dashboard.html?action=boost#jobs');
+    return;
+  }
+
+  if(String(jobData.status||'').toLowerCase()!=='active'){
+    location.replace('employer-dashboard.html?action=boost#jobs');
+    return;
+  }
+
+  job=jobData;
+  document.getElementById('job-title').textContent=job.title||'Untitled role';
+
+  const meta=[];
+  if(job.location) meta.push(job.location);
+  if(job.boosted_until && new Date(job.boosted_until).getTime()>Date.now()){
+    meta.push('Currently boosted until '+new Date(job.boosted_until).toLocaleString());
+  }
+  document.getElementById('job-meta').textContent=meta.join(' · ');
+
+  const {data:ent}=await sb
+    .from('employer_entitlements')
+    .select('test_mode,subscription_status,current_period_end')
+    .eq('employer_id',session.user.id)
+    .maybeSingle();
+
+  developerTestMode=ent?.test_mode===true &&
+    ['active','trialing'].includes(String(ent?.subscription_status||'').toLowerCase()) &&
+    (!ent?.current_period_end || new Date(ent.current_period_end).getTime()>Date.now());
+
+  document.body.classList.toggle('test-mode',developerTestMode);
+
+  if(developerTestMode){
+    document.getElementById('secure-title').textContent='Developer test activation';
+    document.getElementById('secure-copy').textContent='No payment provider will be contacted. This will activate a real 24-hour test boost on the selected job.';
+    document.getElementById('authorization-copy').textContent='By continuing, you confirm this is a developer test activation. No payment will be processed.';
+    document.getElementById('due-total').textContent='$0.00';
+  }
+
+  updateButton();
+  document.body.classList.add('ready');
+}
+
+async function startBoostCheckout(){
+  if(!session || !job) return;
+
+  const accepted=document.getElementById('terms-accept').checked;
+  if(!accepted){
+    showMessage('Please accept the Terms of Service and Privacy Policy first.');
+    return;
+  }
+
+  const btn=document.getElementById('checkout-btn');
+  btn.disabled=true;
+
+  if(developerTestMode){
+    btn.textContent='Activating Job Boost…';
+
+    const {data,error}=await sb.rpc('activate_test_job_boost',{p_job_id:job.id});
+
+    if(error){
+      console.error(error);
+      showMessage('The test Job Boost function is not installed yet. Run the Job Boost SQL once in Supabase, then try again. No payment was processed.','info');
+      btn.disabled=false;
+      updateButton();
+      return;
+    }
+
+    btn.textContent='Job Boost activated ✓';
+    showMessage('The selected job is boosted for 24 hours. No payment was processed.','info');
+    setTimeout(()=>{
+      location.href='employer-dashboard.html?boost=success&job='+encodeURIComponent(job.id)+'#jobs';
+    },600);
+    return;
+  }
+
+  btn.textContent='Opening secure checkout…';
+
+  try{
+    const response=await fetch(CHECKOUT_ENDPOINT,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+session.access_token
+      },
+      body:JSON.stringify({
+        product:'job_boost',
+        purchase_type:'one_time',
+        job_id:job.id,
+        amount:15,
+        duration_hours:24,
+        terms_accepted:true,
+        terms_version:TERMS_VERSION,
+        success_url:location.origin+'/employer-dashboard.html?boost=success&job='+encodeURIComponent(job.id)+'#jobs',
+        cancel_url:location.href
+      })
+    });
+
+    let data={};
+    try{data=await response.json();}catch(e){}
+
+    if(!response.ok || !data.url){
+      throw new Error(data.error||'Job Boost checkout is not connected yet.');
+    }
+
+    location.href=data.url;
+  }catch(error){
+    console.error(error);
+    showMessage('The Job Boost screen is ready, but /api/create-checkout-session must support product="job_boost" and activate boosted_until after successful payment. No charge was made.','info');
+    btn.disabled=false;
+    updateButton();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
