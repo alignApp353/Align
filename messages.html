@@ -7,676 +7,569 @@
 <title>Messages — Alygnn</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --brand:#5D7FA3;
-    --sage:#8CB69B;
-    --bg:#F6F8F7;
-    --card:#FCFCFA;
-    --text:#1A2530;
-    --muted:#4A5968;
-    --border:#DDE3E8;
-    --mint:#6FBF8F;
-    --rose:#D79A9A;
-    --brand-light:rgba(93,127,163,.10);
+    --brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--card:#FCFCFA;
+    --text:#1A2530;--muted:#4A5968;--border:#DDE3E8;--mint:#6FBF8F;
+    --rose:#D79A9A;--brand-light:rgba(93,127,163,.10)
   }
-  body{
-    font-family:'DM Sans',sans-serif;
-    background:var(--bg);
-    color:var(--text);
-    min-height:100vh;
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;visibility:hidden}
+  body.ready{visibility:visible}
+  #loading{
+    visibility:visible;position:fixed;inset:0;background:var(--bg);z-index:9999;
+    display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px
   }
+  body.ready #loading{display:none}
   nav{
-    height:64px;
-    padding:0 5%;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    border-bottom:1px solid var(--border);
-    background:rgba(246,248,247,.95);
-    backdrop-filter:blur(12px);
-    position:sticky;
-    top:0;
-    z-index:50;
+    height:64px;padding:0 5%;display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid var(--border);background:rgba(246,248,247,.95);
+    backdrop-filter:blur(12px);position:sticky;top:0;z-index:50
   }
-  .logo{
-    font-family:'DM Serif Display',serif;
-    font-size:22px;
-    color:var(--brand);
-    text-decoration:none;
-  }
-  .logo span{color:var(--sage)}
-  .nav-right{display:flex;align-items:center;gap:12px}
-  .nav-name{font-size:13px;color:var(--muted)}
-  .nav-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    min-height:38px;
-    padding:0 16px;
-    border-radius:999px;
-    border:1px solid var(--border);
-    background:white;
-    color:var(--text);
-    text-decoration:none;
-    font-size:12px;
-    font-weight:600;
-  }
-  .nav-btn.primary{
-    background:var(--brand);
-    color:white;
-    border-color:var(--brand);
-  }
-
-  .layout{
-    display:grid;
-    grid-template-columns:220px minmax(0,1fr);
-    min-height:calc(100vh - 64px);
-  }
-  .sidebar{
-    border-right:1px solid var(--border);
-    padding:28px 18px;
-    background:rgba(252,252,250,.65);
-  }
-  .sidebar-label{
-    font-size:10px;
-    letter-spacing:1.3px;
-    text-transform:uppercase;
-    color:#8794A0;
-    margin:0 10px 10px;
-  }
-  .side-link{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    width:100%;
-    padding:11px 12px;
-    border-radius:10px;
-    color:var(--muted);
-    text-decoration:none;
-    font-size:13px;
-    font-weight:500;
-    margin-bottom:5px;
-  }
-  .side-link:hover{background:white;color:var(--text)}
-  .side-link.active{background:var(--brand-light);color:var(--brand)}
-  .side-icon{
-    font-size:16px;
-    width:20px;
-    text-align:center;
-    flex-shrink:0;
-  }
-  .sidebar hr{
-    border:0;
-    border-top:1px solid var(--border);
-    margin:18px 0;
-  }
-
-  main{
-    padding:36px 4.5% 70px;
-    max-width:1420px;
-    width:100%;
-    margin:0 auto;
-  }
-  .page-kicker{
-    font-size:10px;
-    letter-spacing:1.4px;
-    text-transform:uppercase;
-    color:var(--brand);
-    font-weight:700;
-    margin-bottom:6px;
-  }
-  h1{
-    font-family:'DM Serif Display',serif;
-    font-size:34px;
-    line-height:1.05;
-    margin-bottom:6px;
-  }
-  .page-sub{
-    font-size:13px;
-    line-height:1.55;
-    color:var(--muted);
-    margin-bottom:24px;
-  }
-
-  .chat-shell{
-    height:680px;
-    display:grid;
-    grid-template-columns:320px minmax(0,1fr);
-    background:var(--card);
-    border:1px solid var(--border);
-    border-radius:20px;
-    overflow:hidden;
-    box-shadow:0 12px 32px rgba(38,54,70,.04);
-  }
-
-  .conversations{
-    border-right:1px solid var(--border);
-    background:rgba(255,255,255,.7);
-    min-width:0;
-    display:flex;
-    flex-direction:column;
-  }
-  .conversations-head{
-    padding:18px;
-    border-bottom:1px solid var(--border);
-  }
-  .conversations-title{
-    font-size:14px;
-    font-weight:700;
-    margin-bottom:10px;
-  }
-  .search{
-    width:100%;
-    border:1px solid var(--border);
-    background:white;
-    color:var(--text);
-    border-radius:11px;
-    padding:10px 12px;
-    font:12px 'DM Sans',sans-serif;
-    outline:none;
-  }
-  .search:focus{
-    border-color:var(--brand);
-    box-shadow:0 0 0 3px rgba(93,127,163,.08);
-  }
-  .conversation-list{
-    flex:1;
-    overflow-y:auto;
-  }
-  .conversation{
-    width:100%;
-    border:0;
-    border-bottom:1px solid rgba(221,227,232,.75);
-    background:transparent;
-    padding:15px 16px;
-    display:flex;
-    gap:11px;
-    text-align:left;
-    cursor:pointer;
-    font-family:inherit;
-  }
-  .conversation:hover{background:rgba(93,127,163,.04)}
-  .conversation.active{background:var(--brand-light)}
-  .avatar{
-    width:42px;
-    height:42px;
-    border-radius:13px;
-    background:var(--brand-light);
-    color:var(--brand);
-    display:grid;
-    place-items:center;
-    font-family:'DM Serif Display',serif;
-    font-size:16px;
-    flex-shrink:0;
-  }
-  .conversation-copy{
-    min-width:0;
-    flex:1;
-  }
-  .conversation-top{
-    display:flex;
-    justify-content:space-between;
-    gap:8px;
-    margin-bottom:3px;
-  }
-  .conversation-name{
-    font-size:12.5px;
-    font-weight:700;
-    overflow:hidden;
-    white-space:nowrap;
-    text-overflow:ellipsis;
-  }
-  .conversation-time{
-    font-size:9.5px;
-    color:#8A96A0;
-    flex-shrink:0;
-  }
-  .conversation-job{
-    font-size:10.5px;
-    color:var(--brand);
-    margin-bottom:4px;
-    overflow:hidden;
-    white-space:nowrap;
-    text-overflow:ellipsis;
-  }
-  .conversation-preview{
-    font-size:10.5px;
-    line-height:1.4;
-    color:var(--muted);
-    overflow:hidden;
-    white-space:nowrap;
-    text-overflow:ellipsis;
-  }
-  .unread-dot{
-    width:7px;
-    height:7px;
-    border-radius:50%;
-    background:var(--brand);
-    margin-top:6px;
-    flex-shrink:0;
-  }
-
-  .chat-panel{
-    min-width:0;
-    display:flex;
-    flex-direction:column;
-    background:white;
-  }
-  .chat-head{
-    height:78px;
-    border-bottom:1px solid var(--border);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:16px;
-    padding:0 20px;
-  }
-  .chat-person{
-    display:flex;
-    align-items:center;
-    gap:11px;
-    min-width:0;
-  }
-  .chat-head-name{
-    font-size:13px;
-    font-weight:700;
-    margin-bottom:2px;
-  }
-  .chat-head-job{
-    font-size:10.5px;
-    color:var(--muted);
-  }
-  .match-pill{
-    display:inline-flex;
-    align-items:center;
-    min-height:30px;
-    padding:0 11px;
-    border-radius:999px;
-    background:var(--brand-light);
-    color:var(--brand);
-    font-size:10.5px;
-    font-weight:700;
-    text-decoration:none;
-    white-space:nowrap;
-  }
-
-  .messages{
-    flex:1;
-    overflow-y:auto;
-    padding:22px 22px 14px;
-    background:
-      radial-gradient(circle at top left, rgba(140,182,155,.055), transparent 34%),
-      white;
-  }
-  .date-divider{
-    text-align:center;
-    font-size:9px;
-    color:#8A96A0;
-    margin:2px 0 18px;
-  }
-  .msg-row{
-    display:flex;
-    margin-bottom:11px;
-  }
-  .msg-row.mine{justify-content:flex-end}
-  .bubble{
-    max-width:min(72%,560px);
-    border:1px solid var(--border);
-    border-radius:15px 15px 15px 5px;
-    padding:10px 12px;
-    background:white;
-    font-size:12px;
-    line-height:1.55;
-    color:var(--text);
-  }
-  .mine .bubble{
-    background:var(--brand);
-    color:white;
-    border-color:var(--brand);
-    border-radius:15px 15px 5px 15px;
-  }
-  .bubble-time{
-    margin-top:5px;
-    font-size:8.5px;
-    color:#8A96A0;
-  }
-  .mine .bubble-time{color:rgba(255,255,255,.72);text-align:right}
-
-  .composer{
-    border-top:1px solid var(--border);
-    padding:14px 16px;
-    display:flex;
-    gap:9px;
-    align-items:flex-end;
-    background:var(--card);
-  }
-  .composer textarea{
-    flex:1;
-    min-height:46px;
-    max-height:110px;
-    resize:none;
-    border:1px solid var(--border);
-    border-radius:13px;
-    padding:12px 13px;
-    font:12px/1.45 'DM Sans',sans-serif;
-    outline:none;
-    color:var(--text);
-    background:white;
-  }
-  .composer textarea:focus{
-    border-color:var(--brand);
-    box-shadow:0 0 0 3px rgba(93,127,163,.08);
-  }
-  .send-btn{
-    min-width:78px;
-    height:46px;
-    border:0;
-    border-radius:13px;
-    background:var(--brand);
-    color:white;
-    font:700 12px 'DM Sans',sans-serif;
-    cursor:pointer;
-  }
-  .send-btn:hover{opacity:.92}
-
-  .empty-chat{
-    flex:1;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    padding:30px;
-    color:var(--muted);
-  }
-  .empty-chat-icon{
-    width:54px;
-    height:54px;
-    border-radius:17px;
-    background:var(--brand-light);
-    color:var(--brand);
-    display:grid;
-    place-items:center;
-    font-size:22px;
-    margin-bottom:12px;
-  }
-  .empty-chat-title{
-    font-family:'DM Serif Display',serif;
-    color:var(--text);
-    font-size:21px;
-    margin-bottom:5px;
-  }
-  .empty-chat-copy{
-    font-size:12px;
-    line-height:1.55;
-    max-width:360px;
-  }
-
-  .prototype-note{
-    margin-top:12px;
-    font-size:10.5px;
-    color:#88949F;
-    line-height:1.45;
-  }
-
-  @media(max-width:900px){
-    .layout{grid-template-columns:1fr}
-    .sidebar{display:none}
-    .chat-shell{grid-template-columns:280px minmax(0,1fr)}
-  }
-  @media(max-width:680px){
-    main{padding:24px 14px 50px}
-    .chat-shell{grid-template-columns:1fr;height:auto;min-height:700px}
-    .conversations{max-height:280px;border-right:0;border-bottom:1px solid var(--border)}
-    .chat-panel{min-height:520px}
-    .chat-head{padding:0 14px}
-    .match-pill{display:none}
-    .bubble{max-width:86%}
-  }
+  .logo{font-family:'DM Serif Display',serif;font-size:22px;color:var(--brand);text-decoration:none}.logo span{color:var(--sage)}
+  .nav-right{display:flex;align-items:center;gap:12px}.nav-name{font-size:13px;color:var(--muted)}
+  .nav-btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--border);background:white;color:var(--text);text-decoration:none;font-size:12px;font-weight:600}
+  .nav-btn.primary{background:var(--brand);color:white;border-color:var(--brand)}
+  .layout{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:calc(100vh - 64px)}
+  .sidebar{border-right:1px solid var(--border);padding:28px 18px;background:rgba(252,252,250,.65)}
+  .sidebar-label{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:#8794A0;margin:0 10px 10px}
+  .side-link{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;border-radius:10px;color:var(--muted);text-decoration:none;font-size:13px;font-weight:500;margin-bottom:5px}
+  .side-link:hover{background:white;color:var(--text)}.side-link.active{background:var(--brand-light);color:var(--brand)}
+  .side-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}.sidebar hr{border:0;border-top:1px solid var(--border);margin:18px 0}
+  main{padding:36px 4.5% 70px;max-width:1420px;width:100%;margin:0 auto}
+  .page-kicker{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--brand);font-weight:700;margin-bottom:6px}
+  h1{font-family:'DM Serif Display',serif;font-size:34px;line-height:1.05;margin-bottom:6px}
+  .page-sub{font-size:13px;line-height:1.55;color:var(--muted);margin-bottom:24px}
+  .chat-shell{height:680px;display:grid;grid-template-columns:320px minmax(0,1fr);background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 12px 32px rgba(38,54,70,.04)}
+  .conversations{border-right:1px solid var(--border);background:rgba(255,255,255,.7);min-width:0;display:flex;flex-direction:column}
+  .conversations-head{padding:18px;border-bottom:1px solid var(--border)}.conversations-title{font-size:14px;font-weight:700;margin-bottom:10px}
+  .search{width:100%;border:1px solid var(--border);background:white;color:var(--text);border-radius:11px;padding:10px 12px;font:12px 'DM Sans',sans-serif;outline:none}
+  .search:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,127,163,.08)}
+  .conversation-list{flex:1;overflow-y:auto}
+  .conversation{width:100%;border:0;border-bottom:1px solid rgba(221,227,232,.75);background:transparent;padding:15px 16px;display:flex;gap:11px;text-align:left;cursor:pointer;font-family:inherit}
+  .conversation:hover{background:rgba(93,127,163,.04)}.conversation.active{background:var(--brand-light)}
+  .avatar{width:42px;height:42px;border-radius:13px;background:var(--brand-light);color:var(--brand);display:grid;place-items:center;font-family:'DM Serif Display',serif;font-size:16px;flex-shrink:0}
+  .conversation-copy{min-width:0;flex:1}.conversation-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:3px}
+  .conversation-name{font-size:12.5px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.conversation-time{font-size:9.5px;color:#8A96A0;flex-shrink:0}
+  .conversation-job{font-size:10.5px;color:var(--brand);margin-bottom:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .conversation-preview{font-size:10.5px;line-height:1.4;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.unread-dot{width:7px;height:7px;border-radius:50%;background:var(--brand);margin-top:6px;flex-shrink:0}
+  .chat-panel{min-width:0;display:flex;flex-direction:column;background:white}.chat-head{height:78px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 20px}
+  .chat-person{display:flex;align-items:center;gap:11px;min-width:0}.chat-head-name{font-size:13px;font-weight:700;margin-bottom:2px}.chat-head-job{font-size:10.5px;color:var(--muted)}
+  .context-pill{display:inline-flex;align-items:center;min-height:30px;padding:0 11px;border-radius:999px;background:var(--brand-light);color:var(--brand);font-size:10.5px;font-weight:700;text-decoration:none;white-space:nowrap}
+  .messages{flex:1;overflow-y:auto;padding:22px 22px 14px;background:radial-gradient(circle at top left,rgba(140,182,155,.055),transparent 34%),white}
+  .date-divider{text-align:center;font-size:9px;color:#8A96A0;margin:2px 0 18px}.msg-row{display:flex;margin-bottom:11px}.msg-row.mine{justify-content:flex-end}
+  .bubble{max-width:min(72%,560px);border:1px solid var(--border);border-radius:15px 15px 15px 5px;padding:10px 12px;background:white;font-size:12px;line-height:1.55;color:var(--text)}
+  .mine .bubble{background:var(--brand);color:white;border-color:var(--brand);border-radius:15px 15px 5px 15px}.bubble-time{margin-top:5px;font-size:8.5px;color:#8A96A0}.mine .bubble-time{color:rgba(255,255,255,.72);text-align:right}
+  .composer{border-top:1px solid var(--border);padding:14px 16px;display:flex;gap:9px;align-items:flex-end;background:var(--card)}
+  .composer textarea{flex:1;min-height:46px;max-height:110px;resize:none;border:1px solid var(--border);border-radius:13px;padding:12px 13px;font:12px/1.45 'DM Sans',sans-serif;outline:none;color:var(--text);background:white}
+  .composer textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,127,163,.08)}.send-btn{min-width:78px;height:46px;border:0;border-radius:13px;background:var(--brand);color:white;font:700 12px 'DM Sans',sans-serif;cursor:pointer}.send-btn:hover{opacity:.92}
+  .empty-chat{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;color:var(--muted)}
+  .empty-chat-icon{width:54px;height:54px;border-radius:17px;background:var(--brand-light);color:var(--brand);display:grid;place-items:center;font-size:22px;margin-bottom:12px}
+  .empty-chat-title{font-family:'DM Serif Display',serif;color:var(--text);font-size:21px;margin-bottom:5px}.empty-chat-copy{font-size:12px;line-height:1.55;max-width:360px}
+  .error-note{margin-top:14px;border:1px solid rgba(215,154,154,.3);background:rgba(215,154,154,.1);color:#8a5555;border-radius:12px;padding:11px 13px;font-size:11.5px;line-height:1.5}
+  @media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{display:none}.chat-shell{grid-template-columns:280px minmax(0,1fr)}}
+  @media(max-width:680px){main{padding:24px 14px 50px}.chat-shell{grid-template-columns:1fr;height:auto;min-height:700px}.conversations{max-height:280px;border-right:0;border-bottom:1px solid var(--border)}.chat-panel{min-height:520px}.chat-head{padding:0 14px}.context-pill{display:none}.bubble{max-width:86%}}
 </style>
 </head>
 <body>
+<div id="loading">Loading messages…</div>
 
 <nav>
   <a class="logo" href="index.html">Alygnn<span>.</span></a>
   <div class="nav-right">
-    <span class="nav-name">Employer</span>
-    <a class="nav-btn" href="employer-account.html">My account</a>
-    <a class="nav-btn primary" href="employer-dashboard.html">Dashboard</a>
+    <span class="nav-name" id="nav-name"></span>
+    <a class="nav-btn" id="account-link" href="employer-account.html">My account</a>
+    <a class="nav-btn primary" id="dashboard-link" href="employer-dashboard.html">Dashboard</a>
   </div>
 </nav>
 
 <div class="layout">
-  <aside class="sidebar">
-    <div class="sidebar-label">Employer</div>
-    <a href="employer-dashboard.html" class="side-link"><span class="side-icon">💼</span> My Jobs</a>
-    <a href="candidates.html" class="side-link"><span class="side-icon">◎</span> Candidates</a>
-    <a href="messages.html" class="side-link active"><span class="side-icon">✉</span> Messages</a>
-    <a href="employer-dashboard.html#post" class="side-link"><span class="side-icon">➕</span> Post a Job</a>
-    <hr>
-    <a href="employer-account.html" class="side-link"><span class="side-icon">←</span> My account</a>
-  </aside>
+  <aside class="sidebar" id="sidebar"></aside>
 
   <main>
-    <div class="page-kicker">Employer messages</div>
+    <div class="page-kicker">Alygnn messages</div>
     <h1>Messages</h1>
-    <div class="page-sub">Keep conversations tied to the job the candidate applied for.</div>
+    <div class="page-sub">Conversations stay tied to the application and job that connected you.</div>
 
     <section class="chat-shell">
       <div class="conversations">
         <div class="conversations-head">
           <div class="conversations-title">Conversations</div>
-          <input class="search" id="conversation-search" type="text" placeholder="Search candidate or job…" oninput="filterConversations()">
+          <input class="search" id="conversation-search" type="text" placeholder="Search person or job…" oninput="renderConversationList()">
         </div>
-
         <div class="conversation-list" id="conversation-list"></div>
       </div>
-
       <div class="chat-panel" id="chat-panel"></div>
     </section>
 
-    <div class="prototype-note">
-      This is the front-end chat page. It is ready for Alygnn’s real message database to be connected next.
-    </div>
+    <div class="error-note" id="setup-note" style="display:none"></div>
   </main>
 </div>
 
 <script>
-  // Front-end prototype data so the page can be previewed immediately.
-  // Replace this array with Supabase conversations/messages after the UI is approved.
-  const conversations = [
-    {
-      id:'c1',
-      name:'Jordan Miller',
-      initials:'JM',
-      job:'Software Engineer',
-      match:87,
-      unread:true,
-      time:'12:41 PM',
-      preview:'Yes, I’m available tomorrow afternoon.',
-      messages:[
-        {mine:false,text:'Hi, thank you for reviewing my application.',time:'12:28 PM'},
-        {mine:true,text:'Hi Jordan, thanks for applying to our Software Engineer position. Are you available for a quick call tomorrow?',time:'12:34 PM'},
-        {mine:false,text:'Yes, I’m available tomorrow afternoon.',time:'12:41 PM'}
-      ]
-    },
-    {
-      id:'c2',
-      name:'Maria Lopez',
-      initials:'ML',
-      job:'Sales Associate',
-      match:79,
-      unread:false,
-      time:'Yesterday',
-      preview:'Thank you! I can send that over.',
-      messages:[
-        {mine:true,text:'Hi Maria, could you tell me a little more about your customer-facing experience?',time:'4:14 PM'},
-        {mine:false,text:'Absolutely. I worked directly with customers for two years and also trained new team members.',time:'4:28 PM'},
-        {mine:true,text:'Great, thank you.',time:'4:31 PM'},
-        {mine:false,text:'Thank you! I can send that over.',time:'4:33 PM'}
-      ]
-    },
-    {
-      id:'c3',
-      name:'David Chen',
-      initials:'DC',
-      job:'Account Manager',
-      match:91,
-      unread:false,
-      time:'Mon',
-      preview:'Looking forward to speaking with you.',
-      messages:[
-        {mine:true,text:'Hi David, your experience looks closely aligned with our Account Manager role.',time:'9:10 AM'},
-        {mine:false,text:'Thanks for reaching out. I’d be happy to discuss the role.',time:'9:22 AM'},
-        {mine:true,text:'Perfect. I’ll send over some available times shortly.',time:'9:31 AM'},
-        {mine:false,text:'Looking forward to speaking with you.',time:'9:32 AM'}
-      ]
+const SUPABASE_URL='https://auth.alygnn.com';
+const SUPABASE_ANON_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+const {createClient}=supabase;
+const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+let currentUser=null;
+let currentProfile=null;
+let currentRole='';
+let threads=[];
+let threadDetails=new Map();
+let activeThreadId=null;
+let activeMessages=[];
+let messageChannel=null;
+let threadChannel=null;
+
+function escapeHtml(v){
+  return String(v||'')
+    .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
+    .replaceAll('"','&quot;').replaceAll("'",'&#039;');
+}
+function initials(name){
+  return String(name||'?').trim().split(/\s+/).map(x=>x[0]||'').join('').slice(0,2).toUpperCase()||'?';
+}
+function timeLabel(iso){
+  if(!iso)return '';
+  const d=new Date(iso);
+  const now=new Date();
+  if(d.toDateString()===now.toDateString())return d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  const yesterday=new Date(now);yesterday.setDate(now.getDate()-1);
+  if(d.toDateString()===yesterday.toDateString())return 'Yesterday';
+  return d.toLocaleDateString([],{month:'short',day:'numeric'});
+}
+function fullTime(iso){
+  if(!iso)return '';
+  return new Date(iso).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+}
+function showSetup(message){
+  const el=document.getElementById('setup-note');
+  el.textContent=message;
+  el.style.display='block';
+}
+function setSidebar(){
+  const sidebar=document.getElementById('sidebar');
+  if(currentRole==='employer'){
+    sidebar.innerHTML=`
+      <div class="sidebar-label">Employer</div>
+      <a href="employer-dashboard.html" class="side-link"><span class="side-icon">💼</span> My Jobs</a>
+      <a href="candidates.html" class="side-link"><span class="side-icon">◎</span> Candidates</a>
+      <a href="messages.html" class="side-link active"><span class="side-icon">✉</span> Messages</a>
+      <a href="employer-dashboard.html#post" class="side-link"><span class="side-icon">➕</span> Post a Job</a>
+      <hr>
+      <a href="employer-account.html" class="side-link"><span class="side-icon">←</span> My account</a>`;
+    document.getElementById('account-link').href='employer-account.html';
+    document.getElementById('dashboard-link').href='employer-dashboard.html';
+    document.getElementById('dashboard-link').textContent='Dashboard';
+  }else{
+    sidebar.innerHTML=`
+      <div class="sidebar-label">Candidate</div>
+      <a href="swipe.html" class="side-link"><span class="side-icon">⌕</span> Discover</a>
+      <a href="my-jobs.html" class="side-link"><span class="side-icon">♡</span> My Jobs</a>
+      <a href="messages.html" class="side-link active"><span class="side-icon">✉</span> Messages</a>
+      <hr>
+      <a href="account.html" class="side-link"><span class="side-icon">←</span> My account</a>`;
+    document.getElementById('account-link').href='account.html';
+    document.getElementById('dashboard-link').href='swipe.html';
+    document.getElementById('dashboard-link').textContent='Discover';
+  }
+}
+
+async function getOrCreateRequestedThread(){
+  const params=new URLSearchParams(location.search);
+  const applicationId=params.get('application');
+  if(!applicationId)return null;
+
+  const {data,error}=await sb.rpc('get_or_create_application_thread',{p_application_id:applicationId});
+  if(error){
+    console.error(error);
+    showSetup('Messaging is not connected yet. Run the Alygnn messaging SQL in Supabase once, then refresh this page.');
+    return null;
+  }
+  return data;
+}
+
+async function loadThreads(){
+  const {data,error}=await sb
+    .from('message_threads')
+    .select('id,application_id,job_id,employer_id,candidate_id,created_at,updated_at,last_message_at')
+    .order('last_message_at',{ascending:false,nullsFirst:false});
+
+  if(error){
+    console.error(error);
+    showSetup('Messaging tables are not available yet. Run the Alygnn messaging SQL in Supabase once, then refresh.');
+    threads=[];
+    return;
+  }
+  threads=data||[];
+}
+
+async function loadThreadDetails(){
+  threadDetails=new Map();
+  if(!threads.length)return;
+
+  const jobIds=[...new Set(threads.map(t=>t.job_id).filter(Boolean))];
+  const userIds=[...new Set(threads.flatMap(t=>[t.employer_id,t.candidate_id]).filter(Boolean))];
+
+  const [jobsResult,profilesResult,lastMessagesResult]=await Promise.all([
+    jobIds.length
+      ? sb.from('jobs').select('id,title,status,location').in('id',jobIds)
+      : Promise.resolve({data:[]}),
+    userIds.length
+      ? sb.from('profiles').select('id,full_name,company_name').in('id',userIds)
+      : Promise.resolve({data:[]}),
+    threads.length
+      ? sb.from('messages').select('id,thread_id,sender_id,body,created_at,read_at').in('thread_id',threads.map(t=>t.id)).order('created_at',{ascending:false})
+      : Promise.resolve({data:[]})
+  ]);
+
+  if(jobsResult.error)console.error(jobsResult.error);
+  if(profilesResult.error)console.error(profilesResult.error);
+  if(lastMessagesResult.error)console.error(lastMessagesResult.error);
+
+  const jobsMap=Object.fromEntries((jobsResult.data||[]).map(j=>[j.id,j]));
+  const profilesMap=Object.fromEntries((profilesResult.data||[]).map(p=>[p.id,p]));
+
+  const newestByThread={};
+  const unreadByThread={};
+  for(const m of (lastMessagesResult.data||[])){
+    if(!newestByThread[m.thread_id])newestByThread[m.thread_id]=m;
+    if(m.sender_id!==currentUser.id&&!m.read_at){
+      unreadByThread[m.thread_id]=(unreadByThread[m.thread_id]||0)+1;
     }
-  ];
-
-  let activeId = conversations[0]?.id || null;
-
-  function escapeHtml(v){
-    return String(v||'')
-      .replaceAll('&','&amp;')
-      .replaceAll('<','&lt;')
-      .replaceAll('>','&gt;')
-      .replaceAll('"','&quot;')
-      .replaceAll("'",'&#039;');
   }
 
-  function renderConversations(list=conversations){
-    const el=document.getElementById('conversation-list');
+  for(const t of threads){
+    const otherId=currentUser.id===t.employer_id?t.candidate_id:t.employer_id;
+    const other=profilesMap[otherId]||{};
+    const job=jobsMap[t.job_id]||{};
+    const displayName=currentRole==='employer'
+      ? (other.full_name||'Candidate')
+      : (other.company_name||other.full_name||'Company');
 
-    if(!list.length){
-      el.innerHTML=`
-        <div style="padding:28px 18px;text-align:center;color:var(--muted);font-size:12px;">
-          No conversations found.
-        </div>`;
-      return;
-    }
+    threadDetails.set(t.id,{
+      thread:t,
+      otherId,
+      name:displayName,
+      initials:initials(displayName),
+      job,
+      lastMessage:newestByThread[t.id]||null,
+      unread:unreadByThread[t.id]||0
+    });
+  }
+}
 
-    el.innerHTML=list.map(c=>`
-      <button class="conversation ${c.id===activeId?'active':''}" onclick="openConversation('${c.id}')">
-        <div class="avatar">${escapeHtml(c.initials)}</div>
+function filteredThreads(){
+  const q=(document.getElementById('conversation-search')?.value||'').trim().toLowerCase();
+  if(!q)return threads;
+  return threads.filter(t=>{
+    const d=threadDetails.get(t.id)||{};
+    return [d.name,d.job?.title,d.lastMessage?.body].join(' ').toLowerCase().includes(q);
+  });
+}
+
+function renderConversationList(){
+  const el=document.getElementById('conversation-list');
+  const list=filteredThreads();
+
+  if(!list.length){
+    el.innerHTML=`<div style="padding:30px 18px;text-align:center;color:var(--muted);font-size:12px;line-height:1.55">
+      ${threads.length?'No conversations match your search.':'No conversations yet. Start from a candidate application to begin messaging.'}
+    </div>`;
+    return;
+  }
+
+  el.innerHTML=list.map(t=>{
+    const d=threadDetails.get(t.id)||{};
+    const last=d.lastMessage;
+    return `
+      <button class="conversation ${t.id===activeThreadId?'active':''}" onclick="openThread('${t.id}')">
+        <div class="avatar">${escapeHtml(d.initials||'?')}</div>
         <div class="conversation-copy">
           <div class="conversation-top">
-            <div class="conversation-name">${escapeHtml(c.name)}</div>
-            <div class="conversation-time">${escapeHtml(c.time)}</div>
+            <div class="conversation-name">${escapeHtml(d.name||'Conversation')}</div>
+            <div class="conversation-time">${escapeHtml(timeLabel(last?.created_at||t.last_message_at||t.updated_at))}</div>
           </div>
-          <div class="conversation-job">${escapeHtml(c.job)}</div>
-          <div class="conversation-preview">${escapeHtml(c.preview)}</div>
+          <div class="conversation-job">${escapeHtml(d.job?.title||'Job')}</div>
+          <div class="conversation-preview">${escapeHtml(last?.body||'Start the conversation')}</div>
         </div>
-        ${c.unread?'<span class="unread-dot"></span>':''}
-      </button>
-    `).join('');
-  }
+        ${d.unread?'<span class="unread-dot" title="Unread messages"></span>':''}
+      </button>`;
+  }).join('');
+}
 
-  function openConversation(id){
-    activeId=id;
-    const conversation=conversations.find(c=>c.id===id);
-    if(conversation)conversation.unread=false;
-    renderConversations(filteredList());
-    renderChat();
-  }
+async function markThreadRead(threadId){
+  const {error}=await sb
+    .from('messages')
+    .update({read_at:new Date().toISOString()})
+    .eq('thread_id',threadId)
+    .neq('sender_id',currentUser.id)
+    .is('read_at',null);
+  if(error)console.warn('Could not mark messages read:',error);
+}
 
-  function filteredList(){
-    const q=(document.getElementById('conversation-search')?.value||'').trim().toLowerCase();
-    if(!q)return conversations;
-    return conversations.filter(c=>
-      c.name.toLowerCase().includes(q) ||
-      c.job.toLowerCase().includes(q) ||
-      c.preview.toLowerCase().includes(q)
-    );
-  }
-
-  function filterConversations(){
-    renderConversations(filteredList());
-  }
-
-  function renderChat(){
-    const panel=document.getElementById('chat-panel');
-    const c=conversations.find(x=>x.id===activeId);
-
-    if(!c){
-      panel.innerHTML=`
-        <div class="empty-chat">
-          <div class="empty-chat-icon">✉</div>
-          <div class="empty-chat-title">No conversation selected</div>
-          <div class="empty-chat-copy">Choose a candidate conversation from the left.</div>
-        </div>`;
-      return;
-    }
-
-    panel.innerHTML=`
-      <div class="chat-head">
-        <div class="chat-person">
-          <div class="avatar">${escapeHtml(c.initials)}</div>
-          <div>
-            <div class="chat-head-name">${escapeHtml(c.name)}</div>
-            <div class="chat-head-job">Applied for ${escapeHtml(c.job)}</div>
-          </div>
-        </div>
-        <a class="match-pill" href="candidates.html">Alygnn Match · ${c.match}%</a>
-      </div>
-
-      <div class="messages" id="messages">
-        <div class="date-divider">Today</div>
-        ${c.messages.map(m=>`
-          <div class="msg-row ${m.mine?'mine':''}">
-            <div class="bubble">
-              ${escapeHtml(m.text)}
-              <div class="bubble-time">${escapeHtml(m.time)}</div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-
-      <div class="composer">
-        <textarea id="message-input" maxlength="2000" placeholder="Write a message…" onkeydown="handleComposerKey(event)"></textarea>
-        <button class="send-btn" onclick="sendMessage()">Send</button>
-      </div>
-    `;
-
-    requestAnimationFrame(()=>{
-      const messages=document.getElementById('messages');
-      if(messages)messages.scrollTop=messages.scrollHeight;
-    });
-  }
-
-  function handleComposerKey(event){
-    if(event.key==='Enter'&&!event.shiftKey){
-      event.preventDefault();
-      sendMessage();
-    }
-  }
-
-  function sendMessage(){
-    const c=conversations.find(x=>x.id===activeId);
-    const input=document.getElementById('message-input');
-    if(!c||!input)return;
-
-    const text=input.value.trim();
-    if(!text)return;
-
-    c.messages.push({
-      mine:true,
-      text,
-      time:new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})
-    });
-    c.preview=text;
-    c.time='Now';
-    input.value='';
-
-    renderConversations(filteredList());
-    renderChat();
-  }
-
-  renderConversations();
+async function openThread(threadId){
+  activeThreadId=threadId;
+  await markThreadRead(threadId);
+  await loadMessages(threadId);
+  const d=threadDetails.get(threadId);
+  if(d)d.unread=0;
+  renderConversationList();
   renderChat();
-</script>
+  subscribeToMessages(threadId);
+}
 
+async function loadMessages(threadId){
+  const {data,error}=await sb
+    .from('messages')
+    .select('id,thread_id,sender_id,body,created_at,read_at')
+    .eq('thread_id',threadId)
+    .order('created_at',{ascending:true});
+  if(error){
+    console.error(error);
+    activeMessages=[];
+    return;
+  }
+  activeMessages=data||[];
+}
+
+function renderChat(){
+  const panel=document.getElementById('chat-panel');
+
+  if(!activeThreadId){
+    panel.innerHTML=`
+      <div class="empty-chat">
+        <div class="empty-chat-icon">✉</div>
+        <div class="empty-chat-title">No conversation selected</div>
+        <div class="empty-chat-copy">Choose a conversation from the left, or start one from a candidate application.</div>
+      </div>`;
+    return;
+  }
+
+  const d=threadDetails.get(activeThreadId)||{};
+  const jobClosed=String(d.job?.status||'').toLowerCase()==='closed';
+
+  panel.innerHTML=`
+    <div class="chat-head">
+      <div class="chat-person">
+        <div class="avatar">${escapeHtml(d.initials||'?')}</div>
+        <div>
+          <div class="chat-head-name">${escapeHtml(d.name||'Conversation')}</div>
+          <div class="chat-head-job">${currentRole==='employer'?'Applied for':'Conversation about'} ${escapeHtml(d.job?.title||'this job')}${jobClosed?' · Closed':''}</div>
+        </div>
+      </div>
+      ${currentRole==='employer'
+        ? `<a class="context-pill" href="candidates.html?job=${encodeURIComponent(d.thread?.job_id||'')}&application=${encodeURIComponent(d.thread?.application_id||'')}">View candidate</a>`
+        : `<a class="context-pill" href="my-jobs.html">View application</a>`}
+    </div>
+
+    <div class="messages" id="messages">
+      ${activeMessages.length
+        ? `<div class="date-divider">${new Date(activeMessages[0].created_at).toLocaleDateString([],{month:'long',day:'numeric',year:'numeric'})}</div>
+           ${activeMessages.map(m=>`
+             <div class="msg-row ${m.sender_id===currentUser.id?'mine':''}">
+               <div class="bubble">
+                 ${escapeHtml(m.body)}
+                 <div class="bubble-time">${escapeHtml(fullTime(m.created_at))}</div>
+               </div>
+             </div>`).join('')}`
+        : `<div class="empty-chat" style="min-height:100%">
+             <div class="empty-chat-icon">✉</div>
+             <div class="empty-chat-title">Start the conversation</div>
+             <div class="empty-chat-copy">This thread is connected to ${escapeHtml(d.job?.title||'the application')}.</div>
+           </div>`}
+    </div>
+
+    <div class="composer">
+      <textarea id="message-input" maxlength="2000" placeholder="Write a message…" onkeydown="handleComposerKey(event)"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
+    </div>`;
+
+  requestAnimationFrame(()=>{
+    const messages=document.getElementById('messages');
+    if(messages)messages.scrollTop=messages.scrollHeight;
+  });
+}
+
+function handleComposerKey(event){
+  if(event.key==='Enter'&&!event.shiftKey){
+    event.preventDefault();
+    sendMessage();
+  }
+}
+
+async function sendMessage(){
+  const input=document.getElementById('message-input');
+  const btn=document.getElementById('send-btn');
+  if(!input||!btn||!activeThreadId)return;
+  const body=input.value.trim();
+  if(!body)return;
+
+  btn.disabled=true;
+  const {data,error}=await sb
+    .from('messages')
+    .insert({thread_id:activeThreadId,sender_id:currentUser.id,body})
+    .select('id,thread_id,sender_id,body,created_at,read_at')
+    .single();
+
+  btn.disabled=false;
+  if(error){
+    console.error(error);
+    showSetup('Could not send the message. Check the messaging SQL/RLS setup.');
+    return;
+  }
+
+  input.value='';
+  activeMessages.push(data);
+  const d=threadDetails.get(activeThreadId);
+  if(d)d.lastMessage=data;
+  renderConversationList();
+  renderChat();
+}
+
+function subscribeToMessages(threadId){
+  if(messageChannel)sb.removeChannel(messageChannel);
+
+  messageChannel=sb.channel('messages-thread-'+threadId)
+    .on('postgres_changes',{
+      event:'INSERT',schema:'public',table:'messages',
+      filter:`thread_id=eq.${threadId}`
+    },async payload=>{
+      const m=payload.new;
+      if(!activeMessages.some(x=>x.id===m.id))activeMessages.push(m);
+      if(m.sender_id!==currentUser.id)await markThreadRead(threadId);
+      const d=threadDetails.get(threadId);
+      if(d){d.lastMessage=m;d.unread=0}
+      renderConversationList();
+      renderChat();
+    })
+    .subscribe();
+}
+
+function subscribeToThreads(){
+  if(threadChannel)sb.removeChannel(threadChannel);
+
+  threadChannel=sb.channel('message-threads-'+currentUser.id)
+    .on('postgres_changes',{
+      event:'*',schema:'public',table:'message_threads'
+    },async ()=>{
+      await refreshAll(false);
+    })
+    .on('postgres_changes',{
+      event:'INSERT',schema:'public',table:'messages'
+    },async payload=>{
+      if(payload.new.thread_id===activeThreadId)return;
+      await refreshAll(false);
+    })
+    .subscribe();
+}
+
+async function refreshAll(chooseFirst=true){
+  await loadThreads();
+  await loadThreadDetails();
+
+  if(activeThreadId&&!threads.some(t=>t.id===activeThreadId))activeThreadId=null;
+  if(!activeThreadId&&chooseFirst&&threads.length)activeThreadId=threads[0].id;
+
+  renderConversationList();
+
+  if(activeThreadId){
+    await loadMessages(activeThreadId);
+    renderChat();
+  }else{
+    renderChat();
+  }
+}
+
+async function resolveEmployerCompanyName(profile, sessionUser){
+  // Primary source: the same profiles.company_name used by the employer
+  // dashboard/account pages.
+  const fromProfile = String(profile?.company_name || '').trim();
+  if(fromProfile) return fromProfile;
+
+  // Google/email metadata may already contain the company name.
+  const fromMetadata = String(sessionUser?.user_metadata?.company_name || '').trim();
+  if(fromMetadata) return fromMetadata;
+
+  // Backward-compatible fallback in case an older employer row stores the
+  // company name in the employers table instead of profiles.
+  try{
+    const {data,error}=await sb
+      .from('employers')
+      .select('company_name')
+      .eq('id',sessionUser.id)
+      .maybeSingle();
+
+    if(!error && String(data?.company_name || '').trim()){
+      return String(data.company_name).trim();
+    }
+  }catch(error){
+    console.warn('Could not read employer company name fallback:', error);
+  }
+
+  // Never show the generic word "Employer" as the account name.
+  return String(profile?.full_name || sessionUser?.user_metadata?.full_name || sessionUser?.user_metadata?.name || 'Company').trim();
+}
+
+async function init(){
+  const {data:{session},error}=await sb.auth.getSession();
+  if(error||!session){
+    location.replace('login.html');
+    return;
+  }
+  currentUser=session.user;
+
+  const {data:profile,error:profileError}=await sb
+    .from('profiles')
+    .select('id,role,full_name,company_name')
+    .eq('id',currentUser.id)
+    .maybeSingle();
+
+  if(profileError){
+    console.error(profileError);
+    location.replace('login.html');
+    return;
+  }
+
+  currentProfile=profile||{};
+  currentRole=String(profile?.role||currentUser.user_metadata?.role||'candidate').toLowerCase();
+  if(currentRole==='employer'){
+    document.getElementById('nav-name').textContent=
+      await resolveEmployerCompanyName(profile,currentUser);
+  }else{
+    document.getElementById('nav-name').textContent=
+      profile?.full_name||currentUser.user_metadata?.full_name||currentUser.user_metadata?.name||'Candidate';
+  }
+
+  setSidebar();
+
+  const requestedThreadId=await getOrCreateRequestedThread();
+  await loadThreads();
+  await loadThreadDetails();
+
+  const urlThread=new URLSearchParams(location.search).get('thread');
+  activeThreadId=requestedThreadId||urlThread||threads[0]?.id||null;
+
+  renderConversationList();
+  if(activeThreadId){
+    await markThreadRead(activeThreadId);
+    await loadMessages(activeThreadId);
+  }
+  renderChat();
+  subscribeToThreads();
+  if(activeThreadId)subscribeToMessages(activeThreadId);
+
+  document.body.classList.add('ready');
+}
+
+window.addEventListener('beforeunload',()=>{
+  if(messageChannel)sb.removeChannel(messageChannel);
+  if(threadChannel)sb.removeChannel(threadChannel);
+});
+
+init();
+</script>
 </body>
 </html>
