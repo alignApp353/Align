@@ -310,6 +310,27 @@
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,37,48,0.45); z-index: 300; align-items: center; justify-content: center; padding: 24px; }
   .modal-overlay.show { display: flex; }
   .modal-box { background: var(--card-bg); border-radius: 20px; max-width: 560px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 32px; position: relative; }
+
+  .boost-modal-head{ padding-right:34px; margin-bottom:20px; }
+  .boost-modal-kicker{ font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:var(--brand); font-weight:700; margin-bottom:6px; }
+  .boost-modal-title{ font-family:'DM Serif Display',serif; font-size:25px; color:var(--text); margin-bottom:6px; }
+  .boost-modal-copy{ font-size:13px; color:var(--text-muted); line-height:1.55; }
+  .boost-job-list{ display:grid; gap:10px; margin-top:18px; }
+  .boost-job-option{
+    width:100%; display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:15px 16px; border:1px solid var(--border); border-radius:14px;
+    background:white; text-align:left; cursor:pointer; font-family:'DM Sans',sans-serif;
+    transition:border-color .2s, transform .2s, box-shadow .2s;
+  }
+  .boost-job-option:hover{ border-color:var(--brand); transform:translateY(-1px); box-shadow:0 7px 18px rgba(38,54,70,.05); }
+  .boost-job-option-title{ font-size:14px; font-weight:600; color:var(--text); margin-bottom:3px; }
+  .boost-job-option-meta{ font-size:11px; color:var(--text-muted); line-height:1.4; }
+  .boost-job-option-action{ flex-shrink:0; color:var(--brand); font-size:12px; font-weight:700; white-space:nowrap; }
+  .boosted-pill{
+    display:inline-flex; align-items:center; margin-left:7px; padding:2px 8px; border-radius:999px;
+    font-size:10px; font-weight:700; color:#755b18; background:rgba(231,184,109,.15);
+    border:1px solid rgba(231,184,109,.35); vertical-align:middle;
+  }
   .modal-close { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 18px; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 4px; }
   .modal-close:hover { color: var(--text); }
   .modal-top { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; padding-right: 30px; }
@@ -642,6 +663,10 @@
 
 <div class="modal-overlay" id="candidate-modal-overlay" onclick="if (event.target === this) closeCandidateModal()">
   <div class="modal-box" id="candidate-modal-box"></div>
+</div>
+
+<div class="modal-overlay" id="boost-modal-overlay" onclick="if (event.target === this) closeBoostPicker()">
+  <div class="modal-box" id="boost-modal-box"></div>
 </div>
 
 <script>
@@ -1633,6 +1658,22 @@
     document.body.classList.add('auth-ready');
     applyPanelVisual(initialPanel);
     loadPanelData(initialPanel);
+
+    const requestedAction = new URLSearchParams(window.location.search).get('action');
+    if (requestedAction === 'boost') {
+      // Open after the dashboard is visible so Pricing → Boost lands directly
+      // in the job picker instead of silently looking like the normal Jobs tab.
+      requestAnimationFrame(() => openBoostPicker());
+    }
+
+    const boostResult = new URLSearchParams(window.location.search).get('boost');
+    if (boostResult === 'success') {
+      showToast('Job Boost activated for 24 hours.');
+      const url = new URL(window.location.href);
+      url.searchParams.delete('boost');
+      url.searchParams.delete('job');
+      history.replaceState({}, '', url.pathname + url.search + (window.location.hash || '#jobs'));
+    }
   }
 
   // ---- Employer job-slot entitlement / paywall ----
@@ -2640,6 +2681,96 @@
     await loadCandidates();
   }
 
+  function jobBoostIsActive(job) {
+    if (!job?.boosted_until) return false;
+    const until = new Date(job.boosted_until).getTime();
+    return !Number.isNaN(until) && until > Date.now();
+  }
+
+  function formatBoostUntil(value) {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleString([], {
+      month:'short', day:'numeric', hour:'numeric', minute:'2-digit'
+    });
+  }
+
+  function eligibleBoostJobs() {
+    return jobs.filter(job => String(job.status || 'active').toLowerCase() === 'active');
+  }
+
+  function openBoostCheckout(jobId) {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job || String(job.status || '').toLowerCase() !== 'active') {
+      showToast('Only active jobs can be boosted.');
+      return;
+    }
+    window.location.href = 'boost-checkout.html?job=' + encodeURIComponent(job.id);
+  }
+
+  function openBoostPicker() {
+    const overlay = document.getElementById('boost-modal-overlay');
+    const box = document.getElementById('boost-modal-box');
+    if (!overlay || !box) return;
+
+    const activeJobs = eligibleBoostJobs();
+
+    if (!activeJobs.length) {
+      box.innerHTML = `
+        <button type="button" class="modal-close" onclick="closeBoostPicker()" aria-label="Close">✕</button>
+        <div class="boost-modal-head">
+          <div class="boost-modal-kicker">Job Boost · $15 / day</div>
+          <div class="boost-modal-title">Choose a job to boost</div>
+          <div class="boost-modal-copy">You need an active job before you can add a 24-hour Job Boost.</div>
+        </div>
+        <button class="btn-primary" type="button" onclick="closeBoostPicker(); openPostJob();">Post a job</button>
+      `;
+    } else {
+      box.innerHTML = `
+        <button type="button" class="modal-close" onclick="closeBoostPicker()" aria-label="Close">✕</button>
+        <div class="boost-modal-head">
+          <div class="boost-modal-kicker">Job Boost · $15 / day</div>
+          <div class="boost-modal-title">Which job do you want to boost?</div>
+          <div class="boost-modal-copy">A Job Boost lasts 24 hours and gives the selected active job priority placement in candidate discovery.</div>
+        </div>
+        <div class="boost-job-list">
+          ${activeJobs.map(job => {
+            const activeBoost = jobBoostIsActive(job);
+            return `
+              <button class="boost-job-option" type="button" onclick="openBoostCheckout('${job.id}')">
+                <div>
+                  <div class="boost-job-option-title">
+                    ${escapeHtml(job.title || 'Untitled role')}
+                    ${activeBoost ? '<span class="boosted-pill">Boosted</span>' : ''}
+                  </div>
+                  <div class="boost-job-option-meta">
+                    ${escapeHtml(job.location || 'Location not listed')}
+                    ${activeBoost ? ' · Boost active until ' + escapeHtml(formatBoostUntil(job.boosted_until)) : ''}
+                  </div>
+                </div>
+                <span class="boost-job-option-action">${activeBoost ? 'Add 24 hours →' : 'Boost →'}</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    overlay.classList.add('show');
+  }
+
+  function closeBoostPicker() {
+    const overlay = document.getElementById('boost-modal-overlay');
+    if (overlay) overlay.classList.remove('show');
+
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('action') === 'boost') {
+      url.searchParams.delete('action');
+      history.replaceState({}, '', url.pathname + url.search + (window.location.hash || '#jobs'));
+    }
+  }
+
   function renderJobs() {
     const jobsList = document.getElementById('jobs-list');
 
@@ -2705,7 +2836,7 @@
       <div class="job-row">
         <div class="job-status ${statusClass}"></div>
         <div class="job-info">
-          <div class="job-title-text">${escapeHtml(job.title)}<span class="job-status-badge ${statusClass}">${escapeHtml(statusLabel)}</span></div>
+          <div class="job-title-text">${escapeHtml(job.title)}<span class="job-status-badge ${statusClass}">${escapeHtml(statusLabel)}</span>${jobBoostIsActive(job) ? '<span class="boosted-pill">Boosted</span>' : ''}</div>
           <div class="job-meta">${escapeHtml(job.job_type || '')} · ${escapeHtml(formatWorkStyleLabel(job.work_style))}${job.salary ? ' · ' + escapeHtml(job.salary) : ''}${job.location ? ' · ' + escapeHtml(job.location) : ''}</div>
         </div>
         <div class="job-stats">
@@ -2717,6 +2848,9 @@
             ? '<button class="btn-view" disabled style="opacity:.45; cursor:not-allowed;" title="This job will accept candidates after business approval.">Candidates</button>'
             : `<button class="btn-view" onclick="viewCandidatesForJob('${job.id}')">Candidates</button>`}
           <button class="btn-view" onclick="window.location.href='job-details.html?job=${job.id}&from=employer'">View</button>
+          ${pending
+            ? '<button class="btn-view" disabled style="opacity:.45; cursor:not-allowed;" title="Only active jobs can be boosted.">Boost</button>'
+            : `<button class="btn-view" onclick="openBoostCheckout('${job.id}')">${jobBoostIsActive(job) ? 'Boost again' : 'Boost'}</button>`}
           <button class="btn-view" onclick="editJob('${job.id}')">Edit</button>
           <button class="btn-danger" onclick="deleteJob('${job.id}')">Delete</button>
         </div>
