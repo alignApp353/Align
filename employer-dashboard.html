@@ -439,6 +439,9 @@
     <button class="nav-item active" onclick="showPanel('jobs', this)">
       <span class="nav-icon">💼</span> My Jobs
     </button>
+    <a class="nav-item" href="candidates.html">
+      <span class="nav-icon">◎</span> Candidates
+    </a>
     <button class="nav-item" id="sidebar-post-job-btn" onclick="openPostJob()">
       <span class="nav-icon">➕</span> <span id="sidebar-post-job-label">Post a Job</span>
     </button>
@@ -2353,7 +2356,11 @@
       return;
     }
 
-    openJobApplicantsModal(c.job.id, c.applicationId);
+    const params = new URLSearchParams({
+      job: c.job.id,
+      application: c.applicationId
+    });
+    window.location.href = 'candidates.html?' + params.toString();
   }
 
   async function markNotificationRead(id) {
@@ -3014,7 +3021,7 @@
         <div class="job-actions">
           ${pending
             ? '<button class="btn-view" disabled style="opacity:.45; cursor:not-allowed;" title="This job will accept candidates after business approval.">Candidates</button>'
-            : `<button class="btn-view" onclick="viewCandidatesForJob('${job.id}')">Candidates</button>`}
+            : `<button class="btn-view" onclick="window.location.href='candidates.html?job=${encodeURIComponent(job.id)}'">Candidates</button>`}
           <button class="btn-view" onclick="window.location.href='job-details.html?job=${job.id}&from=employer'">View</button>
           ${pending
             ? '<button class="btn-view" disabled style="opacity:.45; cursor:not-allowed;" title="Only active jobs can be boosted.">Boost</button>'
