@@ -307,6 +307,34 @@
   .candidate-view-link { display: inline-block; font-size: 12px; color: var(--brand); background: none; border: none; padding: 0; margin-bottom: 14px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
   .candidate-view-link:hover { opacity: 0.8; }
 
+  .job-applicants-modal-box{ max-width:760px; }
+  .job-applicants-head{ padding-right:34px; margin-bottom:18px; }
+  .job-applicants-kicker{
+    font-size:10px; letter-spacing:1.25px; text-transform:uppercase;
+    color:var(--brand); font-weight:700; margin-bottom:5px;
+  }
+  .job-applicants-title{
+    font-family:'DM Serif Display',serif; font-size:26px; color:var(--text);
+    line-height:1.15; margin-bottom:5px;
+  }
+  .job-applicants-sub{ font-size:12px; color:var(--text-muted); line-height:1.5; }
+  .job-applicants-list{ display:grid; gap:12px; margin-top:18px; }
+  .job-applicants-list .candidate-card{ padding:18px; transform:none; }
+  .job-applicants-list .candidate-card:hover{ transform:none; }
+  .job-applicants-list .candidate-card.notification-focus{
+    border-color:rgba(93,127,163,.65);
+    box-shadow:0 0 0 3px rgba(93,127,163,.09);
+  }
+  .notification-focus-label{
+    display:inline-flex; align-items:center; padding:3px 8px; border-radius:999px;
+    font-size:9px; font-weight:700; letter-spacing:.3px; text-transform:uppercase;
+    color:var(--brand); background:var(--brand-light); margin-left:7px;
+  }
+  .job-applicants-empty{
+    border:1px dashed var(--border); border-radius:14px; padding:28px 20px;
+    text-align:center; color:var(--text-muted); font-size:13px;
+  }
+
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,37,48,0.45); z-index: 300; align-items: center; justify-content: center; padding: 24px; }
   .modal-overlay.show { display: flex; }
   .modal-box { background: var(--card-bg); border-radius: 20px; max-width: 560px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 32px; position: relative; }
@@ -410,9 +438,6 @@
     <div class="sidebar-label">Employer</div>
     <button class="nav-item active" onclick="showPanel('jobs', this)">
       <span class="nav-icon">💼</span> My Jobs
-    </button>
-    <button class="nav-item" onclick="openAllCandidates()">
-      <span class="nav-icon">👥</span> Candidates
     </button>
     <button class="nav-item" id="sidebar-post-job-btn" onclick="openPostJob()">
       <span class="nav-icon">➕</span> <span id="sidebar-post-job-label">Post a Job</span>
@@ -666,6 +691,10 @@
 
 <div class="modal-overlay" id="candidate-modal-overlay" onclick="if (event.target === this) closeCandidateModal()">
   <div class="modal-box" id="candidate-modal-box"></div>
+</div>
+
+<div class="modal-overlay" id="job-applicants-modal-overlay" onclick="if (event.target === this) closeJobApplicantsModal()">
+  <div class="modal-box job-applicants-modal-box" id="job-applicants-modal-box"></div>
 </div>
 
 <div class="modal-overlay" id="boost-modal-overlay" onclick="if (event.target === this) closeBoostPicker()">
@@ -1631,8 +1660,6 @@
 
     document.getElementById('nav-user-name').textContent = displayName;
 
-    initNotifications();
-
     const companyInput = document.getElementById('f-company');
     if (companyInput && profile?.company_name) {
       companyInput.value = profile.company_name;
@@ -1644,8 +1671,10 @@
     updateVerificationUI();
     await activatePendingJobsIfApproved();
     await loadJobs();
+    await loadCandidates();
     await loadBillingEntitlement();
     updatePostingAccessUI();
+    initNotifications();
 
     const initialPanel = getPanelFromHash();
 
@@ -1900,7 +1929,7 @@
     showPanel('post');
   }
 
-  const VALID_PANELS = ['jobs', 'candidates', 'post'];
+  const VALID_PANELS = ['jobs', 'post'];
 
   function getPanelFromHash() {
     const hash = (window.location.hash || '').replace('#', '');
@@ -1933,7 +1962,6 @@
   // The actual data-fetching side effects for a given panel.
   function loadPanelData(name) {
     if (name === 'post') { updatePreview(); resetWizardToStep1(); }
-    if (name === 'candidates') loadCandidates();
   }
 
   // Every real panel switch changes the URL hash, which is a genuine
@@ -2203,10 +2231,67 @@
     return data || [];
   }
 
+  let notificationItemsCache = [];
+
+  function notificationApplication(n) {
+    const rawLink = String(n?.link || '');
+
+    // Newer notifications may already carry IDs in their link.
+    try {
+      const url = new URL(rawLink || location.href, location.origin);
+      const applicationId =
+        url.searchParams.get('application') ||
+        url.searchParams.get('application_id') ||
+        url.searchParams.get('app');
+      const jobId =
+        url.searchParams.get('job') ||
+        url.searchParams.get('job_id');
+
+      if (applicationId) {
+        const exact = candidates.find(c => c.applicationId === applicationId);
+        if (exact) return exact;
+      }
+      if (jobId) {
+        const byJob = candidates
+          .filter(c => c.job?.id === jobId)
+          .sort((a,b) => new Date(b.appliedAt || 0) - new Date(a.appliedAt || 0));
+        if (byJob.length) return byJob[0];
+      }
+    } catch (e) {}
+
+    // Backward compatibility for the notifications already in Supabase:
+    // match the candidate name + job title that appear in title/body.
+    const haystack = `${n?.title || ''} ${n?.body || ''}`.toLowerCase();
+
+    const scored = candidates.map(c => {
+      const name = String(c.profile?.full_name || '').trim().toLowerCase();
+      const jobTitle = String(c.job?.title || '').trim().toLowerCase();
+      let score = 0;
+
+      if (name && haystack.includes(name)) score += 60;
+      if (jobTitle && haystack.includes(jobTitle)) score += 50;
+
+      if (n?.created_at && c.appliedAt) {
+        const diff = Math.abs(new Date(n.created_at).getTime() - new Date(c.appliedAt).getTime());
+        if (Number.isFinite(diff)) {
+          if (diff < 5 * 60 * 1000) score += 20;
+          else if (diff < 60 * 60 * 1000) score += 10;
+          else if (diff < 24 * 60 * 60 * 1000) score += 4;
+        }
+      }
+
+      return { c, score };
+    }).sort((a,b) => b.score - a.score);
+
+    return scored[0]?.score > 0 ? scored[0].c : null;
+  }
+
   function renderNotifDropdown(items) {
+    notificationItemsCache = items || [];
+
     const badge = document.getElementById('notif-badge');
     const list = document.getElementById('notif-list');
-    const unreadCount = items.filter(n => !n.read_at).length;
+    const unreadCount = notificationItemsCache.filter(n => !n.read_at).length;
 
     if (unreadCount > 0) {
       badge.style.display = 'flex';
@@ -2215,26 +2300,35 @@
       badge.style.display = 'none';
     }
 
-    if (items.length === 0) {
+    if (notificationItemsCache.length === 0) {
       list.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
       return;
     }
 
-    list.innerHTML = items.slice(0, 6).map(n => {
-      const link = n.link || '#';
-      const isCandidateLink =
-        link === '#candidates' ||
-        link.endsWith('employer-dashboard.html#candidates') ||
-        String(n.type || '').toLowerCase().includes('applicant');
+    list.innerHTML = notificationItemsCache.slice(0, 6).map(n => {
+      const isApplicant =
+        String(n.type || '').toLowerCase().includes('applicant') ||
+        String(n.title || '').toLowerCase().includes('applicant') ||
+        String(n.body || '').toLowerCase().includes('applied');
 
-      const clickHandler = isCandidateLink
-        ? `handleCandidateNotification(event, '${n.id}')`
-        : `markNotificationRead('${n.id}')`;
-
-      const href = isCandidateLink ? 'employer-dashboard.html#candidates' : escapeHtml(link);
+      if (isApplicant) {
+        const c = notificationApplication(n);
+        if (c?.job) {
+          const name = c.profile?.full_name || 'A candidate';
+          return `
+            <a class="notif-item ${n.read_at ? '' : 'unread'}" href="#"
+               onclick="handleCandidateNotification(event, '${n.id}')">
+              <div class="notif-item-title">${escapeHtml(c.job.title)} — New applicant</div>
+              <div class="notif-item-body">${escapeHtml(name)} applied to this job.</div>
+              <div class="notif-item-time">${timeAgo(n.created_at)}</div>
+            </a>
+          `;
+        }
+      }
 
       return `
-        <a class="notif-item ${n.read_at ? '' : 'unread'}" href="${href}" onclick="${clickHandler}">
+        <a class="notif-item ${n.read_at ? '' : 'unread'}" href="${n.link ? escapeHtml(n.link) : '#'}"
+           onclick="markNotificationRead('${n.id}')">
           <div class="notif-item-title">${escapeHtml(n.title)}</div>
           ${n.body ? `<div class="notif-item-body">${escapeHtml(n.body)}</div>` : ''}
           <div class="notif-item-time">${timeAgo(n.created_at)}</div>
@@ -2245,11 +2339,21 @@
 
   async function handleCandidateNotification(event, id) {
     if (event) event.preventDefault();
+
+    const n = notificationItemsCache.find(item => item.id === id);
+    const c = notificationApplication(n);
+
     await markNotificationRead(id);
-    candidateJobFilter = null;
+
     const dropdown = document.getElementById('notif-dropdown');
     if (dropdown) dropdown.style.display = 'none';
-    showPanel('candidates');
+
+    if (!c?.job?.id) {
+      showToast('Could not match that notification to an application.');
+      return;
+    }
+
+    openJobApplicantsModal(c.job.id, c.applicationId);
   }
 
   async function markNotificationRead(id) {
@@ -2382,8 +2486,8 @@
     });
   }
 
-  // ---- Candidates: applications for this employer's jobs, joined with
-  // the applicant's profile. Requires two RLS policies on top of the
+  // ---- Applicants: loaded once and reviewed per job in a popup.
+  // Requires two RLS policies on top of the
   // default "candidates manage their own applications" policy:
   //   1. Employers can SELECT applications where job_id belongs to them
   //   2. Employers can SELECT profiles of candidates who applied to their jobs
@@ -2454,58 +2558,86 @@
     renderCandidates();
   }
 
-  // Optional job filter for the Candidates page.
-  // null = show every applicant across this employer's jobs.
-  let candidateJobFilter = null;
+  // Candidates belong to a job. There is intentionally no global
+  // Candidates page: employers review applicants from a specific job row or
+  // from a job-specific application notification.
+  let currentJobApplicantsModalId = null;
+  let focusedApplicationId = null;
 
-  // Global Candidates navigation: always opens the complete applicant list.
-  function openAllCandidates() {
-    candidateJobFilter = null;
-    showPanel('candidates');
-  }
-
-  // Called from the Candidates button on a specific job row.
   function viewCandidatesForJob(jobId) {
-    candidateJobFilter = jobId;
-    showPanel('candidates');
+    openJobApplicantsModal(jobId);
   }
 
-  function renderCandidates() {
-    const grid = document.getElementById('candidates-grid');
-    if (!grid) return;
-
-    const job = jobs.find(j => j.id === candidateJobFilter) || null;
-    const titleEl = document.getElementById('candidates-page-title');
-    const subEl = document.getElementById('candidates-page-sub');
-
-    if (titleEl) titleEl.textContent = job ? job.title : 'Candidates';
-    if (subEl) {
-      subEl.textContent = job
-        ? 'Applicants to this job'
-        : 'Applicants across all of your job listings';
-    }
-
-    const visible = candidateJobFilter
-      ? candidates.filter(c => (c.job ? c.job.id : 'unknown') === candidateJobFilter)
-      : candidates;
-
-    if (visible.length === 0) {
-      grid.innerHTML = `
-        <div class="empty-state" style="grid-column:1/-1" id="candidates-empty-state">
-          <div class="empty-icon">👥</div>
-          <div class="empty-title">${candidateJobFilter ? 'No candidates for this job yet' : 'No candidates yet'}</div>
-          ${candidateJobFilter
-            ? 'Candidates will appear here after they apply to this job.'
-            : 'New applicants will appear here as soon as they apply to any of your active jobs.'}
-        </div>`;
+  function openJobApplicantsModal(jobId, applicationId = null) {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) {
+      showToast('Could not find that job.');
       return;
     }
 
-    grid.innerHTML = visible.map(c => renderCandidateCard(c)).join('');
-    filterCandidates();
+    currentJobApplicantsModalId = jobId;
+    focusedApplicationId = applicationId || null;
+    renderJobApplicantsModal(jobId, focusedApplicationId);
+
+    const overlay = document.getElementById('job-applicants-modal-overlay');
+    if (overlay) overlay.classList.add('show');
   }
 
-  function renderCandidateCard(c) {
+  function closeJobApplicantsModal() {
+    const overlay = document.getElementById('job-applicants-modal-overlay');
+    if (overlay) overlay.classList.remove('show');
+    currentJobApplicantsModalId = null;
+    focusedApplicationId = null;
+  }
+
+  function renderJobApplicantsModal(jobId, applicationId = null) {
+    const box = document.getElementById('job-applicants-modal-box');
+    if (!box) return;
+
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+
+    let visible = candidates
+      .filter(c => c.job?.id === jobId)
+      .sort((a,b) => new Date(b.appliedAt || 0) - new Date(a.appliedAt || 0));
+
+    // When opened from a notification, put that applicant first so the
+    // employer immediately sees the person who triggered the notification.
+    if (applicationId) {
+      visible = [
+        ...visible.filter(c => c.applicationId === applicationId),
+        ...visible.filter(c => c.applicationId !== applicationId)
+      ];
+    }
+
+    box.innerHTML = `
+      <button type="button" class="modal-close" onclick="closeJobApplicantsModal()" aria-label="Close">✕</button>
+      <div class="job-applicants-head">
+        <div class="job-applicants-kicker">Applicants for this job</div>
+        <div class="job-applicants-title">${escapeHtml(job.title || 'Job')}</div>
+        <div class="job-applicants-sub">
+          ${escapeHtml(job.location || '')}${job.location && job.job_type ? ' · ' : ''}${escapeHtml(job.job_type || '')}
+          ${visible.length ? ` · ${visible.length} applicant${visible.length === 1 ? '' : 's'}` : ''}
+        </div>
+      </div>
+
+      ${visible.length
+        ? `<div class="job-applicants-list">
+            ${visible.map(c => renderCandidateCard(c, c.applicationId === applicationId)).join('')}
+           </div>`
+        : `<div class="job-applicants-empty">No one has applied to this job yet.</div>`}
+    `;
+  }
+
+  // Kept as the single refresh point after Accept / Pass. There is no global
+  // Candidates panel anymore; if a job popup is open, refresh only that popup.
+  function renderCandidates() {
+    if (currentJobApplicantsModalId) {
+      renderJobApplicantsModal(currentJobApplicantsModalId, focusedApplicationId);
+    }
+  }
+
+  function renderCandidateCard(c, notificationFocus = false) {
     const name = c.profile.full_name || 'Candidate';
     const initials = getInitials(name);
     const jobTitle = c.job ? c.job.title : 'a job';
@@ -2539,11 +2671,11 @@
         : `<span class="tag">New applicant</span>`;
 
     return `
-      <div class="candidate-card" data-application-id="${c.applicationId}">
+      <div class="candidate-card ${notificationFocus ? 'notification-focus' : ''}" data-application-id="${c.applicationId}">
         <div class="candidate-top">
           <div class="candidate-avatar">${escapeHtml(initials)}</div>
           <div>
-            <div class="candidate-name">${escapeHtml(name)}</div>
+            <div class="candidate-name">${escapeHtml(name)}${notificationFocus ? '<span class="notification-focus-label">New applicant</span>' : ''}</div>
             <div class="candidate-role">Applied to ${escapeHtml(jobTitle)}</div>
           </div>
         </div>
@@ -2577,7 +2709,13 @@
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeCandidateModal();
+    if (e.key !== 'Escape') return;
+    const candidateOverlay = document.getElementById('candidate-modal-overlay');
+    if (candidateOverlay?.classList.contains('show')) {
+      closeCandidateModal();
+      return;
+    }
+    closeJobApplicantsModal();
   });
 
   function renderCandidateModal(c) {
