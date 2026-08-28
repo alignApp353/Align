@@ -1596,9 +1596,175 @@
       color:#79A7D5;
     }
 
+  
+    /* ==========================================================
+       APPLICANT PROFILE — THEME CONSISTENCY
+       The old profile screen hard-coded white cards.
+       ========================================================== */
+
+    .candidate-profile-hero,
+    .candidate-profile-section{
+      background:var(--card)!important;
+      color:var(--text)!important;
+      border-color:var(--border-soft)!important;
+    }
+
+    .candidate-profile-name,
+    .candidate-profile-section h3,
+    .candidate-detail-box strong,
+    .profile-list-item strong{
+      color:var(--text)!important;
+    }
+
+    .candidate-detail-box,
+    .profile-list-item,
+    .candidate-resume-card{
+      color:var(--text);
+    }
+
+    .candidate-profile-copy{
+      color:var(--muted)!important;
+    }
+
+    .candidate-resume-download{
+      color:var(--text)!important;
+    }
+
+    html[data-theme="light"] .candidate-detail-box,
+    html[data-theme="light"] .profile-list-item,
+    html[data-theme="light"] .candidate-resume-card{
+      background:#FAFBFC!important;
+      border-color:var(--border-soft)!important;
+    }
+
+    html[data-theme="light"] .candidate-resume-download{
+      background:#FFFFFF!important;
+      border-color:var(--border)!important;
+    }
+
+    html[data-theme="dark"] .candidate-profile-hero,
+    html[data-theme="dark"] .candidate-profile-section{
+      background:#121B27!important;
+      border-color:#293747!important;
+      box-shadow:none!important;
+    }
+
+    html[data-theme="dark"] .candidate-detail-box,
+    html[data-theme="dark"] .profile-list-item,
+    html[data-theme="dark"] .candidate-resume-card{
+      background:#0F1823!important;
+      border-color:#293747!important;
+      color:#F3F7FA!important;
+    }
+
+    html[data-theme="dark"] .candidate-detail-box span,
+    html[data-theme="dark"] .profile-list-item span,
+    html[data-theme="dark"] .candidate-profile-role,
+    html[data-theme="dark"] .candidate-resume-status{
+      color:#A9B5C2!important;
+    }
+
+    html[data-theme="dark"] .candidate-detail-box strong,
+    html[data-theme="dark"] .profile-list-item strong,
+    html[data-theme="dark"] .candidate-profile-name,
+    html[data-theme="dark"] .candidate-profile-section h3{
+      color:#F3F7FA!important;
+    }
+
+    html[data-theme="dark"] .candidate-profile-copy{
+      color:#B5C1CC!important;
+    }
+
+    html[data-theme="dark"] .candidate-profile-avatar{
+      background:linear-gradient(145deg,#173047,#102536)!important;
+      color:#8EB5DF!important;
+    }
+
+    html[data-theme="dark"] .candidate-profile-chip{
+      background:rgba(93,134,177,.18)!important;
+      color:#8EB5DF!important;
+    }
+
+    html[data-theme="dark"] .candidate-resume-download{
+      background:#0F1823!important;
+      border-color:#344456!important;
+      color:#F3F7FA!important;
+    }
+
+    html[data-theme="dark"] .candidate-resume-open{
+      background:#3F73AA!important;
+      color:#FFFFFF!important;
+    }
+
+    html[data-theme="dark"] .candidate-profile-back{
+      color:#79A7D5!important;
+    }
+
+    /* Resume viewer should also match dark mode around the paper itself. */
+    html[data-theme="dark"] .resume-modal{
+      background:#0B111A!important;
+    }
+
+    html[data-theme="dark"] .resume-modal-header,
+    html[data-theme="dark"] .resume-modal-actions{
+      background:#121B27!important;
+      color:#F3F7FA!important;
+      border-color:#293747!important;
+    }
+
+    html[data-theme="dark"] .resume-modal-secondary{
+      background:#0F1823!important;
+      color:#F3F7FA!important;
+      border-color:#344456!important;
+    }
+
+    html[data-theme="dark"] .resume-modal-primary{
+      background:#3F73AA!important;
+      color:#FFFFFF!important;
+    }
+
+    /* Keep the actual resume paper white, as a real resume document should be. */
+    html[data-theme="dark"] .resume-paper-preview{
+      background:#FFFFFF!important;
+    }
+
+
+  
+    .fit-label{
+      display:inline-flex;
+      align-items:center;
+      border-radius:999px;
+      padding:6px 8px;
+      background:rgba(93,127,163,.10);
+      color:var(--brand-dark);
+      font-size:9px;
+      font-weight:900;
+    }
+
+    html[data-theme="dark"] .fit-label{
+      background:rgba(93,134,177,.16);
+      color:#8EB5DF;
+    }
+
+    .candidate-row > div:nth-child(2){
+      min-width:0;
+    }
+
+    .candidate-name{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .candidate-profile-hint{
+      margin-top:4px;
+      text-align:right;
+    }
+
+
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-27-candidate-profile-resume">
+<body data-employer-dashboard-build="2026-08-27-applicant-ui-fixed">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -3369,6 +3535,16 @@
       return signed.signedUrl;
     }
 
+
+    function fitLabel(score){
+      const value = Number(score || 0);
+
+      if(value >= 85) return 'Strong fit';
+      if(value >= 70) return 'Good fit';
+      if(value >= 55) return 'Potential fit';
+      return 'Review';
+    }
+
     function provisionalScore(application){
       const stored = Number(application.match_score || application.alygnn_score || 0);
       if(stored > 0) return {score:Math.round(stored),source:'stored'};
@@ -3948,38 +4124,73 @@
           error
         );
 
-        const job =
-          jobFor(application);
+        let data = {};
+        try{
+          data = candidateData(application) || {};
+        }catch(_){}
 
-        const rawName =
+        const job = jobFor(application);
+
+        const name =
+          data.name ||
           application?.candidate_name ||
           application?.applicant_name ||
           application?.full_name ||
-          application?.candidate_email ||
-          application?.applicant_email ||
-          application?.email ||
+          application?.candidate_email?.split('@')[0] ||
+          application?.email?.split('@')[0] ||
           'Applicant';
 
-        const safeName =
-          typeof rawName === 'string'
-            ? rawName.replace(/@.*$/,'')
-            : 'Applicant';
+        const location =
+          data.location ||
+          application?.location ||
+          application?.candidate_location ||
+          '';
+
+        const scoreInfo = (() => {
+          try{
+            return provisionalScore(application);
+          }catch(_){
+            return {score:null};
+          }
+        })();
 
         return `
-          <button class="candidate-row" type="button" data-app-id="${escapeHtml(String(application?.id || ''))}">
-            <div class="avatar">${escapeHtml(initials(safeName))}</div>
+          <button
+            class="candidate-row"
+            type="button"
+            data-app-id="${escapeHtml(String(application?.id || ''))}"
+          >
+            <div class="avatar">${escapeHtml(initials(name))}</div>
+
             <div>
-              <div class="candidate-name">${escapeHtml(safeName)}</div>
-              <div class="candidate-job">${escapeHtml(job?.title || application?.job_title || 'Position')}</div>
-              <div class="candidate-identity-line">
-                Candidate profile data could not be loaded.
+              <div class="candidate-name">${escapeHtml(name)}</div>
+
+              <div class="candidate-job">
+                ${escapeHtml(job?.title || application?.job_title || 'Position')}
               </div>
+
+              ${
+                location
+                  ? `<div class="candidate-identity-line"><span>${escapeHtml(location)}</span></div>`
+                  : ''
+              }
+
               <div class="candidate-meta">
-                <span class="score">Profile unavailable</span>
-                <span class="app-status">${escapeHtml(String(application?.status || 'applied'))}</span>
+                ${
+                  scoreInfo.score
+                    ? `<span class="score">${scoreInfo.score} Alygnn Score</span>`
+                    : ''
+                }
+                <span class="app-status">
+                  ${escapeHtml(String(application?.status || 'applied'))}
+                </span>
               </div>
             </div>
-            <div class="chevron">›</div>
+
+            <div>
+              <div class="chevron">›</div>
+              <div class="candidate-profile-hint">Profile</div>
+            </div>
           </button>
         `;
       }
