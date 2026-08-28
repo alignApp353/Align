@@ -1517,9 +1517,47 @@
     }
 
 
+  
+    .applicants-job-filter{
+      margin:0 0 14px;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background:var(--card);
+      color:var(--muted);
+      font-size:11px;
+      font-weight:800;
+    }
+
+    .applicants-job-filter[hidden]{
+      display:none!important;
+    }
+
+    .applicants-job-filter button{
+      border:0;
+      background:transparent;
+      color:var(--brand-dark);
+      font-weight:900;
+      padding:5px 0;
+    }
+
+    html[data-theme="dark"] .applicants-job-filter{
+      background:var(--card);
+      border-color:var(--border);
+      color:var(--muted);
+    }
+
+    html[data-theme="dark"] .applicants-job-filter button{
+      color:#79A7D5;
+    }
+
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-27-live-applications">
+<body data-employer-dashboard-build="2026-08-27-applicants-render-fix">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -1777,7 +1815,11 @@
       <section class="view" id="applicants-view" hidden>
         <div class="eyebrow">Employer workspace</div>
         <h1 class="page-title">Applicants</h1>
-        <p class="page-sub">Review candidates across every role and prioritize the strongest fits.</p>
+        <p class="page-sub" id="applicants-subtitle">Review candidates across every role and prioritize the strongest fits.</p>
+        <div id="applicants-job-filter" class="applicants-job-filter" hidden>
+          <span id="applicants-job-filter-label"></span>
+          <button id="applicants-show-all" type="button">Show all applicants</button>
+        </div>
         <div class="searchbar">
           <input id="candidate-search" type="search" placeholder="Search candidates">
           <select id="candidate-sort">
@@ -2199,6 +2241,7 @@
       activeCandidate:null,
       activeProfile:null,
       currentView:'dashboard',
+      selectedApplicantJobId:null,
       aiProfileComplete:false,
       verificationStatus:'pending_review'
     };
@@ -2258,6 +2301,9 @@
       activityList:$('activity-list'),
       jobsList:$('jobs-list'),
       applicantsList:$('applicants-list'),
+      applicantsSubtitle:$('applicants-subtitle'),
+      applicantsJobFilter:$('applicants-job-filter'),
+      applicantsJobFilterLabel:$('applicants-job-filter-label'),
       candidateSearch:$('candidate-search'),
       candidateSort:$('candidate-sort'),
       candidateSheet:$('candidate-sheet'),
@@ -3343,6 +3389,7 @@
       if(name==='jobs'){
         refreshJobsView();
       }else if(name==='applicants'){
+        renderApplicants();
         refreshApplicantsView();
       }else{
         safeRenderAll();
@@ -3792,8 +3839,59 @@
       `;
     }
 
+
+    function safeCandidateCard(application){
+      try{
+        return candidateCard(application);
+      }catch(error){
+        console.error(
+          'Could not render applicant row:',
+          application,
+          error
+        );
+
+        const job =
+          jobFor(application);
+
+        const rawName =
+          application?.candidate_name ||
+          application?.applicant_name ||
+          application?.full_name ||
+          application?.candidate_email ||
+          application?.applicant_email ||
+          application?.email ||
+          'Applicant';
+
+        const safeName =
+          typeof rawName === 'string'
+            ? rawName.replace(/@.*$/,'')
+            : 'Applicant';
+
+        return `
+          <button class="candidate-row" type="button" data-app-id="${escapeHtml(String(application?.id || ''))}">
+            <div class="avatar">${escapeHtml(initials(safeName))}</div>
+            <div>
+              <div class="candidate-name">${escapeHtml(safeName)}</div>
+              <div class="candidate-job">${escapeHtml(job?.title || application?.job_title || 'Position')}</div>
+              <div class="candidate-meta">
+                <span class="app-status">${escapeHtml(String(application?.status || 'applied'))}</span>
+              </div>
+            </div>
+            <div class="chevron">›</div>
+          </button>
+        `;
+      }
+    }
+
     function filteredApplicants(){
       let list = [...state.applications];
+
+      if(state.selectedApplicantJobId){
+        list = list.filter(application =>
+          String(application.job_id) === String(state.selectedApplicantJobId)
+        );
+      }
+
       const query = els.candidateSearch.value.trim().toLowerCase();
 
       if(query){
@@ -3821,25 +3919,73 @@
 
     function renderApplicants(){
       const list = filteredApplicants();
-      const empty = '<div class="empty"><strong>No applicants yet</strong>Candidates will appear after they apply to your jobs.</div>';
 
-      els.applicantsList.innerHTML = list.length
-        ? list.map(candidateCard).join('')
-        : empty;
+      const selectedJob =
+        state.selectedApplicantJobId
+          ? state.jobs.find(job =>
+              String(job.id) === String(state.selectedApplicantJobId)
+            )
+          : null;
+
+      if(selectedJob){
+        els.applicantsSubtitle.textContent =
+          `Applicants for ${selectedJob.title || 'this role'}.`;
+
+        els.applicantsJobFilter.hidden = false;
+        els.applicantsJobFilterLabel.textContent =
+          `${list.length} applicant${list.length === 1 ? '' : 's'} for ${selectedJob.title || 'this job'}`;
+      }else{
+        els.applicantsSubtitle.textContent =
+          'Review candidates across every role and prioritize the strongest fits.';
+
+        els.applicantsJobFilter.hidden = true;
+        els.applicantsJobFilterLabel.textContent = '';
+      }
+
+      let empty;
+
+      if(
+        state.selectedApplicantJobId &&
+        state.applications.length
+      ){
+        empty = `
+          <div class="empty">
+            <strong>No applicants found for this role</strong>
+            Applications exist for your company, but none matched this job ID.
+          </div>
+        `;
+      }else{
+        empty = `
+          <div class="empty">
+            <strong>No applicants yet</strong>
+            Candidates will appear after they apply to your jobs.
+          </div>
+        `;
+      }
+
+      els.applicantsList.innerHTML =
+        list.length
+          ? list.map(safeCandidateCard).join('')
+          : empty;
 
       const top = [...state.applications]
-        .sort((a,b) => Number(b.match_score || b.alygnn_score || 0) - Number(a.match_score || a.alygnn_score || 0))
+        .sort(
+          (a,b) =>
+            Number(b.match_score || b.alygnn_score || 0) -
+            Number(a.match_score || a.alygnn_score || 0)
+        )
         .slice(0,5);
 
-      els.bestFits.innerHTML = top.length
-        ? top.map(candidateCard).join('')
-        : empty;
+      els.bestFits.innerHTML =
+        top.length
+          ? top.map(safeCandidateCard).join('')
+          : `
+              <div class="empty">
+                <strong>No applicants yet</strong>
+                Candidates will appear after they apply to your jobs.
+              </div>
+            `;
 
-      /*
-       * Android WebView can be inconsistent with the document-level
-       * delegated click after a view rerender. Bind each candidate row
-       * directly as well so tapping an applicant always opens details.
-       */
       [els.applicantsList,els.bestFits].forEach(container => {
         container?.querySelectorAll('[data-app-id]').forEach(button => {
           button.onclick = event => {
@@ -3849,6 +3995,16 @@
           };
         });
       });
+
+      console.log(
+        'Alygnn Applicants rendered:',
+        {
+          totalApplications:state.applications.length,
+          visibleApplicants:list.length,
+          selectedJobId:state.selectedApplicantJobId,
+          selectedJobTitle:selectedJob?.title || null
+        }
+      );
     }
 
     function renderActivity(){
@@ -4405,6 +4561,7 @@
       if(!job) return;
 
       if(action === 'applicants'){
+        state.selectedApplicantJobId = String(id);
         setView('applicants');
         return;
       }
@@ -4821,12 +4978,29 @@
     }
 
     async function refreshApplicantsView(){
+      /*
+       * My Jobs already has the application rows in memory because it
+       * uses them for the per-job counts. Show those immediately instead
+       * of opening a blank Applicants page while another query runs.
+       */
+      renderApplicants();
+
       try{
         await refreshApplicationsForCurrentJobs();
-        safeRenderAll();
+
+        renderApplicants();
+        safeCall('Hero',renderHero);
+        safeCall('Metrics',renderMetrics);
+        safeCall('Activity',renderActivity);
       }catch(error){
         console.error('Could not refresh Applicants view:',error);
+
+        /*
+         * Keep the already-loaded rows visible. A refresh failure should
+         * never erase applicants that My Jobs was already counting.
+         */
         renderApplicants();
+        toast('Showing the applicants already loaded. Live refresh failed.');
       }
     }
 
@@ -4999,6 +5173,13 @@
     document.addEventListener('click',event => {
       const nav = event.target.closest('[data-view]');
       if(nav){
+        if(
+          nav.dataset.view === 'applicants' &&
+          nav.classList.contains('nav-item')
+        ){
+          state.selectedApplicantJobId = null;
+        }
+
         setView(nav.dataset.view);
         return;
       }
@@ -5025,6 +5206,12 @@
       if(candidateAction){
         updateApplicationStatus(candidateAction.dataset.candidateAction);
       }
+    });
+
+
+    $('applicants-show-all').addEventListener('click',()=>{
+      state.selectedApplicantJobId = null;
+      renderApplicants();
     });
 
     els.candidateSearch.addEventListener('input',renderApplicants);
