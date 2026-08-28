@@ -120,6 +120,8 @@ let threads=[];
 let threadDetails=new Map();
 let activeThreadId=null;
 let activeMessages=[];
+let requestedApplicationId=null;
+let requestedApplicationContext=null;
 let messageChannel=null;
 let threadChannel=null;
 
@@ -177,18 +179,73 @@ function setSidebar(){
   }
 }
 
-async function getOrCreateRequestedThread(){
+async function loadRequestedApplicationContext(){
   const params=new URLSearchParams(location.search);
-  const applicationId=params.get('application');
+  requestedApplicationId=params.get('application');
+  if(!requestedApplicationId)return null;
+
+  // Resolve the exact real application first. This makes the chat header open
+  // immediately even when the thread has never had a message before.
+  const {data:application,error:appError}=await sb
+    .from('applications')
+    .select('id,job_id,candidate_id,status,applied_at')
+    .eq('id',requestedApplicationId)
+    .maybeSingle();
+
+  if(appError||!application){
+    console.error('Could not load requested application:',appError);
+    showSetup('Could not open this application for messaging.');
+    return null;
+  }
+
+  const jobId=new URLSearchParams(location.search).get('job')||application.job_id;
+
+  const [jobResult,candidateResult]=await Promise.all([
+    sb.from('jobs')
+      .select('id,title,status,location,employer_id')
+      .eq('id',jobId)
+      .maybeSingle(),
+    sb.from('profiles')
+      .select('id,full_name,company_name')
+      .eq('id',application.candidate_id)
+      .maybeSingle()
+  ]);
+
+  if(jobResult.error)console.error('Could not load message job:',jobResult.error);
+  if(candidateResult.error)console.error('Could not load message candidate:',candidateResult.error);
+
+  const job=jobResult.data||{id:jobId,title:'Job'};
+  const candidate=candidateResult.data||{id:application.candidate_id,full_name:'Candidate'};
+
+  // Validate that the signed-in user is actually part of the application.
+  const isEmployer=currentUser.id===job.employer_id;
+  const isCandidate=currentUser.id===application.candidate_id;
+  if(!isEmployer&&!isCandidate){
+    showSetup('You do not have access to this conversation.');
+    return null;
+  }
+
+  requestedApplicationContext={
+    application,
+    job,
+    candidate,
+    employerId:job.employer_id,
+    candidateId:application.candidate_id
+  };
+  return requestedApplicationContext;
+}
+
+async function getOrCreateRequestedThread(){
+  const applicationId=requestedApplicationId||new URLSearchParams(location.search).get('application');
   if(!applicationId)return null;
 
   const {data,error}=await sb.rpc('get_or_create_application_thread',{p_application_id:applicationId});
   if(error){
-    console.error(error);
-    showSetup('Messaging is not connected yet. Run the Alygnn messaging SQL in Supabase once, then refresh this page.');
+    console.error('Could not create/open message thread:',error);
+    showSetup('This application loaded, but the private message thread could not be created. Run the updated Alygnn messaging SQL in Supabase, then refresh.');
     return null;
   }
-  return data;
+  return typeof data==='string'?data:(data?.id||data?.thread_id||null);
 }
 
 async function loadThreads(){
@@ -335,10 +392,47 @@ async function loadMessages(threadId){
   activeMessages=data||[];
 }
 
+function activeConversationDetails(){
+  if(activeThreadId){
+    const existing=threadDetails.get(activeThreadId);
+    if(existing)return existing;
+  }
+
+  // If the employer just clicked Message on a candidate and there are no
+  // prior messages yet, still render that exact candidate/job as a new chat.
+  if(requestedApplicationContext){
+    const c=requestedApplicationContext;
+    const otherName=currentRole==='employer'
+      ? (c.candidate?.full_name||'Candidate')
+      : (currentProfile?.company_name||'Company');
+
+    return {
+      thread:{
+        id:activeThreadId,
+        application_id:c.application.id,
+        job_id:c.job.id,
+        employer_id:c.employerId,
+        candidate_id:c.candidateId
+      },
+      otherId:currentRole==='employer'?c.candidateId:c.employerId,
+      name:otherName,
+      initials:initials(otherName),
+      job:c.job,
+      lastMessage:null,
+      unread:0,
+      pendingThread:!activeThreadId
+    };
+  }
+
+  return null;
+}
+
 function renderChat(){
   const panel=document.getElementById('chat-panel');
 
-  if(!activeThreadId){
+  const d=activeConversationDetails();
+
+  if(!d){
     panel.innerHTML=`
       <div class="empty-chat">
         <div class="empty-chat-icon">✉</div>
@@ -347,8 +441,6 @@ function renderChat(){
       </div>`;
     return;
   }
-
-  const d=threadDetails.get(activeThreadId)||{};
   const jobClosed=String(d.job?.status||'').toLowerCase()==='closed';
 
   panel.innerHTML=`
@@ -403,11 +495,28 @@ function handleComposerKey(event){
 async function sendMessage(){
   const input=document.getElementById('message-input');
   const btn=document.getElementById('send-btn');
-  if(!input||!btn||!activeThreadId)return;
+  if(!input||!btn)return;
   const body=input.value.trim();
   if(!body)return;
 
   btn.disabled=true;
+
+  // A brand-new application may not have a thread until the first chat is
+  // opened. Create/fetch it now rather than leaving the employer on an empty page.
+  if(!activeThreadId&&requestedApplicationId){
+    activeThreadId=await getOrCreateRequestedThread();
+    if(activeThreadId){
+      await loadThreads();
+      await loadThreadDetails();
+    }
+  }
+
+  if(!activeThreadId){
+    btn.disabled=false;
+    showSetup('Could not start this conversation. Run the updated Alygnn messaging SQL in Supabase, then try again.');
+    return;
+  }
+
   const {data,error}=await sb
     .from('messages')
     .insert({thread_id:activeThreadId,sender_id:currentUser.id,body})
@@ -545,18 +654,35 @@ async function init(){
 
   setSidebar();
 
+  // If arriving from Candidates → Message, resolve that exact application
+  // first so the correct candidate/job chat appears immediately.
+  await loadRequestedApplicationContext();
+
   const requestedThreadId=await getOrCreateRequestedThread();
   await loadThreads();
   await loadThreadDetails();
 
   const urlThread=new URLSearchParams(location.search).get('thread');
-  activeThreadId=requestedThreadId||urlThread||threads[0]?.id||null;
+
+  // Prefer the exact requested application. Do not silently open some other
+  // existing conversation when the user clicked Message on a candidate.
+  if(requestedApplicationId){
+    const matchingThread=threads.find(t=>t.application_id===requestedApplicationId);
+    activeThreadId=requestedThreadId||matchingThread?.id||null;
+  }else{
+    activeThreadId=urlThread||threads[0]?.id||null;
+  }
 
   renderConversationList();
   if(activeThreadId){
     await markThreadRead(activeThreadId);
     await loadMessages(activeThreadId);
+  }else{
+    activeMessages=[];
   }
+
+  // Even with zero previous messages, renderChat() uses the resolved real
+  // application context and shows "Start the conversation" for that candidate.
   renderChat();
   subscribeToThreads();
   if(activeThreadId)subscribeToMessages(activeThreadId);
