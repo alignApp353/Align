@@ -66,6 +66,25 @@ nav{
 }
 .nav-back:hover{ color:var(--text); }
 
+.nav-back.keep-swiping{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  padding:0 16px;
+  border-radius:999px;
+  background:var(--brand);
+  color:white;
+  font-weight:600;
+  border:1px solid var(--brand);
+  transition:opacity .2s ease, transform .2s ease;
+}
+.nav-back.keep-swiping:hover{
+  color:white;
+  opacity:.9;
+  transform:translateY(-1px);
+}
+
 .page{
   max-width:720px;
   margin:0 auto;
@@ -778,7 +797,19 @@ async function initJobDetailsPage(){
   if(getParam('from') === 'swipe'){
     const navBack = document.getElementById('nav-back');
     navBack.href = 'swipe.html';
-    navBack.textContent = '← Continue swiping';
+    navBack.textContent = 'Keep swiping';
+    navBack.classList.add('keep-swiping');
+    navBack.addEventListener('click', (event) => {
+      event.preventDefault();
+      try{
+        const ref = new URL(document.referrer);
+        if(ref.origin === window.location.origin && ref.pathname.endsWith('/swipe.html')){
+          history.back();
+          return;
+        }
+      }catch(e){}
+      window.location.href = 'swipe.html';
+    });
   }
 
   const { data: { session } } = await sb.auth.getSession();
