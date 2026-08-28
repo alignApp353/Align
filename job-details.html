@@ -338,6 +338,19 @@ nav{
 .mini-footer{ text-align:center; padding:24px 6% 40px; font-size:12px; color:var(--text-muted); }
 .mini-footer a{ color:var(--text-muted); text-decoration:none; }
 .mini-footer a:hover{ color:var(--brand); }
+
+  .swipe-return-row{margin-bottom:18px}
+  .swipe-return-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    color:var(--brand);
+    text-decoration:none;
+    font-size:13px;
+    font-weight:600;
+    padding:8px 0;
+  }
+  .swipe-return-btn:hover{opacity:.78}
 </style>
 </head>
 
@@ -354,7 +367,11 @@ nav{
 <div class="page" id="page">
 
   <div class="job-header">
-    <div class="job-title" id="job-title">—</div>
+    
+      <div id="swipe-return-row" class="swipe-return-row" style="display:none;">
+        <a href="swipe.html" id="swipe-return-btn" class="swipe-return-btn">← Keep swiping</a>
+      </div>
+<div class="job-title" id="job-title">—</div>
     <div class="job-meta" id="job-meta">—</div>
     <div class="job-badges" id="job-badges"></div>
     <div class="applied-note" id="applied-note"></div>
@@ -802,20 +819,26 @@ async function initJobDetailsPage(){
 
   if(getParam('from') === 'swipe'){
     const navBack = document.getElementById('nav-back');
-    navBack.href = 'swipe.html';
-    navBack.textContent = 'Keep swiping';
-    navBack.classList.add('keep-swiping');
-    navBack.addEventListener('click', (event) => {
-      event.preventDefault();
-      try{
-        const ref = new URL(document.referrer);
-        if(ref.origin === window.location.origin && ref.pathname.endsWith('/swipe.html')){
-          history.back();
-          return;
-        }
-      }catch(e){}
-      window.location.href = 'swipe.html';
-    });
+    if(navBack) navBack.style.display = 'none';
+
+    const returnRow = document.getElementById('swipe-return-row');
+    const returnBtn = document.getElementById('swipe-return-btn');
+
+    if(returnRow) returnRow.style.display = 'block';
+
+    if(returnBtn){
+      returnBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        try{
+          const ref = new URL(document.referrer);
+          if(ref.origin === window.location.origin && ref.pathname.endsWith('/swipe.html')){
+            history.back();
+            return;
+          }
+        }catch(e){}
+        window.location.href = 'swipe.html';
+      });
+    }
   }
 
   const { data: { session } } = await sb.auth.getSession();
