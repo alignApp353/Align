@@ -1555,9 +1555,50 @@
       color:#79A7D5;
     }
 
+  
+    /* Applicant list: richer candidate identity without clutter. */
+    .candidate-identity-line{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:10.5px;
+      line-height:1.35;
+      display:flex;
+      flex-wrap:wrap;
+      gap:5px 8px;
+      align-items:center;
+    }
+
+    .candidate-resume-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      border-radius:999px;
+      padding:5px 8px;
+      font-size:9px;
+      font-weight:900;
+      color:#2F8957;
+      background:rgba(111,191,143,.14);
+    }
+
+    .candidate-profile-hint{
+      color:var(--brand-dark);
+      font-size:9px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    html[data-theme="dark"] .candidate-resume-pill{
+      color:#83D6A6;
+      background:rgba(113,199,149,.13);
+    }
+
+    html[data-theme="dark"] .candidate-profile-hint{
+      color:#79A7D5;
+    }
+
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-27-applicants-render-fix">
+<body data-employer-dashboard-build="2026-08-27-candidate-profile-resume">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -3820,21 +3861,78 @@
     function candidateCard(application){
       const data = candidateData(application);
       const scoreInfo = provisionalScore(application);
-      const status = String(application.status || 'new');
+      const status = String(application.status || 'applied');
+      const job = jobFor(application);
+
+      const hasResume = Boolean(
+        data.resumeUrl ||
+        data.resumePath ||
+        data.resumeText ||
+        (
+          data.resumeData &&
+          typeof data.resumeData === 'object' &&
+          Object.keys(data.resumeData).length
+        )
+      );
+
+      const identityBits = [
+        data.headline,
+        data.location
+      ].filter(Boolean);
 
       return `
-        <button class="candidate-row" type="button" data-app-id="${application.id}">
+        <button
+          class="candidate-row"
+          type="button"
+          data-app-id="${escapeHtml(String(application.id || ''))}"
+          aria-label="Open ${escapeHtml(data.name)} applicant profile"
+        >
           <div class="avatar">${escapeHtml(initials(data.name))}</div>
+
           <div>
             <div class="candidate-name">${escapeHtml(data.name)}</div>
-            <div class="candidate-job">${escapeHtml(jobFor(application)?.title || application.job_title || 'Position')}</div>
+
+            <div class="candidate-job">
+              ${escapeHtml(job?.title || application.job_title || 'Position')}
+            </div>
+
+            ${
+              identityBits.length
+                ? `
+                  <div class="candidate-identity-line">
+                    ${identityBits.map(bit => `<span>${escapeHtml(bit)}</span>`).join('<span>·</span>')}
+                  </div>
+                `
+                : ''
+            }
+
             <div class="candidate-meta">
-              <span class="score">${scoreInfo.score ? scoreInfo.score + ' Alygnn Score' : 'Profile incomplete'}</span>
-              ${scoreInfo.score ? `<span class="fit-label">${fitLabel(scoreInfo.score)}</span>` : ''}
+              ${
+                scoreInfo.score
+                  ? `<span class="score">${scoreInfo.score} Alygnn Score</span>`
+                  : `<span class="score">${data.profileComplete ? 'Profile complete' : 'Profile incomplete'}</span>`
+              }
+
+              ${
+                scoreInfo.score
+                  ? `<span class="fit-label">${fitLabel(scoreInfo.score)}</span>`
+                  : ''
+              }
+
+              ${
+                hasResume
+                  ? `<span class="candidate-resume-pill">Resume ready</span>`
+                  : ''
+              }
+
               <span class="app-status">${escapeHtml(status)}</span>
             </div>
           </div>
-          <div class="chevron">›</div>
+
+          <div>
+            <div class="chevron">›</div>
+            <div class="candidate-profile-hint">Profile</div>
+          </div>
         </button>
       `;
     }
@@ -3873,7 +3971,11 @@
             <div>
               <div class="candidate-name">${escapeHtml(safeName)}</div>
               <div class="candidate-job">${escapeHtml(job?.title || application?.job_title || 'Position')}</div>
+              <div class="candidate-identity-line">
+                Candidate profile data could not be loaded.
+              </div>
               <div class="candidate-meta">
+                <span class="score">Profile unavailable</span>
                 <span class="app-status">${escapeHtml(String(application?.status || 'applied'))}</span>
               </div>
             </div>
@@ -4929,6 +5031,13 @@
           state.profiles.set(String(profile.user_id),profile);
         }
       });
+
+      if(profileIds.length && state.profiles.size === 0){
+        console.warn(
+          'Applications are visible, but candidate profiles are not. ' +
+          'Run the Alygnn employer candidate profile access policy in Supabase.'
+        );
+      }
     }
 
     async function refreshApplicationsForCurrentJobs(){
