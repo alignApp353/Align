@@ -138,7 +138,7 @@
 <body>
 
 <div class="left-panel" id="left-panel">
-  <a class="panel-logo" href="index.html">Alygnn<span>.</span></a>
+  <a class="panel-logo" id="panel-logo-link" href="index.html">Alygnn<span>.</span></a>
   <div class="panel-content">
     <div class="seeker-content">
       <h2>Jobs that fit<br><em>your reality.</em></h2>
@@ -165,7 +165,7 @@
 <div class="right-panel">
   <div class="form-container">
 
-    <a href="index.html" class="back-link">
+    <a href="index.html" class="back-link" id="back-to-alygnn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
       Back to Alygnn
     </a>
@@ -311,13 +311,43 @@
 
   const redirectFor = r => window.location.origin + (r === 'employer' ? '/employer-account.html' : '/account.html');
 
+  document.addEventListener('DOMContentLoaded', () => {
+    if (currentRole !== 'employer') {
+      const backLink = document.getElementById('back-to-alygnn');
+      const logoLink = document.getElementById('panel-logo-link');
+      if (backLink) backLink.href = 'index.html';
+      if (logoLink) logoLink.href = 'index.html';
+    }
+  });
+
   function switchRole(role) {
     currentRole = role;
     const isEmp = role === 'employer';
+
     document.getElementById('left-panel').classList.toggle('is-employer', isEmp);
     document.getElementById('role-seeker').classList.toggle('active', !isEmp);
     document.getElementById('role-employer').classList.toggle('active', isEmp);
     document.getElementById('company-field').style.display = isEmp ? 'block' : 'none';
+
+    // Keep the login page on the correct side of Alygnn.
+    // Employer -> employers.html
+    // Job seeker -> index.html
+    const homeHref = isEmp ? 'employers.html' : 'index.html';
+    const backLink = document.getElementById('back-to-alygnn');
+    const logoLink = document.getElementById('panel-logo-link');
+
+    if (backLink) backLink.href = homeHref;
+    if (logoLink) logoLink.href = homeHref;
+
+    // Preserve the selected role on refresh/back navigation.
+    const url = new URL(window.location.href);
+    if (isEmp) {
+      url.searchParams.set('role', 'employer');
+    } else {
+      url.searchParams.delete('role');
+    }
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+
     hideMsg();
     refreshCopy();
   }
