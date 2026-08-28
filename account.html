@@ -495,6 +495,26 @@ nav{
 
 .stat-pill.accent-accepted .stat-number{ color:#2d8a57; }
 
+.profile-status-pill{
+  text-decoration:none;
+  color:inherit;
+  cursor:pointer;
+  transition:border-color .2s, transform .2s, box-shadow .2s;
+}
+.profile-status-pill:hover{
+  border-color:var(--brand);
+  transform:translateY(-1px);
+  box-shadow:0 7px 18px rgba(93,127,163,.08);
+}
+.profile-status-value{
+  font-family:'DM Sans', Arial, sans-serif !important;
+  font-size:1rem !important;
+  font-weight:700;
+  letter-spacing:-.2px;
+}
+.profile-status-value.is-ready{ color:#2d8a57 !important; }
+.profile-status-value.is-missing{ color:var(--text-muted) !important; }
+
 .section-eyebrow{
   font-size:11px;
   font-weight:700;
@@ -1046,18 +1066,18 @@ select.form-input{
   </div>
 
   <div class="stats-strip">
-    <div class="stat-pill">
-      <div class="stat-number" id="stat-applied-count">0</div>
-      <div class="stat-label">Applied</div>
-    </div>
-    <div class="stat-pill accent-accepted">
-      <div class="stat-number" id="stat-accepted-count">0</div>
-      <div class="stat-label">Accepted</div>
-    </div>
-    <div class="stat-pill">
-      <div class="stat-number" id="stat-skipped-count">0</div>
-      <div class="stat-label">Skipped</div>
-    </div>
+    <a class="stat-pill profile-status-pill" href="align-upload.html">
+      <div class="stat-number profile-status-value" id="stat-resume-status">—</div>
+      <div class="stat-label">Resume</div>
+    </a>
+    <a class="stat-pill profile-status-pill" href="preferences.html">
+      <div class="stat-number profile-status-value" id="stat-preferences-status">—</div>
+      <div class="stat-label">Preferences</div>
+    </a>
+    <a class="stat-pill profile-status-pill" href="swipe.html" id="matching-status-link">
+      <div class="stat-number profile-status-value" id="stat-matching-status">—</div>
+      <div class="stat-label">Matching</div>
+    </a>
   </div>
 
   <div class="section">
@@ -2320,6 +2340,37 @@ async function initAccountPage(){
   const setupCta = document.getElementById('setup-cta');
 
   const hasResume = !!(profile?.resume_file_path || profile?.resume_data);
+  const hasPreferences = !!profile?.preferences;
+  const matchingReady = hasResume && hasPreferences;
+
+  const resumeStatusEl = document.getElementById('stat-resume-status');
+  const preferencesStatusEl = document.getElementById('stat-preferences-status');
+  const matchingStatusEl = document.getElementById('stat-matching-status');
+  const matchingStatusLink = document.getElementById('matching-status-link');
+
+  if(resumeStatusEl){
+    resumeStatusEl.textContent = hasResume ? 'Ready' : 'Add';
+    resumeStatusEl.classList.toggle('is-ready', hasResume);
+    resumeStatusEl.classList.toggle('is-missing', !hasResume);
+  }
+
+  if(preferencesStatusEl){
+    preferencesStatusEl.textContent = hasPreferences ? 'Set' : 'Add';
+    preferencesStatusEl.classList.toggle('is-ready', hasPreferences);
+    preferencesStatusEl.classList.toggle('is-missing', !hasPreferences);
+  }
+
+  if(matchingStatusEl){
+    matchingStatusEl.textContent = matchingReady ? 'Active' : 'Finish';
+    matchingStatusEl.classList.toggle('is-ready', matchingReady);
+    matchingStatusEl.classList.toggle('is-missing', !matchingReady);
+  }
+
+  if(matchingStatusLink){
+    matchingStatusLink.href = matchingReady
+      ? 'swipe.html'
+      : (!hasResume ? 'align-upload.html' : 'preferences.html');
+  }
 
   if (hasResume && profile?.preferences) {
     if (swipeLink) swipeLink.style.display = '';
