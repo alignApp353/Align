@@ -542,12 +542,30 @@
     .tips { grid-template-columns: 1fr; }
     .info-grid { grid-template-columns: 1fr; }
   }
+
+  /* Prevent the upload screen from flashing before we know whether this
+     signed-in candidate already has a saved resume. */
+  body.resume-state-pending #upload-screen,
+  body.resume-state-pending #existing-resume-state,
+  body.resume-state-pending #uploading-screen,
+  body.resume-state-pending #confirm-screen{
+    display:none !important;
+  }
+  .resume-state-loading{
+    display:none;
+    min-height:calc(100vh - 72px);
+    align-items:center;
+    justify-content:center;
+    color:var(--text-muted);
+    font-size:14px;
+  }
+  body.resume-state-pending .resume-state-loading{display:flex;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="resume-state-pending">
 
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
@@ -559,6 +577,7 @@
 </nav>
 
 <main>
+  <div class="resume-state-loading" id="resume-state-loading">Loading your resume…</div>
 
   <!-- EXISTING RESUME STATE — shown for logged-in candidates with a saved resume -->
   <div class="existing-resume-state" id="existing-resume-state">
@@ -1046,10 +1065,6 @@
   function formatEducation(edu) {
     if (!edu) return '—';
     if (typeof edu === 'string') return edu;
-    if (Array.isArray(edu)) {
-      const formatted = edu.map(formatEducation).filter(e => e && e !== '—');
-      return formatted.length > 0 ? formatted[0] : '—';
-    }
     if (typeof edu === 'object') {
       const parts = [];
       if (edu.degree) parts.push(edu.degree);
@@ -1144,65 +1159,91 @@
     }
   }
 
+  function finishResumeStateCheck(showUpload = false) {
+    if (showUpload) {
+      existingResumeState.style.display = 'none';
+      uploadScreen.style.display = 'block';
+    }
+    document.body.classList.remove('resume-state-pending');
+  }
+
   async function initExistingResumeState() {
-    const { data: { session }, error: sessionError } = await sb.auth.getSession();
+    try {
+      const { data: { session }, error: sessionError } = await sb.auth.getSession();
 
-    if (sessionError) {
-      console.error('Could not read session:', sessionError);
-      return;
-    }
-
-    // Logged-out users are still in the normal onboarding flow.
-    if (!session?.user) return;
-
-    if (resumeBackLink) resumeBackLink.href = 'account.html';
-
-    const { data: profile, error } = await sb
-      .from('profiles')
-      .select('resume_file_path,resume_data,resume_source')
-      .eq('id', session.user.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Could not load existing resume:', error);
-      return;
-    }
-
-    existingResumeFilePath = profile?.resume_file_path || null;
-    existingResumeData = profile?.resume_data || null;
-    existingResumeSource = profile?.resume_source || null;
-
-    const hasExistingResume = !!(existingResumeFilePath || existingResumeData);
-    if (!hasExistingResume || forceReplacementMode) return;
-
-    uploadScreen.style.display = 'none';
-    uploadingScreen.style.display = 'none';
-    confirmScreen.style.display = 'none';
-    existingResumeState.style.display = 'block';
-
-    if (resumeStepPill) resumeStepPill.textContent = 'Resume';
-    if (resumeStepLabel) resumeStepLabel.textContent = 'Your resume';
-
-    const viewBtn = document.getElementById('view-current-resume-btn');
-    const editLink = document.getElementById('edit-existing-resume-link');
-    const copy = document.getElementById('existing-resume-copy');
-
-    if (!existingResumeFilePath && existingResumeData) {
-      if (viewBtn) viewBtn.textContent = 'View current resume';
-      if (editLink) {
-        editLink.textContent = 'Edit in Alygnn builder';
-        editLink.href = 'resume-builder.html';
+      if (sessionError) {
+        console.error('Could not read session:', sessionError);
+        finishResumeStateCheck(true);
+        return;
       }
-      if (copy) {
-        copy.textContent =
-          'Your Alygnn-built resume is already saved to your account. You can view it, edit it, replace it, or update your preferences.';
+
+      // Logged-out visitors are in the normal upload/onboarding flow.
+      if (!session?.user) {
+        finishResumeStateCheck(true);
+        return;
       }
-    } else {
-      if (viewBtn) viewBtn.textContent = 'View current resume';
-      if (editLink) {
-        editLink.textContent = 'Build or edit with Alygnn';
-        editLink.href = 'resume-builder.html';
+
+      if (resumeBackLink) resumeBackLink.href = 'account.html';
+
+      const { data: profile, error } = await sb
+        .from('profiles')
+        .select('resume_file_path,resume_data,resume_source')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Could not load existing resume:', error);
+        finishResumeStateCheck(true);
+        return;
       }
+
+      existingResumeFilePath = profile?.resume_file_path || null;
+      existingResumeData = profile?.resume_data || null;
+      existingResumeSource = profile?.resume_source || null;
+
+      const hasExistingResume = !!(existingResumeFilePath || existingResumeData);
+
+      // Only reveal the upload screen after this check proves that there is
+      // no saved resume, or when the user deliberately chose Replace resume.
+      if (!hasExistingResume || forceReplacementMode) {
+        finishResumeStateCheck(true);
+        return;
+      }
+
+      uploadScreen.style.display = 'none';
+      uploadingScreen.style.display = 'none';
+      confirmScreen.style.display = 'none';
+      existingResumeState.style.display = 'block';
+
+      if (resumeStepPill) resumeStepPill.textContent = 'Resume';
+      if (resumeStepLabel) resumeStepLabel.textContent = 'Your resume';
+
+      const viewBtn = document.getElementById('view-current-resume-btn');
+      const editLink = document.getElementById('edit-existing-resume-link');
+      const copy = document.getElementById('existing-resume-copy');
+
+      if (!existingResumeFilePath && existingResumeData) {
+        if (viewBtn) viewBtn.textContent = 'View current resume';
+        if (editLink) {
+          editLink.textContent = 'Edit in Alygnn builder';
+          editLink.href = 'resume-builder.html';
+        }
+        if (copy) {
+          copy.textContent =
+            'Your Alygnn-built resume is already saved to your account. You can view it, edit it, replace it, or update your preferences.';
+        }
+      } else {
+        if (viewBtn) viewBtn.textContent = 'View current resume';
+        if (editLink) {
+          editLink.textContent = 'Build or edit with Alygnn';
+          editLink.href = 'resume-builder.html';
+        }
+      }
+
+      finishResumeStateCheck(false);
+    } catch (error) {
+      console.error('Resume state check failed:', error);
+      finishResumeStateCheck(true);
     }
   }
 
