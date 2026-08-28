@@ -1066,7 +1066,7 @@ select.form-input{
   </div>
 
   <div class="stats-strip">
-    <a class="stat-pill profile-status-pill" href="align-upload.html">
+    <a class="stat-pill profile-status-pill" href="align-upload.html" id="resume-status-link">
       <div class="stat-number profile-status-value" id="stat-resume-status">—</div>
       <div class="stat-label">Resume</div>
     </a>
@@ -2344,6 +2344,7 @@ async function initAccountPage(){
   const matchingReady = hasResume && hasPreferences;
 
   const resumeStatusEl = document.getElementById('stat-resume-status');
+  const resumeStatusLink = document.getElementById('resume-status-link');
   const preferencesStatusEl = document.getElementById('stat-preferences-status');
   const matchingStatusEl = document.getElementById('stat-matching-status');
   const matchingStatusLink = document.getElementById('matching-status-link');
@@ -2352,6 +2353,21 @@ async function initAccountPage(){
     resumeStatusEl.textContent = hasResume ? 'Ready' : 'Add';
     resumeStatusEl.classList.toggle('is-ready', hasResume);
     resumeStatusEl.classList.toggle('is-missing', !hasResume);
+  }
+
+  if(resumeStatusLink){
+    if(profile?.resume_file_path){
+      // The resume already exists: open the saved file directly rather than
+      // sending the user through the upload screen and waiting for it to redirect.
+      resumeStatusLink.href = '#';
+      resumeStatusLink.onclick = openResumeFile;
+    }else if(profile?.resume_data){
+      resumeStatusLink.href = 'resume-builder.html?view=1';
+      resumeStatusLink.onclick = null;
+    }else{
+      resumeStatusLink.href = 'align-upload.html';
+      resumeStatusLink.onclick = null;
+    }
   }
 
   if(preferencesStatusEl){
