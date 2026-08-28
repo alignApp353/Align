@@ -1519,7 +1519,7 @@
 
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-27-dark-job-actions">
+<body data-employer-dashboard-build="2026-08-27-live-applications">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -3342,6 +3342,8 @@
        */
       if(name==='jobs'){
         refreshJobsView();
+      }else if(name==='applicants'){
+        refreshApplicantsView();
       }else{
         safeRenderAll();
       }
@@ -4706,6 +4708,128 @@
       ).trim();
     }
 
+
+    async function loadProfilesForCurrentApplications(){
+      const profileIds = [...new Set(
+        (state.applications || [])
+          .map(application =>
+            application?.candidate_id ||
+            application?.user_id ||
+            application?.profile_id
+          )
+          .filter(Boolean)
+          .map(String)
+      )];
+
+      state.profiles = new Map();
+
+      if(!profileIds.length) return;
+
+      let loadedProfiles = [];
+
+      const byId = await sb
+        .from('profiles')
+        .select('*')
+        .in('id',profileIds);
+
+      if(!byId.error){
+        loadedProfiles.push(...(byId.data || []));
+      }else{
+        console.warn('Could not load applicant profiles by id:',byId.error);
+      }
+
+      const loadedKeys = new Set();
+
+      loadedProfiles.forEach(profile => {
+        if(profile?.id) loadedKeys.add(String(profile.id));
+        if(profile?.user_id) loadedKeys.add(String(profile.user_id));
+      });
+
+      const missingIds = profileIds.filter(id => !loadedKeys.has(String(id)));
+
+      if(missingIds.length){
+        const byUserId = await sb
+          .from('profiles')
+          .select('*')
+          .in('user_id',missingIds);
+
+        if(!byUserId.error){
+          loadedProfiles.push(...(byUserId.data || []));
+        }else{
+          console.warn(
+            'Could not load applicant profiles by user_id:',
+            byUserId.error
+          );
+        }
+      }
+
+      loadedProfiles.forEach(profile => {
+        if(profile?.id){
+          state.profiles.set(String(profile.id),profile);
+        }
+
+        if(profile?.user_id){
+          state.profiles.set(String(profile.user_id),profile);
+        }
+      });
+    }
+
+    async function refreshApplicationsForCurrentJobs(){
+      const jobIds = [...new Set(
+        (state.jobs || [])
+          .map(job => job?.id)
+          .filter(Boolean)
+          .map(String)
+      )];
+
+      if(!jobIds.length){
+        state.applications = [];
+        state.profiles = new Map();
+        return [];
+      }
+
+      const result = await sb
+        .from('applications')
+        .select('*')
+        .in('job_id',jobIds)
+        .order('applied_at',{ascending:false});
+
+      if(result.error){
+        console.error(
+          'Employer applications refresh failed:',
+          result.error
+        );
+        throw result.error;
+      }
+
+      state.applications = Array.isArray(result.data)
+        ? result.data
+        : [];
+
+      await loadProfilesForCurrentApplications();
+
+      console.log(
+        'Alygnn employer applications refreshed:',
+        {
+          jobs:jobIds.length,
+          applications:state.applications.length,
+          applicationJobIds:state.applications.map(row => row.job_id)
+        }
+      );
+
+      return state.applications;
+    }
+
+    async function refreshApplicantsView(){
+      try{
+        await refreshApplicationsForCurrentJobs();
+        safeRenderAll();
+      }catch(error){
+        console.error('Could not refresh Applicants view:',error);
+        renderApplicants();
+      }
+    }
+
     async function queryJobs(userId){
       /*
        * Do not stop at the first valid column if it returns zero rows.
@@ -4792,13 +4916,24 @@
         state.jobs = Array.isArray(jobs) ? jobs : [];
 
         /*
-         * IMPORTANT: render My Jobs first.
-         * Nothing else on the dashboard is allowed to block this.
+         * Jobs and applications must refresh together.
+         * A candidate can apply while the employer app is already open,
+         * so keeping the old state.applications array makes My Jobs show 0.
          */
-        renderJobs();
+        try{
+          await refreshApplicationsForCurrentJobs();
+        }catch(applicationError){
+          console.error(
+            'Jobs loaded, but applications could not refresh:',
+            applicationError
+          );
+        }
 
+        renderJobs();
+        safeCall('Applicants',renderApplicants);
         safeCall('Hero',renderHero);
         safeCall('Metrics',renderMetrics);
+        safeCall('Activity',renderActivity);
 
         console.log(
           'Alygnn My Jobs refreshed:',
@@ -4806,6 +4941,7 @@
             id:job.id,
             title:job.title,
             status:job.status,
+            applications:jobApplications(job).length,
             employer_id:job.employer_id,
             company_id:job.company_id
           }))
@@ -4838,44 +4974,13 @@
         await loadEmployerCompanyData();
         state.jobs = await queryJobs(state.session.user.id);
 
-        const jobIds = state.jobs.map(job => job.id).filter(Boolean);
-
-        if(jobIds.length){
-          const applicationResult = await sb
-            .from('applications')
-            .select('*')
-            .in('job_id',jobIds)
-            .order('applied_at',{ascending:false});
-
-          if(applicationResult.error){
-            console.error('Applications query failed:', applicationResult.error);
-          }
-          state.applications = applicationResult.error ? [] : applicationResult.data || [];
-
-          const profileIds = [...new Set(
-            state.applications
-              .map(application => application.candidate_id || application.user_id || application.profile_id)
-              .filter(Boolean)
-              .map(String)
-          )];
-
-          if(profileIds.length){
-            let loadedProfiles = [];
-            const byId = await sb.from('profiles').select('*').in('id',profileIds);
-            if(!byId.error) loadedProfiles.push(...(byId.data || []));
-
-            const missingIds = profileIds.filter(id => !loadedProfiles.some(profile => String(profile.id) === String(id)));
-            if(missingIds.length){
-              const byUserId = await sb.from('profiles').select('*').in('user_id',missingIds);
-              if(!byUserId.error) loadedProfiles.push(...(byUserId.data || []));
-            }
-
-            state.profiles = new Map();
-            loadedProfiles.forEach(profile => {
-              if(profile.id) state.profiles.set(String(profile.id),profile);
-              if(profile.user_id) state.profiles.set(String(profile.user_id),profile);
-            });
-          }
+        try{
+          await refreshApplicationsForCurrentJobs();
+        }catch(applicationError){
+          console.error(
+            'Applications could not load during employer initialization:',
+            applicationError
+          );
         }
 
         safeRenderAll();
@@ -5295,18 +5400,36 @@
       location.replace('app-employer-login.html?logout=1');
     };
 
+    let employerLiveRefreshRunning = false;
+
+    async function refreshEmployerLiveData(){
+      if(employerLiveRefreshRunning || !state.session?.user?.id) return;
+
+      employerLiveRefreshRunning = true;
+
+      try{
+        await refreshCompanyProfile();
+
+        const jobs = await queryJobs(state.session.user.id);
+        state.jobs = Array.isArray(jobs) ? jobs : [];
+
+        await refreshApplicationsForCurrentJobs();
+        safeRenderAll();
+      }catch(error){
+        console.error('Could not refresh employer live data:',error);
+      }finally{
+        employerLiveRefreshRunning = false;
+      }
+    }
+
     document.addEventListener('visibilitychange',()=>{
       if(document.visibilityState==='visible'){
-        refreshCompanyProfile().catch(error=>{
-          console.error('Could not refresh company profile:',error);
-        });
+        refreshEmployerLiveData();
       }
     });
 
     window.addEventListener('focus',()=>{
-      refreshCompanyProfile().catch(error=>{
-        console.error('Could not refresh company profile:',error);
-      });
+      refreshEmployerLiveData();
     });
 
     initialize();
