@@ -3047,9 +3047,95 @@
       border-color:#C7D8E8;
     }
 
+  
+    /* ==========================================================
+       MY JOBS — OPEN / CLOSED TABS
+       ========================================================== */
+    .jobs-status-tabs{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:5px;
+      margin:14px 0 4px;
+      padding:5px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:var(--card);
+    }
+
+    .jobs-status-tab{
+      min-height:44px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      border:0;
+      border-radius:12px;
+      background:transparent;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+      transition:background .18s ease,color .18s ease;
+    }
+
+    .jobs-status-tab.active{
+      background:var(--brand);
+      color:#fff;
+      box-shadow:0 7px 18px rgba(93,127,163,.18);
+    }
+
+    .jobs-tab-count{
+      min-width:22px;
+      height:22px;
+      padding:0 7px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      background:rgba(93,127,163,.12);
+      color:var(--brand);
+      font-size:10px;
+      font-weight:900;
+    }
+
+    .jobs-status-tab.active .jobs-tab-count{
+      background:rgba(255,255,255,.18);
+      color:#fff;
+    }
+
+    html[data-theme="dark"] .jobs-status-tabs{
+      background:#0F1823;
+    }
+
+    html[data-theme="dark"] .jobs-status-tab:not(.active) .jobs-tab-count{
+      background:#182A3A;
+      color:#8DB6DB;
+    }
+
+    .jobs-tab-empty{
+      padding:28px 20px;
+      border:1px dashed var(--border);
+      border-radius:18px;
+      background:var(--card);
+      text-align:center;
+    }
+
+    .jobs-tab-empty strong{
+      display:block;
+      margin-bottom:6px;
+      color:var(--text);
+      font-size:14px;
+    }
+
+    .jobs-tab-empty span{
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.55;
+    }
+
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-29-close-reopen-jobs">
+<body data-employer-dashboard-build="2026-08-29-open-closed-job-tabs">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -3400,6 +3486,32 @@
         <p class="page-sub">Manage every opening, track performance, and move faster from one place.</p>
         <div class="toolbar">
           <button class="primary-btn" id="post-job-btn-2" type="button">Post a Job</button>
+        </div>
+
+        <div class="jobs-status-tabs" id="jobs-status-tabs" role="tablist" aria-label="Job status">
+          <button
+            class="jobs-status-tab active"
+            id="jobs-tab-open"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            data-jobs-tab="open"
+          >
+            <span>Open</span>
+            <span class="jobs-tab-count" id="jobs-open-count">0</span>
+          </button>
+
+          <button
+            class="jobs-status-tab"
+            id="jobs-tab-closed"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            data-jobs-tab="closed"
+          >
+            <span>Closed</span>
+            <span class="jobs-tab-count" id="jobs-closed-count">0</span>
+          </button>
         </div>
         <section class="section">
           <div id="jobs-list"></div>
@@ -4050,6 +4162,8 @@
         }
       }
     );
+
+    let jobsStatusTab = 'open';
 
     const state = {
       session:null,
@@ -5745,42 +5859,88 @@
     }
 
     function renderJobs(){
-      const jobs = Array.isArray(state.jobs)
+      const allJobs = Array.isArray(state.jobs)
         ? state.jobs.filter(Boolean)
         : [];
 
-      const empty = `
-        <div class="empty">
-          <strong>No jobs yet</strong>
-          Post your first job to begin receiving applicants.
-        </div>
-      `;
-
       /*
-       * Use a defensive renderer here. The Open Jobs metric can already
-       * see these records, so My Jobs should never disappear because one
-       * optional job field is missing or malformed.
+       * Open = jobs that are still part of the employer's current hiring
+       * workflow. Paused/pending/draft jobs remain here because they can still
+       * occupy or return to active capacity.
+       *
+       * Closed = intentionally closed roles. Archived roles stay out of both
+       * tabs so a long-time employer's history does not clutter My Jobs.
        */
+      const openJobs = allJobs.filter(job => {
+        const status = String(job?.status || 'active').toLowerCase();
+        return status !== 'closed' && status !== 'archived';
+      });
+
+      const closedJobs = allJobs.filter(job =>
+        String(job?.status || '').toLowerCase() === 'closed'
+      );
+
+      const visibleJobs =
+        jobsStatusTab === 'closed'
+          ? closedJobs
+          : openJobs;
+
+      const openCount = $('jobs-open-count');
+      const closedCount = $('jobs-closed-count');
+
+      if(openCount) openCount.textContent = String(openJobs.length);
+      if(closedCount) closedCount.textContent = String(closedJobs.length);
+
+      document.querySelectorAll('[data-jobs-tab]').forEach(button => {
+        const active = button.dataset.jobsTab === jobsStatusTab;
+        button.classList.toggle('active',active);
+        button.setAttribute('aria-selected',active ? 'true' : 'false');
+      });
+
+      const empty = jobsStatusTab === 'closed'
+        ? `
+          <div class="jobs-tab-empty">
+            <strong>No closed jobs</strong>
+            <span>Jobs you close will stay here so you can review or reopen them later.</span>
+          </div>
+        `
+        : `
+          <div class="jobs-tab-empty">
+            <strong>No open jobs</strong>
+            <span>Post a job or reopen a closed role to add it back to your active hiring workflow.</span>
+          </div>
+        `;
+
       if(els.jobsList){
         els.jobsList.style.display='block';
         els.jobsList.style.visibility='visible';
         els.jobsList.style.opacity='1';
-        els.jobsList.style.minHeight=jobs.length ? '120px' : '72px';
-        els.jobsList.innerHTML = jobs.length
-          ? jobs.map(job => safeJobCard(job,false)).join('')
+        els.jobsList.style.minHeight=visibleJobs.length ? '120px' : '72px';
+        els.jobsList.innerHTML = visibleJobs.length
+          ? visibleJobs.map(job => safeJobCard(job,false)).join('')
           : empty;
       }
 
+      /*
+       * Dashboard home should stay focused only on currently open hiring work,
+       * never old closed/archived roles.
+       */
       if(els.dashboardJobs){
-        els.dashboardJobs.innerHTML = jobs.length
-          ? jobs.slice(0,2).map(job => safeJobCard(job,true)).join('')
-          : empty;
+        els.dashboardJobs.innerHTML = openJobs.length
+          ? openJobs.slice(0,2).map(job => safeJobCard(job,true)).join('')
+          : `
+            <div class="empty">
+              <strong>No open jobs</strong>
+              Post a job or reopen a role to continue hiring.
+            </div>
+          `;
       }
 
       console.log(
         'RENDERING MY JOBS:',
-        jobs.length,
-        jobs.map(job => ({
+        jobsStatusTab,
+        visibleJobs.length,
+        visibleJobs.map(job => ({
           id:job?.id,
           title:job?.title,
           status:job?.status
@@ -6695,6 +6855,29 @@
     function renderAll(){
       safeRenderAll();
     }
+
+
+    document.querySelectorAll('[data-jobs-tab]').forEach(button => {
+      button.addEventListener('click',() => {
+        jobsStatusTab =
+          button.dataset.jobsTab === 'closed'
+            ? 'closed'
+            : 'open';
+
+        renderJobs();
+
+        try{
+          sessionStorage.setItem('alygnnEmployerJobsTab',jobsStatusTab);
+        }catch(_){}
+      });
+    });
+
+    try{
+      const savedJobsTab = sessionStorage.getItem('alygnnEmployerJobsTab');
+      if(savedJobsTab === 'closed' || savedJobsTab === 'open'){
+        jobsStatusTab = savedJobsTab;
+      }
+    }catch(_){}
 
     function openCandidate(id){
       try{
