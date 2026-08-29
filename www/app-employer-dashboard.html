@@ -2413,7 +2413,7 @@
 
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-28-company-management-redesign">
+<body data-employer-dashboard-build="2026-08-28-company-account-number-fix">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -5170,14 +5170,19 @@
 
 
     function companyAccountNumber(){
-      const user = state.currentUser || state.session?.user || {};
-      const meta = user.user_metadata || {};
-      const verification = state.employerVerification || {};
-      const company = state.companyRecord || {};
+      const user=state.currentUser||state.session?.user||{};
+      const meta=user.user_metadata||{};
+      const verification=state.employerVerification||{};
+      const company=state.companyRecord||{};
 
-      const stored = (() => {
+      const stored=(()=>{
         try{
-          return localStorage.getItem('alygnn_company_account_number') || '';
+          return (
+            localStorage.getItem(
+              'alygnn_company_account_number'
+            )||
+            ''
+          );
         }catch(_){
           return '';
         }
@@ -5185,7 +5190,14 @@
 
       return String(
         firstValue(
+          /*
+           * Source of truth — public.companies.account_number
+           */
           company.account_number,
+
+          /*
+           * Backward-compatible fallbacks.
+           */
           verification.account_number,
           verification.company_account_number,
           meta.company_account_number,
@@ -5193,7 +5205,7 @@
           meta.account_number,
           stored,
           ''
-        ) || ''
+        )||''
       ).trim();
     }
 
@@ -6122,6 +6134,9 @@
       const userId=state.currentUser?.id||state.session?.user?.id;
       if(!userId) return;
 
+      /*
+       * 1. Load the employer verification record.
+       */
       const verificationResult=await sb
         .from('employer_verifications')
         .select('*')
@@ -6130,62 +6145,202 @@
 
       if(!verificationResult.error){
         state.employerVerification=verificationResult.data||null;
-        const meta=state.currentUser?.user_metadata||{};
-        const currentCompanyId=String(
-          verificationResult.data?.company_id ||
-          state.companyRecord?.id ||
-          state.companyRecord?.company_id ||
-          ''
-        );
-        const completedCompanyId=String(meta.employer_ai_profile_complete_company_id||'');
-
-        state.aiProfileComplete=Boolean(
-          verificationResult.data?.profile_complete ||
-          (
-            meta.employer_ai_profile_complete &&
-            completedCompanyId &&
-            currentCompanyId &&
-            completedCompanyId===currentCompanyId
-          )
-        );
-        state.verificationStatus=verificationResult.data?.verification_status||'pending_review';
+        state.verificationStatus=
+          verificationResult.data?.verification_status||
+          'pending_review';
       }else{
-        console.warn('Employer verification could not be loaded:',verificationResult.error);
-        const meta=state.currentUser?.user_metadata||{};
-        const currentCompanyId=String(state.companyRecord?.id||state.companyRecord?.company_id||'');
-        const completedCompanyId=String(meta.employer_ai_profile_complete_company_id||'');
-        state.aiProfileComplete=Boolean(
-          meta.employer_ai_profile_complete &&
-          completedCompanyId &&
-          currentCompanyId &&
-          completedCompanyId===currentCompanyId
+        console.warn(
+          'Employer verification could not be loaded:',
+          verificationResult.error
         );
       }
 
+      /*
+       * 2. Resolve the employer's current company membership.
+       *
+       * Include active + pending because a company can exist before
+       * verification is fully completed.
+       */
       const membershipResult=await sb
         .from('company_members')
-        .select('company_id,companies(*)')
+        .select(`
+          company_id,
+          membership_status,
+          companies(
+            id,
+            account_number,
+            account_status,
+            verification_status,
+            company_name,
+            legal_name,
+            name,
+            industry,
+            company_size,
+            size,
+            headquarters,
+            location,
+            website,
+            company_description,
+            description
+          )
+        `)
         .eq('user_id',userId)
-        .eq('membership_status','active')
+        .in('membership_status',['active','pending'])
         .limit(1)
         .maybeSingle();
 
+      let membershipCompany=null;
+      let companyId='';
+
       if(!membershipResult.error&&membershipResult.data){
-        state.companyRecord=Array.isArray(membershipResult.data.companies)
+        companyId=String(
+          membershipResult.data.company_id||
+          ''
+        ).trim();
+
+        membershipCompany=Array.isArray(
+          membershipResult.data.companies
+        )
           ? membershipResult.data.companies[0]||null
           : membershipResult.data.companies||null;
-
-        if(state.companyRecord?.account_number){
-          try{
-            localStorage.setItem(
-              'alygnn_company_account_number',
-              String(state.companyRecord.account_number)
-            );
-          }catch(_){}
-        }
       }else if(membershipResult.error){
-        console.warn('Company membership could not be loaded:',membershipResult.error);
+        console.warn(
+          'Company membership could not be loaded:',
+          membershipResult.error
+        );
       }
+
+      /*
+       * Fall back to company_id saved on verification / local storage.
+       */
+      if(!companyId){
+        companyId=String(
+          state.employerVerification?.company_id||
+          (()=> {
+            try{
+              return localStorage.getItem('alygnn_company_id')||'';
+            }catch(_){
+              return '';
+            }
+          })()
+        ).trim();
+      }
+
+      /*
+       * 3. IMPORTANT:
+       * Directly load the companies row by company_id.
+       *
+       * The admin verification page gets Account # from public.companies.
+       * Doing the same here prevents the Company tab from incorrectly
+       * showing "Not assigned" when an account number already exists.
+       */
+      let directCompany=null;
+
+      if(companyId){
+        const directCompanyResult=await sb
+          .from('companies')
+          .select('*')
+          .eq('id',companyId)
+          .maybeSingle();
+
+        if(!directCompanyResult.error){
+          directCompany=directCompanyResult.data||null;
+        }else{
+          console.warn(
+            'Direct company record could not be loaded:',
+            directCompanyResult.error
+          );
+        }
+      }
+
+      /*
+       * 4. Merge both sources. Direct companies row wins because that is
+       * the source of truth used by the admin verification portal.
+       */
+      state.companyRecord={
+        ...(membershipCompany||{}),
+        ...(directCompany||{})
+      };
+
+      if(
+        !Object.keys(state.companyRecord||{}).length
+      ){
+        state.companyRecord=null;
+      }
+
+      /*
+       * 5. Persist the real current-company values for app navigation.
+       */
+      if(companyId){
+        try{
+          localStorage.setItem(
+            'alygnn_company_id',
+            companyId
+          );
+        }catch(_){}
+      }
+
+      const accountNumber=String(
+        state.companyRecord?.account_number||
+        ''
+      ).trim();
+
+      if(accountNumber){
+        try{
+          localStorage.setItem(
+            'alygnn_company_account_number',
+            accountNumber
+          );
+        }catch(_){}
+      }
+
+      const companyStatus=
+        state.companyRecord?.verification_status||
+        state.employerVerification?.verification_status||
+        state.verificationStatus||
+        'pending_review';
+
+      state.verificationStatus=companyStatus;
+
+      /*
+       * AI profile completion depends on the current company.
+       */
+      const meta=state.currentUser?.user_metadata||{};
+      const currentCompanyId=String(
+        companyId||
+        state.companyRecord?.id||
+        state.employerVerification?.company_id||
+        ''
+      );
+
+      const completedCompanyId=String(
+        meta.employer_ai_profile_complete_company_id||
+        ''
+      );
+
+      state.aiProfileComplete=Boolean(
+        state.employerVerification?.profile_complete||
+        (
+          meta.employer_ai_profile_complete&&
+          completedCompanyId&&
+          currentCompanyId&&
+          completedCompanyId===currentCompanyId
+        )
+      );
+
+      console.log(
+        'Alygnn company account resolved:',
+        {
+          companyId,
+          accountNumber:
+            state.companyRecord?.account_number||
+            null,
+          companyName:
+            state.companyRecord?.company_name||
+            state.employerVerification?.company_name||
+            null
+        }
+      );
     }
 
     async function refreshCompanyProfile(){
