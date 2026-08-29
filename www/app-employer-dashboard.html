@@ -1809,7 +1809,7 @@
 
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-28-applicant-actions-dark-fix">
+<body data-employer-dashboard-build="2026-08-28-candidate-status-fix">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -4887,31 +4887,99 @@
 
     async function updateApplicationStatus(status){
       const application = state.activeCandidate;
-      if(!application) return;
 
-      const payload = {
-        status,
-        updated_at:new Date().toISOString()
-      };
-
-      if(status === 'hired') payload.hired_at = new Date().toISOString();
-
-      const { error } = await sb
-        .from('applications')
-        .update(payload)
-        .eq('id',application.id);
-
-      if(error){
-        console.error(error);
-        toast('Could not update candidate.');
-        return;
+      if(!application){
+        toast('No active candidate selected.');
+        return false;
       }
 
-      application.status = status;
-      Object.assign(application,payload);
-      els.candidateSheet.hidden = true;
-      renderAll();
-      toast('Candidate updated.');
+      const allowed = new Set([
+        'reviewed',
+        'hired',
+        'rejected'
+      ]);
+
+      const nextStatus = String(status || '').toLowerCase();
+
+      if(!allowed.has(nextStatus)){
+        toast('That candidate action is not supported.');
+        return false;
+      }
+
+      // Only update the status column. Older Alygnn application schemas
+      // are not consistent about optional timestamp columns.
+      const { data, error } = await sb
+        .from('applications')
+        .update({ status:nextStatus })
+        .eq('id',application.id)
+        .select('id,status')
+        .maybeSingle();
+
+      if(error){
+        console.error('Failed to update candidate application:',error);
+
+        const message = String(error.message || '');
+        const lower = message.toLowerCase();
+
+        if(
+          lower.includes('row-level security') ||
+          lower.includes('policy') ||
+          lower.includes('permission') ||
+          lower.includes('not authorized')
+        ){
+          toast('Employer permission is missing for candidate updates.');
+        }else if(
+          lower.includes('check constraint') ||
+          lower.includes('violates check')
+        ){
+          toast('This candidate status is not allowed by the database yet.');
+        }else if(
+          lower.includes('column') &&
+          lower.includes('does not exist')
+        ){
+          toast('The applications table is missing a required field.');
+        }else{
+          toast(
+            'Could not update candidate: ' +
+            (message || 'Unknown database error')
+          );
+        }
+
+        return false;
+      }
+
+      if(!data){
+        toast('Employer permission is missing for candidate updates.');
+        return false;
+      }
+
+      application.status = data.status || nextStatus;
+
+      const existingIndex = state.applications.findIndex(
+        item => String(item.id) === String(application.id)
+      );
+
+      if(existingIndex >= 0){
+        state.applications[existingIndex] = {
+          ...state.applications[existingIndex],
+          status:application.status
+        };
+      }
+
+      renderApplicants();
+      renderMetrics();
+      renderJobs();
+      renderHero();
+      renderActivity();
+
+      const successMessages = {
+        reviewed:'Candidate marked as reviewed.',
+        hired:'Candidate marked as hired.',
+        rejected:'Candidate rejected.'
+      };
+
+      toast(successMessages[nextStatus] || 'Candidate updated.');
+      return true;
     }
 
     async function handleJobAction(action,id){
@@ -5847,10 +5915,10 @@
           return;
         }
 
-        await updateApplicationStatus(action);
+        const updated = await updateApplicationStatus(action);
 
-        if(state.activeCandidate){
-          openCandidate(state.activeCandidate.id);
+        if(updated && state.activeCandidate){
+          await openCandidate(state.activeCandidate.id);
         }
       };
     });
