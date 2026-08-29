@@ -574,6 +574,12 @@
     .status-badge.draft{background:#EEF1F4;color:#66717D}
     .status-badge.closed{background:var(--danger-bg);color:var(--danger)}
 
+    .status-badge.archived{
+      background:var(--neutral-bg);
+      color:var(--muted);
+    }
+
+
     .job-stats{
       display:grid;
       grid-template-columns:repeat(4,minmax(0,1fr));
@@ -1632,6 +1638,35 @@
 
 
   
+
+    /* ==========================================================
+       MY JOBS — CLOSE / REOPEN
+       Close frees reusable job-slot capacity.
+       ========================================================== */
+    html[data-theme="dark"] .job-actions .mini-btn[data-job-action="close"]{
+      background:#2E2438!important;
+      color:#D7B4F5!important;
+      border-color:#5C456E!important;
+    }
+
+    html[data-theme="dark"] .job-actions .mini-btn[data-job-action="reopen"]{
+      background:#153024!important;
+      color:#83D6A6!important;
+      border-color:#28523D!important;
+    }
+
+    html[data-theme="light"] .job-actions .mini-btn[data-job-action="close"]{
+      background:#F7F0FC;
+      color:#79519B;
+      border-color:#D8C3E7;
+    }
+
+    html[data-theme="light"] .job-actions .mini-btn[data-job-action="reopen"]{
+      background:#EEF8F2;
+      color:#2D7D50;
+      border-color:#B8DEC7;
+    }
+
     .applicants-job-filter{
       margin:0 0 14px;
       padding:10px 12px;
@@ -3014,7 +3049,7 @@
 
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-29-app-pricing-link">
+<body data-employer-dashboard-build="2026-08-29-close-reopen-jobs">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -5513,7 +5548,7 @@
 
     function renderMetrics(){
       const active = state.jobs.filter(job =>
-        !['paused','closed','draft','inactive'].includes(String(job.status || 'active').toLowerCase())
+        !['paused','closed','archived','draft','inactive'].includes(String(job.status || 'active').toLowerCase())
       ).length;
 
       const paused = state.jobs.filter(job =>
@@ -5569,7 +5604,7 @@
 
     function statusClass(status){
       const value = String(status || 'active').toLowerCase();
-      return ['paused','draft','closed'].includes(value) ? value : 'active';
+      return ['paused','draft','closed','archived'].includes(value) ? value : 'active';
     }
 
     function jobApplications(job){
@@ -5613,9 +5648,20 @@
               <button class="mini-btn primary" data-job-action="applicants" data-job-id="${job.id}">View Applicants</button>
               <button class="mini-btn" data-job-action="edit" data-job-id="${job.id}">Edit</button>
               <button class="mini-btn" data-job-action="duplicate" data-job-id="${job.id}">Duplicate</button>
-              <button class="mini-btn" data-job-action="${status === 'paused' ? 'activate' : 'pause'}" data-job-id="${job.id}">${status === 'paused' ? 'Activate' : 'Pause'}</button>
+              ${status === 'closed'
+                ? `<button class="mini-btn" data-job-action="reopen" data-job-id="${job.id}">Reopen</button>`
+                : status === 'archived'
+                  ? ''
+                  : `
+                    <button class="mini-btn" data-job-action="${status === 'paused' ? 'activate' : 'pause'}" data-job-id="${job.id}">${status === 'paused' ? 'Activate' : 'Pause'}</button>
+                    <button class="mini-btn" data-job-action="close" data-job-id="${job.id}">Close Job</button>
+                  `
+              }
               <button class="mini-btn" data-job-action="analytics" data-job-id="${job.id}">Analytics</button>
-              <button class="mini-btn danger" data-job-action="archive" data-job-id="${job.id}">Archive</button>
+              ${status === 'archived'
+                ? ''
+                : `<button class="mini-btn danger" data-job-action="archive" data-job-id="${job.id}">Archive</button>`
+              }
             </div>
           `}
         </article>
@@ -5650,8 +5696,19 @@
             <button class="mini-btn" data-job-action="view" data-job-id="${escapeHtml(id)}">View Job</button>
             <button class="mini-btn primary" data-job-action="applicants" data-job-id="${escapeHtml(id)}">View Applicants</button>
             <button class="mini-btn" data-job-action="edit" data-job-id="${escapeHtml(id)}">Edit</button>
-            <button class="mini-btn" data-job-action="${statusRaw === 'paused' ? 'activate' : 'pause'}" data-job-id="${escapeHtml(id)}">${statusRaw === 'paused' ? 'Activate' : 'Pause'}</button>
-            <button class="mini-btn danger" data-job-action="archive" data-job-id="${escapeHtml(id)}">Archive</button>
+            ${statusRaw === 'closed'
+              ? `<button class="mini-btn" data-job-action="reopen" data-job-id="${escapeHtml(id)}">Reopen</button>`
+              : statusRaw === 'archived'
+                ? ''
+                : `
+                  <button class="mini-btn" data-job-action="${statusRaw === 'paused' ? 'activate' : 'pause'}" data-job-id="${escapeHtml(id)}">${statusRaw === 'paused' ? 'Activate' : 'Pause'}</button>
+                  <button class="mini-btn" data-job-action="close" data-job-id="${escapeHtml(id)}">Close Job</button>
+                `
+            }
+            ${statusRaw === 'archived'
+              ? ''
+              : `<button class="mini-btn danger" data-job-action="archive" data-job-id="${escapeHtml(id)}">Archive</button>`
+            }
           </div>
         `;
 
@@ -7173,16 +7230,70 @@
         return;
       }
 
-      if(action === 'archive'){
-        if(!confirm('Archive this job? It will be removed from active listings.')) return;
 
-        const { error } = await sb.from('jobs').update({status:'closed',updated_at:new Date().toISOString()}).eq('id',id);
+      if(action === 'close'){
+        if(!confirm(
+          'Close this job? It will stop appearing to candidates and free this reusable job slot for another opening.'
+        )) return;
+
+        const { error } = await sb
+          .from('jobs')
+          .update({
+            status:'closed',
+            updated_at:new Date().toISOString()
+          })
+          .eq('id',id);
+
+        if(error){
+          console.error(error);
+          toast('Could not close job.');
+          return;
+        }
+
+        job.status='closed';
+        renderAll();
+        toast('Job closed. The slot is now available.');
+        return;
+      }
+
+      if(action === 'reopen'){
+        if(!confirm(
+          'Reopen this job? It will use one available job slot and become visible to candidates again.'
+        )) return;
+
+        const { error } = await sb
+          .from('jobs')
+          .update({
+            status:'active',
+            updated_at:new Date().toISOString()
+          })
+          .eq('id',id);
+
+        if(error){
+          console.error(error);
+          toast(
+            error.message ||
+            'Could not reopen job. Make sure a reusable slot is available.'
+          );
+          return;
+        }
+
+        job.status='active';
+        renderAll();
+        toast('Job reopened.');
+        return;
+      }
+
+      if(action === 'archive'){
+        if(!confirm('Archive this job? It will be moved out of your active hiring workflow.')) return;
+
+        const { error } = await sb.from('jobs').update({status:'archived',updated_at:new Date().toISOString()}).eq('id',id);
         if(error){
           console.error(error);
           toast('Could not archive job.');
           return;
         }
-        job.status = 'closed';
+        job.status = 'archived';
         renderAll();
         toast('Job archived.');
         return;
