@@ -2576,9 +2576,106 @@
       color:#A9B5C2;
     }
 
+  
+    /* Applicant-profile score visibility */
+    #candidate-page-score{
+      display:inline-flex;
+      align-items:center;
+      min-height:34px;
+      padding:8px 12px;
+      border:1px solid rgba(47,137,87,.22);
+      background:rgba(111,191,143,.16);
+      color:#257C4D;
+      font-size:11px;
+      font-weight:950;
+      letter-spacing:.1px;
+      box-shadow:none;
+    }
+
+    .candidate-score-measures{
+      margin-top:16px;
+      padding-top:15px;
+      border-top:1px solid var(--border-soft);
+    }
+
+    .candidate-score-measures-title{
+      color:var(--text);
+      font-size:11px;
+      font-weight:900;
+      margin-bottom:10px;
+    }
+
+    .candidate-score-measure-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    .candidate-score-measure{
+      min-width:0;
+      padding:11px;
+      border:1px solid var(--border-soft);
+      border-radius:14px;
+      background:var(--bg-soft);
+    }
+
+    .candidate-score-measure strong{
+      display:block;
+      color:var(--text);
+      font-size:9.5px;
+      font-weight:900;
+      line-height:1.3;
+    }
+
+    .candidate-score-measure span{
+      display:block;
+      margin-top:4px;
+      color:var(--muted);
+      font-size:8.5px;
+      line-height:1.45;
+    }
+
+    .candidate-score-note{
+      margin:11px 0 0;
+      color:var(--muted);
+      font-size:8.7px;
+      line-height:1.5;
+    }
+
+    html[data-theme="dark"] #candidate-page-score{
+      border-color:rgba(114,207,154,.30);
+      background:rgba(114,207,154,.15);
+      color:#83D6A6;
+    }
+
+    html[data-theme="dark"] .candidate-score-measures{
+      border-color:#293747;
+    }
+
+    html[data-theme="dark"] .candidate-score-measure{
+      background:#0F1823;
+      border-color:#293747;
+    }
+
+    html[data-theme="dark"] .candidate-score-measures-title,
+    html[data-theme="dark"] .candidate-score-measure strong{
+      color:#F3F7FA;
+    }
+
+    html[data-theme="dark"] .candidate-score-measure span,
+    html[data-theme="dark"] .candidate-score-note{
+      color:#A9B5C2;
+    }
+
+    @media (max-width:430px){
+      .candidate-score-measure-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-28-candidate-profile-score-card">
+<body data-employer-dashboard-build="2026-08-28-candidate-score-visible-explained">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -2744,6 +2841,46 @@
                 Alygnn compares the candidate's resume and profile with this job.
               </p>
             </div>
+          </div>
+
+          <div class="candidate-score-measures">
+            <div class="candidate-score-measures-title">What this score measures</div>
+
+            <div class="candidate-score-measure-grid">
+              <div class="candidate-score-measure">
+                <strong>Skills match</strong>
+                <span>Overlap between the candidate's skills and the job listing.</span>
+              </div>
+
+              <div class="candidate-score-measure">
+                <strong>Experience</strong>
+                <span>Relevant work history and experience included in the candidate profile.</span>
+              </div>
+
+              <div class="candidate-score-measure">
+                <strong>Location</strong>
+                <span>Location information available for matching the candidate to the role.</span>
+              </div>
+
+              <div class="candidate-score-measure">
+                <strong>Education</strong>
+                <span>Education and training information included in the candidate profile.</span>
+              </div>
+
+              <div class="candidate-score-measure">
+                <strong>Availability</strong>
+                <span>Availability information supplied by the candidate.</span>
+              </div>
+
+              <div class="candidate-score-measure">
+                <strong>Resume & profile</strong>
+                <span>Summary and resume content that gives Alygnn more matching context.</span>
+              </div>
+            </div>
+
+            <p class="candidate-score-note">
+              Skills alignment carries the strongest job-specific signal. The Alygnn Score is a matching aid, not a hiring decision.
+            </p>
           </div>
         </section>
 
@@ -5897,7 +6034,7 @@
         .sort((a,b) => b.score-a.score)[0];
       if(highScore){
         const data = candidateData(highScore.application);
-        items.unshift({icon:'★',title:'Strong match identified',body:`${data.name} has an Alygnn Score of ${highScore.score}.`,time:'New'});
+        items.unshift({icon:'★',title:'Strong match identified',body:`${data.name} has an Alygnn Score of ${highScore.score}%.`,time:'New'});
       }
       if(state.jobs.length){
         const bestJob = [...state.jobs].sort((a,b) => Number(b.views || b.view_count || 0)-Number(a.views || a.view_count || 0))[0];
@@ -5974,7 +6111,7 @@
 
         $('candidate-page-score').textContent =
           scoreInfo.score
-            ? scoreInfo.score + ' Alygnn Score'
+            ? scoreInfo.score + '% Alygnn Score'
             : (
                 data.profileComplete
                   ? 'Profile complete'
@@ -6001,7 +6138,7 @@
           scoreTitle.textContent = score + '% Alygnn Score';
 
           scoreCopy.textContent =
-            'Alygnn compares this candidate’s resume and profile with ' +
+            'Alygnn compares skills, experience, location information, education, availability, and resume/profile content with ' +
             (job?.title || application.job_title || 'this role') +
             ' to estimate overall alignment.';
         }else{
