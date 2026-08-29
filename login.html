@@ -205,7 +205,7 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="black">
         <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.39.07 2.36.74 3.18.8 1.21-.24 2.37-.93 3.67-.84 1.58.13 2.77.79 3.53 1.98-3.25 1.94-2.48 6.18.57 7.37-.67 1.63-1.53 3.24-2.95 3.57zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
       </svg>
-      <span id="apple-button-text">Sign in with Apple</span>
+      <span id="apple-button-text">Continue with Apple</span>
     </button>
 
     <div class="divider"><span id="divider-text">or sign in with email</span></div>
@@ -363,7 +363,7 @@
       : `Already have one? <a href="#" onclick="switchTab('login'); return false;">Sign in</a>`;
     document.getElementById('divider-text').textContent = isLogin ? 'or sign in with email' : 'or sign up with email';
     document.getElementById('google-button-text').textContent = isLogin ? 'Sign in with Google' : 'Sign up with Google';
-    document.getElementById('apple-button-text').textContent = isLogin ? 'Sign in with Apple' : 'Sign up with Apple';
+    document.getElementById('apple-button-text').textContent = isLogin ? 'Continue with Apple' : 'Sign up with Apple';
     document.getElementById('signup-terms-wrap').style.display = isLogin ? 'none' : 'flex';
     document.getElementById('login-btn').textContent = isEmp ? 'Sign in to Dashboard' : 'Sign in to Alygnn';
     document.getElementById('signup-btn').textContent = isEmp ? 'Create employer account' : 'Create account';
@@ -554,6 +554,7 @@
     params.set('oauth_return', '1');
     params.set('oauth_mode', oauthMode);
     params.set('role', currentRole === 'employer' ? 'employer' : 'jobseeker');
+    params.set('provider', 'google');
 
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
@@ -605,22 +606,32 @@
 
   async function handleOAuthReturn() {
     const params = new URLSearchParams(window.location.search);
+
     if (params.get('oauth_return') !== '1') {
       if (params.get('error') === 'no_account') {
         switchTab('login');
-        showMsg('No Alygnn account was found for that Google account. Create an account first.');
+        const providerLabel = params.get('provider') === 'apple' ? 'Apple' : 'Google';
+        showMsg(`No Alygnn account was found for that ${providerLabel} account. Create an account first.`);
       }
       return;
     }
 
     const intent = params.get('oauth_mode') === 'signup' ? 'signup' : 'login';
     const requestedRole = params.get('role') === 'employer' ? 'employer' : 'seeker';
+    const provider = params.get('provider') === 'apple' ? 'apple' : 'google';
+    const providerLabel = provider === 'apple' ? 'Apple' : 'Google';
 
-    showMsg(intent === 'signup' ? 'Finishing your Google account…' : 'Checking your Alygnn account…', 'success');
+    showMsg(
+      intent === 'signup'
+        ? `Finishing your ${providerLabel} account…`
+        : `Checking your Alygnn account…`,
+      'success'
+    );
 
     const session = await getOAuthSession();
+
     if (!session?.user) {
-      showMsg('Google sign in did not finish. Please try again.');
+      showMsg(`${providerLabel} sign in did not finish. Please try again.`);
       return;
     }
 
@@ -632,69 +643,135 @@
     }
 
     try {
-      const result = await validateGoogleIntent(session, intent);
+      if (provider === 'google') {
+        const result = await validateGoogleIntent(session, intent);
 
-      if (!result.allowed) {
+        if (!result.allowed) {
+          await sb.auth.signOut({ scope: 'local' });
+          const clean = new URL(window.location.origin + '/login.html');
+          clean.searchParams.set('role', requestedRole === 'employer' ? 'employer' : 'jobseeker');
+          clean.searchParams.set('provider', 'google');
+          clean.searchParams.set('error', 'no_account');
+          history.replaceState({}, '', clean.pathname + clean.search);
+          switchTab('login');
+          showMsg('No Alygnn account was found for that Google account. Create an account first.');
+          return;
+        }
+      }
+
+      const { data: existingProfile, error: existingProfileError } = await sb
+        .from('profiles')
+        .select('role,full_name,company_name')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (existingProfileError && existingProfileError.code !== 'PGRST116') {
+        throw existingProfileError;
+      }
+
+      // Apple OAuth can create an auth identity on first contact. On the Sign in
+      // tab, do not treat that as a completed Alygnn account unless a profile
+      // already exists.
+      if (provider === 'apple' && intent === 'login' && !existingProfile) {
         await sb.auth.signOut({ scope: 'local' });
+
         const clean = new URL(window.location.origin + '/login.html');
         clean.searchParams.set('role', requestedRole === 'employer' ? 'employer' : 'jobseeker');
+        clean.searchParams.set('provider', 'apple');
         clean.searchParams.set('error', 'no_account');
         history.replaceState({}, '', clean.pathname + clean.search);
+
         switchTab('login');
-        showMsg('No Alygnn account was found for that Google account. Create an account first.');
+        showMsg('No Alygnn account was found for that Apple account. Create an account first.');
         return;
       }
 
       if (intent === 'signup') {
-        const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
-        const { error: profileError } = await sb.from('profiles').upsert({
+        const fullName =
+          session.user.user_metadata?.full_name ||
+          session.user.user_metadata?.name ||
+          existingProfile?.full_name ||
+          '';
+
+        const profilePayload = {
           id: session.user.id,
           role: requestedRole,
           full_name: fullName
-        }, { onConflict: 'id' });
+        };
 
-        if (profileError) console.error('Could not save Google signup profile:', profileError);
+        const { error: profileError } = await sb
+          .from('profiles')
+          .upsert(profilePayload, { onConflict: 'id' });
+
+        if (profileError) {
+          console.error(`Could not save ${providerLabel} signup profile:`, profileError);
+          throw profileError;
+        }
+
         await savePendingPreferences(session.user, fullName);
         window.location.replace(redirectFor(requestedRole));
         return;
       }
 
-      const { data: profile } = await sb
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .maybeSingle();
+      const savedRole =
+        existingProfile?.role ||
+        session.user.user_metadata?.role ||
+        requestedRole;
 
-      const savedRole = profile?.role || session.user.user_metadata?.role || requestedRole;
-      window.location.replace(redirectFor(savedRole === 'employer' ? 'employer' : 'seeker'));
+      if (savedRole !== requestedRole) {
+        await sb.auth.signOut({ scope: 'local' });
+        switchRole(requestedRole);
+        switchTab('login');
+
+        showMsg(
+          requestedRole === 'employer'
+            ? `This ${providerLabel} account is connected to a Job Seeker account. Switch to Job Seeker to sign in.`
+            : `This ${providerLabel} account is connected to an Employer account. Switch to Employer to sign in.`
+        );
+        return;
+      }
+
+      window.location.replace(
+        redirectFor(savedRole === 'employer' ? 'employer' : 'seeker')
+      );
     } catch (error) {
-      console.error('Google account validation failed:', error);
+      console.error(`${providerLabel} account validation failed:`, error);
       await sb.auth.signOut({ scope: 'local' });
       switchTab('login');
-      showMsg(error.message || 'We could not verify this Google account. Please try again.');
+      showMsg(error.message || `We could not verify this ${providerLabel} account. Please try again.`);
     }
   }
 
   async function handleApple() {
     const isSignupTab = document.getElementById('signup-form').style.display !== 'none';
+
     if (isSignupTab && !document.getElementById('signup-terms').checked) {
       showMsg('Check the box above to agree to the Terms of Service and Privacy Policy, then continue with Apple.');
       document.getElementById('signup-terms').focus();
       return;
     }
 
-    sessionStorage.setItem('alygnn_oauth_mode', isSignupTab ? 'signup' : 'login');
+    const oauthMode = isSignupTab ? 'signup' : 'login';
+
+    sessionStorage.setItem('alygnn_oauth_mode', oauthMode);
     sessionStorage.setItem('alygnn_oauth_role', currentRole);
 
     const params = new URLSearchParams();
-    if (currentRole === 'employer') params.set('role', 'employer');
-    params.set('oauth_mode', isSignupTab ? 'signup' : 'login');
+    params.set('oauth_return', '1');
+    params.set('oauth_mode', oauthMode);
+    params.set('role', currentRole === 'employer' ? 'employer' : 'jobseeker');
+    params.set('provider', 'apple');
 
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'apple',
-      options: { redirectTo: window.location.origin + '/set-password.html?' + params.toString() }
+      options: {
+        redirectTo: window.location.origin + '/login.html?' + params.toString()
+      }
     });
-    if (error) showMsg(error.message || 'Could not open Apple sign in. Please try again.');
+
+    if (error) {
+      showMsg(error.message || 'Could not open Apple sign in. Please try again.');
+    }
   }
 
   async function doForgot() {
