@@ -2411,9 +2411,174 @@
       }
     }
 
+  
+    /* ==========================================================
+       APPLICANT PROFILE — ALYGNN MATCH CARD
+       ========================================================== */
+
+    .candidate-match-card{
+      margin-top:14px;
+      padding:17px;
+      border:1px solid var(--border-soft);
+      border-radius:21px;
+      background:var(--card);
+      box-shadow:0 10px 28px rgba(23,35,51,.035);
+    }
+
+    .candidate-match-heading{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .candidate-match-kicker{
+      color:var(--brand-dark);
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.9px;
+      text-transform:uppercase;
+    }
+
+    .candidate-match-heading h3{
+      margin:4px 0 0;
+      font-size:15px;
+      line-height:1.3;
+    }
+
+    .candidate-match-fit{
+      flex:0 0 auto;
+      display:inline-flex;
+      align-items:center;
+      min-height:28px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(111,191,143,.14);
+      color:#2F8957;
+      font-size:9px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .candidate-match-main{
+      display:flex;
+      align-items:center;
+      gap:15px;
+      margin-top:15px;
+      padding-top:15px;
+      border-top:1px solid var(--border-soft);
+    }
+
+    .candidate-match-ring{
+      --score:0;
+      width:82px;
+      height:82px;
+      flex:0 0 82px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      background:
+        conic-gradient(
+          #6FBF8F calc(var(--score) * 1%),
+          var(--border-soft) 0
+        );
+      position:relative;
+    }
+
+    .candidate-match-ring::before{
+      content:"";
+      position:absolute;
+      inset:8px;
+      border-radius:50%;
+      background:var(--card);
+    }
+
+    .candidate-match-ring-inner{
+      position:relative;
+      z-index:1;
+      text-align:center;
+    }
+
+    .candidate-match-ring-inner strong{
+      display:block;
+      color:var(--text);
+      font-size:22px;
+      line-height:1;
+      font-weight:900;
+    }
+
+    .candidate-match-ring-inner span{
+      display:block;
+      margin-top:5px;
+      color:var(--muted);
+      font-size:8px;
+      font-weight:900;
+      letter-spacing:.8px;
+    }
+
+    .candidate-match-copy{
+      min-width:0;
+      flex:1;
+    }
+
+    .candidate-match-copy strong{
+      display:block;
+      color:var(--text);
+      font-size:14px;
+      line-height:1.3;
+    }
+
+    .candidate-match-copy p{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:10px;
+      line-height:1.55;
+    }
+
+    html[data-theme="dark"] .candidate-match-card{
+      background:#121B27;
+      border-color:#293747;
+      box-shadow:none;
+    }
+
+    html[data-theme="dark"] .candidate-match-main{
+      border-color:#293747;
+    }
+
+    html[data-theme="dark"] .candidate-match-kicker{
+      color:#79A7D5;
+    }
+
+    html[data-theme="dark"] .candidate-match-fit{
+      background:rgba(113,199,149,.13);
+      color:#83D6A6;
+    }
+
+    html[data-theme="dark"] .candidate-match-ring{
+      background:
+        conic-gradient(
+          #72CF9A calc(var(--score) * 1%),
+          #263746 0
+        );
+    }
+
+    html[data-theme="dark"] .candidate-match-ring::before{
+      background:#121B27;
+    }
+
+    html[data-theme="dark"] .candidate-match-ring-inner strong,
+    html[data-theme="dark"] .candidate-match-copy strong{
+      color:#F3F7FA;
+    }
+
+    html[data-theme="dark"] .candidate-match-ring-inner span,
+    html[data-theme="dark"] .candidate-match-copy p{
+      color:#A9B5C2;
+    }
+
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-28-company-account-link-rpc">
+<body data-employer-dashboard-build="2026-08-28-candidate-profile-score-card">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -2550,8 +2715,35 @@
           </div>
 
           <div class="candidate-profile-status">
-            <span class="score" id="candidate-page-score">Profile incomplete</span>
+            <span class="score" id="candidate-page-score">Alygnn Score</span>
             <span class="app-status" id="candidate-page-status">applied</span>
+          </div>
+        </section>
+
+        <section class="candidate-match-card" id="candidate-page-match-card">
+          <div class="candidate-match-heading">
+            <div>
+              <div class="candidate-match-kicker">Alygnn Match</div>
+              <h3>How this candidate aligns with the role</h3>
+            </div>
+
+            <span class="candidate-match-fit" id="candidate-page-fit">Good fit</span>
+          </div>
+
+          <div class="candidate-match-main">
+            <div class="candidate-match-ring" id="candidate-page-score-ring" style="--score:0">
+              <div class="candidate-match-ring-inner">
+                <strong id="candidate-page-score-number">—</strong>
+                <span>MATCH</span>
+              </div>
+            </div>
+
+            <div class="candidate-match-copy">
+              <strong id="candidate-page-score-title">Score pending</strong>
+              <p id="candidate-page-score-copy">
+                Alygnn compares the candidate's resume and profile with this job.
+              </p>
+            </div>
           </div>
         </section>
 
@@ -5788,6 +5980,39 @@
                   ? 'Profile complete'
                   : 'Profile incomplete'
               );
+
+        const score = Number(scoreInfo.score || 0);
+        const scoreRing = $('candidate-page-score-ring');
+        const scoreNumber = $('candidate-page-score-number');
+        const scoreFit = $('candidate-page-fit');
+        const scoreTitle = $('candidate-page-score-title');
+        const scoreCopy = $('candidate-page-score-copy');
+
+        if(score > 0){
+          const fit = fitLabel(score);
+
+          scoreRing.style.setProperty(
+            '--score',
+            String(Math.max(0,Math.min(100,score)))
+          );
+
+          scoreNumber.textContent = score + '%';
+          scoreFit.textContent = fit;
+          scoreTitle.textContent = score + '% Alygnn Score';
+
+          scoreCopy.textContent =
+            'Alygnn compares this candidate’s resume and profile with ' +
+            (job?.title || application.job_title || 'this role') +
+            ' to estimate overall alignment.';
+        }else{
+          scoreRing.style.setProperty('--score','0');
+          scoreNumber.textContent = '—';
+          scoreFit.textContent = 'Score pending';
+          scoreTitle.textContent = 'Alygnn Score pending';
+
+          scoreCopy.textContent =
+            'There is not enough candidate profile information yet to calculate a reliable Alygnn Score.';
+        }
 
         $('candidate-page-status').textContent =
           String(application.status || 'applied');
