@@ -2598,42 +2598,10 @@
       border-top:1px solid var(--border-soft);
     }
 
-    .candidate-score-measures-title{
-      color:var(--text);
-      font-size:11px;
-      font-weight:900;
-      margin-bottom:10px;
-    }
 
-    .candidate-score-measure-grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:8px;
-    }
 
-    .candidate-score-measure{
-      min-width:0;
-      padding:11px;
-      border:1px solid var(--border-soft);
-      border-radius:14px;
-      background:var(--bg-soft);
-    }
 
-    .candidate-score-measure strong{
-      display:block;
-      color:var(--text);
-      font-size:9.5px;
-      font-weight:900;
-      line-height:1.3;
-    }
 
-    .candidate-score-measure span{
-      display:block;
-      margin-top:4px;
-      color:var(--muted);
-      font-size:8.5px;
-      line-height:1.45;
-    }
 
     .candidate-score-note{
       margin:11px 0 0;
@@ -2657,25 +2625,130 @@
       border-color:#293747;
     }
 
+
+
+
+  
+    /* Compact applicant score breakdown */
+    .candidate-score-measures-heading{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
+    }
+
+    .candidate-score-measures-title{
+      color:var(--text);
+      font-size:12px;
+      font-weight:900;
+      line-height:1.25;
+    }
+
+    .candidate-score-measures-subtitle{
+      margin-top:3px;
+      color:var(--muted);
+      font-size:8.5px;
+      line-height:1.4;
+    }
+
+    .candidate-score-breakdown{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px 16px;
+    }
+
+    .candidate-breakdown-item{
+      min-width:0;
+    }
+
+    .candidate-breakdown-label{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:6px;
+    }
+
+    .candidate-breakdown-label span{
+      color:var(--text);
+      font-size:9.5px;
+      font-weight:800;
+    }
+
+    .candidate-breakdown-label strong{
+      color:var(--brand-dark);
+      font-size:9.5px;
+      font-weight:950;
+      white-space:nowrap;
+    }
+
+    .candidate-breakdown-track{
+      height:6px;
+      overflow:hidden;
+      border-radius:999px;
+      background:var(--border-soft);
+    }
+
+    .candidate-breakdown-fill{
+      width:0;
+      height:100%;
+      border-radius:inherit;
+      background:#6FBF8F;
+      transition:width .28s ease;
+    }
+
+    #candidate-page-status{
+      display:inline-flex;
+      align-items:center;
+      min-height:30px;
+      padding:6px 10px;
+      border:1px solid rgba(93,127,163,.22);
+      border-radius:999px;
+      background:rgba(93,127,163,.08);
+      color:#667A8E;
+      font-size:9px;
+      font-weight:850;
+      box-shadow:none;
+    }
+
     html[data-theme="dark"] .candidate-score-measures-title,
-    html[data-theme="dark"] .candidate-score-measure strong{
+    html[data-theme="dark"] .candidate-breakdown-label span{
       color:#F3F7FA;
     }
 
-    html[data-theme="dark"] .candidate-score-measure span,
-    html[data-theme="dark"] .candidate-score-note{
+    html[data-theme="dark"] .candidate-score-measures-subtitle{
       color:#A9B5C2;
     }
 
+    html[data-theme="dark"] .candidate-breakdown-label strong{
+      color:#83D6A6;
+    }
+
+    html[data-theme="dark"] .candidate-breakdown-track{
+      background:#263746;
+    }
+
+    html[data-theme="dark"] .candidate-breakdown-fill{
+      background:#72CF9A;
+    }
+
+    html[data-theme="dark"] #candidate-page-status{
+      border-color:#334455;
+      background:#152231;
+      color:#AAB7C4;
+    }
+
     @media (max-width:430px){
-      .candidate-score-measure-grid{
-        grid-template-columns:1fr;
+      .candidate-score-breakdown{
+        grid-template-columns:1fr 1fr;
+        gap:11px 14px;
       }
     }
 
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-28-candidate-score-visible-explained">
+<body data-employer-dashboard-build="2026-08-29-candidate-score-breakdown">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -2844,42 +2917,77 @@
           </div>
 
           <div class="candidate-score-measures">
-            <div class="candidate-score-measures-title">What this score measures</div>
+            <div class="candidate-score-measures-heading">
+              <div>
+                <div class="candidate-score-measures-title">Score breakdown</div>
+                <div class="candidate-score-measures-subtitle">Strength of each signal used by Alygnn</div>
+              </div>
+            </div>
 
-            <div class="candidate-score-measure-grid">
-              <div class="candidate-score-measure">
-                <strong>Skills match</strong>
-                <span>Overlap between the candidate's skills and the job listing.</span>
+            <div class="candidate-score-breakdown">
+              <div class="candidate-breakdown-item">
+                <div class="candidate-breakdown-label">
+                  <span>Skills</span>
+                  <strong id="candidate-breakdown-skills-value">0%</strong>
+                </div>
+                <div class="candidate-breakdown-track">
+                  <div class="candidate-breakdown-fill" id="candidate-breakdown-skills-bar"></div>
+                </div>
               </div>
 
-              <div class="candidate-score-measure">
-                <strong>Experience</strong>
-                <span>Relevant work history and experience included in the candidate profile.</span>
+              <div class="candidate-breakdown-item">
+                <div class="candidate-breakdown-label">
+                  <span>Experience</span>
+                  <strong id="candidate-breakdown-experience-value">0%</strong>
+                </div>
+                <div class="candidate-breakdown-track">
+                  <div class="candidate-breakdown-fill" id="candidate-breakdown-experience-bar"></div>
+                </div>
               </div>
 
-              <div class="candidate-score-measure">
-                <strong>Location</strong>
-                <span>Location information available for matching the candidate to the role.</span>
+              <div class="candidate-breakdown-item">
+                <div class="candidate-breakdown-label">
+                  <span>Location</span>
+                  <strong id="candidate-breakdown-location-value">0%</strong>
+                </div>
+                <div class="candidate-breakdown-track">
+                  <div class="candidate-breakdown-fill" id="candidate-breakdown-location-bar"></div>
+                </div>
               </div>
 
-              <div class="candidate-score-measure">
-                <strong>Education</strong>
-                <span>Education and training information included in the candidate profile.</span>
+              <div class="candidate-breakdown-item">
+                <div class="candidate-breakdown-label">
+                  <span>Education</span>
+                  <strong id="candidate-breakdown-education-value">0%</strong>
+                </div>
+                <div class="candidate-breakdown-track">
+                  <div class="candidate-breakdown-fill" id="candidate-breakdown-education-bar"></div>
+                </div>
               </div>
 
-              <div class="candidate-score-measure">
-                <strong>Availability</strong>
-                <span>Availability information supplied by the candidate.</span>
+              <div class="candidate-breakdown-item">
+                <div class="candidate-breakdown-label">
+                  <span>Availability</span>
+                  <strong id="candidate-breakdown-availability-value">0%</strong>
+                </div>
+                <div class="candidate-breakdown-track">
+                  <div class="candidate-breakdown-fill" id="candidate-breakdown-availability-bar"></div>
+                </div>
               </div>
 
-              <div class="candidate-score-measure">
-                <strong>Resume & profile</strong>
-                <span>Summary and resume content that gives Alygnn more matching context.</span>
+              <div class="candidate-breakdown-item">
+                <div class="candidate-breakdown-label">
+                  <span>Resume & profile</span>
+                  <strong id="candidate-breakdown-profile-value">0%</strong>
+                </div>
+                <div class="candidate-breakdown-track">
+                  <div class="candidate-breakdown-fill" id="candidate-breakdown-profile-bar"></div>
+                </div>
               </div>
             </div>
 
             <p class="candidate-score-note">
-              Skills alignment carries the strongest job-specific signal. The Alygnn Score is a matching aid, not a hiring decision.
+              Skills carry the strongest job-specific weight. Each percentage shows the strength of that individual signal; the overall Alygnn Score is weighted and is not a simple average.
             </p>
           </div>
         </section>
@@ -4686,6 +4794,99 @@
       return 'Review';
     }
 
+    function scoreSignalBreakdown(application){
+      const data = candidateData(application);
+      const job = jobFor(application) || {};
+
+      const jobText = [
+        job.title,
+        job.description,
+        job.requirements,
+        job.benefits
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      const skills = data.skills
+        .map(skill => String(skill || '').trim().toLowerCase())
+        .filter(Boolean);
+
+      let skillContribution = 0;
+
+      if(skills.length){
+        const matches = skills.filter(
+          skill =>
+            skill.length > 2 &&
+            jobText.includes(skill)
+        ).length;
+
+        /*
+         * This mirrors provisionalScore():
+         * skills can contribute up to 25 points.
+         */
+        skillContribution = Math.min(
+          25,
+          matches * 6 + Math.min(7,skills.length)
+        );
+      }
+
+      const clamp = value =>
+        Math.max(
+          0,
+          Math.min(100,Math.round(Number(value || 0)))
+        );
+
+      return {
+        /*
+         * Normalize each scoring contribution against its own
+         * maximum so the employer gets an understandable 0–100%.
+         */
+        skills:clamp((skillContribution / 25) * 100),
+        experience:data.experience ? 100 : 0,
+        location:data.location ? 100 : 0,
+        education:data.education ? 100 : 0,
+        availability:data.availability ? 100 : 0,
+        profile:(data.summary || data.resumeText) ? 100 : 0
+      };
+    }
+
+    function renderScoreSignalBreakdown(application){
+      const breakdown = scoreSignalBreakdown(application);
+
+      const rows = [
+        ['skills',breakdown.skills],
+        ['experience',breakdown.experience],
+        ['location',breakdown.location],
+        ['education',breakdown.education],
+        ['availability',breakdown.availability],
+        ['profile',breakdown.profile]
+      ];
+
+      rows.forEach(([key,value]) => {
+        const percent = Math.max(
+          0,
+          Math.min(100,Math.round(Number(value || 0)))
+        );
+
+        const valueEl = $(
+          `candidate-breakdown-${key}-value`
+        );
+
+        const barEl = $(
+          `candidate-breakdown-${key}-bar`
+        );
+
+        if(valueEl){
+          valueEl.textContent = `${percent}%`;
+        }
+
+        if(barEl){
+          barEl.style.width = `${percent}%`;
+        }
+      });
+    }
+
     function provisionalScore(application){
       const stored = Number(application.match_score || application.alygnn_score || 0);
       if(stored > 0) return {score:Math.round(stored),source:'stored'};
@@ -6151,8 +6352,18 @@
             'There is not enough candidate profile information yet to calculate a reliable Alygnn Score.';
         }
 
+        renderScoreSignalBreakdown(application);
+
+        const applicationStatus =
+          String(application.status || 'applied')
+            .trim()
+            .toLowerCase();
+
         $('candidate-page-status').textContent =
-          String(application.status || 'applied');
+          applicationStatus
+            ? applicationStatus.charAt(0).toUpperCase() +
+              applicationStatus.slice(1)
+            : 'Applied';
 
         $('candidate-page-email').textContent =
           data.email || 'Not provided';
