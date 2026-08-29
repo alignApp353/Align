@@ -2860,9 +2860,134 @@
       }
     }
 
+  
+    /* ==========================================================
+       EMPLOYER JOB PREVIEW
+       Opens from My Jobs -> View Job.
+       ========================================================== */
+    .job-preview-panel{
+      padding:12px 18px calc(28px + env(safe-area-inset-bottom));
+    }
+
+    .job-preview-kicker{
+      margin-top:2px;
+      color:var(--brand);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:1.35px;
+      text-transform:uppercase;
+    }
+
+    .job-preview-title{
+      margin-top:7px;
+      padding-right:48px;
+      font-size:28px;
+      line-height:1.08;
+      font-weight:900;
+      letter-spacing:-.7px;
+    }
+
+    .job-preview-company{
+      margin-top:7px;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:800;
+    }
+
+    .job-preview-pills{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:16px;
+    }
+
+    .job-preview-pill{
+      display:inline-flex;
+      align-items:center;
+      min-height:34px;
+      padding:0 12px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:var(--card);
+      color:var(--text);
+      font-size:11px;
+      font-weight:850;
+    }
+
+    .job-preview-pill.salary{
+      color:#7EA9D3;
+      background:var(--brand-soft);
+      border-color:var(--border);
+    }
+
+    .job-preview-section{
+      margin-top:16px;
+      padding:17px;
+      border:1px solid var(--border);
+      border-radius:18px;
+      background:var(--card);
+    }
+
+    .job-preview-section h3{
+      margin:0;
+      font-size:14px;
+      font-weight:900;
+      letter-spacing:-.1px;
+    }
+
+    .job-preview-section p{
+      margin:9px 0 0;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.68;
+      white-space:normal;
+      overflow-wrap:anywhere;
+    }
+
+    .job-preview-note{
+      margin-top:15px;
+      padding:12px 14px;
+      border-radius:14px;
+      background:var(--blue-bg);
+      color:var(--muted);
+      font-size:10px;
+      line-height:1.55;
+      font-weight:700;
+    }
+
+    .job-preview-actions{
+      display:grid;
+      grid-template-columns:1fr 1.35fr;
+      gap:9px;
+      margin-top:18px;
+    }
+
+    .job-preview-actions button{
+      min-height:50px;
+      border-radius:15px;
+      font-weight:900;
+    }
+
+    html[data-theme="dark"] .job-preview-pill,
+    html[data-theme="dark"] .job-preview-section{
+      background:#0F1823;
+    }
+
+    html[data-theme="dark"] .job-actions .mini-btn[data-job-action="view"]{
+      background:#13263A!important;
+      color:#8FC0EC!important;
+      border-color:#365A7C!important;
+    }
+
+    html[data-theme="light"] .job-actions .mini-btn[data-job-action="view"]{
+      background:#EFF5FB;
+      color:#345F91;
+      border-color:#C7D8E8;
+    }
+
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-29-theme-no-white-flash">
+<body data-employer-dashboard-build="2026-08-29-view-job-preview">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -3756,6 +3881,65 @@
     </div>
   </div>
 
+
+
+  <div class="sheet" id="job-preview-sheet" hidden>
+    <div id="job-preview-backdrop" style="position:absolute;inset:0"></div>
+
+    <section
+      class="sheet-panel wide job-preview-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="job-preview-title"
+      style="position:relative;z-index:1"
+    >
+      <div class="sheet-grip"></div>
+
+      <button
+        class="icon-btn"
+        id="close-job-preview"
+        style="float:right"
+        type="button"
+        aria-label="Close job preview"
+      >×</button>
+
+      <div class="job-preview-kicker">Candidate preview</div>
+      <h2 class="job-preview-title" id="job-preview-title">Job</h2>
+      <div class="job-preview-company" id="job-preview-company">Company</div>
+
+      <div class="job-preview-pills">
+        <span class="job-preview-pill" id="job-preview-location">Location</span>
+        <span class="job-preview-pill" id="job-preview-type">Job type</span>
+        <span class="job-preview-pill" id="job-preview-style">Work style</span>
+        <span class="job-preview-pill salary" id="job-preview-salary">Compensation</span>
+      </div>
+
+      <section class="job-preview-section">
+        <h3>About this role</h3>
+        <p id="job-preview-description">No job description added yet.</p>
+      </section>
+
+      <section class="job-preview-section">
+        <h3>What we're looking for</h3>
+        <p id="job-preview-requirements">No requirements added yet.</p>
+      </section>
+
+      <section class="job-preview-section">
+        <h3>Benefits &amp; details</h3>
+        <p id="job-preview-benefits">No additional benefits or details added yet.</p>
+      </section>
+
+      <div class="job-preview-note">
+        This is an employer preview of the job information candidates can review.
+        Candidate-specific Alygnn Scores are not shown here because each score is personalized to that candidate.
+      </div>
+
+      <div class="job-preview-actions">
+        <button class="secondary-btn" id="job-preview-close-bottom" type="button">Close</button>
+        <button class="primary-btn" id="job-preview-edit" type="button">Edit Job</button>
+      </div>
+    </section>
+  </div>
 
   <div class="sheet" id="notifications-sheet" hidden>
     <div class="sheet-panel">
@@ -5393,6 +5577,7 @@
 
           ${compact ? '' : `
             <div class="job-actions">
+              <button class="mini-btn" data-job-action="view" data-job-id="${job.id}">View Job</button>
               <button class="mini-btn primary" data-job-action="applicants" data-job-id="${job.id}">View Applicants</button>
               <button class="mini-btn" data-job-action="edit" data-job-id="${job.id}">Edit</button>
               <button class="mini-btn" data-job-action="duplicate" data-job-id="${job.id}">Duplicate</button>
@@ -5430,6 +5615,7 @@
 
         const actionHtml = compact ? '' : `
           <div class="job-actions">
+            <button class="mini-btn" data-job-action="view" data-job-id="${escapeHtml(id)}">View Job</button>
             <button class="mini-btn primary" data-job-action="applicants" data-job-id="${escapeHtml(id)}">View Applicants</button>
             <button class="mini-btn" data-job-action="edit" data-job-id="${escapeHtml(id)}">Edit</button>
             <button class="mini-btn" data-job-action="${statusRaw === 'paused' ? 'activate' : 'pause'}" data-job-id="${escapeHtml(id)}">${statusRaw === 'paused' ? 'Activate' : 'Pause'}</button>
@@ -6737,9 +6923,184 @@
       return true;
     }
 
+
+    function jobPreviewSalary(job){
+      const direct = firstValue(
+        job?.salary_text,
+        job?.salary_range,
+        job?.compensation,
+        job?.salary
+      );
+
+      if(direct){
+        return String(direct);
+      }
+
+      const min = Number(
+        job?.salary_min ??
+        job?.min_salary ??
+        job?.pay_min
+      );
+
+      const max = Number(
+        job?.salary_max ??
+        job?.max_salary ??
+        job?.pay_max
+      );
+
+      const period = firstValue(
+        job?.salary_period,
+        job?.pay_period,
+        job?.compensation_period,
+        ''
+      );
+
+      const money = value => {
+        if(!Number.isFinite(value) || value <= 0) return '';
+        return '$' + Math.round(value).toLocaleString();
+      };
+
+      if(Number.isFinite(min) && min > 0 && Number.isFinite(max) && max > 0){
+        return `${money(min)} – ${money(max)}${period ? ' ' + period : ''}`;
+      }
+
+      if(Number.isFinite(min) && min > 0){
+        return `From ${money(min)}${period ? ' ' + period : ''}`;
+      }
+
+      if(Number.isFinite(max) && max > 0){
+        return `Up to ${money(max)}${period ? ' ' + period : ''}`;
+      }
+
+      return 'Compensation not listed';
+    }
+
+    function jobPreviewCopy(value,fallback){
+      if(Array.isArray(value)){
+        const cleaned = value
+          .map(item => String(item || '').trim())
+          .filter(Boolean);
+
+        return cleaned.length
+          ? cleaned.join('\n')
+          : fallback;
+      }
+
+      if(value && typeof value === 'object'){
+        const cleaned = Object.values(value)
+          .flat()
+          .map(item => String(item || '').trim())
+          .filter(Boolean);
+
+        return cleaned.length
+          ? cleaned.join('\n')
+          : fallback;
+      }
+
+      const text = String(value || '').trim();
+      return text || fallback;
+    }
+
+    function openJobPreview(id){
+      const job = state.jobs.find(
+        item => String(item?.id) === String(id)
+      );
+
+      if(!job){
+        toast('Could not find this job.');
+        return;
+      }
+
+      const company = companyMetadata();
+
+      $('job-preview-title').textContent =
+        job.title || 'Untitled position';
+
+      $('job-preview-company').textContent =
+        firstValue(
+          job.company_name,
+          job.company,
+          company.name,
+          'Employer'
+        );
+
+      $('job-preview-location').textContent =
+        firstValue(
+          job.location,
+          [job.city,job.state].filter(Boolean).join(', '),
+          'Location not listed'
+        );
+
+      $('job-preview-type').textContent =
+        firstValue(
+          job.job_type,
+          job.employment_type,
+          'Job type not listed'
+        );
+
+      $('job-preview-style').textContent =
+        firstValue(
+          job.work_style,
+          job.workplace_type,
+          job.remote_type,
+          'Work style not listed'
+        );
+
+      $('job-preview-salary').textContent =
+        jobPreviewSalary(job);
+
+      $('job-preview-description').textContent =
+        jobPreviewCopy(
+          firstValue(
+            job.description,
+            job.job_description,
+            job.summary
+          ),
+          'No job description added yet.'
+        );
+
+      $('job-preview-requirements').textContent =
+        jobPreviewCopy(
+          firstValue(
+            job.requirements,
+            job.qualifications,
+            job.skills_required,
+            job.skills
+          ),
+          'No requirements added yet.'
+        );
+
+      $('job-preview-benefits').textContent =
+        jobPreviewCopy(
+          firstValue(
+            job.benefits,
+            job.perks,
+            job.additional_details
+          ),
+          'No additional benefits or details added yet.'
+        );
+
+      $('job-preview-edit').dataset.jobId = String(id);
+
+      $('job-preview-sheet').hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeJobPreview(){
+      $('job-preview-sheet').hidden = true;
+      document.body.style.overflow = '';
+    }
+
+
     async function handleJobAction(action,id){
       const job = state.jobs.find(item => String(item.id) === String(id));
       if(!job) return;
+
+
+      if(action === 'view'){
+        openJobPreview(id);
+        return;
+      }
 
       if(action === 'applicants'){
         state.selectedApplicantJobId = String(id);
@@ -7752,6 +8113,28 @@
       }
     });
 
+
+
+    $('close-job-preview').addEventListener('click',closeJobPreview);
+    $('job-preview-close-bottom').addEventListener('click',closeJobPreview);
+    $('job-preview-backdrop').addEventListener('click',closeJobPreview);
+
+    $('job-preview-edit').addEventListener('click',event => {
+      const id = event.currentTarget.dataset.jobId;
+      if(!id) return;
+
+      sessionStorage.setItem('alygnnEditJobId',String(id));
+      location.href = 'app-post-job.html';
+    });
+
+    document.addEventListener('keydown',event => {
+      if(
+        event.key === 'Escape' &&
+        !$('job-preview-sheet').hidden
+      ){
+        closeJobPreview();
+      }
+    });
 
     $('applicants-show-all').addEventListener('click',()=>{
       state.selectedApplicantJobId = null;
