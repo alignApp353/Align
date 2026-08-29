@@ -101,6 +101,76 @@
 .candidate-role .side-link.active .side-label-text{
   border-bottom-color:var(--brand);
 }
+
+  /* Candidate Messages matches the Account / My Jobs top navigation.
+     Employer Messages keeps its existing sidebar and dashboard controls. */
+  .candidate-nav-links,
+  .candidate-nav-actions{display:none}
+
+  body.candidate-role .candidate-nav-links{
+    display:flex;
+    align-items:center;
+    gap:28px;
+  }
+
+  body.candidate-role .candidate-nav-links a{
+    color:var(--muted);
+    text-decoration:none;
+    font-size:14px;
+    padding:6px 0;
+    border-bottom:2px solid transparent;
+  }
+
+  body.candidate-role .candidate-nav-links a:hover{color:var(--text)}
+  body.candidate-role .candidate-nav-links a.active{
+    color:var(--text);
+    border-bottom-color:var(--brand);
+  }
+
+  body.candidate-role .candidate-nav-actions{
+    display:flex;
+    align-items:center;
+  }
+
+  .candidate-nav-signout{
+    font:500 13px 'DM Sans',sans-serif;
+    color:var(--muted);
+    background:transparent;
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:7px 15px;
+    cursor:pointer;
+    transition:border-color .2s,color .2s;
+  }
+  .candidate-nav-signout:hover{
+    border-color:var(--brand);
+    color:var(--brand);
+  }
+
+  body.candidate-role #employer-nav-right{display:none}
+  body.candidate-role .layout{
+    display:block;
+    min-height:calc(100vh - 64px);
+  }
+  body.candidate-role .sidebar{display:none}
+  body.candidate-role main{
+    max-width:1100px;
+    margin:0 auto;
+    padding:40px 6% 90px;
+  }
+
+  body.candidate-role .page-kicker{margin-bottom:6px}
+  body.candidate-role .page-sub{
+    font-size:14px;
+    margin-bottom:26px;
+  }
+
+  @media(max-width:720px){
+    body.candidate-role nav{padding:0 18px}
+    body.candidate-role .candidate-nav-links{gap:14px}
+    body.candidate-role .candidate-nav-links a{font-size:12px}
+    body.candidate-role .candidate-nav-signout{font-size:12px;padding:6px 11px}
+  }
 </style>
 </head>
 <body>
@@ -108,7 +178,19 @@
 
 <nav>
   <a class="logo" href="index.html">Alygnn<span>.</span></a>
-  <div class="nav-right">
+
+  <div class="candidate-nav-links" id="candidate-nav-links">
+    <a href="account.html">Account</a>
+    <a href="my-jobs.html">My jobs</a>
+    <a href="messages.html" class="active">Messages</a>
+    <a href="swipe.html">Swipe</a>
+  </div>
+
+  <div class="candidate-nav-actions" id="candidate-nav-actions">
+    <button class="candidate-nav-signout" type="button" onclick="candidateSignOut()">Sign out</button>
+  </div>
+
+  <div class="nav-right" id="employer-nav-right">
     <span class="nav-name" id="nav-name"></span>
     <a class="nav-btn" id="account-link" href="employer-account.html">My account</a>
     <a class="nav-btn primary" id="dashboard-link" href="employer-dashboard.html">Dashboard</a>
@@ -182,11 +264,17 @@ function showSetup(message){
   el.textContent=message;
   el.style.display='block';
 }
+
+async function candidateSignOut(){
+  await sb.auth.signOut();
+  window.location.href='login.html';
+}
 function setSidebar(){
   const sidebar=document.getElementById('sidebar');
   if(currentRole==='employer'){
     document.body.classList.remove('candidate-role');
     document.body.classList.add('employer-role');
+    document.getElementById('employer-nav-right').style.display = 'flex';
     sidebar.innerHTML=`
       <div class="sidebar-label">Employer</div>
       <a href="employer-dashboard.html" class="side-link"><span class="side-icon">💼</span> My Jobs</a>
