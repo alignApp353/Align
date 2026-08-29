@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Employer Checkout | Alygnn</title>
+<meta name="theme-color" content="#F6F8F7">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  const KEY='alygnnEmployerTheme';
+  const media=window.matchMedia?.('(prefers-color-scheme: dark)');
+
+  function pref(){
+    let value=String(
+      localStorage.getItem(KEY) ||
+      localStorage.getItem('alygnnTheme') ||
+      'auto'
+    ).toLowerCase().trim();
+
+    if(['system','default','system-default'].includes(value)){
+      value='auto';
+    }
+
+    return ['auto','light','dark'].includes(value) ? value : 'auto';
+  }
+
+  function resolved(){
+    const p=pref();
+    if(p==='light'||p==='dark') return p;
+    return media?.matches ? 'dark' : 'light';
+  }
+
+  function apply(){
+    const value=resolved();
+    document.documentElement.dataset.theme=value;
+    document.documentElement.style.colorScheme=value;
+    document.documentElement.style.backgroundColor=
+      value==='dark' ? '#07121D' : '#F6F8F7';
+
+    let meta=document.querySelector('meta[name="theme-color"]');
+    if(!meta){
+      meta=document.createElement('meta');
+      meta.name='theme-color';
+      document.head.appendChild(meta);
+    }
+
+    meta.content=value==='dark' ? '#07121D' : '#F6F8F7';
+  }
+
+  apply();
+  media?.addEventListener?.('change',()=>{if(pref()==='auto') apply();});
+  window.addEventListener('pageshow',apply);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden) apply();});
+
+  window.AlygnnEmployerTheme={apply,pref,resolved};
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+:root{
+  --brand:#5D7FA3;--brand-strong:#345F91;--sage:#8CB69B;--bg:#F6F8F7;--card:#FCFCFA;
+  --text:#1A2530;--muted:#4A5968;--border:#DDE3E8;--soft:#EEF4F9;--danger:#B45A5A;--success:#287A50
+}
+html[data-theme="dark"]{
+  --brand:#7EA8D0;--brand-strong:#8DB6DB;--sage:#92C3A2;--bg:#07121D;--card:#0F1B28;
+  --text:#F2F6F9;--muted:#A9B6C4;--border:#2B3A4A;--soft:#122436;--danger:#FF9B9B;--success:#72D39B
+}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
+body{font-family:'DM Sans',Arial,sans-serif;padding-bottom:calc(34px + env(safe-area-inset-bottom))}
+button,a,input{font:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+
+.app-header{
+  position:sticky;top:0;z-index:20;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
+  display:grid;grid-template-columns:48px 1fr 48px;align-items:center;background:color-mix(in srgb,var(--bg) 94%,transparent);
+  border-bottom:1px solid var(--border);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)
+}
+.icon-btn{width:42px;height:42px;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:20px}
+.brand{text-align:center;font-family:'DM Serif Display',Georgia,serif;font-size:26px;color:var(--brand)}.brand span{color:var(--sage)}
+main{max-width:560px;margin:0 auto;padding:22px 16px 40px}
+
+.loading{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.eyebrow{font-size:10px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:var(--brand)}
+h1{font-family:'DM Serif Display',Georgia,serif;font-size:32px;line-height:1.08;margin:7px 0 9px}
+.lede{font-size:12px;line-height:1.6;color:var(--muted);margin:0 0 17px}
+
+.panel{border:1px solid var(--border);border-radius:20px;background:var(--card);padding:17px;margin-top:12px}
+.panel-title{font-size:13px;font-weight:900;margin-bottom:12px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:5px;border:1px solid var(--border);border-radius:15px;background:var(--bg)}
+.tab{border:0;border-radius:11px;min-height:40px;background:transparent;color:var(--muted);font-size:10px;font-weight:900}
+.tab.active{background:var(--brand-strong);color:white}
+
+.plan-options{display:grid;gap:9px;margin-top:12px}
+.plan-option{position:relative;text-align:left;border:1px solid var(--border);border-radius:15px;background:var(--bg);color:var(--text);padding:14px}
+.plan-option.active{border:2px solid var(--brand);padding:13px;background:var(--soft)}
+.plan-option .name{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.8px}
+.plan-option .price{font-family:'DM Serif Display',Georgia,serif;font-size:24px;margin-top:4px}
+.plan-option .price span{font-family:'DM Sans',Arial,sans-serif;font-size:10px;color:var(--muted)}
+.plan-option .slots{font-size:10px;color:var(--brand);font-weight:900;margin-top:4px}
+.popular{position:absolute;right:10px;top:10px;padding:4px 7px;border-radius:999px;background:var(--brand-strong);color:#fff;font-size:8px;font-weight:900;text-transform:uppercase}
+
+.account{display:flex;align-items:center;gap:11px}
+.avatar{width:39px;height:39px;border-radius:50%;background:var(--soft);display:grid;place-items:center;color:var(--brand);font-weight:900}
+.account strong{font-size:12px;display:block}
+.account span{font-size:10px;color:var(--muted);display:block;margin-top:2px;overflow-wrap:anywhere}
+
+.summary-row{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:10px 0;border-top:1px solid var(--border);font-size:11px}
+.summary-row:first-child{border-top:0}
+.summary-row span{color:var(--muted)}
+.summary-row strong{text-align:right}
+.summary-price{font-family:'DM Serif Display',Georgia,serif;font-size:31px;margin:3px 0}
+.summary-price small{font-family:'DM Sans',Arial,sans-serif;font-size:10px;color:var(--muted)}
+.summary-slots{font-size:10px;color:var(--brand);font-weight:900;margin-bottom:10px}
+.features{list-style:none;padding:0;margin:0}
+.features li{font-size:10px;color:var(--muted);line-height:1.45;padding:7px 0 7px 18px;border-top:1px solid var(--border);position:relative}
+.features li:before{content:'✓';position:absolute;left:0;color:var(--sage);font-weight:900}
+
+.terms{display:flex;align-items:flex-start;gap:10px;font-size:11px;line-height:1.5}
+.terms input{width:18px;height:18px;margin-top:1px;accent-color:var(--brand);flex:none}
+.terms a{color:var(--brand)}
+.authorization{margin:9px 0 0 28px;font-size:9px;line-height:1.5;color:var(--muted)}
+
+.btn{width:100%;min-height:50px;border:0;border-radius:15px;background:var(--brand-strong);color:#fff;font-size:12px;font-weight:900;margin-top:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.message{margin-top:12px;border-radius:13px;padding:11px;font-size:10px;line-height:1.5;border:1px solid var(--border);background:var(--bg);color:var(--muted)}
+.secure{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:14px;background:var(--soft)}
+.secure-icon{width:32px;height:32px;border-radius:10px;background:var(--card);display:grid;place-items:center;flex:none}
+.secure strong{font-size:11px;display:block}
+.secure span{font-size:9px;line-height:1.45;color:var(--muted);display:block;margin-top:2px}
+.test-banner{margin-bottom:12px;padding:11px;border:1px solid color-mix(in srgb,var(--sage) 55%,var(--border));border-radius:13px;background:color-mix(in srgb,var(--sage) 9%,var(--card));font-size:10px;line-height:1.5}
+.fineprint{margin-top:10px;font-size:9px;line-height:1.5;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="loading" id="loading"><div class="spinner"></div></div>
+
+<header class="app-header">
+  <button class="icon-btn" id="back-btn" type="button" aria-label="Back">←</button>
+  <div class="brand">Alygnn<span>.</span></div>
+  <div style="width:42px"></div>
+</header>
+
+<main>
+  <div class="eyebrow">Employer checkout</div>
+  <h1>Confirm your job-slot plan.</h1>
+  <p class="lede">Your job-slot capacity is reusable during its active term. Closing or pausing a job frees that slot for another opening.</p>
+
+  <div class="test-banner" id="test-banner" hidden><strong>Developer test mode</strong><br>No payment will be charged on this account. The selected package will be activated as test access.</div>
+
+  <section class="panel" id="plan-panel">
+    <div class="panel-title">1. Confirm your plan</div>
+    <div class="tabs">
+      <button class="tab" id="tab-quarterly" type="button">Quarterly</button>
+      <button class="tab" id="tab-monthly" type="button">Monthly</button>
+      <button class="tab" id="tab-weekly" type="button">Weekly</button>
+    </div>
+    <div class="plan-options" id="plan-options"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">2. Employer account</div>
+    <div class="account">
+      <div class="avatar" id="avatar">A</div>
+      <div><strong>Signed in to Alygnn</strong><span id="email">Loading…</span></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">3. Order summary</div>
+    <div class="summary-price" id="summary-price">$750 <small>/ 3 months</small></div>
+    <div class="summary-slots" id="summary-slots">3 active reusable job slots</div>
+    <ul class="features" id="features"></ul>
+    <div style="margin-top:10px">
+      <div class="summary-row"><span>Subtotal</span><strong id="subtotal">$750.00</strong></div>
+      <div class="summary-row" id="tax-row"><span>Tax</span><strong>Calculated at checkout</strong></div>
+      <div class="summary-row"><span>Due today</span><strong id="due">$750.00 + tax</strong></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title" id="payment-title">4. Payment</div>
+    <div class="secure">
+      <div class="secure-icon">⌁</div>
+      <div><strong id="secure-title">Secure payment checkout</strong><span id="secure-copy">Alygnn sends the payment to the secure checkout provider. Full card details are not stored in this app.</span></div>
+    </div>
+
+    <label class="terms" style="margin-top:14px">
+      <input type="checkbox" id="terms">
+      <span>I agree to Alygnn’s <a href="https://alygnn.com/terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="https://alygnn.com/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+    </label>
+    <div class="authorization" id="authorization"></div>
+
+    <button class="btn" id="checkout-btn" type="button" disabled>Accept terms to continue</button>
+    <div class="message" id="message" hidden></div>
+    <div class="fineprint">Do not use real payment cards in the app until the app-return/deep-link flow is connected and tested.</div>
+  </section>
+</main>
+
+<script>
+const sb=supabase.createClient(
+  'https://auth.alygnn.com',
+  'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+  {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
+);
+
+const CHECKOUT_ENDPOINT='https://alygnn.com/api/create-checkout-session';
+const TERMS_VERSION='2026-08-26';
+const TEST_MODE_EMAILS=['simoninn18@gmail.com'];
+
+const CATALOG={
+  quarterly:{
+    launch:{name:'Launch',price:750,suffix:'/ 3 months',kind:'fixed_term',slots:3,features:['AI candidate matching','Candidate filtering','Applicant management','Resume access and downloads','Hiring analytics','Optional Job Boost · $15/day']},
+    growth:{name:'Growth',price:1140,suffix:'/ 3 months',kind:'fixed_term',slots:5,popular:true,features:['Everything in Launch','Urgently Hiring badge on jobs','Advanced candidate filtering','Featured listings','Advanced hiring analytics','Optional Job Boost · $15/day']},
+    scale:{name:'Scale',price:1700,suffix:'/ 3 months',kind:'fixed_term',slots:8,features:['Everything in Growth','Urgently Hiring badge on jobs','High-volume hiring capacity','Advanced candidate tools','Team access and priority support','Optional Job Boost · $15/day']}
+  },
+  monthly:{
+    launch:{name:'Launch',price:299,suffix:'/ month',kind:'subscription',slots:3,features:['AI candidate matching','Candidate filtering','Applicant management','Resume access and downloads','Hiring analytics','Optional Job Boost · $15/day']},
+    growth:{name:'Growth',price:449,suffix:'/ month',kind:'subscription',slots:5,popular:true,features:['Everything in Launch','Urgently Hiring badge on jobs','Advanced candidate filtering','Featured listings','Advanced hiring analytics','Optional Job Boost · $15/day']},
+    scale:{name:'Scale',price:649,suffix:'/ month',kind:'subscription',slots:8,features:['Everything in Growth','Urgently Hiring badge on jobs','High-volume hiring capacity','Advanced candidate tools','Team access and priority support','Optional Job Boost · $15/day']}
+  },
+  weekly:{
+    weekly_slot:{name:'Weekly Job Slot',price:99,suffix:'/ 7 days',kind:'fixed_term',slots:1,features:['Starts immediately after purchase','Expires 7 days after purchase','Close or pause a job and reuse the slot before expiration','AI candidate matching and applicant management','No monthly subscription required','Optional Job Boost · $15/day']}
+  }
+};
+
+let session=null;
+let billing='quarterly';
+let plan='launch';
+let developerTestMode=false;
+
+const $=id=>document.getElementById(id);
+
+function money(n){
+  return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function display(n){return '$'+Number(n).toLocaleString('en-US')}
+
+function item(){
+  return CATALOG[billing]?.[plan] || CATALOG.quarterly.launch;
+}
+
+function showMessage(text){
+  $('message').textContent=text;
+  $('message').hidden=false;
+}
+
+function renderTabs(){
+  ['quarterly','monthly','weekly'].forEach(key=>{
+    $('tab-'+key).classList.toggle('active',key===billing);
+  });
+}
+
+function renderOptions(){
+  $('plan-options').innerHTML=Object.entries(CATALOG[billing]).map(([key,p])=>`
+    <button class="plan-option ${key===plan?'active':''}" type="button" data-plan="${key}">
+      ${p.popular?'<span class="popular">Most popular</span>':''}
+      <div class="name">${p.name}</div>
+      <div class="price">${display(p.price)} <span>${p.suffix}</span></div>
+      <div class="slots">${p.slots} active reusable job slot${p.slots===1?'':'s'}</div>
+    </button>
+  `).join('');
+
+  document.querySelectorAll('[data-plan]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      plan=btn.dataset.plan;
+      renderAll();
+      updateUrl();
+    });
+  });
+}
+
+function renderSummary(){
+  const p=item();
+  $('summary-price').innerHTML=`${display(p.price)} <small>${p.suffix}</small>`;
+  $('summary-slots').textContent=`${p.slots} active reusable job slot${p.slots===1?'':'s'}`;
+  $('features').innerHTML=p.features.map(x=>`<li>${x}</li>`).join('');
+  $('subtotal').textContent=money(p.price);
+
+  if(developerTestMode){
+    $('tax-row').hidden=true;
+    $('due').textContent='$0.00';
+    $('authorization').textContent=`By continuing, you confirm this is a developer test activation of ${p.name}. No payment will be processed.`;
+  }else{
+    $('tax-row').hidden=false;
+    $('due').textContent=money(p.price)+' + tax';
+
+    if(billing==='monthly'){
+      $('authorization').textContent=`By continuing, you authorize ${display(p.price)} plus applicable tax each month until canceled according to Alygnn's Terms.`;
+    }else if(billing==='quarterly'){
+      $('authorization').textContent=`By continuing, you authorize ${display(p.price)} plus applicable tax upfront for the three-month ${p.name} term.`;
+    }else{
+      $('authorization').textContent=`By continuing, you authorize ${display(p.price)} plus applicable tax for one reusable seven-day job slot.`;
+    }
+  }
+
+  updateCheckoutButton();
+}
+
+function renderAll(){
+  renderTabs();
+  renderOptions();
+  renderSummary();
+}
+
+function switchBilling(next){
+  billing=CATALOG[next]?next:'quarterly';
+  if(!CATALOG[billing][plan]) plan=billing==='weekly'?'weekly_slot':'launch';
+  renderAll();
+  updateUrl();
+}
+
+function updateUrl(){
+  const u=new URL(location.href);
+  u.searchParams.set('plan',plan);
+  u.searchParams.set('billing',billing);
+  history.replaceState({},'',u);
+}
+
+function updateCheckoutButton(){
+  const accepted=$('terms').checked;
+  const p=item();
+  $('checkout-btn').disabled=!accepted;
+  $('checkout-btn').textContent=accepted
+    ? (developerTestMode ? `Activate ${p.name} test package — $0` : `Continue to secure payment — ${display(p.price)}`)
+    : 'Accept terms to continue';
+}
+
+function slotLimitFor(){
+  if(billing==='weekly') return 1;
+  if(plan==='growth') return 5;
+  if(plan==='scale') return 8;
+  return 3;
+}
+
+function expiryFor(){
+  const d=new Date();
+  if(billing==='weekly') d.setDate(d.getDate()+7);
+  else if(billing==='quarterly') d.setMonth(d.getMonth()+3);
+  else d.setMonth(d.getMonth()+1);
+  return d.toISOString();
+}
+
+async function initialize(){
+  const params=new URLSearchParams(location.search);
+  billing=(params.get('billing')||'quarterly').toLowerCase();
+  if(!CATALOG[billing]) billing='quarterly';
+  plan=(params.get('plan')||'launch').toLowerCase();
+  if(!CATALOG[billing][plan]) plan=billing==='weekly'?'weekly_slot':'launch';
+
+  const {data:{session:active},error}=await sb.auth.getSession();
+  if(error||!active){
+    location.replace('app-employer-login.html');
+    return;
+  }
+  session=active;
+
+  const email=session.user.email||'Employer account';
+  $('email').textContent=email;
+  $('avatar').textContent=(email[0]||'A').toUpperCase();
+
+  developerTestMode=TEST_MODE_EMAILS.includes(email.toLowerCase());
+  $('test-banner').hidden=!developerTestMode;
+
+  if(developerTestMode){
+    $('payment-title').textContent='4. Test activation';
+    $('secure-title').textContent='Activate package for testing';
+    $('secure-copy').textContent='This test account can activate reusable slot capacity without contacting the payment provider.';
+  }
+
+  renderAll();
+  updateUrl();
+  $('loading').hidden=true;
+}
+
+async function startCheckout(){
+  if(!session) return;
+
+  if(!$('terms').checked){
+    showMessage('Please accept the Terms of Service and Privacy Policy.');
+    return;
+  }
+
+  const p=item();
+  const btn=$('checkout-btn');
+  btn.disabled=true;
+
+  if(developerTestMode){
+    btn.textContent='Activating test package…';
+
+    const {data,error}=await sb.rpc('activate_employer_test_plan',{
+      p_plan:plan,
+      p_billing:billing
+    });
+
+    if(error){
+      console.error(error);
+      showMessage('The app checkout UI is ready, but the developer test-plan RPC is not installed or does not match the website backend yet. No payment was processed.');
+      updateCheckoutButton();
+      return;
+    }
+
+    try{
+      localStorage.setItem('alygnn_test_entitlement',JSON.stringify({
+        plan,billing,slot_limit:Number(data?.slot_limit||slotLimitFor()),
+        expires_at:data?.expires_at||expiryFor(),test_mode:true
+      }));
+    }catch(_e){}
+
+    btn.textContent='Test package activated ✓';
+    setTimeout(()=>location.href='app-employer-dashboard.html#jobs',650);
+    return;
+  }
+
+  btn.textContent='Opening secure checkout…';
+
+  try{
+    const response=await fetch(CHECKOUT_ENDPOINT,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+session.access_token
+      },
+      body:JSON.stringify({
+        plan,
+        billing,
+        purchase_type:p.kind,
+        terms_accepted:true,
+        terms_version:TERMS_VERSION,
+
+        // Temporary website return while native deep-link return is not configured.
+        // Do not run a real payment test from the app until we wire the native return.
+        success_url:'https://alygnn.com/employer-dashboard.html?payment=success&plan='+encodeURIComponent(plan)+'&billing='+encodeURIComponent(billing),
+        cancel_url:'https://alygnn.com/pricing.html'
+      })
+    });
+
+    let data={};
+    try{data=await response.json()}catch(_e){}
+
+    if(!response.ok||!data.url){
+      throw new Error(data.error||'Checkout is not connected yet.');
+    }
+
+    location.href=data.url;
+  }catch(error){
+    console.error(error);
+    showMessage('The app checkout screen is ready, but do not use real payments yet. We still need to connect the native app return/deep-link after secure checkout.');
+    updateCheckoutButton();
+  }
+}
+
+$('back-btn').addEventListener('click',()=>location.href='app-employer-pricing.html');
+$('terms').addEventListener('change',updateCheckoutButton);
+$('checkout-btn').addEventListener('click',startCheckout);
+['quarterly','monthly','weekly'].forEach(key=>$('tab-'+key).addEventListener('click',()=>switchBilling(key)));
+
+initialize();
+</script>
+</body>
+</html>
