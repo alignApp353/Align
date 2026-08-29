@@ -2413,7 +2413,7 @@
 
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-28-company-account-server-resolver">
+<body data-employer-dashboard-build="2026-08-28-company-account-link-rpc">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -6156,6 +6156,90 @@
       }
 
       /*
+       * 2. Canonical Alygnn company-account resolver.
+       *
+       * Database relationship:
+       * signed-in employer -> company_id -> companies.account_number
+       *
+       * The SECURITY DEFINER RPC is intentionally used here so normal
+       * browser RLS cannot hide the employer's own company/account number.
+       * It resolves through company_members first and falls back to the
+       * employer verification row for older workspaces.
+       */
+      let rpcCompany=null;
+
+      try{
+        const {data:linkedCompany,error:linkedCompanyError}=await sb
+          .rpc('get_my_employer_company');
+
+        if(linkedCompanyError){
+          console.warn(
+            'Canonical company-account resolver failed:',
+            linkedCompanyError
+          );
+        }else if(linkedCompany){
+          const resolved=Array.isArray(linkedCompany)
+            ? linkedCompany[0]||null
+            : linkedCompany;
+
+          if(resolved){
+            rpcCompany={
+              id:
+                resolved.id||
+                resolved.company_id||
+                '',
+              account_number:
+                resolved.account_number||
+                '',
+              account_status:
+                resolved.account_status||
+                '',
+              verification_status:
+                resolved.verification_status||
+                ''
+            };
+
+            const rpcCompanyId=String(
+              rpcCompany.id||
+              ''
+            ).trim();
+
+            const rpcAccountNumber=String(
+              rpcCompany.account_number||
+              ''
+            ).trim();
+
+            if(rpcCompanyId){
+              try{
+                localStorage.setItem(
+                  'alygnn_company_id',
+                  rpcCompanyId
+                );
+                localStorage.setItem(
+                  `alygnn_company_id_${userId}`,
+                  rpcCompanyId
+                );
+              }catch(_){}
+            }
+
+            if(rpcAccountNumber){
+              try{
+                localStorage.setItem(
+                  'alygnn_company_account_number',
+                  rpcAccountNumber
+                );
+              }catch(_){}
+            }
+          }
+        }
+      }catch(error){
+        console.warn(
+          'Canonical company-account resolver threw:',
+          error
+        );
+      }
+
+      /*
        * 2. Resolve the employer's current company membership.
        *
        * Include active + pending because a company can exist before
@@ -6190,13 +6274,18 @@
         .maybeSingle();
 
       let membershipCompany=null;
-      let companyId='';
+      let companyId=String(
+        rpcCompany?.id||
+        ''
+      ).trim();
 
       if(!membershipResult.error&&membershipResult.data){
-        companyId=String(
-          membershipResult.data.company_id||
-          ''
-        ).trim();
+        if(!companyId){
+          companyId=String(
+            membershipResult.data.company_id||
+            ''
+          ).trim();
+        }
 
         membershipCompany=Array.isArray(
           membershipResult.data.companies
@@ -6365,7 +6454,8 @@
       state.companyRecord={
         ...(membershipCompany||{}),
         ...(directCompany||{}),
-        ...(serverCompany||{})
+        ...(serverCompany||{}),
+        ...(rpcCompany||{})
       };
 
       if(
@@ -6448,6 +6538,10 @@
           serverResolved:Boolean(serverCompany),
           serverAccountNumber:
             serverCompany?.account_number||
+            null,
+          rpcResolved:Boolean(rpcCompany),
+          rpcAccountNumber:
+            rpcCompany?.account_number||
             null
         }
       );
