@@ -9,19 +9,116 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
+<script id="alygnn-employer-theme-critical">
 (function(){
-  const preference =
-    localStorage.getItem('alygnnEmployerTheme') ||
-    localStorage.getItem('alygnnTheme') ||
-    'auto';
-  const dark = preference === 'dark' ||
-    (preference === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-  document.querySelector('meta[name="theme-color"]')?.setAttribute(
-    'content',
-    dark ? '#07121D' : '#F6F8F7'
+  const KEY = 'alygnnEmployerTheme';
+  const media = window.matchMedia
+    ? window.matchMedia('(prefers-color-scheme: dark)')
+    : null;
+
+  function normalize(value){
+    value = String(value || '').toLowerCase().trim();
+
+    if (
+      value === 'system' ||
+      value === 'system-default' ||
+      value === 'default'
+    ) {
+      return 'auto';
+    }
+
+    return ['auto','light','dark'].includes(value)
+      ? value
+      : 'auto';
+  }
+
+  function preference(){
+    return normalize(
+      localStorage.getItem(KEY) ||
+      localStorage.getItem('alygnnTheme') ||
+      'auto'
+    );
+  }
+
+  function resolved(){
+    const pref = preference();
+
+    if(pref === 'dark') return 'dark';
+    if(pref === 'light') return 'light';
+
+    return media && media.matches
+      ? 'dark'
+      : 'light';
+  }
+
+  function apply(){
+    const theme = resolved();
+    const root = document.documentElement;
+
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+    root.style.backgroundColor =
+      theme === 'dark'
+        ? '#0B111A'
+        : '#F6F8F7';
+
+    let meta =
+      document.querySelector('meta[name="theme-color"]');
+
+    if(!meta){
+      meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      document.head.appendChild(meta);
+    }
+
+    meta.setAttribute(
+      'content',
+      theme === 'dark'
+        ? '#0B111A'
+        : '#F6F8F7'
+    );
+  }
+
+  apply();
+
+  if(media){
+    if(media.addEventListener){
+      media.addEventListener('change', function(){
+        if(preference() === 'auto') apply();
+      });
+    }else if(media.addListener){
+      media.addListener(function(){
+        if(preference() === 'auto') apply();
+      });
+    }
+  }
+
+  window.addEventListener('pageshow', apply);
+
+  document.addEventListener(
+    'visibilitychange',
+    function(){
+      if(!document.hidden) apply();
+    }
   );
+
+  window.addEventListener(
+    'storage',
+    function(event){
+      if(
+        event.key === KEY ||
+        event.key === 'alygnnTheme'
+      ){
+        apply();
+      }
+    }
+  );
+
+  window.AlygnnEmployerTheme = {
+    apply,
+    preference,
+    resolved
+  };
 })();
 </script>
 <style>
@@ -38,7 +135,7 @@
 .question-card{margin-top:16px;padding:19px 16px;background:#fff;border:1px solid var(--border);border-radius:21px}.question-card h2{font-size:18px}.question{margin-top:19px}.question:first-of-type{margin-top:17px}.question .textarea{min-height:108px}.optional{color:var(--muted);font-size:10px;font-weight:700}.option-grid{display:flex;flex-wrap:wrap;gap:9px;margin-top:9px}.option-chip{min-height:42px;padding:10px 14px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--text);font-size:12px;font-weight:800;transition:.16s ease}.option-chip:hover{border-color:#AFC0D2}.option-chip.selected{border-color:var(--dark);background:#EDF3F8;color:var(--dark);box-shadow:0 0 0 2px rgba(52,95,145,.07)}.option-chip:disabled:not(.selected){opacity:.42;cursor:not-allowed}.selection-line{display:flex;align-items:center;justify-content:space-between;gap:10px}.selection-count{color:var(--muted);font-size:10px;font-weight:800}.other-input{margin-top:11px}.choice-note{margin-top:8px;color:var(--muted);font-size:10px;line-height:1.45}
 .message{display:none;margin-top:16px;padding:12px 14px;border-radius:14px;font-size:12px;font-weight:800;line-height:1.45}.message.error{display:block;color:var(--danger);background:var(--danger-bg)}.message.success{display:block;color:var(--success);background:var(--success-bg)}
 .footer{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);backdrop-filter:blur(18px);border-top:1px solid var(--border)}.save{display:block;width:min(100%,580px);min-height:54px;margin:auto;border:0;border-radius:16px;background:var(--dark);color:#fff;font-size:13px;font-weight:900}.save:disabled{opacity:.6}
-.loading{position:fixed;inset:0;z-index:100;background:rgba(246,248,247,.97);display:grid;place-items:center}.spinner{width:42px;height:42px;margin:auto;border:4px solid #E0E6EA;border-top-color:var(--dark);border-radius:50%;animation:spin .75s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.loading-copy{margin-top:12px;color:var(--muted);font-size:12px;font-weight:800}
+.loading{position:fixed;inset:0;z-index:100;background:var(--bg);color:var(--text);display:grid;place-items:center}.spinner{width:42px;height:42px;margin:auto;border:4px solid var(--border);border-top-color:var(--dark);border-radius:50%;animation:spin .75s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.loading-copy{margin-top:12px;color:var(--muted);font-size:12px;font-weight:800}
 .success-screen{min-height:calc(100vh - 100px);display:grid;place-items:center;text-align:center}.success-box{width:100%;padding:30px 22px;background:#fff;border:1px solid var(--border);border-radius:26px}.success-mark{width:68px;height:68px;margin:auto;border-radius:22px;display:grid;place-items:center;background:var(--success-bg);color:var(--success);font-size:32px;font-weight:900}.success-box h1{margin-top:18px}.success-box p{margin-top:10px;color:var(--muted);font-size:13px;line-height:1.55}.benefit-list{margin-top:18px;display:grid;gap:10px;text-align:left}.benefit{padding:12px 13px;border:1px solid var(--border);border-radius:14px;font-size:12px;font-weight:800}.continue-btn{width:100%;min-height:52px;margin-top:20px;border:0;border-radius:15px;background:var(--dark);color:#fff;font-weight:900}
 
 html[data-theme="dark"]{
@@ -62,6 +159,14 @@ html[data-theme="dark"] .option-chip.selected{background:#15283A;color:#8EB5DF;b
 html[data-theme="dark"] .footer{background:rgba(7,18,29,.97)}
 html[data-theme="dark"] .loading{background:rgba(7,18,29,.97)}
 html[data-theme="dark"] .spinner{border-color:#2B3A4B;border-top-color:#8EB5DF}
+
+
+html[data-theme="dark"]{
+  color-scheme:dark;
+}
+html[data-theme="light"]{
+  color-scheme:light;
+}
 
 </style>
 </head>
@@ -174,8 +279,164 @@ html[data-theme="dark"] .spinner{border-color:#2B3A4B;border-top-color:#8EB5DF}
 </main>
 <footer class="footer" id="footer"><button class="save" id="save" type="button">Confirm &amp; Finish AI Profile</button></footer>
 <script>
-const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-const $=id=>document.getElementById(id);let session=null;
+const SUPABASE_URL='https://auth.alygnn.com';
+const SUPABASE_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+  auth:{
+    persistSession:true,
+    autoRefreshToken:true,
+    detectSessionInUrl:true
+  }
+});
+const $=id=>document.getElementById(id);
+let session=null;
+
+function aiProfileDraftKey(userId=''){
+  return `alygnn_employer_ai_profile_draft:${String(userId||'unknown')}`;
+}
+
+function saveAiProfileDraft(profile,userId=''){
+  try{
+    localStorage.setItem(
+      aiProfileDraftKey(userId),
+      JSON.stringify({
+        ...profile,
+        draft_saved_at:new Date().toISOString()
+      })
+    );
+  }catch(error){
+    console.warn('Could not save AI profile draft:',error);
+  }
+}
+
+function clearAiProfileDraft(userId=''){
+  try{
+    localStorage.removeItem(aiProfileDraftKey(userId));
+    localStorage.removeItem(aiProfileDraftKey('unknown'));
+  }catch(error){}
+}
+
+async function ensureActiveEmployerSession(){
+  let liveSession=null;
+
+  try{
+    const result=await sb.auth.getSession();
+    if(result.error){
+      console.warn('getSession failed:',result.error);
+    }
+    liveSession=result.data?.session||null;
+  }catch(error){
+    console.warn('getSession threw:',error);
+  }
+
+  if(!liveSession && session?.refresh_token){
+    try{
+      const refreshed=await sb.auth.refreshSession({
+        refresh_token:session.refresh_token
+      });
+      if(!refreshed.error && refreshed.data?.session){
+        liveSession=refreshed.data.session;
+      }
+    }catch(error){
+      console.warn('Session recovery failed:',error);
+    }
+  }
+
+  if(liveSession){
+    const expiresAt=Number(liveSession.expires_at||0)*1000;
+    const expiresSoon=expiresAt && expiresAt-Date.now()<90_000;
+
+    if(expiresSoon){
+      try{
+        const refreshed=await sb.auth.refreshSession({
+          refresh_token:liveSession.refresh_token
+        });
+        if(!refreshed.error && refreshed.data?.session){
+          liveSession=refreshed.data.session;
+        }
+      }catch(error){
+        console.warn('Session refresh failed:',error);
+      }
+    }
+  }
+
+  if(!liveSession){
+    return null;
+  }
+
+  try{
+    const userResult=await sb.auth.getUser(liveSession.access_token);
+
+    if(userResult.error || !userResult.data?.user){
+      const refreshed=await sb.auth.refreshSession({
+        refresh_token:liveSession.refresh_token
+      });
+
+      if(refreshed.error || !refreshed.data?.session){
+        return null;
+      }
+
+      liveSession=refreshed.data.session;
+    }
+  }catch(error){
+    console.warn('Session verification failed:',error);
+    return null;
+  }
+
+  session=liveSession;
+  return liveSession;
+}
+
+function isMissingSessionError(error){
+  const message=String(error?.message||'').toLowerCase();
+  const name=String(error?.name||'').toLowerCase();
+
+  return (
+    message.includes('auth session missing') ||
+    message.includes('session missing') ||
+    name.includes('authsessionmissing')
+  );
+}
+
+async function updateEmployerAuthMetadata(metadata){
+  let liveSession=await ensureActiveEmployerSession();
+
+  if(!liveSession){
+    const error=new Error(
+      'Your sign-in expired. Sign in again to finish your company profile.'
+    );
+    error.code='ALYGNN_REAUTH_REQUIRED';
+    throw error;
+  }
+
+  let result=await sb.auth.updateUser({data:metadata});
+
+  if(result.error && isMissingSessionError(result.error)){
+    try{
+      const refreshed=await sb.auth.refreshSession({
+        refresh_token:liveSession.refresh_token
+      });
+
+      if(!refreshed.error && refreshed.data?.session){
+        session=refreshed.data.session;
+        liveSession=refreshed.data.session;
+        result=await sb.auth.updateUser({data:metadata});
+      }
+    }catch(error){
+      console.warn('Metadata retry refresh failed:',error);
+    }
+  }
+
+  if(result.error){
+    throw result.error;
+  }
+
+  if(result.data?.user){
+    session={...liveSession,user:result.data.user};
+  }
+
+  return result.data?.user||session.user;
+}
 const asArray=value=>Array.isArray(value)?value:(typeof value==='string'?value.split(/\n|,/).map(v=>v.trim()).filter(Boolean):[]);
 const first=(...values)=>values.find(v=>v!==undefined&&v!==null&&String(v).trim()!=='')||'';
 const showValue=(id,value)=>{$(id).textContent=value||'Not added';$(id).classList.toggle('empty',!value)};
@@ -385,12 +646,25 @@ function applyData(data){
   const verification=recordForCurrentCompany(data.verification,companyId,companyName);
 
   let draft={};
+  let aiDraft={};
+
   try{
     const scopedKey=`alygnn_employer_onboarding_draft:${session.user.id}`;
     const candidate=JSON.parse(localStorage.getItem(scopedKey)||'{}')||{};
     draft=recordForCurrentCompany(candidate,companyId,companyName);
   }catch{
     draft={};
+  }
+
+  try{
+    const candidate=JSON.parse(
+      localStorage.getItem(aiProfileDraftKey(session.user.id)) ||
+      localStorage.getItem(aiProfileDraftKey('unknown')) ||
+      '{}'
+    )||{};
+    aiDraft=recordForCurrentCompany(candidate,companyId,companyName);
+  }catch{
+    aiDraft={};
   }
 
   // Remove the old global draft key because it could leak information
@@ -406,6 +680,7 @@ function applyData(data){
   );
 
   $('industry').value=first(
+    aiDraft.industry,
     saved.industry,
     setup.industry,
     verification.industry,
@@ -414,6 +689,7 @@ function applyData(data){
   );
 
   $('website').value=first(
+    aiDraft.website,
     saved.website,
     setup.website,
     verification.website,
@@ -422,6 +698,7 @@ function applyData(data){
   );
 
   $('description').value=first(
+    aiDraft.company_description,
     saved.company_description,
     saved.company_summary,
     setup.company_description,
@@ -432,6 +709,7 @@ function applyData(data){
   );
 
   setChoiceValues('voice',first(
+    aiDraft.company_voice,
     saved.company_voice,
     saved.voice,
     setup.company_voice,
@@ -440,6 +718,7 @@ function applyData(data){
   ));
 
   setChoiceValues('strengths',first(
+    aiDraft.company_strengths,
     saved.company_strengths,
     saved.company_priorities,
     setup.company_priorities,
@@ -448,6 +727,7 @@ function applyData(data){
   ));
 
   setChoiceValues('priorities',first(
+    aiDraft.hiring_priorities,
     saved.hiring_priorities,
     saved.candidate_priorities,
     setup.candidate_priorities,
@@ -456,15 +736,31 @@ function applyData(data){
   ));
 
   $('ai-summary').value=first(
+    aiDraft.ai_summary,
     saved.ai_summary,
     setup.ai_summary,
     draft.ai_summary
   );
 
-  setChoiceValues('success',first(saved.success_qualities,saved.ideal_candidate));
-  setChoiceValues('unsuccessful',first(saved.unsuccessful_qualities,saved.deal_breakers));
-  $('hiring-philosophy').value=first(saved.hiring_philosophy);
-  $('additional-context').value=first(saved.additional_context,saved.extra_context);
+  setChoiceValues('success',first(
+    aiDraft.success_qualities,
+    saved.success_qualities,
+    saved.ideal_candidate
+  ));
+  setChoiceValues('unsuccessful',first(
+    aiDraft.unsuccessful_qualities,
+    saved.unsuccessful_qualities,
+    saved.deal_breakers
+  ));
+  $('hiring-philosophy').value=first(
+    aiDraft.hiring_philosophy,
+    saved.hiring_philosophy
+  );
+  $('additional-context').value=first(
+    aiDraft.additional_context,
+    saved.additional_context,
+    saved.extra_context
+  );
 
   if(!$('ai-summary').value.trim()){
     $('ai-summary').value=createAiSummary();
@@ -517,7 +813,7 @@ function collect(){return{
   company_name:$('company-name').value.trim(),industry:$('industry').value.trim(),website:$('website').value.trim(),company_description:$('description').value.trim(),
   company_voice:asArray($('voice').value),company_strengths:asArray($('strengths').value),hiring_priorities:asArray($('priorities').value),ai_summary:$('ai-summary').value.trim(),
   success_qualities:$('success-qualities').value.trim(),unsuccessful_qualities:$('unsuccessful-qualities').value.trim(),hiring_philosophy:$('hiring-philosophy').value.trim(),additional_context:$('additional-context').value.trim(),
-  user_id:session.user.id,
+  user_id:session?.user?.id||'',
   company_id:window.currentEmployerCompanyId||'',
   profile_complete:true,completed_at:new Date().toISOString(),updated_at:new Date().toISOString()
 }}
@@ -585,41 +881,51 @@ $('save').onclick=async()=>{
   clearMessage();
   render();
 
-  const profile=collect();
-
-  if(!profile.company_name||!profile.industry){
-    showMessage('Please confirm the company name and industry.');
-    return;
-  }
-
-  if(!profile.success_qualities||!profile.unsuccessful_qualities){
-    showMessage('Please answer what makes someone successful and unsuccessful at your company.');
-    return;
-  }
-
   const button=$('save');
   button.disabled=true;
   button.textContent='Saving…';
 
+  let profile=null;
+  let draftUserId=session?.user?.id||'unknown';
+
   try{
-    const existing=session.user.user_metadata||{};
+    const liveSession=await ensureActiveEmployerSession();
 
-    const {data:metadataData,error:metadataError}=await sb.auth.updateUser({
-      data:{
-        ...existing,
-        employer_ai_profile:profile,
-        employer_ai_profile_complete:true,
-        employer_ai_profile_complete_company_id:profile.company_id||''
-      }
-    });
-
-    if(metadataError)throw metadataError;
-    if(metadataData?.user){
-      session={...session,user:metadataData.user};
+    if(liveSession){
+      session=liveSession;
+      draftUserId=liveSession.user.id;
     }
 
-    // Only update routing columns that exist in employer_verifications.
-    // The full AI profile is safely stored in the user's Auth metadata above.
+    profile=collect();
+    saveAiProfileDraft(profile,draftUserId);
+
+    if(!profile.company_name||!profile.industry){
+      throw new Error('Please confirm the company name and industry.');
+    }
+
+    if(!profile.success_qualities||!profile.unsuccessful_qualities){
+      throw new Error(
+        'Please answer what makes someone successful and unsuccessful at your company.'
+      );
+    }
+
+    if(!liveSession){
+      const error=new Error(
+        'Your sign-in expired. Your answers are saved. Sign in again to finish your company profile.'
+      );
+      error.code='ALYGNN_REAUTH_REQUIRED';
+      throw error;
+    }
+
+    const existing=liveSession.user.user_metadata||{};
+
+    await updateEmployerAuthMetadata({
+      ...existing,
+      employer_ai_profile:profile,
+      employer_ai_profile_complete:true,
+      employer_ai_profile_complete_company_id:profile.company_id||''
+    });
+
     const {data:verificationData,error:verificationError}=await sb
       .from('employer_verifications')
       .update({
@@ -633,17 +939,60 @@ $('save').onclick=async()=>{
       .maybeSingle();
 
     if(verificationError)throw verificationError;
+
     if(!verificationData){
-      console.warn('No employer_verifications row was found. The completed AI Profile is still saved to the signed-in user metadata.');
+      console.warn(
+        'No employer_verifications row was found. '+
+        'The completed AI Profile is still saved to the signed-in user metadata.'
+      );
     }
+
+    clearAiProfileDraft(session.user.id);
 
     $('profile-view').hidden=true;
     $('success-screen').hidden=false;
     $('footer').hidden=true;
     window.scrollTo({top:0,behavior:'smooth'});
+
   }catch(error){
     console.error(error);
-    showMessage(error.message||'Could not save the Company AI Profile. Please try again.');
+
+    if(profile){
+      saveAiProfileDraft(profile,draftUserId);
+    }
+
+    if(error?.code==='ALYGNN_REAUTH_REQUIRED' || isMissingSessionError(error)){
+      sessionStorage.setItem(
+        'alygnnAiProfileReturnTo',
+        'app-employer-ai-profile.html'
+      );
+      sessionStorage.setItem(
+        'alygnnEmployerLoginReturnTo',
+        'app-employer-ai-profile.html'
+      );
+
+      showMessage(
+        'Your sign-in expired. Your answers were saved. Sign in again, then return here to finish.',
+        'error'
+      );
+
+      button.disabled=false;
+      button.textContent='Sign In & Finish';
+
+      button.onclick=()=>{
+        location.href=
+          'app-employer-login.html?return_to='+
+          encodeURIComponent('app-employer-ai-profile.html');
+      };
+
+      return;
+    }
+
+    showMessage(
+      error?.message||
+      'Could not save the Company AI Profile. Please try again.'
+    );
+
     button.disabled=false;
     button.textContent='Confirm & Finish AI Profile';
   }
