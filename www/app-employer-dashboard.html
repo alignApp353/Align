@@ -2413,7 +2413,7 @@
 
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-28-company-account-number-fix">
+<body data-employer-dashboard-build="2026-08-28-company-account-server-resolver">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -6227,6 +6227,111 @@
       }
 
       /*
+       * 3. Ask Alygnn's server-side company resolver.
+       *
+       * IMPORTANT:
+       * The employer login already uses this endpoint because browser RLS
+       * can hide the companies row even when the employer legitimately
+       * owns the workspace. The admin portal sees the account number
+       * server-side, so the dashboard should resolve it the same way.
+       */
+      let serverCompany=null;
+
+      const accessToken=
+        state.session?.access_token||
+        '';
+
+      if(accessToken){
+        try{
+          const response=await fetch(
+            'https://alygnn.com/api/company/my-company',
+            {
+              method:'GET',
+              headers:{
+                'Authorization':'Bearer '+accessToken
+              }
+            }
+          );
+
+          if(response.ok){
+            const result=await response.json().catch(()=>({}));
+            const resolved=result.company||{};
+
+            const resolvedId=String(
+              resolved.id||
+              result.company_id||
+              result.companyId||
+              ''
+            ).trim();
+
+            const resolvedAccountNumber=String(
+              resolved.account_number||
+              resolved.accountNumber||
+              result.account_number||
+              ''
+            ).trim();
+
+            const resolvedStatus=String(
+              resolved.verification_status||
+              resolved.verificationStatus||
+              result.verification_status||
+              ''
+            ).trim();
+
+            serverCompany={
+              ...resolved,
+              ...(resolvedId ? {id:resolvedId} : {}),
+              ...(resolvedAccountNumber
+                ? {account_number:resolvedAccountNumber}
+                : {}),
+              ...(resolvedStatus
+                ? {verification_status:resolvedStatus}
+                : {}),
+              company_name:
+                resolved.company_name||
+                resolved.companyName||
+                resolved.legal_name||
+                resolved.legalName||
+                result.company_name||
+                undefined
+            };
+
+            if(!companyId&&resolvedId){
+              companyId=resolvedId;
+            }
+
+            if(resolvedId){
+              try{
+                localStorage.setItem(
+                  'alygnn_company_id',
+                  resolvedId
+                );
+              }catch(_){}
+            }
+
+            if(resolvedAccountNumber){
+              try{
+                localStorage.setItem(
+                  'alygnn_company_account_number',
+                  resolvedAccountNumber
+                );
+              }catch(_){}
+            }
+          }else{
+            console.warn(
+              'Server company resolver returned:',
+              response.status
+            );
+          }
+        }catch(error){
+          console.warn(
+            'Server company resolver failed:',
+            error
+          );
+        }
+      }
+
+      /*
        * 3. IMPORTANT:
        * Directly load the companies row by company_id.
        *
@@ -6259,7 +6364,8 @@
        */
       state.companyRecord={
         ...(membershipCompany||{}),
-        ...(directCompany||{})
+        ...(directCompany||{}),
+        ...(serverCompany||{})
       };
 
       if(
@@ -6338,6 +6444,10 @@
           companyName:
             state.companyRecord?.company_name||
             state.employerVerification?.company_name||
+            null,
+          serverResolved:Boolean(serverCompany),
+          serverAccountNumber:
+            serverCompany?.account_number||
             null
         }
       );
