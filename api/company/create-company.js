@@ -21,14 +21,14 @@ function hashEin(ein){const secret=process.env.EIN_HASH_SECRET||process.env.SUPA
 
 function validatePayload(body){
   const payload={
-    company_name:cleanText(body.company_name,160),website:cleanText(body.website,500),business_phone:cleanText(body.business_phone,40),industry:cleanText(body.industry,120),company_size:cleanText(body.company_size,40),headquarters:cleanText(body.headquarters,160),
+    company_name:cleanText(body.company_name,160),website:cleanText(body.website,500),business_phone:cleanText(body.business_phone,40),business_email:cleanText(body.business_email,254).toLowerCase(),industry:cleanText(body.industry,120),company_size:cleanText(body.company_size,40),headquarters:cleanText(body.headquarters,160),
     has_dba:body.has_dba===true,dba_name:cleanText(body.dba_name,160),authorized:body.authorized===true,
     company_voice:uniqueStringArray(body.company_voice,ALLOWED_VOICES),
     company_priorities:validateCompleteRanking(body.company_priorities,COMPANY_PRIORITIES,'Company priorities'),
     candidate_priorities:validateCompleteRanking(body.candidate_priorities,CANDIDATE_PRIORITIES,'Candidate priorities'),
     ai_summary:cleanText(body.ai_summary,1500)
   };
-  for(const[key,label]of [['company_name','Company name'],['website','Company website'],['business_phone','Business phone'],['industry','Industry'],['company_size','Company size'],['headquarters','Headquarters']])if(!payload[key])throw new Error(`${label} is required.`);
+  for(const[key,label]of [['company_name','Company name'],['website','Company website'],['business_phone','Business phone'],['business_email','Business email'],['industry','Industry'],['company_size','Company size'],['headquarters','Headquarters']])if(!payload[key])throw new Error(`${label} is required.`);
   if(payload.has_dba&&!payload.dba_name)throw new Error('DBA or trade name is required.');
   if(payload.company_voice.length<1||payload.company_voice.length>3)throw new Error('Choose between 1 and 3 Company Voice options.');
   if(!payload.authorized)throw new Error('You must confirm that you are authorized to recruit for this company.');
@@ -37,6 +37,21 @@ function validatePayload(body){
   if(!['http:','https:'].includes(websiteUrl.protocol))throw new Error('Company website must use HTTP or HTTPS.');
   payload.website=websiteUrl.href;payload.website_domain=cleanDomain(websiteUrl.hostname);
   if(payload.business_phone.replace(/\D/g,'').length<10)throw new Error('Enter a valid business phone number.');
+
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(payload.business_email)){
+    throw new Error('Enter a valid business email address.');
+  }
+
+  payload.business_email_domain=(payload.business_email.split('@')[1]||'').toLowerCase();
+
+  if(!payload.business_email_domain){
+    throw new Error('Enter a valid business email address.');
+  }
+
+  if(PERSONAL_DOMAINS.has(payload.business_email_domain)){
+    throw new Error('Please use a company email address instead of a personal email.');
+  }
+
   return payload;
 }
 
@@ -57,14 +72,22 @@ module.exports=async function handler(req,res){
   const token=getAccessToken(req);if(!token)return sendJson(res,401,{success:false,error:'You must be signed in to create a company.'});
   let payload;try{payload=validatePayload(req.body||{})}catch(error){return sendJson(res,400,{success:false,error:error.message})}
   const{data:{user},error:userError}=await supabase.auth.getUser(token);if(userError||!user)return sendJson(res,401,{success:false,error:'Your login session is invalid or has expired.'});
-  if(!user.email_confirmed_at)return sendJson(res,403,{success:false,error:'Please confirm your company email before continuing.'});
-  const email=String(user.email||'').trim().toLowerCase(),emailDomain=email.split('@')[1]||'';if(!emailDomain)return sendJson(res,400,{success:false,error:'Your account does not have a valid email address.'});if(PERSONAL_DOMAINS.has(emailDomain))return sendJson(res,403,{success:false,error:'Please use a company email address instead of a personal email.'});
+  if(!user.email_confirmed_at)return sendJson(res,403,{success:false,error:'Please confirm your account email before continuing.'});
+
+  // Authentication email and business-verification email are intentionally
+  // separate. An employer may sign in with a personal account email, but the
+  // Business Email entered during onboarding must be a real company domain.
+  const accountEmail=String(user.email||'').trim().toLowerCase();
+  if(!accountEmail)return sendJson(res,400,{success:false,error:'Your account does not have a valid email address.'});
+
+  const businessEmail=payload.business_email;
+  const businessEmailDomain=payload.business_email_domain;
   let createdCompanyId=null;
   try{
     const{data:owned,error:ownedError}=await supabase.from('companies').select('id,account_number,company_name,verification_status').eq('owner_user_id',user.id).maybeSingle();if(ownedError)throw ownedError;if(owned)return sendJson(res,409,{success:false,error:'You already own a company workspace.',company:{id:owned.id,accountNumber:owned.account_number,name:owned.company_name,verificationStatus:owned.verification_status}});
     const{data:membership,error:membershipError}=await supabase.from('company_members').select('id,role,membership_status,company_id,companies(account_number,company_name,verification_status)').eq('user_id',user.id).in('membership_status',['pending','active','suspended']).limit(1).maybeSingle();if(membershipError)throw membershipError;if(membership){const joined=Array.isArray(membership.companies)?membership.companies[0]:membership.companies;return sendJson(res,409,{success:false,error:'Your account is already connected to a company workspace.',company:{id:membership.company_id,accountNumber:joined?.account_number||null,name:joined?.company_name||null,verificationStatus:joined?.verification_status||'pending_review'}})}
-    const domainMatch=emailDomain===payload.website_domain;const reasons=[];if(!domainMatch)reasons.push('email_website_domain_mismatch');if(payload.business_phone.replace(/\D/g,'').length<10)reasons.push('business_phone_needs_review');/* Alygnn requires manual admin approval for every employer. Automated checks can add flags, but never approve. */const status='pending_review';const accountNumber=await uniqueAccountNumber();
-    const companyInsert={account_number:accountNumber,company_name:payload.company_name,verified_domain:domainMatch?emailDomain:null,verification_status:status,owner_user_id:user.id,website:payload.website,business_phone:payload.business_phone,industry:payload.industry,company_size:payload.company_size,headquarters:payload.headquarters};
+    const domainMatch=businessEmailDomain===payload.website_domain;const reasons=[];if(!domainMatch)reasons.push('email_website_domain_mismatch');if(payload.business_phone.replace(/\D/g,'').length<10)reasons.push('business_phone_needs_review');/* Alygnn requires manual admin approval for every employer. Automated checks can add flags, but never approve. */const status='pending_review';const accountNumber=await uniqueAccountNumber();
+    const companyInsert={account_number:accountNumber,company_name:payload.company_name,verified_domain:domainMatch?businessEmailDomain:null,verification_status:status,owner_user_id:user.id,website:payload.website,business_phone:payload.business_phone,industry:payload.industry,company_size:payload.company_size,headquarters:payload.headquarters};
     const{data:company,error:companyError}=await supabase.from('companies').insert(companyInsert).select('id,account_number,company_name,verification_status,verified_domain').single();if(companyError||!company)throw new Error(companyError?.message||'Unable to create the company workspace.');createdCompanyId=company.id;
     const{error:memberError}=await supabase.from('company_members').insert({company_id:company.id,user_id:user.id,role:'owner',membership_status:'active',approved_by:user.id,approved_at:new Date().toISOString()});if(memberError)throw new Error(`Unable to create the owner membership: ${memberError.message}`);
     await insertBlueprint(company.id,payload);
@@ -75,7 +98,7 @@ module.exports=async function handler(req,res){
       user_id:user.id,
       company_id:company.id,
       company_name:payload.company_name,
-      email_domain:emailDomain,
+      email_domain:businessEmailDomain,
       website:payload.website,
       business_phone:payload.business_phone,
       industry:payload.industry,
@@ -100,7 +123,7 @@ module.exports=async function handler(req,res){
       throw new Error(`Unable to add the employer to the verification queue: ${queueError.message}`);
     }
 
-    const details={company_name:company.company_name,account_number:company.account_number,verification_status:company.verification_status,verification_reasons:reasons,email_domain:emailDomain,website_domain:payload.website_domain,company_voice:payload.company_voice,top_company_priorities:payload.company_priorities.slice(0,3),top_candidate_priorities:payload.candidate_priorities.slice(0,3),ein_last4:payload.ein_last4,ein_hash:payload.ein_hash,dba_name:payload.dba_name||null};
+    const details={company_name:company.company_name,account_number:company.account_number,verification_status:company.verification_status,verification_reasons:reasons,email_domain:businessEmailDomain,business_email:businessEmail,website_domain:payload.website_domain,company_voice:payload.company_voice,top_company_priorities:payload.company_priorities.slice(0,3),top_candidate_priorities:payload.candidate_priorities.slice(0,3),ein_last4:payload.ein_last4,ein_hash:payload.ein_hash,dba_name:payload.dba_name||null};
     const{error:activityError}=await supabase.from('company_activity_log').insert({company_id:company.id,actor_user_id:user.id,action:'company_created',target_user_id:user.id,details});if(activityError)throw new Error(`Unable to create the company activity record: ${activityError.message}`);
     return sendJson(res,201,{success:true,company:{id:company.id,accountNumber:company.account_number,name:company.company_name,verificationStatus:company.verification_status,verifiedDomain:company.verified_domain},verification:{approved:false,reasons}});
   }catch(error){console.error('create-company error:',error);if(createdCompanyId){try{await supabase.from('companies').delete().eq('id',createdCompanyId)}catch(cleanupError){console.error('cleanup failed:',cleanupError)}}return sendJson(res,500,{success:false,error:error.message||'Unable to create the company workspace.'})}
