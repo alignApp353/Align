@@ -308,6 +308,78 @@
   .chip-results-empty { padding: 10px 16px; font-size: 12px; color: var(--text-muted); }
   .chip-count-note { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
 
+  /* ---- Work authorization / sponsorship picker ---- */
+  .work-auth-box{
+    border:1px solid var(--border);
+    background:#FBFCFC;
+    border-radius:14px;
+    padding:16px;
+  }
+  .work-auth-heading{
+    font-size:13px;
+    font-weight:600;
+    color:var(--text);
+    margin-bottom:4px;
+  }
+  .work-auth-copy{
+    font-size:11px;
+    line-height:1.5;
+    color:var(--text-muted);
+    margin-bottom:12px;
+  }
+  .work-auth-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  .work-auth-option{
+    display:flex;
+    align-items:flex-start;
+    gap:9px;
+    min-height:48px;
+    padding:11px 12px;
+    border:1px solid var(--border);
+    border-radius:11px;
+    background:white;
+    cursor:pointer;
+    transition:.15s ease;
+    user-select:none;
+  }
+  .work-auth-option:hover{border-color:#AFC0D1;background:#F8FBFD}
+  .work-auth-option.selected{
+    border-color:var(--brand);
+    background:#EEF4F9;
+    box-shadow:0 0 0 1px rgba(93,127,163,.08);
+  }
+  .work-auth-option input{
+    width:16px;
+    height:16px;
+    margin-top:1px;
+    accent-color:var(--brand);
+    flex:none;
+  }
+  .work-auth-option-title{
+    font-size:12px;
+    font-weight:600;
+    color:var(--text);
+    line-height:1.3;
+  }
+  .work-auth-option-sub{
+    margin-top:2px;
+    font-size:10px;
+    line-height:1.35;
+    color:var(--text-muted);
+  }
+  .work-auth-note{
+    margin-top:9px;
+    font-size:10px;
+    line-height:1.45;
+    color:var(--text-muted);
+  }
+  @media(max-width:620px){
+    .work-auth-grid{grid-template-columns:1fr}
+  }
+
   .empty-state { background: var(--card-bg); border: 1px dashed var(--border); border-radius: 14px; padding: 40px 28px; text-align: center; color: var(--text-muted); font-size: 14px; }
   .empty-state .empty-icon { font-size: 32px; margin-bottom: 12px; }
   .empty-state .empty-title { font-weight: 500; color: var(--text); margin-bottom: 6px; font-size: 15px; }
@@ -703,6 +775,67 @@
               </div>
               <input type="hidden" id="f-benefits">
             </div>
+
+            <!-- WORK AUTHORIZATION / SPONSORSHIP -->
+            <div class="form-group full">
+              <label class="form-label">Work authorization & sponsorship <span style="text-transform:none; font-weight:400;">(optional)</span></label>
+              <div class="work-auth-box">
+                <div class="work-auth-heading">What can this employer support for this role?</div>
+                <div class="work-auth-copy">Select every option that applies. OPT and CPT are work authorization categories; H-1B is employer-sponsored.</div>
+
+                <div class="work-auth-grid" id="work-auth-grid">
+                  <label class="work-auth-option" data-work-auth="opt">
+                    <input type="checkbox" value="opt" onchange="toggleWorkAuthorization(this)">
+                    <span>
+                      <div class="work-auth-option-title">Open to OPT</div>
+                      <div class="work-auth-option-sub">Candidates currently authorized through Optional Practical Training.</div>
+                    </span>
+                  </label>
+
+                  <label class="work-auth-option" data-work-auth="stem_opt">
+                    <input type="checkbox" value="stem_opt" onchange="toggleWorkAuthorization(this)">
+                    <span>
+                      <div class="work-auth-option-title">STEM OPT extension support</div>
+                      <div class="work-auth-option-sub">For qualifying STEM OPT candidates when employer requirements are met.</div>
+                    </span>
+                  </label>
+
+                  <label class="work-auth-option" data-work-auth="cpt">
+                    <input type="checkbox" value="cpt" onchange="toggleWorkAuthorization(this)">
+                    <span>
+                      <div class="work-auth-option-title">Open to CPT</div>
+                      <div class="work-auth-option-sub">Candidates authorized through Curricular Practical Training.</div>
+                    </span>
+                  </label>
+
+                  <label class="work-auth-option" data-work-auth="h1b_sponsorship">
+                    <input type="checkbox" value="h1b_sponsorship" onchange="toggleWorkAuthorization(this)">
+                    <span>
+                      <div class="work-auth-option-title">H-1B sponsorship available</div>
+                      <div class="work-auth-option-sub">Employer may sponsor a qualifying candidate for H-1B employment.</div>
+                    </span>
+                  </label>
+
+                  <label class="work-auth-option" data-work-auth="h1b_transfer">
+                    <input type="checkbox" value="h1b_transfer" onchange="toggleWorkAuthorization(this)">
+                    <span>
+                      <div class="work-auth-option-title">H-1B transfer support</div>
+                      <div class="work-auth-option-sub">Employer may support an eligible H-1B change of employer.</div>
+                    </span>
+                  </label>
+
+                  <label class="work-auth-option" data-work-auth="no_sponsorship">
+                    <input type="checkbox" value="no_sponsorship" onchange="toggleWorkAuthorization(this)">
+                    <span>
+                      <div class="work-auth-option-title">No employment visa sponsorship</div>
+                      <div class="work-auth-option-sub">Use when this role does not offer employer-sponsored visa support.</div>
+                    </span>
+                  </label>
+                </div>
+
+                <div class="work-auth-note">This field describes job-level support only. It does not ask candidates about citizenship, nationality, or other protected characteristics.</div>
+              </div>
+            </div>
           </div>
 
           <div class="wizard-nav">
@@ -886,6 +1019,55 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     req: { selected: new Set(), custom: [] },
     benefit: { selected: new Set(), custom: [] }
   };
+
+  const workAuthorizationState = new Set();
+
+  function normalizeWorkAuthorizationValues(value) {
+    if (Array.isArray(value)) return value.map(v => String(v || '').trim()).filter(Boolean);
+    if (!value) return [];
+    if (typeof value === 'string') {
+      return value
+        .split(/[\n,]/)
+        .map(v => v.trim())
+        .filter(Boolean);
+    }
+    return [];
+  }
+
+  function renderWorkAuthorization() {
+    document.querySelectorAll('#work-auth-grid .work-auth-option').forEach(option => {
+      const value = option.dataset.workAuth;
+      const checked = workAuthorizationState.has(value);
+      option.classList.toggle('selected', checked);
+      const input = option.querySelector('input[type="checkbox"]');
+      if (input) input.checked = checked;
+    });
+  }
+
+  function setWorkAuthorization(values = []) {
+    workAuthorizationState.clear();
+    normalizeWorkAuthorizationValues(values).forEach(value => workAuthorizationState.add(value));
+    renderWorkAuthorization();
+  }
+
+  function toggleWorkAuthorization(input) {
+    const value = String(input?.value || '');
+    if (!value) return;
+
+    if (value === 'no_sponsorship' && input.checked) {
+      workAuthorizationState.clear();
+      workAuthorizationState.add('no_sponsorship');
+    } else {
+      if (input.checked) workAuthorizationState.add(value);
+      else workAuthorizationState.delete(value);
+
+      if (value !== 'no_sponsorship' && input.checked) {
+        workAuthorizationState.delete('no_sponsorship');
+      }
+    }
+
+    renderWorkAuthorization();
+  }
 
   const MAX_RESULTS_SHOWN = 8;
 
@@ -3257,7 +3439,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       salary: buildSalaryString(),
       description: document.getElementById('f-desc').value.trim(),
       requirements: document.getElementById('f-reqs').value.trim(),
-      benefits: document.getElementById('f-benefits').value.trim()
+      benefits: document.getElementById('f-benefits').value.trim(),
+      work_authorization_support: Array.from(workAuthorizationState)
     };
   }
 
@@ -3283,6 +3466,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const benefitValues = (job.benefits || '').split('\n').map(b => b.trim()).filter(Boolean);
     resetChips('benefit', benefitValues);
 
+    setWorkAuthorization(job.work_authorization_support || []);
+
     updatePreview();
   }
 
@@ -3303,6 +3488,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     resetChips('req', []);
     resetChips('benefit', []);
+    setWorkAuthorization([]);
 
     updatePreview();
   }
