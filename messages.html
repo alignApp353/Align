@@ -398,7 +398,7 @@ async function loadRequestedApplicationContext(){
 
   const [jobResult,candidateResult]=await Promise.all([
     sb.from('jobs')
-      .select('id,title,status,location,employer_id')
+      .select('id,title,status,location,employer_id,company')
       .eq('id',jobId)
       .maybeSingle(),
     sb.from('profiles')
@@ -468,7 +468,7 @@ async function loadThreadDetails(){
 
   const [jobsResult,profilesResult,lastMessagesResult]=await Promise.all([
     jobIds.length
-      ? sb.from('jobs').select('id,title,status,location').in('id',jobIds)
+      ? sb.from('jobs').select('id,title,status,location,company').in('id',jobIds)
       : Promise.resolve({data:[]}),
     userIds.length
       ? sb.from('profiles').select('id,full_name,company_name').in('id',userIds)
@@ -500,7 +500,7 @@ async function loadThreadDetails(){
     const job=jobsMap[t.job_id]||{};
     const displayName=currentRole==='employer'
       ? (other.full_name||'Candidate')
-      : (other.company_name||other.full_name||'Company');
+      : (job.company||other.company_name||other.full_name||'Company');
 
     threadDetails.set(t.id,{
       thread:t,
@@ -600,7 +600,7 @@ function activeConversationDetails(){
     const c=requestedApplicationContext;
     const otherName=currentRole==='employer'
       ? (c.candidate?.full_name||'Candidate')
-      : (currentProfile?.company_name||'Company');
+      : (c.job?.company||'Company');
 
     return {
       thread:{
