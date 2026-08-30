@@ -1172,6 +1172,495 @@ button{
   }
 }
 
+
+/* ==========================================================
+   EMPLOYER CANDIDATE PREVIEW — DISCOVER PORTAL SHELL
+   Uses the same layout/proportions as app-swipe.html.
+   ========================================================== */
+
+/* The employer preview now behaves like the candidate Discover screen. */
+.page{
+  width:100%!important;
+  max-width:none!important;
+  min-height:calc(100dvh - 78px - 84px)!important;
+  margin:0!important;
+  padding:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  background:var(--bg)!important;
+}
+
+/* Remove the old employer-preview heading area entirely. */
+.page > .eyebrow,
+.page > .page-title,
+.page > .page-copy{
+  display:none!important;
+}
+
+/* Candidate Discover progress card */
+.candidate-progress-shell{
+  width:100%;
+  padding:12px 18px 0;
+  flex:none;
+}
+
+.candidate-progress-card{
+  width:100%;
+  max-width:430px;
+  margin:0 auto;
+  background:rgba(255,255,255,.88);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:12px 14px;
+  display:grid;
+  grid-template-columns:repeat(3,1fr) 1.4fr;
+  gap:8px;
+  align-items:center;
+  box-shadow:0 8px 22px rgba(25,40,60,.05);
+}
+
+.candidate-stat{
+  text-align:center;
+}
+
+.candidate-stat-value{
+  font-size:18px;
+  font-weight:900;
+  color:var(--text);
+}
+
+.candidate-stat-label{
+  margin-top:2px;
+  font-size:9px;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.8px;
+  font-weight:800;
+}
+
+.candidate-job-progress{
+  border-left:1px solid var(--border);
+  padding-left:12px;
+}
+
+.candidate-progress-copy{
+  font-size:11px;
+  font-weight:800;
+  color:var(--text);
+  text-align:center;
+  margin-bottom:6px;
+}
+
+.candidate-progress-track{
+  width:100%;
+  height:7px;
+  background:#E8EDF2;
+  border-radius:999px;
+  overflow:hidden;
+}
+
+.candidate-progress-fill{
+  width:100%;
+  height:100%;
+  background:var(--brand);
+  border-radius:inherit;
+}
+
+/* Only show verification problems here. Approved employers have no banner. */
+.status-wrap{
+  width:100%;
+  max-width:430px;
+  margin:8px auto 0!important;
+  padding:0 18px;
+}
+
+.status-wrap:empty{
+  display:none!important;
+}
+
+.status-wrap .status-pill{
+  width:100%;
+  text-align:center;
+}
+
+/* This is the actual candidate swipe-area layout:
+   center the card + candidate action bar in the available viewport. */
+.candidate-preview-swipe-area{
+  width:100%;
+  flex:1;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:14px 18px 24px;
+}
+
+/* Match candidate card-stack dimensions exactly. */
+.flip-shell{
+  position:relative!important;
+  width:100%!important;
+  max-width:430px!important;
+  height:min(440px,calc(100dvh - 405px))!important;
+  min-height:390px!important;
+  margin:0 auto!important;
+  perspective:1600px!important;
+}
+
+/* Candidate stack shells */
+.flip-shell::before,
+.flip-shell::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  border:1px solid var(--border);
+  border-radius:30px;
+  background:#fff;
+  pointer-events:none;
+  transform-origin:center bottom;
+}
+
+.flip-shell::before{
+  z-index:0;
+  transform:scale(.94) translateY(20px);
+  opacity:.62;
+}
+
+.flip-shell::after{
+  z-index:1;
+  transform:scale(.97) translateY(10px);
+  opacity:.82;
+}
+
+.flip-inner{
+  position:relative;
+  z-index:3;
+  width:100%;
+  height:100%;
+}
+
+.card-face{
+  border-radius:30px!important;
+}
+
+.candidate-card-preview{
+  padding:24px!important;
+  height:100%!important;
+  min-height:0!important;
+  background:
+    radial-gradient(circle at top right,rgba(93,127,163,.08),transparent 28%),
+    #fff!important;
+  border:1px solid var(--border)!important;
+  box-shadow:0 22px 60px rgba(27,43,63,.12)!important;
+}
+
+/* The real candidate portal has a left Match badge.
+   Employer preview intentionally leaves that space empty because
+   the score does not exist until a specific candidate sees the job. */
+.candidate-card-toolbar{
+  min-height:36px!important;
+  display:flex!important;
+  justify-content:flex-end!important;
+  align-items:center!important;
+  margin-bottom:18px!important;
+}
+
+/* Candidate toolbar icons */
+.candidate-card-actions{
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+
+.candidate-icon-btn,
+.candidate-save-btn{
+  width:36px!important;
+  height:36px!important;
+  border-radius:50%!important;
+  border:1px solid var(--border)!important;
+  background:#fff!important;
+  color:var(--text)!important;
+  box-shadow:none!important;
+}
+
+/* Candidate front-card sizing */
+.candidate-card-top{
+  gap:15px!important;
+  margin-bottom:18px!important;
+}
+
+.candidate-company-logo{
+  width:68px!important;
+  height:68px!important;
+  flex-basis:68px!important;
+  border-radius:22px!important;
+}
+
+.candidate-job-title{
+  font-size:31px!important;
+  line-height:1.02!important;
+}
+
+.candidate-company-name{
+  font-size:15px!important;
+}
+
+.candidate-card-pills{
+  gap:8px!important;
+  margin-bottom:18px!important;
+}
+
+.candidate-pill{
+  padding:8px 12px!important;
+  font-size:12px!important;
+}
+
+.candidate-overview{
+  margin-top:12px!important;
+  padding-top:11px!important;
+}
+
+.candidate-card-desc{
+  font-size:12px!important;
+  line-height:1.5!important;
+  -webkit-line-clamp:3!important;
+}
+
+/* Employer-only generated skill chips do not appear on the actual front card. */
+.candidate-preview-chips{
+  display:none!important;
+}
+
+.candidate-card-bottom{
+  margin-top:auto!important;
+  padding-top:11px!important;
+}
+
+/* Exact candidate Discover action tray */
+.candidate-preview-actions{
+  width:100%;
+  max-width:430px;
+  display:grid;
+  grid-template-columns:82px minmax(0,1fr) minmax(0,1.45fr);
+  gap:10px;
+  margin-top:14px;
+  padding:11px;
+  border:1px solid var(--border);
+  border-radius:20px;
+  background:rgba(252,252,250,.94);
+  box-shadow:0 10px 30px rgba(27,43,63,.08);
+  pointer-events:none;
+  user-select:none;
+}
+
+.candidate-action-btn{
+  min-width:0;
+  height:68px;
+  border-radius:16px;
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+}
+
+.candidate-undo-btn{
+  flex-direction:column;
+  gap:3px;
+}
+
+.candidate-action-undo{
+  font-size:22px;
+  line-height:1;
+}
+
+.candidate-action-main{
+  display:block;
+  font-size:12px;
+  line-height:1.15;
+  font-weight:900;
+  white-space:nowrap;
+}
+
+.candidate-action-sub{
+  display:block;
+  margin-top:4px;
+  font-size:9px;
+  line-height:1.1;
+  color:var(--muted);
+  font-weight:700;
+  white-space:nowrap;
+}
+
+.candidate-skip-btn{
+  flex-direction:column;
+  padding:0 10px;
+  border-color:var(--brand);
+  background:transparent;
+}
+
+.candidate-apply-btn{
+  position:relative;
+  flex-direction:column;
+  align-items:flex-start;
+  padding:0 34px 0 17px;
+  border-color:transparent;
+  background:linear-gradient(135deg,#4E7EAE,#73A2D1);
+  color:#fff;
+}
+
+.candidate-apply-btn .candidate-action-sub{
+  color:rgba(255,255,255,.76);
+}
+
+.candidate-action-arrow{
+  position:absolute;
+  right:15px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:20px;
+  line-height:1;
+}
+
+/* Employer publishing footer remains visually separate from the simulated
+   candidate portal. */
+.footer{
+  min-height:84px;
+}
+
+.footer-inner{
+  max-width:430px!important;
+}
+
+/* Dark mode for candidate portal preview */
+html[data-theme="dark"] .candidate-progress-card,
+html[data-theme="dark"] .candidate-card-preview,
+html[data-theme="dark"] .flip-shell::before,
+html[data-theme="dark"] .flip-shell::after,
+html[data-theme="dark"] .candidate-preview-actions,
+html[data-theme="dark"] .candidate-action-btn{
+  background:#0F1B28!important;
+  border-color:#2B3A4A!important;
+}
+
+html[data-theme="dark"] .candidate-progress-track{
+  background:#243443;
+}
+
+html[data-theme="dark"] .candidate-icon-btn,
+html[data-theme="dark"] .candidate-save-btn{
+  background:#0F1B28!important;
+  color:#F2F6F9!important;
+}
+
+html[data-theme="dark"] .candidate-skip-btn{
+  background:transparent!important;
+}
+
+html[data-theme="dark"] .candidate-apply-btn{
+  background:linear-gradient(135deg,#4E7EAE,#73A2D1)!important;
+  color:#fff!important;
+}
+
+/* Match the compact candidate portal behavior on shorter Android screens. */
+@media(max-height:820px){
+  .candidate-progress-shell{
+    padding-top:8px;
+  }
+
+  .candidate-progress-card{
+    padding:9px 12px;
+  }
+
+  .candidate-stat-value{
+    font-size:16px;
+  }
+
+  .candidate-preview-swipe-area{
+    padding-top:9px;
+    padding-bottom:15px;
+  }
+
+  .flip-shell{
+    height:min(405px,calc(100dvh - 370px))!important;
+    min-height:350px!important;
+  }
+
+  .candidate-card-preview{
+    padding:19px!important;
+  }
+
+  .candidate-card-toolbar,
+  .candidate-card-top,
+  .candidate-card-pills{
+    margin-bottom:13px!important;
+  }
+
+  .candidate-job-title{
+    font-size:27px!important;
+  }
+
+  .candidate-preview-actions{
+    margin-top:10px;
+    padding:9px;
+  }
+
+  .candidate-action-btn{
+    height:62px;
+  }
+}
+
+@media(max-width:390px){
+  .candidate-preview-swipe-area{
+    padding-left:14px;
+    padding-right:14px;
+  }
+
+  .candidate-preview-actions{
+    grid-template-columns:72px minmax(0,1fr) minmax(0,1.35fr);
+    gap:8px;
+  }
+
+  .candidate-action-main{
+    font-size:11px;
+  }
+
+  .candidate-action-sub{
+    font-size:8px;
+  }
+
+  .candidate-apply-btn{
+    padding-left:13px;
+    padding-right:29px;
+  }
+
+  .candidate-action-arrow{
+    right:11px;
+  }
+}
+
+
+/* Candidate-style preview header */
+.header{
+  min-height:92px!important;
+  padding:calc(12px + env(safe-area-inset-top)) 18px 12px!important;
+  grid-template-columns:70px 1fr 70px!important;
+  background:rgba(246,248,247,.96)!important;
+}
+
+.header .back{
+  width:46px!important;
+  height:46px!important;
+  justify-self:start;
+  background:rgba(93,127,163,.07)!important;
+}
+
+.header .logo{
+  font-size:31px!important;
+}
+
 </style>
 </head>
 
@@ -1191,15 +1680,38 @@ button{
 </header>
 
 <main class="page" id="page" hidden>
-  <div class="eyebrow">Candidate Preview</div>
-  <div class="page-title">See the swipe card candidates will see.</div>
-  <div class="page-copy">
-    Candidate Discover preview · Match score is personalized and hidden here.
-  </div>
+
+  <!-- Mirrors the candidate Discover progress area. -->
+  <section class="candidate-progress-shell" aria-label="Candidate portal preview">
+    <div class="candidate-progress-card">
+      <div class="candidate-stat">
+        <div class="candidate-stat-value">0</div>
+        <div class="candidate-stat-label">Applied</div>
+      </div>
+
+      <div class="candidate-stat">
+        <div class="candidate-stat-value">0</div>
+        <div class="candidate-stat-label">Passed</div>
+      </div>
+
+      <div class="candidate-stat">
+        <div class="candidate-stat-value">1</div>
+        <div class="candidate-stat-label">Left</div>
+      </div>
+
+      <div class="candidate-job-progress">
+        <div class="candidate-progress-copy">Job 1 of 1</div>
+        <div class="candidate-progress-track">
+          <div class="candidate-progress-fill"></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <div class="status-wrap" id="status-wrap"></div>
 
-  <div class="flip-shell">
+  <section class="candidate-preview-swipe-area">
+    <div class="flip-shell">
     <div class="flip-shadow"></div>
 
     <div class="flip-inner" id="flip-inner">
@@ -1322,6 +1834,25 @@ button{
 
     </div>
   </div>
+
+    <div class="candidate-preview-actions" aria-label="Candidate action preview">
+      <button class="candidate-action-btn candidate-undo-btn" type="button" tabindex="-1" aria-hidden="true">
+        <span class="candidate-action-undo">↶</span>
+        <span class="candidate-action-main">Undo</span>
+      </button>
+
+      <button class="candidate-action-btn candidate-skip-btn" type="button" tabindex="-1" aria-hidden="true">
+        <span class="candidate-action-main">Not for me</span>
+        <span class="candidate-action-sub">Skip this job</span>
+      </button>
+
+      <button class="candidate-action-btn candidate-apply-btn" type="button" tabindex="-1" aria-hidden="true">
+        <span class="candidate-action-main">Apply now</span>
+        <span class="candidate-action-sub">Send my application</span>
+        <span class="candidate-action-arrow">→</span>
+      </button>
+    </div>
+  </section>
 
   <div class="message" id="message"></div>
 </main>
