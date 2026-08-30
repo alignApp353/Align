@@ -1661,6 +1661,102 @@ html[data-theme="dark"] .candidate-apply-btn{
   font-size:31px!important;
 }
 
+
+/* ==========================================================
+   FULL JOB DETAIL VIEW
+   Use a real page state instead of a 3D card flip.
+   This is more reliable in Android WebView and allows
+   normal vertical scrolling inside the full job.
+   ========================================================== */
+
+/* Front is the default candidate card. Full detail is hidden. */
+#card-back{
+  display:none!important;
+}
+
+/* When the user taps "View full job ad", show a normal detail page. */
+.page.detail-open .flip-shell{
+  height:min(560px,calc(100dvh - 350px))!important;
+  min-height:455px!important;
+  max-width:430px!important;
+}
+
+.page.detail-open .flip-shell::before,
+.page.detail-open .flip-shell::after,
+.page.detail-open .flip-shadow{
+  display:none!important;
+}
+
+.page.detail-open .flip-inner{
+  transform:none!important;
+  transition:none!important;
+  transform-style:flat!important;
+  height:100%!important;
+}
+
+.page.detail-open #card-front{
+  display:none!important;
+}
+
+.page.detail-open #card-back{
+  position:relative!important;
+  inset:auto!important;
+  width:100%!important;
+  height:100%!important;
+  display:flex!important;
+  flex-direction:column!important;
+  transform:none!important;
+  backface-visibility:visible!important;
+  -webkit-backface-visibility:visible!important;
+  overflow:hidden!important;
+  border-radius:30px!important;
+  background:#fff!important;
+  border:1px solid var(--border)!important;
+  box-shadow:0 22px 60px rgba(27,43,63,.12)!important;
+}
+
+.page.detail-open .back-header{
+  flex:0 0 auto!important;
+  padding:17px 18px 14px!important;
+}
+
+.page.detail-open .full-job{
+  flex:1!important;
+  min-height:0!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior:contain!important;
+  touch-action:pan-y!important;
+  padding:19px 18px 34px!important;
+}
+
+/* Keep candidate action tray visible below the detail page,
+   matching the candidate portal layout. */
+.page.detail-open .candidate-preview-actions{
+  margin-top:12px!important;
+}
+
+/* The back button inside full details is interactive. */
+.page.detail-open #summary-btn{
+  pointer-events:auto!important;
+  cursor:pointer!important;
+}
+
+/* Dark mode */
+html[data-theme="dark"] .page.detail-open #card-back{
+  background:#0F1B28!important;
+  border-color:#2B3A4A!important;
+}
+
+/* Short Android screens */
+@media(max-height:820px){
+  .page.detail-open .flip-shell{
+    height:min(500px,calc(100dvh - 325px))!important;
+    min-height:410px!important;
+  }
+}
+
 </style>
 </head>
 
@@ -2181,12 +2277,37 @@ function render(){
   renderStatus();
 }
 
-function flipOpen(){
-  $('flip-inner').classList.add('flipped');
+function openFullJob(){
+  const page=$('page');
+  const fullJob=$('full-job');
+
+  page.classList.add('detail-open');
+
+  // Start the candidate full-job page at the top every time.
+  if(fullJob){
+    fullJob.scrollTop=0;
+  }
+
+  // Keep the detail page in view after the layout changes.
+  requestAnimationFrame(()=>{
+    $('card-back')?.scrollIntoView({
+      behavior:'smooth',
+      block:'center'
+    });
+  });
 }
 
-function flipClosed(){
-  $('flip-inner').classList.remove('flipped');
+function closeFullJob(){
+  const page=$('page');
+
+  page.classList.remove('detail-open');
+
+  requestAnimationFrame(()=>{
+    $('card-front')?.scrollIntoView({
+      behavior:'smooth',
+      block:'center'
+    });
+  });
 }
 
 function editJob(){
@@ -2411,31 +2532,43 @@ function wire(){
   };
 
   /*
-   * Match the actual candidate card interaction:
-   * "View full job ad" opens the full job.
+   * Match the candidate portal:
+   * "View full job ad" opens a full detail view.
    */
   $('view-full-preview').addEventListener(
     'click',
     event=>{
       event.preventDefault();
       event.stopPropagation();
-      flipOpen();
+      openFullJob();
     }
   );
 
   /*
-   * Back uses an explicit Summary button so the user
-   * can scroll the full job without accidentally flipping.
+   * Back returns from the full job detail page
+   * to the candidate card preview.
    */
   $('summary-btn').addEventListener(
     'click',
     event=>{
       event.stopPropagation();
-      flipClosed();
+      closeFullJob();
     }
   );
 
   $('publish-btn').onclick=publishJob;
+
+
+  document.addEventListener('keydown',event=>{
+    if(
+      event.key==='Escape' &&
+      $('page')?.classList.contains('detail-open')
+    ){
+      event.preventDefault();
+      closeFullJob();
+    }
+  });
+
 
   $('dashboard-btn').onclick=()=>{
     location.replace(
