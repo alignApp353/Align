@@ -445,6 +445,11 @@ nav{
     <div id="job-benefits"></div>
   </div>
 
+  <div class="section" id="work-authorization-section" style="display:none;">
+    <h2>Work authorization & sponsorship</h2>
+    <div id="job-work-authorization"></div>
+  </div>
+
   <div class="section" id="details-section" style="display:none;">
     <h2>Details</h2>
     <div class="field-grid" id="job-field-grid"></div>
@@ -809,6 +814,29 @@ function renderJob(job, appInfo, interviewInfo){
   if(job.benefits){
     document.getElementById('benefits-section').style.display = '';
     document.getElementById('job-benefits').innerHTML = renderListOrText(job.benefits);
+  }
+
+  const workAuthLabels = {
+    opt: 'Open to OPT',
+    stem_opt: 'STEM OPT extension support',
+    cpt: 'Open to CPT',
+    h1b_sponsorship: 'H-1B sponsorship available',
+    h1b_transfer: 'H-1B transfer support',
+    no_sponsorship: 'No employment visa sponsorship'
+  };
+
+  const workAuthValues = Array.isArray(job.work_authorization_support)
+    ? job.work_authorization_support
+    : String(job.work_authorization_support || '')
+        .split(/[\n,]/)
+        .map(v => v.trim())
+        .filter(Boolean);
+
+  if(workAuthValues.length){
+    document.getElementById('work-authorization-section').style.display = '';
+    document.getElementById('job-work-authorization').innerHTML = renderListOrText(
+      workAuthValues.map(v => workAuthLabels[v] || v).join('\n')
+    );
   }
 
   const gridEl = document.getElementById('job-field-grid');
