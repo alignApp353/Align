@@ -210,7 +210,7 @@ body.auth-ready #auth-loading { display: none; }
     <a href="account.html">Account</a>
     <a href="my-jobs.html" class="active">My jobs</a>
     <a href="messages.html">Messages</a>
-    <a href="swipe.html">Swipe</a>
+    <a href="swipe.html" id="nav-swipe-link" style="display:none;">Swipe</a>
   </div>
   <div class="nav-actions">
     <button
@@ -808,6 +808,14 @@ document.getElementById('search-input').addEventListener('input', render);
 
   if (profileError && profileError.code !== 'PGRST116') {
     console.warn('Could not load profile for notifications:', profileError);
+  }
+
+  // Only expose Swipe after onboarding is complete.
+  const hasResume = !!(profile?.resume_file_path || profile?.resume_data);
+  const hasPreferences = !!profile?.preferences;
+  const swipeLink = document.getElementById('nav-swipe-link');
+  if (swipeLink && hasResume && hasPreferences) {
+    swipeLink.style.display = '';
   }
 
   await loadCandidateNotifications(profile || null);
