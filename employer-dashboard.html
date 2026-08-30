@@ -122,6 +122,8 @@
   .job-status.active { background: var(--mint); }
   .job-status.pending { background: #E7B86D; }
   .job-status.paused { background: var(--rose); }
+  .job-status.closed { background: #9BA8B3; }
+  .job-status-badge.closed { color: #586673; background: rgba(155,168,179,0.14); }
   .job-status-badge { display: inline-flex; align-items: center; margin-left: 8px; padding: 2px 8px; border-radius: 100px; font-size: 10px; font-weight: 500; vertical-align: middle; }
   .job-status-badge.active { color: #2d8a57; background: var(--mint-light); }
   .job-status-badge.pending { color: #7a5a1a; background: rgba(231,184,109,0.14); }
@@ -711,7 +713,17 @@
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
   const { createClient } = supabase;
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = // Keep Alygnn authentication isolated to this browser tab.
+// This lets a candidate account stay open in one tab while a different
+// employer account is signed in in another tab.
+createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      storage: window.sessionStorage,
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
 
   let jobs = [];
   let jobAppliedCounts = {};
@@ -3002,13 +3014,35 @@
 
   function renderJobRow(job) {
     const rawStatus = String(job.status || 'active').toLowerCase();
-    const statusClass = rawStatus === 'pending' ? 'pending' : rawStatus === 'active' ? 'active' : 'paused';
-    const statusLabel = rawStatus === 'pending'
+    const closeReason = String(job.closed_reason || '').toLowerCase();
+    const isClosed = rawStatus === 'closed';
+    const pending = ['pending','pending_review','pending_verification'].includes(rawStatus);
+
+    const statusClass = isClosed
+      ? 'closed'
+      : pending
+        ? 'pending'
+        : rawStatus === 'active'
+          ? 'active'
+          : 'paused';
+
+    let statusLabel = pending
       ? 'Pending approval'
       : rawStatus === 'active'
         ? 'Active'
         : (rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1));
-    const pending = rawStatus === 'pending';
+
+    if (isClosed && closeReason === 'free_candidate_cap') {
+      statusLabel = 'Closed · 25 candidates';
+    } else if (isClosed && closeReason === 'weekly_slot_expired') {
+      statusLabel = 'Closed · Weekly expired';
+    }
+
+    const closedAction = closeReason === 'free_candidate_cap'
+      ? `<button class="btn-view" onclick="redirectToPricing('free-candidate-cap')">Add a job slot</button>`
+      : closeReason === 'weekly_slot_expired'
+        ? `<button class="btn-view" onclick="redirectToPricing('weekly-expired')">Get a job slot</button>`
+        : `<button class="btn-view" onclick="reopenJob('${job.id}')">Reopen</button>`;
 
     return `
       <div class="job-row">
@@ -3022,13 +3056,17 @@
           <div><div class="js-val">${jobAppliedCounts[job.id] || 0}</div><div class="js-label">Applied</div></div>
         </div>
         <div class="job-actions">
-          ${pending
-            ? '<button class="btn-view" disabled style="opacity:.45; cursor:not-allowed;" title="This job will accept candidates after business approval.">Candidates</button>'
-            : `<button class="btn-view" onclick="window.location.href='candidates.html?job=${encodeURIComponent(job.id)}'">Candidates</button>`}
+          ${isClosed
+            ? closedAction
+            : pending
+              ? '<button class="btn-view" disabled style="opacity:.45; cursor:not-allowed;" title="This job will accept candidates after business approval.">Candidates</button>'
+              : `<button class="btn-view" onclick="window.location.href='candidates.html?job=${encodeURIComponent(job.id)}'">Candidates</button>`}
           <button class="btn-view" onclick="window.location.href='job-details.html?job=${job.id}&from=employer'">View</button>
-          ${pending
-            ? '<button class="btn-view" disabled style="opacity:.45; cursor:not-allowed;" title="Only active jobs can be boosted.">Boost</button>'
-            : `<button class="btn-view" onclick="openBoostCheckout('${job.id}')">${jobBoostIsActive(job) ? 'Boost again' : 'Boost'}</button>`}
+          ${isClosed
+            ? ''
+            : pending
+              ? '<button class="btn-view" disabled style="opacity:.45; cursor:not-allowed;" title="Only active jobs can be boosted.">Boost</button>'
+              : `<button class="btn-view" onclick="openBoostCheckout('${job.id}')">${jobBoostIsActive(job) ? 'Boost again' : 'Boost'}</button>`}
           <button class="btn-view" onclick="editJob('${job.id}')">Edit</button>
           <button class="btn-danger" onclick="deleteJob('${job.id}')">Delete</button>
         </div>
@@ -3504,6 +3542,54 @@
     updateVerificationUI();
   }
 
+  async function reopenJob(jobId) {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+
+    const closeReason = String(job.closed_reason || '').toLowerCase();
+
+    if (closeReason === 'free_candidate_cap') {
+      showToast('This free job reached 25 candidates. Choose a paid job slot to reopen it.');
+      setTimeout(() => redirectToPricing('free-candidate-cap'), 700);
+      return;
+    }
+
+    if (closeReason === 'weekly_slot_expired') {
+      showToast('The 7-day Weekly Job Slot expired. Choose another job slot to reopen this job.');
+      setTimeout(() => redirectToPricing('weekly-expired'), 700);
+      return;
+    }
+
+    const { error } = await sb
+      .from('jobs')
+      .update({
+        status: employerVerified ? 'active' : 'pending',
+        closed_reason: null,
+        closed_at: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', jobId)
+      .eq('employer_id', currentUser.id);
+
+    if (error) {
+      console.error('Failed to reopen job:', error);
+      const msg = String(error.message || '');
+      if (/slot|capacity|25-candidate|paid job slot/i.test(msg)) {
+        showToast(msg);
+        await loadBillingEntitlement();
+        updatePostingAccessUI();
+      } else {
+        showToast('Could not reopen job.');
+      }
+      return;
+    }
+
+    await loadJobs();
+    await loadBillingEntitlement();
+    updatePostingAccessUI();
+    showToast(employerVerified ? 'Job reopened.' : 'Job moved back to pending approval.');
+  }
+
   async function deleteJob(jobId) {
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
@@ -3530,7 +3616,7 @@
   }
 
   async function logout() {
-    await sb.auth.signOut();
+    await sb.auth.signOut({ scope: 'local' });
     window.location.href = 'index.html';
   }
 
