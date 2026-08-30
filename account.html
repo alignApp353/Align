@@ -1417,8 +1417,31 @@ select.form-input{
 const SUPABASE_URL = 'https://auth.alygnn.com';
 const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
 
+
+function alygnnAuthStorageKey() {
+  let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
+  if (!tabId) {
+    tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+      ? window.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
+  }
+  return `alygnn-auth-${tabId}`;
+}
+
 const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = // Keep Alygnn authentication isolated to this browser tab.
+// This lets a candidate account stay open in one tab while a different
+// employer account is signed in in another tab.
+createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      storage: window.sessionStorage,
+      storageKey: alygnnAuthStorageKey(),
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
 
 const PENDING_RESUME_DB = 'alygnn-pending-onboarding-v1';
 const PENDING_RESUME_STORE = 'files';
@@ -1884,7 +1907,7 @@ async function claimPendingCandidateOnboarding(user) {
 }
 
 async function signOutFromNav() {
-  await sb.auth.signOut();
+  await sb.auth.signOut({ scope: 'local' });
   window.location.href = 'index.html';
 }
 
