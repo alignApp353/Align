@@ -7147,7 +7147,7 @@
 
       if(action === 'edit'){
         sessionStorage.setItem('alygnnEditJobId',String(id));
-        location.href = 'app-post-job.html';
+        location.href = 'app-post-job.html?edit=' + encodeURIComponent(String(id));
         return;
       }
 
@@ -8161,7 +8161,7 @@
       if(!id) return;
 
       sessionStorage.setItem('alygnnEditJobId',String(id));
-      location.href = 'app-post-job.html';
+      location.href = 'app-post-job.html?edit=' + encodeURIComponent(String(id));
     });
 
     document.addEventListener('keydown',event => {
@@ -8181,12 +8181,95 @@
     els.candidateSearch.addEventListener('input',renderApplicants);
     els.candidateSort.addEventListener('change',renderApplicants);
 
-    function openPostJob(){
+    function dashboardEntitlementActive(entitlement){
+      const plan=String(entitlement?.plan||'free').toLowerCase();
+      if(!plan||plan==='free') return true;
+
+      const status=String(entitlement?.subscription_status||'').toLowerCase();
+      if(!['active','trialing'].includes(status)) return false;
+
+      const end=entitlement?.current_period_end;
+      if(!end) return true;
+
+      const time=new Date(end).getTime();
+      return Number.isNaN(time)||time>Date.now();
+    }
+
+    function dashboardSlotLimit(entitlement){
+      if(!entitlement||!dashboardEntitlementActive(entitlement)) return 1;
+
+      const plan=String(entitlement.plan||'free').toLowerCase();
+      const defaults={free:1,weekly_slot:1,launch:3,growth:5,scale:8,enterprise:15};
+      const stored=Number(entitlement.slot_limit);
+
+      return Math.max(
+        1,
+        Number.isFinite(stored)&&stored>0 ? stored : (defaults[plan]||1)
+      );
+    }
+
+    function dashboardJobConsumesSlot(job){
+      const status=String(job?.status||'active').toLowerCase();
+      return !['paused','closed','draft','inactive','archived','deleted'].includes(status);
+    }
+
+    async function loadDashboardEntitlement(){
+      const {data,error}=await sb
+        .from('employer_entitlements')
+        .select('*')
+        .eq('employer_id',state.session.user.id)
+        .maybeSingle();
+
+      if(error) throw error;
+      return data||null;
+    }
+
+    function openSlotPricing(used,limit){
+      sessionStorage.setItem('alygnn_job_slot_gate',JSON.stringify({
+        used,
+        limit,
+        checked_at:new Date().toISOString(),
+        source:'app-employer-dashboard'
+      }));
+
+      const params=new URLSearchParams({
+        reason:'slot_limit',
+        used:String(used),
+        limit:String(limit)
+      });
+
+      location.href='app-employer-pricing.html?'+params.toString();
+    }
+
+    async function openPostJob(){
       if(!isAiProfileReady()){
         location.href='app-employer-ai-profile.html';
         return;
       }
-      location.href='app-post-job.html';
+
+      try{
+        const [entitlement,freshJobs]=await Promise.all([
+          loadDashboardEntitlement(),
+          queryJobs(state.session.user.id)
+        ]);
+
+        state.jobs=Array.isArray(freshJobs)?freshJobs:[];
+
+        const used=state.jobs.filter(dashboardJobConsumesSlot).length;
+        const limit=dashboardSlotLimit(entitlement);
+
+        if(used>=limit){
+          openSlotPricing(used,limit);
+          return;
+        }
+
+        // A normal Post a Job tap must always be treated as a NEW job.
+        sessionStorage.removeItem('alygnnEditJobId');
+        location.href='app-post-job.html';
+      }catch(error){
+        console.error('Could not verify job-slot capacity:',error);
+        toast('Could not verify your job-slot access. Please try again.');
+      }
     }
 
     $('post-job-btn').onclick = $('post-job-btn-2').onclick = $('hero-post-job').onclick = openPostJob;
