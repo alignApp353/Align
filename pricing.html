@@ -52,36 +52,21 @@
 
   @media (max-width: 860px) { .nav-links { display: none; } }
 
-  /* ---- Clear return to employer dashboard ---- */
-  .dashboard-return-wrap {
-    max-width:1180px;
-    margin:0 auto;
-    padding:20px 6% 0;
+
+  /* ---- Back navigation ---- */
+  .page-back-wrap {
+    max-width: 1180px; margin: 0 auto; padding: 22px 6% 0;
   }
-  .dashboard-return-btn {
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    min-height:42px;
-    padding:0 18px;
-    border:1.5px solid var(--brand);
-    border-radius:100px;
-    background:white;
-    color:var(--brand);
-    text-decoration:none;
-    font-size:13px;
-    font-weight:600;
-    transition:background .2s ease, color .2s ease, transform .2s ease;
+  .page-back {
+    display: inline-flex; align-items: center; gap: 7px;
+    color: var(--text-muted); text-decoration: none; font-size: 13px; font-weight: 500;
+    transition: color .2s ease, transform .2s ease;
   }
-  .dashboard-return-btn:hover {
-    background:var(--brand);
-    color:white;
-    transform:translateY(-1px);
-  }
+  .page-back:hover { color: var(--brand); transform: translateX(-2px); }
+  .page-back-arrow { font-size: 16px; line-height: 1; }
 
   /* ---- Hero ---- */
-  .hero { max-width: 780px; margin: 0 auto; padding: 60px 6% 40px; text-align: center; }
+  .hero { max-width: 780px; margin: 0 auto; padding: 68px 6% 40px; text-align: center; }
   .hero-badge {
     display: inline-flex; align-items: center; gap: 8px; background: white; border: 1px solid var(--border);
     border-radius: 100px; padding: 6px 16px; font-size: 13px; color: var(--brand); margin-bottom: 28px;
@@ -348,10 +333,9 @@
   </div>
 </nav>
 
-<div class="dashboard-return-wrap">
-  <a class="dashboard-return-btn" href="employer-dashboard.html">
-    <span aria-hidden="true">←</span>
-    Go back to dashboard
+<div class="page-back-wrap">
+  <a class="page-back" href="employer-dashboard.html" aria-label="Back to employer dashboard">
+    <span class="page-back-arrow" aria-hidden="true">←</span> Back to dashboard
   </a>
 </div>
 
@@ -627,8 +611,31 @@
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-  const { createClient } = supabase;
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+function alygnnAuthStorageKey() {
+  let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
+  if (!tabId) {
+    tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+      ? window.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
+  }
+  return `alygnn-auth-${tabId}`;
+}
+
+const { createClient } = supabase;
+  const sb = // Keep Alygnn authentication isolated to this browser tab.
+// This lets a candidate account stay open in one tab while a different
+// employer account is signed in in another tab.
+createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      storage: window.sessionStorage,
+      storageKey: alygnnAuthStorageKey(),
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
 
   let currentSession = null;
   let currentRole = '';
@@ -757,7 +764,7 @@
 
   function handleBoostJob(){
     if(currentSession && currentRole === 'employer'){
-      window.location.href = 'employer-dashboard.html?action=boost#jobs';
+      window.location.href = 'employer-dashboard.html?action=boost';
     }else{
       try{ localStorage.setItem('alygnn_pending_action', 'boost'); }catch(e){}
       window.location.href = 'login.html?role=employer';
