@@ -846,7 +846,10 @@ async function loadJobsForSlotCheck(userId,companyId){
 }
 
 async function validEditJob(userId,companyId){
-  const editId=new URLSearchParams(location.search).get('edit');
+  const editId=
+    new URLSearchParams(location.search).get('edit') ||
+    sessionStorage.getItem('alygnnEditJobId') ||
+    '';
   if(!editId)return false;
 
   const {data,error}=await sb
@@ -882,11 +885,14 @@ async function enforceJobSlotAccess(userId,companyId){
     .maybeSingle();
 
   if(entitlementResult.error){
-    console.error('Entitlement check failed:',entitlementResult.error);
-    throw new Error('Alygnn could not verify your hiring capacity.');
+    // Do not break the job form just because the optional entitlement row/table
+    // is unavailable. Free employers still have one reusable slot. The jobs
+    // query below remains the source of truth for whether that slot is occupied.
+    console.warn('Entitlement check unavailable; using free-slot fallback:',entitlementResult.error);
+    slotEntitlement=null;
+  }else{
+    slotEntitlement=entitlementResult.data||null;
   }
-
-  slotEntitlement=entitlementResult.data||null;
 
   const ownedJobs=await loadJobsForSlotCheck(userId,companyId);
   const used=ownedJobs.filter(jobConsumesSlot).length;
