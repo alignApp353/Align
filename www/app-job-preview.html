@@ -993,6 +993,185 @@ button{
   }
 }
 
+
+/* =====================================================
+   EMPLOYER PREVIEW — REAL DISCOVER FLOATING CARD
+   Keep the preview at the same visual scale as the
+   candidate swipe deck instead of stretching vertically.
+===================================================== */
+
+.page{
+  max-width:480px!important;
+  padding:14px 18px 28px!important;
+}
+
+/* Keep the preview header light so the card is the focus. */
+.page-title{
+  display:none!important;
+}
+
+.page-copy{
+  margin:3px auto 0!important;
+  max-width:360px;
+  text-align:center;
+  font-size:10px!important;
+  line-height:1.45!important;
+}
+
+.eyebrow{
+  text-align:center;
+  font-size:9px!important;
+  letter-spacing:1.25px!important;
+}
+
+.status-wrap{
+  justify-content:center;
+  margin-top:7px!important;
+}
+
+/* Approved status already appears as the blue verified check
+   inside the candidate card. Only warning states need space. */
+.status-wrap:empty{
+  display:none!important;
+}
+
+.flip-shell{
+  position:relative!important;
+  width:100%!important;
+  max-width:430px!important;
+  height:min(440px,calc(100dvh - 265px))!important;
+  min-height:400px!important;
+  margin:14px auto 0!important;
+  perspective:1600px!important;
+  isolation:isolate;
+}
+
+/* Two subtle cards behind the preview recreate the real swipe deck. */
+.flip-shell::before,
+.flip-shell::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  border:1px solid var(--border);
+  border-radius:30px;
+  background:#fff;
+  pointer-events:none;
+  transform-origin:center bottom;
+}
+
+.flip-shell::before{
+  z-index:0;
+  transform:scale(.94) translateY(20px);
+  opacity:.62;
+  box-shadow:0 15px 42px rgba(27,43,63,.06);
+}
+
+.flip-shell::after{
+  z-index:1;
+  transform:scale(.97) translateY(10px);
+  opacity:.82;
+  box-shadow:0 17px 48px rgba(27,43,63,.08);
+}
+
+.flip-shadow{
+  left:28px!important;
+  right:28px!important;
+  bottom:-18px!important;
+  height:54px!important;
+  opacity:.75;
+  z-index:-1;
+}
+
+.flip-inner{
+  z-index:3;
+}
+
+.card-face{
+  border-radius:30px!important;
+  box-shadow:0 22px 60px rgba(27,43,63,.12)!important;
+}
+
+/* Exact candidate-card content should not contain employer-only skill chips. */
+.candidate-preview-chips{
+  display:none!important;
+}
+
+.candidate-card-preview{
+  padding:24px!important;
+  min-height:0!important;
+}
+
+.candidate-card-toolbar{
+  margin-bottom:18px!important;
+}
+
+.candidate-card-top{
+  margin-bottom:18px!important;
+}
+
+.candidate-card-pills{
+  margin-bottom:18px!important;
+}
+
+.candidate-overview{
+  margin-top:12px!important;
+}
+
+.candidate-card-bottom{
+  margin-top:auto!important;
+}
+
+/* Full job remains contained inside the same floating card. */
+.card-back{
+  height:100%!important;
+}
+
+.full-job{
+  min-height:0!important;
+}
+
+/* Short phones use the same compact rule as candidate Discover. */
+@media(max-height:760px){
+  .page{
+    padding-top:9px!important;
+  }
+
+  .page-copy{
+    display:none!important;
+  }
+
+  .flip-shell{
+    height:min(415px,calc(100dvh - 230px))!important;
+    min-height:370px!important;
+    margin-top:9px!important;
+  }
+
+  .candidate-card-preview{
+    padding:19px!important;
+  }
+
+  .candidate-job-title{
+    font-size:25px!important;
+  }
+
+  .candidate-card-toolbar,
+  .candidate-card-top,
+  .candidate-card-pills{
+    margin-bottom:13px!important;
+  }
+}
+
+@media(max-width:390px){
+  .page{
+    padding-left:16px!important;
+    padding-right:16px!important;
+  }
+
+  .flip-shell{
+    max-width:100%!important;
+  }
+}
+
 </style>
 </head>
 
@@ -1015,7 +1194,7 @@ button{
   <div class="eyebrow">Candidate Preview</div>
   <div class="page-title">See the swipe card candidates will see.</div>
   <div class="page-copy">
-    This is how the job card appears in candidate Discover. Match percentage is personalized for each candidate, so it is not shown in employer preview.
+    Candidate Discover preview · Match score is personalized and hidden here.
   </div>
 
   <div class="status-wrap" id="status-wrap"></div>
@@ -1342,8 +1521,7 @@ function renderStatus(){
   }
 
   if(verification==='approved'){
-    wrap.innerHTML=
-      '<span class="status-pill approved">✓ Verified employer</span>';
+    wrap.innerHTML='';
 
     $('publish-btn').disabled=false;
     $('publish-btn').textContent='Publish Job';
