@@ -371,6 +371,8 @@ let verificationStatus = 'not_submitted';
 let verificationDocumentSubmitted = false;
 let currentCompanyId = '';
 let currentCompany = null;
+let slotEntitlement = null;
+let slotUsage = {used:0,limit:1};
 
 
 let titleSearchTimer=null;
@@ -737,6 +739,170 @@ function showMessage(text,type='error'){
 function clearMessage(){
   el('message').className = 'message';
   el('message').textContent = '';
+}
+
+function slotEntitlementActive(entitlement){
+  const plan=String(entitlement?.plan||'free').toLowerCase();
+  if(!plan||plan==='free')return true;
+
+  const status=String(entitlement?.subscription_status||'').toLowerCase();
+  if(!['active','trialing'].includes(status))return false;
+
+  const end=entitlement?.current_period_end;
+  if(!end)return true;
+
+  const time=new Date(end).getTime();
+  return Number.isNaN(time)||time>Date.now();
+}
+
+function slotLimitForEntitlement(entitlement){
+  if(!entitlement||!slotEntitlementActive(entitlement))return 1;
+
+  const plan=String(entitlement.plan||'free').toLowerCase();
+  const defaults={
+    free:1,
+    weekly_slot:1,
+    launch:3,
+    growth:5,
+    scale:8,
+    enterprise:15
+  };
+
+  const stored=Number(entitlement.slot_limit);
+  const fallback=defaults[plan]||1;
+
+  return Math.max(
+    1,
+    Number.isFinite(stored)&&stored>0 ? stored : fallback
+  );
+}
+
+function jobConsumesSlot(job){
+  const status=String(job?.status||'active').toLowerCase();
+  return !['paused','closed','draft','inactive','archived','deleted'].includes(status);
+}
+
+async function loadJobsForSlotCheck(userId,companyId){
+  const collected=[];
+  const seen=new Set();
+  let successfulQueries=0;
+
+  const addRows=rows=>{
+    (rows||[]).forEach(job=>{
+      const key=String(job?.id||[
+        job?.title,
+        job?.created_at,
+        job?.company_id,
+        job?.employer_id
+      ].join('|'));
+
+      if(seen.has(key))return;
+      seen.add(key);
+      collected.push(job);
+    });
+  };
+
+  for(const column of ['employer_id','created_by','user_id','owner_id']){
+    const result=await sb
+      .from('jobs')
+      .select('id,status,employer_id,company_id,created_at,title')
+      .eq(column,userId);
+
+    if(!result.error){
+      successfulQueries+=1;
+      addRows(result.data);
+    }else{
+      console.warn(`Slot check using ${column} failed:`,result.error);
+    }
+  }
+
+  if(companyId){
+    const companyResult=await sb
+      .from('jobs')
+      .select('id,status,employer_id,company_id,created_at,title')
+      .eq('company_id',companyId);
+
+    if(!companyResult.error){
+      successfulQueries+=1;
+      addRows(companyResult.data);
+    }else{
+      console.warn('Slot check using company_id failed:',companyResult.error);
+    }
+  }
+
+  if(!successfulQueries){
+    throw new Error('Alygnn could not verify current job-slot usage.');
+  }
+
+  return collected;
+}
+
+async function validEditJob(userId,companyId){
+  const editId=new URLSearchParams(location.search).get('edit');
+  if(!editId)return false;
+
+  const {data,error}=await sb
+    .from('jobs')
+    .select('id,employer_id,company_id')
+    .eq('id',editId)
+    .maybeSingle();
+
+  if(error||!data){
+    console.warn('Could not validate edit job:',error);
+    return false;
+  }
+
+  const ownedByUser=String(data.employer_id||'')===String(userId||'');
+  const ownedByCompany=companyId&&String(data.company_id||'')===String(companyId);
+
+  if(ownedByUser||ownedByCompany){
+    sessionStorage.setItem('alygnnEditJobId',String(editId));
+    return true;
+  }
+
+  return false;
+}
+
+async function enforceJobSlotAccess(userId,companyId){
+  // Editing an existing job does not create another occupied slot.
+  if(await validEditJob(userId,companyId))return true;
+
+  const entitlementResult=await sb
+    .from('employer_entitlements')
+    .select('*')
+    .eq('employer_id',userId)
+    .maybeSingle();
+
+  if(entitlementResult.error){
+    console.error('Entitlement check failed:',entitlementResult.error);
+    throw new Error('Alygnn could not verify your hiring capacity.');
+  }
+
+  slotEntitlement=entitlementResult.data||null;
+
+  const ownedJobs=await loadJobsForSlotCheck(userId,companyId);
+  const used=ownedJobs.filter(jobConsumesSlot).length;
+  const limit=slotLimitForEntitlement(slotEntitlement);
+
+  slotUsage={used,limit};
+
+  if(used<limit)return true;
+
+  sessionStorage.setItem('alygnn_job_slot_gate',JSON.stringify({
+    used,
+    limit,
+    checked_at:new Date().toISOString(),
+    source:'app-post-job'
+  }));
+
+  const params=new URLSearchParams({
+    reason:'slot_limit',
+    used:String(used),
+    limit:String(limit)
+  });
+
+  location.replace(`app-employer-pricing.html?${params.toString()}`);
+  return false;
 }
 
 function hideLoading(){
@@ -1223,6 +1389,9 @@ el('description').addEventListener('input', () => {
     currentCompany=membership
       ? (Array.isArray(membership.companies)?membership.companies[0]:membership.companies)
       : null;
+
+    const slotAllowed=await enforceJobSlotAccess(userId,currentCompanyId);
+    if(!slotAllowed)return;
 
     let verificationDocument=null;
 
