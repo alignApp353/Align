@@ -108,6 +108,12 @@ h1{font-family:'DM Serif Display',Georgia,serif;font-size:34px;line-height:1.05;
   margin-top:18px;padding:17px;border:1px solid var(--border);border-radius:19px;background:var(--card);
   box-shadow:var(--shadow)
 }
+.gate-notice{
+  margin-top:16px;padding:16px;border:1px solid color-mix(in srgb,var(--brand) 48%,var(--border));
+  border-radius:18px;background:color-mix(in srgb,var(--brand) 8%,var(--card))
+}
+.gate-notice strong{display:block;font-size:15px;margin-bottom:5px}
+.gate-notice p{margin:0;color:var(--muted);font-size:11px;line-height:1.58}
 .current-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
 .current-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:900}
 .current-name{font-size:17px;font-weight:900;margin-top:5px}
@@ -208,7 +214,11 @@ h1{font-family:'DM Serif Display',Georgia,serif;font-size:34px;line-height:1.05;
   <div class="eyebrow">Employer billing</div>
   <h1>Choose your hiring capacity.</h1>
   <p class="lede">Alygnn uses reusable job slots. One slot holds one active job at a time. Close or pause that job, then use the available slot for another opening while your slot term is active.</p>
-  <div class="message" id="capacity-message" hidden></div>
+
+  <section class="gate-notice" id="slot-gate-notice" hidden>
+    <strong id="slot-gate-title">Your current job slot is occupied.</strong>
+    <p id="slot-gate-copy"></p>
+  </section>
 
   <section class="current-card" id="current-card">
     <div class="current-top">
@@ -295,148 +305,116 @@ const CATALOG={
   }
 };
 
+const PAGE_PARAMS=new URLSearchParams(location.search);
+const SLOT_GATE_REASON=PAGE_PARAMS.get('reason')==='slot_limit';
+
 let session=null;
-let billing='quarterly';
+let billing=SLOT_GATE_REASON?'weekly':'quarterly';
 let entitlement=null;
 let jobs=[];
-let postingAccess=null;
 
 const $=id=>document.getElementById(id);
 
-const params=new URLSearchParams(location.search);
-const returnMode=params.get('return')==='preview'?'preview':'dashboard';
-const reason=params.get('reason')||'';
-
-function returnTarget(){
-  if(returnMode==='preview'){
-    const draft=sessionStorage.getItem('alygnnJobDraft');
-    if(draft) return 'app-job-preview.html';
-    return 'app-post-job.html';
-  }
-  return 'app-employer-dashboard.html#jobs';
-}
-
-function withReturn(url){
-  const next=new URL(url,location.href);
-  if(returnMode==='preview'){
-    next.searchParams.set('return','preview');
-  }
-  return next.pathname.split('/').pop()+next.search;
-}
-
-function showMessage(text,elementId='message'){
-  const el=$(elementId);
-  if(!el) return;
-  el.textContent=text;
-  el.hidden=false;
-}
-
-function exactPlan(){
-  return String(
-    postingAccess?.plan||
-    entitlement?.test_plan||
-    entitlement?.plan||
-    'free'
-  ).toLowerCase();
+function showMessage(text){
+  $('message').textContent=text;
+  $('message').hidden=false;
 }
 
 function planLabel(){
-  const p=exactPlan();
+  const p=String(entitlement?.plan||'free').toLowerCase();
   if(p==='weekly_slot') return 'Weekly Job Slot';
-  if(p==='launch'||p==='business') return 'Launch';
-  if(p==='growth'||p==='enterprise') return 'Growth';
+  if(p==='launch') return 'Launch';
+  if(p==='growth') return 'Growth';
   if(p==='scale') return 'Scale';
+  if(p==='enterprise') return 'Enterprise';
   return 'Free';
 }
 
 function entitlementActive(){
-  if(postingAccess) return postingAccess.active_paid_plan===true || postingAccess.plan==='free';
-
   const status=String(entitlement?.subscription_status||'').toLowerCase();
-  const p=exactPlan();
-
-  if(p==='free'||p==='') return true;
+  if(['free',''].includes(String(entitlement?.plan||'free').toLowerCase())) return true;
   if(!['active','trialing'].includes(status)) return false;
-
   const end=entitlement?.current_period_end;
   if(!end) return true;
-
   const time=new Date(end).getTime();
   return Number.isNaN(time)||time>Date.now();
 }
 
 function defaultSlotLimit(){
-  const p=exactPlan();
-  if(p==='growth'||p==='enterprise') return 5;
+  const p=String(entitlement?.plan||'free').toLowerCase();
+  if(p==='growth') return 5;
   if(p==='scale') return 8;
-  if(p==='launch'||p==='business') return 3;
+  if(p==='enterprise') return Number(entitlement?.slot_limit||15);
+  if(p==='launch') return 3;
   if(p==='weekly_slot') return 1;
   return 1;
 }
 
+function jobConsumesSlot(job){
+  const status=String(job?.status||'active').toLowerCase();
+  return !['paused','closed','draft','inactive','archived','deleted'].includes(status);
+}
+
 function usedSlots(){
-  if(postingAccess) return Math.max(0,Number(postingAccess.active_job_count||0));
-  return jobs.filter(job=>['active','pending'].includes(String(job.status||'active').toLowerCase())).length;
+  return jobs.filter(jobConsumesSlot).length;
 }
 
 function effectiveSlotLimit(){
-  if(postingAccess) return Math.max(1,Number(postingAccess.slot_limit||1));
+  if(!entitlement||!entitlementActive())return 1;
+  const stored=Number(entitlement?.slot_limit);
+  const fallback=defaultSlotLimit();
+  return Math.max(1,Number.isFinite(stored)&&stored>0?stored:fallback);
+}
 
-  const base=Math.max(1,Number(entitlement?.slot_limit||defaultSlotLimit()));
-  let addon=0;
+function renderSlotGateNotice(){
+  const notice=$('slot-gate-notice');
+  if(!notice)return;
 
-  if(
-    String(entitlement?.billing_period||'').toLowerCase()==='monthly' &&
-    entitlement?.addon_slots_expires_at
-  ){
-    const expiry=new Date(entitlement.addon_slots_expires_at).getTime();
-    if(!Number.isNaN(expiry)&&expiry>Date.now()){
-      addon=Math.max(0,Number(entitlement?.addon_slot_count||0));
-    }
+  if(!SLOT_GATE_REASON){
+    notice.hidden=true;
+    return;
   }
 
-  return base+addon;
+  const used=usedSlots();
+  const limit=effectiveSlotLimit();
+
+  if(used<limit){
+    $('slot-gate-title').textContent='You have an available job slot.';
+    $('slot-gate-copy').textContent='A slot is available now, so you can return to My Jobs and post without buying more capacity.';
+    notice.hidden=false;
+    return;
+  }
+
+  $('slot-gate-title').textContent='Add capacity to post another job.';
+  $('slot-gate-copy').textContent=
+    `You are using ${used} of ${limit} available job slot${limit===1?'':'s'}. `+
+    'Weekly is best for one extra opening right now. Monthly is best for ongoing hiring. Quarterly gives the best longer-term value.';
+  notice.hidden=false;
 }
 
 function renderCurrent(){
-  const limit=effectiveSlotLimit();
-  const used=usedSlots();
-  const paid=postingAccess?.active_paid_plan===true;
-
   $('current-plan').textContent=planLabel();
   $('current-status').textContent=entitlementActive()?'Active':'Inactive';
-  $('slot-limit').textContent=String(limit);
-  $('slot-used').textContent=String(used);
+  $('slot-limit').textContent=String(effectiveSlotLimit());
+  $('slot-used').textContent=String(usedSlots());
 
-  const freeAvailable=
-    !paid &&
-    (postingAccess ? postingAccess.can_post===true : used<1);
+  const plan=String(entitlement?.plan||'free').toLowerCase();
+  const paidPlanActive=plan!=='free'&&plan!==''&&entitlementActive();
+  const freeOccupied=usedSlots()>=1;
+  const freeUnavailable=paidPlanActive||freeOccupied;
 
-  $('free-btn').disabled=!freeAvailable;
+  $('free-btn').disabled=freeUnavailable;
+  $('free-btn').textContent=paidPlanActive
+    ? 'Included in your current plan'
+    : freeOccupied
+      ? 'Free job slot currently occupied'
+      : 'Use free job slot';
 
-  if(paid){
-    $('free-btn').textContent='Paid hiring capacity is active';
-  }else if(freeAvailable){
-    $('free-btn').textContent='Use free job slot';
-  }else{
-    $('free-btn').textContent='Free reusable slot is in use';
-  }
-
-  if(reason){
-    const currentMessage=$('capacity-message');
-
-    if(reason.includes('limit')||reason.includes('in_use')){
-      currentMessage.textContent=paid
-        ?`All ${limit} of your reusable slots are currently in use. Add capacity below or close an existing job.`
-        :'Your free reusable slot is currently in use. Choose paid capacity below or close the active job.';
-      currentMessage.hidden=false;
-    }
-  }
+  renderSlotGateNotice();
 }
 
 function renderPlans(){
   const plans=CATALOG[billing];
-
   $('plan-list').innerHTML=Object.entries(plans).map(([key,p])=>`
     <article class="plan ${p.popular?'popular':''}">
       ${p.popular?'<div class="plan-tag">Most popular</div>':''}
@@ -456,45 +434,64 @@ function renderPlans(){
   document.querySelectorAll('[data-plan]').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const plan=btn.dataset.plan;
-      location.href=withReturn(
-        'app-employer-payment.html?plan='+
-        encodeURIComponent(plan)+
-        '&billing='+
-        encodeURIComponent(billing)
-      );
+      location.href='app-employer-payment.html?plan='+encodeURIComponent(plan)+'&billing='+encodeURIComponent(billing);
     });
   });
 }
 
 function switchBilling(next){
   billing=CATALOG[next]?next:'quarterly';
-
   document.querySelectorAll('[data-billing]').forEach(btn=>{
     btn.classList.toggle('active',btn.dataset.billing===billing);
   });
-
   renderPlans();
+}
+
+async function queryPricingJobs(userId,companyId){
+  const collected=[];
+  const seen=new Set();
+
+  const addRows=rows=>{
+    (rows||[]).forEach(job=>{
+      const key=String(job?.id||[job?.status,job?.employer_id,job?.company_id].join('|'));
+      if(seen.has(key))return;
+      seen.add(key);
+      collected.push(job);
+    });
+  };
+
+  for(const column of ['employer_id','created_by','user_id','owner_id']){
+    const result=await sb
+      .from('jobs')
+      .select('id,status,employer_id,company_id')
+      .eq(column,userId);
+
+    if(!result.error)addRows(result.data);
+  }
+
+  if(companyId){
+    const result=await sb
+      .from('jobs')
+      .select('id,status,employer_id,company_id')
+      .eq('company_id',companyId);
+
+    if(!result.error)addRows(result.data);
+  }
+
+  return collected;
 }
 
 async function loadAccount(){
   const {data:{session:active},error}=await sb.auth.getSession();
-
   if(error||!active){
     location.replace('app-employer-login.html');
     return;
   }
-
   session=active;
 
   let role='';
-
   try{
-    const {data:profile}=await sb
-      .from('profiles')
-      .select('role')
-      .eq('id',session.user.id)
-      .maybeSingle();
-
+    const {data:profile}=await sb.from('profiles').select('role').eq('id',session.user.id).maybeSingle();
     role=String(profile?.role||'').toLowerCase();
   }catch(_){}
 
@@ -507,20 +504,12 @@ async function loadAccount(){
     ''
   ).toLowerCase();
 
-  if(role&&role!=='employer'){
+  if(role && role!=='employer'){
     location.replace('app-account.html');
     return;
   }
 
-  try{
-    const {data,error:accessError}=await sb.rpc('get_employer_posting_access');
-    if(accessError) throw accessError;
-    postingAccess=data||null;
-  }catch(error){
-    console.warn('Posting access RPC unavailable:',error);
-  }
-
-  const entResult=await sb
+  let entResult=await sb
     .from('employer_entitlements')
     .select('*')
     .eq('employer_id',session.user.id)
@@ -528,18 +517,29 @@ async function loadAccount(){
 
   entitlement=entResult.error?null:entResult.data;
 
-  const {data:jobRows}=await sb
-    .from('jobs')
-    .select('id,status,employer_id')
-    .eq('employer_id',session.user.id);
+  let companyId='';
+  const membershipResult=await sb
+    .from('company_members')
+    .select('company_id')
+    .eq('user_id',session.user.id)
+    .eq('membership_status','active')
+    .limit(1)
+    .maybeSingle();
 
-  jobs=jobRows||[];
+  if(!membershipResult.error){
+    companyId=membershipResult.data?.company_id||'';
+  }
 
+  jobs=await queryPricingJobs(session.user.id,companyId);
   renderCurrent();
   $('loading').hidden=true;
 }
 
-$('back-btn').addEventListener('click',()=>location.href=returnTarget());
+$('back-btn').addEventListener('click',()=>{
+  location.href=SLOT_GATE_REASON
+    ? 'app-employer-dashboard.html?view=jobs'
+    : 'app-employer-dashboard.html#settings';
+});
 
 document.querySelectorAll('[data-billing]').forEach(btn=>{
   btn.addEventListener('click',()=>switchBilling(btn.dataset.billing));
@@ -547,34 +547,28 @@ document.querySelectorAll('[data-billing]').forEach(btn=>{
 
 $('free-btn').addEventListener('click',()=>{
   if($('free-btn').disabled) return;
-  location.href=returnTarget();
+  location.href='app-post-job.html';
 });
 
 $('additional-slot-btn').addEventListener('click',()=>{
-  const currentPlan=exactPlan();
-
   const activeMonthly=
-    String(postingAccess?.billing_period||entitlement?.billing_period||'').toLowerCase()==='monthly' &&
-    (postingAccess?.active_paid_plan===true||entitlementActive()) &&
-    ['launch','growth','scale','business','enterprise'].includes(currentPlan);
+    String(entitlement?.billing_period||'').toLowerCase()==='monthly' &&
+    entitlementActive() &&
+    ['launch','growth','scale'].includes(String(entitlement?.plan||'').toLowerCase());
 
   if(!activeMonthly){
-    showMessage(
-      'The $150 additional reusable slot is available only with an active monthly Launch, Growth, or Scale plan.'
-    );
+    showMessage('The $150 additional reusable slot is available only with an active monthly Launch, Growth, or Scale plan.');
     return;
   }
 
-  location.href=withReturn(
-    'app-employer-payment.html?product=additional_slot&billing=monthly'
-  );
+  location.href='app-employer-payment.html?product=additional_slot&billing=monthly';
 });
 
 $('boost-btn').addEventListener('click',()=>{
   location.href='app-employer-dashboard.html?view=jobs&action=boost';
 });
 
-renderPlans();
+switchBilling(billing);
 loadAccount();
 </script>
 </body>
