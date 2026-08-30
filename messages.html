@@ -183,7 +183,7 @@
     <a href="account.html">Account</a>
     <a href="my-jobs.html">My jobs</a>
     <a href="messages.html" class="active">Messages</a>
-    <a href="swipe.html">Swipe</a>
+    <a href="swipe.html" id="candidate-swipe-link" style="display:none;">Swipe</a>
   </div>
 
   <div class="candidate-nav-actions" id="candidate-nav-actions">
@@ -764,7 +764,7 @@ async function init(){
 
   const {data:profile,error:profileError}=await sb
     .from('profiles')
-    .select('id,role,full_name,company_name')
+    .select('id,role,full_name,company_name,resume_file_path,resume_data,preferences')
     .eq('id',currentUser.id)
     .maybeSingle();
 
@@ -776,6 +776,17 @@ async function init(){
 
   currentProfile=profile||{};
   currentRole=String(profile?.role||currentUser.user_metadata?.role||'candidate').toLowerCase();
+
+  // Candidate Swipe stays hidden until both required onboarding pieces exist.
+  if(currentRole!=='employer'){
+    const hasResume=!!(profile?.resume_file_path||profile?.resume_data);
+    const hasPreferences=!!profile?.preferences;
+    const candidateSwipeLink=document.getElementById('candidate-swipe-link');
+    if(candidateSwipeLink && hasResume && hasPreferences){
+      candidateSwipeLink.style.display='';
+    }
+  }
+
   if(currentRole==='employer'){
     document.getElementById('nav-name').textContent=
       await resolveEmployerCompanyName(profile,currentUser);
