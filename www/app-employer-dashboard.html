@@ -3012,9 +3012,136 @@
       border-color:#C7D8E8;
     }
 
+
+    /* ==========================================================
+       MY JOBS — OPEN / CLOSED TABS
+       Clean underline navigation for long-term job history.
+       ========================================================== */
+    .jobs-status-tabs{
+      display:flex;
+      align-items:center;
+      gap:24px;
+      margin:18px 0 8px;
+      padding:0;
+      border:0;
+      border-bottom:1px solid var(--border);
+      background:transparent;
+    }
+
+    .jobs-status-tab{
+      position:relative;
+      min-height:42px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+      padding:0 2px 11px;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+      cursor:pointer;
+      transition:color .18s ease;
+    }
+
+    .jobs-status-tab::after{
+      content:'';
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:-1px;
+      height:2px;
+      border-radius:999px;
+      background:transparent;
+      transition:background .18s ease;
+    }
+
+    .jobs-status-tab.active{
+      background:transparent;
+      color:var(--text);
+      box-shadow:none;
+    }
+
+    .jobs-status-tab.active::after{
+      background:var(--brand);
+    }
+
+    .jobs-tab-count{
+      min-width:20px;
+      height:20px;
+      padding:0 6px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      background:var(--soft);
+      color:var(--muted);
+      font-size:9px;
+      font-weight:900;
+      line-height:1;
+    }
+
+    .jobs-status-tab.active .jobs-tab-count{
+      background:var(--brand-soft);
+      color:var(--brand);
+    }
+
+    html[data-theme="dark"] .jobs-status-tabs{
+      background:transparent;
+    }
+
+    html[data-theme="dark"] .jobs-status-tab:not(.active) .jobs-tab-count{
+      background:#111F2C;
+      color:#8192A5;
+    }
+
+    .jobs-tab-empty{
+      padding:34px 10px 18px;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      text-align:center;
+    }
+
+    .jobs-tab-empty::before{
+      content:'';
+      display:block;
+      width:36px;
+      height:36px;
+      margin:0 auto 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:
+        linear-gradient(var(--muted),var(--muted)) center 11px / 16px 1.5px no-repeat,
+        linear-gradient(var(--muted),var(--muted)) center 17px / 12px 1.5px no-repeat,
+        linear-gradient(var(--muted),var(--muted)) center 23px / 8px 1.5px no-repeat,
+        var(--card);
+      opacity:.65;
+    }
+
+    .jobs-tab-empty strong{
+      display:block;
+      margin-bottom:5px;
+      color:var(--text);
+      font-size:14px;
+      font-weight:900;
+    }
+
+    .jobs-tab-empty span{
+      display:block;
+      max-width:320px;
+      margin:0 auto;
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.55;
+    }
+
+
   </style>
 </head>
-<body data-employer-dashboard-build="2026-08-29-app-pricing-link">
+<body data-employer-dashboard-build="2026-08-30-slot-paywall-open-closed-tabs">
   <div class="loading" id="loading">
     <div class="spinner"></div>
     <div class="loading-copy">Loading employer workspace…</div>
@@ -3365,6 +3492,32 @@
         <p class="page-sub">Manage every opening, track performance, and move faster from one place.</p>
         <div class="toolbar">
           <button class="primary-btn" id="post-job-btn-2" type="button">Post a Job</button>
+        </div>
+
+        <div class="jobs-status-tabs" id="jobs-status-tabs" role="tablist" aria-label="Job status">
+          <button
+            class="jobs-status-tab active"
+            id="jobs-tab-open"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            data-jobs-tab="open"
+          >
+            <span>Open</span>
+            <span class="jobs-tab-count" id="jobs-open-count">0</span>
+          </button>
+
+          <button
+            class="jobs-status-tab"
+            id="jobs-tab-closed"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            data-jobs-tab="closed"
+          >
+            <span>Closed</span>
+            <span class="jobs-tab-count" id="jobs-closed-count">0</span>
+          </button>
         </div>
         <section class="section">
           <div id="jobs-list"></div>
@@ -4015,6 +4168,8 @@
         }
       }
     );
+
+    let jobsStatusTab = 'open';
 
     const state = {
       session:null,
@@ -5650,8 +5805,19 @@
             <button class="mini-btn" data-job-action="view" data-job-id="${escapeHtml(id)}">View Job</button>
             <button class="mini-btn primary" data-job-action="applicants" data-job-id="${escapeHtml(id)}">View Applicants</button>
             <button class="mini-btn" data-job-action="edit" data-job-id="${escapeHtml(id)}">Edit</button>
-            <button class="mini-btn" data-job-action="${statusRaw === 'paused' ? 'activate' : 'pause'}" data-job-id="${escapeHtml(id)}">${statusRaw === 'paused' ? 'Activate' : 'Pause'}</button>
-            <button class="mini-btn danger" data-job-action="archive" data-job-id="${escapeHtml(id)}">Archive</button>
+            ${statusRaw === 'closed'
+              ? `<button class="mini-btn" data-job-action="reopen" data-job-id="${escapeHtml(id)}">Reopen</button>`
+              : statusRaw === 'archived'
+                ? ''
+                : `
+                  <button class="mini-btn" data-job-action="${statusRaw === 'paused' ? 'activate' : 'pause'}" data-job-id="${escapeHtml(id)}">${statusRaw === 'paused' ? 'Activate' : 'Pause'}</button>
+                  <button class="mini-btn" data-job-action="close" data-job-id="${escapeHtml(id)}">Close Job</button>
+                `
+            }
+            ${statusRaw === 'archived'
+              ? ''
+              : `<button class="mini-btn danger" data-job-action="archive" data-job-id="${escapeHtml(id)}">Archive</button>`
+            }
           </div>
         `;
 
@@ -5688,42 +5854,88 @@
     }
 
     function renderJobs(){
-      const jobs = Array.isArray(state.jobs)
+      const allJobs = Array.isArray(state.jobs)
         ? state.jobs.filter(Boolean)
         : [];
 
-      const empty = `
-        <div class="empty">
-          <strong>No jobs yet</strong>
-          Post your first job to begin receiving applicants.
-        </div>
-      `;
-
       /*
-       * Use a defensive renderer here. The Open Jobs metric can already
-       * see these records, so My Jobs should never disappear because one
-       * optional job field is missing or malformed.
+       * Open = jobs that are still part of the employer's current hiring
+       * workflow. Paused/pending/draft jobs remain here because they can still
+       * occupy or return to active capacity.
+       *
+       * Closed = intentionally closed roles. Archived roles stay out of both
+       * tabs so a long-time employer's history does not clutter My Jobs.
        */
+      const openJobs = allJobs.filter(job => {
+        const status = String(job?.status || 'active').toLowerCase();
+        return status !== 'closed' && status !== 'archived';
+      });
+
+      const closedJobs = allJobs.filter(job =>
+        String(job?.status || '').toLowerCase() === 'closed'
+      );
+
+      const visibleJobs =
+        jobsStatusTab === 'closed'
+          ? closedJobs
+          : openJobs;
+
+      const openCount = $('jobs-open-count');
+      const closedCount = $('jobs-closed-count');
+
+      if(openCount) openCount.textContent = String(openJobs.length);
+      if(closedCount) closedCount.textContent = String(closedJobs.length);
+
+      document.querySelectorAll('[data-jobs-tab]').forEach(button => {
+        const active = button.dataset.jobsTab === jobsStatusTab;
+        button.classList.toggle('active',active);
+        button.setAttribute('aria-selected',active ? 'true' : 'false');
+      });
+
+      const empty = jobsStatusTab === 'closed'
+        ? `
+          <div class="jobs-tab-empty">
+            <strong>No closed jobs yet</strong>
+            <span>Closed roles will appear here and can be reopened anytime.</span>
+          </div>
+        `
+        : `
+          <div class="jobs-tab-empty">
+            <strong>No open jobs</strong>
+            <span>Post a new role or reopen one from Closed.</span>
+          </div>
+        `;
+
       if(els.jobsList){
         els.jobsList.style.display='block';
         els.jobsList.style.visibility='visible';
         els.jobsList.style.opacity='1';
-        els.jobsList.style.minHeight=jobs.length ? '120px' : '72px';
-        els.jobsList.innerHTML = jobs.length
-          ? jobs.map(job => safeJobCard(job,false)).join('')
+        els.jobsList.style.minHeight=visibleJobs.length ? '120px' : '72px';
+        els.jobsList.innerHTML = visibleJobs.length
+          ? visibleJobs.map(job => safeJobCard(job,false)).join('')
           : empty;
       }
 
+      /*
+       * Dashboard home should stay focused only on currently open hiring work,
+       * never old closed/archived roles.
+       */
       if(els.dashboardJobs){
-        els.dashboardJobs.innerHTML = jobs.length
-          ? jobs.slice(0,2).map(job => safeJobCard(job,true)).join('')
-          : empty;
+        els.dashboardJobs.innerHTML = openJobs.length
+          ? openJobs.slice(0,2).map(job => safeJobCard(job,true)).join('')
+          : `
+            <div class="empty">
+              <strong>No open jobs</strong>
+              Post a job or reopen a role to continue hiring.
+            </div>
+          `;
       }
 
       console.log(
         'RENDERING MY JOBS:',
-        jobs.length,
-        jobs.map(job => ({
+        jobsStatusTab,
+        visibleJobs.length,
+        visibleJobs.map(job => ({
           id:job?.id,
           title:job?.title,
           status:job?.status
@@ -6644,6 +6856,30 @@
       safeRenderAll();
     }
 
+
+    document.querySelectorAll('[data-jobs-tab]').forEach(button => {
+      button.addEventListener('click',() => {
+        jobsStatusTab =
+          button.dataset.jobsTab === 'closed'
+            ? 'closed'
+            : 'open';
+
+        renderJobs();
+
+        try{
+          sessionStorage.setItem('alygnnEmployerJobsTab',jobsStatusTab);
+        }catch(_){}
+      });
+    });
+
+    try{
+      const savedJobsTab = sessionStorage.getItem('alygnnEmployerJobsTab');
+      if(savedJobsTab === 'closed' || savedJobsTab === 'open'){
+        jobsStatusTab = savedJobsTab;
+      }
+    }catch(_){}
+
+
     function openCandidate(id){
       try{
         const application = state.applications.find(
@@ -7178,16 +7414,91 @@
         return;
       }
 
-      if(action === 'archive'){
-        if(!confirm('Archive this job? It will be removed from active listings.')) return;
 
-        const { error } = await sb.from('jobs').update({status:'closed',updated_at:new Date().toISOString()}).eq('id',id);
+      if(action === 'close'){
+        if(!confirm(
+          'Close this job? It will stop appearing to candidates and free this reusable job slot for another opening.'
+        )) return;
+
+        const { error } = await sb
+          .from('jobs')
+          .update({
+            status:'closed',
+            updated_at:new Date().toISOString()
+          })
+          .eq('id',id);
+
+        if(error){
+          console.error(error);
+          toast('Could not close job.');
+          return;
+        }
+
+        job.status='closed';
+        renderAll();
+        toast('Job closed. The slot is now available.');
+        return;
+      }
+
+      if(action === 'reopen'){
+        try{
+          const [entitlement,freshJobs]=await Promise.all([
+            loadDashboardEntitlement(),
+            queryJobs(state.session.user.id)
+          ]);
+
+          state.jobs=Array.isArray(freshJobs)?freshJobs:state.jobs;
+
+          const used=state.jobs.filter(dashboardJobConsumesSlot).length;
+          const limit=dashboardSlotLimit(entitlement);
+
+          if(used>=limit){
+            openSlotPricing(used,limit);
+            return;
+          }
+
+          if(!confirm(
+            'Reopen this job? It will use one available job slot and become visible to candidates again.'
+          )) return;
+
+          const { error } = await sb
+            .from('jobs')
+            .update({
+              status:'active',
+              updated_at:new Date().toISOString()
+            })
+            .eq('id',id);
+
+          if(error){
+            console.error(error);
+            toast(
+              error.message ||
+              'Could not reopen job. Make sure a reusable slot is available.'
+            );
+            return;
+          }
+
+          const liveJob=state.jobs.find(item=>String(item.id)===String(id));
+          if(liveJob) liveJob.status='active';
+          renderAll();
+          toast('Job reopened.');
+        }catch(error){
+          console.error('Could not verify capacity before reopening:',error);
+          toast('Could not verify your available job slots. Please try again.');
+        }
+        return;
+      }
+
+      if(action === 'archive'){
+        if(!confirm('Archive this job? It will be moved out of your active hiring workflow.')) return;
+
+        const { error } = await sb.from('jobs').update({status:'archived',updated_at:new Date().toISOString()}).eq('id',id);
         if(error){
           console.error(error);
           toast('Could not archive job.');
           return;
         }
-        job.status = 'closed';
+        job.status = 'archived';
         renderAll();
         toast('Job archived.');
         return;
