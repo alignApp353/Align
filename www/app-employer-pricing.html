@@ -346,7 +346,7 @@ function defaultSlotLimit(){
   if(p==='scale') return 8;
   if(p==='enterprise') return Number(entitlement?.slot_limit||15);
   if(p==='launch') return 3;
-  if(p==='weekly_slot') return 1;
+  if(p==='weekly_slot') return 2;
   return 1;
 }
 
@@ -361,8 +361,16 @@ function usedSlots(){
 
 function effectiveSlotLimit(){
   if(!entitlement||!entitlementActive())return 1;
+
+  const plan=String(entitlement?.plan||'free').toLowerCase();
   const stored=Number(entitlement?.slot_limit);
   const fallback=defaultSlotLimit();
+
+  // A weekly purchase adds one temporary paid slot to the free reusable slot.
+  if(plan==='weekly_slot'){
+    return Math.max(2,Number.isFinite(stored)&&stored>0?stored:2);
+  }
+
   return Math.max(1,Number.isFinite(stored)&&stored>0?stored:fallback);
 }
 
@@ -423,7 +431,11 @@ function renderPlans(){
         <div class="plan-price">$${Number(p.price).toLocaleString('en-US')}</div>
         <div class="plan-suffix">${p.suffix}</div>
       </div>
-      <div class="plan-slots">${p.slots} active reusable job slot${p.slots===1?'':'s'}</div>
+      <div class="plan-slots">${
+        key==='weekly_slot'
+          ? '1 additional reusable job slot · 2 total while active'
+          : `${p.slots} active reusable job slot${p.slots===1?'':'s'}`
+      }</div>
       <ul class="features">${p.features.map(x=>`<li>${x}</li>`).join('')}</ul>
       <button class="btn ${p.popular?'primary':'secondary'} full" type="button" data-plan="${key}">Choose ${p.name}</button>
     </article>
