@@ -761,7 +761,7 @@ function slotLimitForEntitlement(entitlement){
   const plan=String(entitlement.plan||'free').toLowerCase();
   const defaults={
     free:1,
-    weekly_slot:1,
+    weekly_slot:2,
     launch:3,
     growth:5,
     scale:8,
@@ -770,6 +770,14 @@ function slotLimitForEntitlement(entitlement){
 
   const stored=Number(entitlement.slot_limit);
   const fallback=defaults[plan]||1;
+
+  // Weekly purchases add one paid slot to the employer's free reusable slot.
+  if(plan==='weekly_slot'){
+    return Math.max(
+      2,
+      Number.isFinite(stored)&&stored>0 ? stored : 2
+    );
+  }
 
   return Math.max(
     1,
