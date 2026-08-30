@@ -475,10 +475,14 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       // The server-backed RPC updates employer_entitlements, so the database
       // trigger and the dashboard both recognize the same test slot limit.
       // No payment-provider request is made in this branch.
-      const { data:testData, error:testError } = await sb.rpc('activate_employer_test_plan',{
-        p_plan:selectedPlan,
-        p_billing:selectedBilling
-      });
+      const testRpc = selectedBilling === 'weekly'
+        ? sb.rpc('activate_employer_test_weekly_slot')
+        : sb.rpc('activate_employer_test_plan',{
+            p_plan:selectedPlan,
+            p_billing:selectedBilling
+          });
+
+      const { data:testData, error:testError } = await testRpc;
 
       if(testError){
         console.error('Test package activation failed:',testError);
@@ -513,8 +517,13 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         console.warn('Could not save local test diagnostic:',e);
       }
 
-      button.textContent='Test package activated ✓';
-      showMessage(`${p.name} test package activated with ${testEntitlement.slot_limit} job slot${testEntitlement.slot_limit===1?'':'s'}. No payment was processed.`,'info');
+      button.textContent=selectedBilling==='weekly'?'Weekly test slot added ✓':'Test package activated ✓';
+      showMessage(
+        selectedBilling==='weekly'
+          ? `Weekly Job Slot added. Your total temporary/base capacity is now ${testEntitlement.slot_limit} job slot${testEntitlement.slot_limit===1?'':'s'}. No payment was processed.`
+          : `${p.name} test package activated with ${testEntitlement.slot_limit} total job slot${testEntitlement.slot_limit===1?'':'s'}. No payment was processed.`,
+        'info'
+      );
       setTimeout(()=>{
         location.href='employer-dashboard.html?test_plan=1&plan='+encodeURIComponent(selectedPlan)+'&billing='+encodeURIComponent(selectedBilling);
       },700);
