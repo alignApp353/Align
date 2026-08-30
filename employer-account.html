@@ -1172,8 +1172,14 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         ['launch','growth','scale','weekly_slot','business','enterprise'].includes(plan)
       );
 
-    const limit = activePaid ? accountPaidLimit(ent) : 1;
+    let limit = activePaid ? accountPaidLimit(ent) : 1;
     const used = accountActiveSlotCount();
+
+    // Unified server capacity includes temporary Weekly slots as add-ons.
+    const accessResult = await sb.rpc('get_employer_posting_access');
+    if (!accessResult.error && accessResult.data) {
+      limit = Math.max(0, Number(accessResult.data.slot_limit || limit));
+    }
 
     accountPostingAccess = {
       allowed: used < limit,
