@@ -8199,8 +8199,17 @@
       if(!entitlement||!dashboardEntitlementActive(entitlement)) return 1;
 
       const plan=String(entitlement.plan||'free').toLowerCase();
-      const defaults={free:1,weekly_slot:1,launch:3,growth:5,scale:8,enterprise:15};
+      const defaults={free:1,weekly_slot:2,launch:3,growth:5,scale:8,enterprise:15};
       const stored=Number(entitlement.slot_limit);
+
+      // Weekly is one PAID slot on top of the employer's free reusable slot.
+      // So while the weekly entitlement is active, total live capacity is 2.
+      if(plan==='weekly_slot'){
+        return Math.max(
+          2,
+          Number.isFinite(stored)&&stored>0 ? stored : 2
+        );
+      }
 
       return Math.max(
         1,
