@@ -510,14 +510,30 @@
     if (currentUserId) {
       const { data: profile, error: profileError } = await sb
         .from('profiles')
-        .select('preferences')
+        .select('resume_file_path,resume_data,preferences')
         .eq('id', currentUserId)
         .maybeSingle();
 
       if (profileError) {
-        console.warn('Could not load saved preferences:', profileError);
+        console.warn('Could not load candidate onboarding status:', profileError);
       }
-      pref = profile?.preferences || {};
+
+      // Logged-in candidates cannot enter the swipe experience until the
+      // required onboarding is complete. Resume comes first, then preferences.
+      const hasResume = !!(profile?.resume_file_path || profile?.resume_data);
+      const hasPreferences = !!profile?.preferences;
+
+      if (!hasResume) {
+        window.location.replace('align-upload.html');
+        return;
+      }
+
+      if (!hasPreferences) {
+        window.location.replace('preferences.html');
+        return;
+      }
+
+      pref = profile.preferences || {};
     } else {
       const prefRaw = sessionStorage.getItem('preferences');
       pref = prefRaw ? JSON.parse(prefRaw) : {};
