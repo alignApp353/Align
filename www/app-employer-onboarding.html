@@ -5,118 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#F6F8F7">
 <title>Employer Setup | Alygnn</title>
-<script id="alygnn-employer-theme-critical">
-(function(){
-  const KEY = 'alygnnEmployerTheme';
-  const media = window.matchMedia
-    ? window.matchMedia('(prefers-color-scheme: dark)')
-    : null;
-
-  function normalize(value){
-    value = String(value || '').toLowerCase().trim();
-
-    if (
-      value === 'system' ||
-      value === 'system-default' ||
-      value === 'default'
-    ) {
-      return 'auto';
-    }
-
-    return ['auto','light','dark'].includes(value)
-      ? value
-      : 'auto';
-  }
-
-  function preference(){
-    return normalize(
-      localStorage.getItem(KEY) ||
-      localStorage.getItem('alygnnTheme') ||
-      'auto'
-    );
-  }
-
-  function resolved(){
-    const pref = preference();
-
-    if(pref === 'dark') return 'dark';
-    if(pref === 'light') return 'light';
-
-    return media && media.matches
-      ? 'dark'
-      : 'light';
-  }
-
-  function apply(){
-    const theme = resolved();
-    const root = document.documentElement;
-
-    root.dataset.theme = theme;
-    root.style.colorScheme = theme;
-    root.style.backgroundColor =
-      theme === 'dark'
-        ? '#0B111A'
-        : '#F6F8F7';
-
-    let meta =
-      document.querySelector('meta[name="theme-color"]');
-
-    if(!meta){
-      meta = document.createElement('meta');
-      meta.name = 'theme-color';
-      document.head.appendChild(meta);
-    }
-
-    meta.setAttribute(
-      'content',
-      theme === 'dark'
-        ? '#0B111A'
-        : '#F6F8F7'
-    );
-  }
-
-  apply();
-
-  if(media){
-    if(media.addEventListener){
-      media.addEventListener('change', function(){
-        if(preference() === 'auto') apply();
-      });
-    }else if(media.addListener){
-      media.addListener(function(){
-        if(preference() === 'auto') apply();
-      });
-    }
-  }
-
-  window.addEventListener('pageshow', apply);
-
-  document.addEventListener(
-    'visibilitychange',
-    function(){
-      if(!document.hidden) apply();
-    }
-  );
-
-  window.addEventListener(
-    'storage',
-    function(event){
-      if(
-        event.key === KEY ||
-        event.key === 'alygnnTheme'
-      ){
-        apply();
-      }
-    }
-  );
-
-  window.AlygnnEmployerTheme = {
-    apply,
-    preference,
-    resolved
-  };
-})();
-</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
@@ -311,214 +199,43 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
   }
 }
 
-
-/* ==========================================================
-   ALYGNN SHARED EMPLOYER APPEARANCE
-   data-theme always wins over the old media-query rules.
-   ========================================================== */
-
-html[data-theme="light"]{
-  --brand:#5D7FA3!important;
-  --dark:#345F91!important;
-  --sage:#8CB69B!important;
-  --bg:#F6F8F7!important;
-  --card:#FCFCFA!important;
-  --text:#172333!important;
-  --muted:#5D6C7C!important;
-  --border:#DDE3E8!important;
-  --danger:#B64040!important;
-  --danger-bg:#FCEDED!important;
-  --success:#18794E!important;
-  --success-bg:#E8F6EE!important;
-  --shadow:0 18px 55px rgba(23,35,51,.08)!important;
-  color-scheme:light!important;
-  background:#F6F8F7!important;
-}
-
-html[data-theme="light"] body{
-  background:
-    radial-gradient(circle at 10% 5%,rgba(140,182,155,.16),transparent 28%),
-    radial-gradient(circle at 90% 90%,rgba(93,127,163,.15),transparent 30%),
-    #F6F8F7!important;
-  color:#172333!important;
-}
-
-html[data-theme="light"] .card{
-  background:rgba(252,252,250,.97)!important;
-  border-color:#DDE3E8!important;
-}
-
-html[data-theme="light"] .value,
-html[data-theme="light"] input,
-html[data-theme="light"] select,
-html[data-theme="light"] textarea,
-html[data-theme="light"] .suggestions,
-html[data-theme="light"] .suggestion,
-html[data-theme="light"] .voice,
-html[data-theme="light"] .selection-box,
-html[data-theme="light"] .rank-item,
-html[data-theme="light"] .move,
-html[data-theme="light"] .overview-card,
-html[data-theme="light"] .authorization,
-html[data-theme="light"] .back{
-  background:#FFFFFF!important;
-  color:#172333!important;
-  border-color:#DDE3E8!important;
-}
-
-html[data-theme="light"] .ai-summary{
-  background:#EDF3F8!important;
-  border-color:#C9D8E5!important;
-}
-
-html[data-theme="light"] .ai-summary h2{
-  color:#345F91!important;
-}
-
-html[data-theme="light"] .ai-summary p{
-  color:#34475B!important;
-}
-
-html[data-theme="light"] .progress{
-  background:#E5EAEF!important;
-}
-
-html[data-theme="light"] .secure{
-  color:#18794E!important;
-  background:#E8F6EE!important;
-}
-
-html[data-theme="light"] .actions{
-  background:rgba(246,248,247,.94)!important;
-  border-color:rgba(221,227,232,.75)!important;
-}
-
-html[data-theme="dark"]{
-  --brand:#6F94BA!important;
-  --dark:#6F94BA!important;
-  --sage:#8CB69B!important;
-  --bg:#071A24!important;
-  --card:#10212D!important;
-  --text:#F4F7F9!important;
-  --muted:#A7B2BD!important;
-  --border:#2B3946!important;
-  --danger:#E49A9A!important;
-  --danger-bg:#321E22!important;
-  --success:#72D39B!important;
-  --success-bg:#123326!important;
-  --shadow:0 18px 55px rgba(0,0,0,.32)!important;
-  color-scheme:dark!important;
-  background:#071A24!important;
-}
-
-html[data-theme="dark"] body{
-  background:
-    radial-gradient(circle at 10% 5%,rgba(140,182,155,.10),transparent 28%),
-    radial-gradient(circle at 90% 90%,rgba(93,127,163,.13),transparent 30%),
-    #071A24!important;
-  color:#F4F7F9!important;
-}
-
-html[data-theme="dark"] .card{
-  background:rgba(16,33,45,.97)!important;
-  border-color:#2B3946!important;
-  box-shadow:0 18px 55px rgba(0,0,0,.32)!important;
-}
-
-html[data-theme="dark"] .secure{
-  color:#72D39B!important;
-  background:#123326!important;
-}
-
-html[data-theme="dark"] .progress{
-  background:#26343F!important;
-}
-
-html[data-theme="dark"] .value,
-html[data-theme="dark"] input,
-html[data-theme="dark"] select,
-html[data-theme="dark"] textarea,
-html[data-theme="dark"] .suggestions,
-html[data-theme="dark"] .suggestion,
-html[data-theme="dark"] .voice,
-html[data-theme="dark"] .selection-box,
-html[data-theme="dark"] .rank-item,
-html[data-theme="dark"] .move,
-html[data-theme="dark"] .overview-card,
-html[data-theme="dark"] .authorization,
-html[data-theme="dark"] .back{
-  background:#0D1B25!important;
-  color:#F4F7F9!important;
-  border-color:#2B3946!important;
-}
-
-html[data-theme="dark"] input::placeholder,
-html[data-theme="dark"] textarea::placeholder{
-  color:#7F8F9C!important;
-  opacity:1!important;
-}
-
-html[data-theme="dark"] select{
-  color-scheme:dark!important;
-}
-
-html[data-theme="dark"] .suggestion:hover,
-html[data-theme="dark"] .voice.selected,
-html[data-theme="dark"] .rank-number{
-  background:#1B3040!important;
-  color:#8DB6DB!important;
-  border-color:#507BA3!important;
-}
-
-html[data-theme="dark"] .voice:hover{
-  border-color:#507BA3!important;
-}
-
-html[data-theme="dark"] .selection-title,
-html[data-theme="dark"] .counter,
-html[data-theme="dark"] .rank-note,
-html[data-theme="dark"] .helper,
-html[data-theme="dark"] .intro,
-html[data-theme="dark"] .progress-copy{
-  color:#A7B2BD!important;
-}
-
-html[data-theme="dark"] .eyebrow,
-html[data-theme="dark"] .edit{
-  color:#78A8D1!important;
-}
-
-html[data-theme="dark"] .ai-summary{
-  background:#152A38!important;
-  border-color:#36546A!important;
-}
-
-html[data-theme="dark"] .ai-summary h2{
-  color:#86B2D7!important;
-}
-
-html[data-theme="dark"] .ai-summary p{
-  color:#A7B2BD!important;
-}
-
-html[data-theme="dark"] .actions{
-  background:rgba(7,26,36,.96)!important;
-  border-color:#2B3946!important;
-}
-
-html[data-theme="dark"] .message.error{
-  background:#321E22!important;
-  color:#E8A2A2!important;
-}
-
-html[data-theme="dark"] .message.success{
-  background:#123326!important;
-  color:#80D9A4!important;
-}
-
 </style>
 
+<script id="alygnn-employer-onboarding-theme-v93">
+(function(){
+  const media = window.matchMedia
+    ? window.matchMedia('(prefers-color-scheme: dark)')
+    : null;
 
+  function updateThemeColor(){
+    const dark = !!(media && media.matches);
+    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if(!meta){
+      meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      document.head.appendChild(meta);
+    }
+    meta.content = dark ? '#071A24' : '#F6F8F7';
+  }
+
+  updateThemeColor();
+
+  if(media){
+    if(media.addEventListener){
+      media.addEventListener('change', updateThemeColor);
+    }else if(media.addListener){
+      media.addListener(updateThemeColor);
+    }
+  }
+
+  window.addEventListener('pageshow', updateThemeColor);
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden) updateThemeColor();
+  });
+})();
+</script>
 
 </head>
 <body data-employer-onboarding-build="101">
@@ -938,6 +655,49 @@ function aiSummary(){const v=[...selectedVoices],c=getRanking('company-prioritie
 function joinWords(values){if(values.length<=1)return values[0]||'';if(values.length===2)return values.join(' and ');return values.slice(0,-1).join(', ')+', and '+values.at(-1)}
 function buildOverview(){const voices=[...selectedVoices],company=getRanking('company-priorities'),candidate=getRanking('candidate-priorities');document.getElementById('overview-voice').textContent=voices.join(' • ');document.getElementById('overview-company').innerHTML=company.slice(0,3).map(v=>`<li>${escapeHtml(v)}</li>`).join('');document.getElementById('overview-candidate').innerHTML=candidate.slice(0,3).map(v=>`<li>${escapeHtml(v)}</li>`).join('');document.getElementById('ai-summary').textContent=aiSummary()}
 function payload(){const ein=document.getElementById('ein').value.replace(/\D/g,'');return{company_name:document.getElementById('company-name').value.trim(),website:document.getElementById('website').value.trim(),business_phone:document.getElementById('business-phone').value.trim(),industry:document.getElementById('industry').value.trim(),company_size:document.getElementById('company-size').value,headquarters:document.getElementById('headquarters').value.trim(),has_dba:document.getElementById('has-dba').checked,dba_name:document.getElementById('has-dba').checked?document.getElementById('dba-name').value.trim():'',ein,ein_last4:ein.slice(-4),company_voice:[...selectedVoices],company_priorities:getRanking('company-priorities'),candidate_priorities:getRanking('candidate-priorities'),ai_summary:aiSummary(),authorized:document.getElementById('authorization').checked}}
+
+async function ensureVerificationQueueRow(session,companyId,data){
+  const {data:existing,error:existingError}=await sb
+    .from('employer_verifications')
+    .select('user_id,company_id,verification_status')
+    .eq('user_id',session.user.id)
+    .maybeSingle();
+
+  if(existingError)throw existingError;
+
+  if(existing){
+    // Do not overwrite an admin decision from the app.
+    return existing;
+  }
+
+  const emailDomain=String(session.user.email||'')
+    .toLowerCase()
+    .split('@')[1]||'';
+
+  const {data:inserted,error:insertError}=await sb
+    .from('employer_verifications')
+    .insert({
+      user_id:session.user.id,
+      company_id:companyId,
+      company_name:data.company_name,
+      email_domain:emailDomain,
+      website:data.website,
+      business_phone:data.business_phone,
+      industry:data.industry,
+      company_size:data.company_size,
+      headquarters:data.headquarters,
+      ein_last4:data.ein_last4,
+      authorized:true,
+      blueprint_complete:true,
+      verification_status:'pending_review'
+    })
+    .select('user_id,company_id,verification_status')
+    .single();
+
+  if(insertError)throw insertError;
+  return inserted;
+}
+
 async function submit(){
   nextButton.disabled=true;
   nextButton.textContent='Creating company…';
@@ -952,13 +712,15 @@ async function submit(){
       return;
     }
 
+    const setupData=payload();
+
     const response=await fetch('https://alygnn.com/api/company/create-company',{
       method:'POST',
       headers:{
         'Content-Type':'application/json',
         'Authorization':'Bearer '+session.access_token
       },
-      body:JSON.stringify(payload())
+      body:JSON.stringify(setupData)
     });
 
     const result=await response.json().catch(()=>({}));
@@ -994,6 +756,10 @@ async function submit(){
         );
         if(existingAccountNumber){
           localStorage.setItem('alygnn_company_account_number',existingAccountNumber);
+        }
+
+        if(existingCompanyId){
+          await ensureVerificationQueueRow(session,existingCompanyId,setupData);
         }
 
         openVerificationStatus();
@@ -1036,7 +802,11 @@ async function submit(){
       localStorage.setItem('alygnn_company_account_number',accountNumber);
     }
 
-    showMessage('Your company profile is saved. Checking verification status…','success');
+    // The admin approval screen is backed by employer_verifications.
+    // Do not leave onboarding until this employer is actually in that queue.
+    await ensureVerificationQueueRow(session,companyId,setupData);
+
+    showMessage('Your company profile is saved and sent for review.','success');
     setTimeout(openVerificationStatus,250);
   }catch(error){
     console.error(error);
