@@ -2486,59 +2486,34 @@ function jobConsumesSlot(job){
   return !['paused','closed','draft','inactive','archived','deleted'].includes(status);
 }
 
-async function loadJobsForFinalSlotCheck(userId,companyId){
-  const collected=[];
-  const seen=new Set();
-  let successfulQueries=0;
+function promiseTimeout(promise,ms,label){
+  let timer;
+  const timeout=new Promise((_,reject)=>{
+    timer=setTimeout(()=>{
+      reject(new Error(label||'The request timed out.'));
+    },ms);
+  });
 
-  const addRows=rows=>{
-    (rows||[]).forEach(job=>{
-      const key=String(job?.id||[
-        job?.title,
-        job?.created_at,
-        job?.company_id,
-        job?.employer_id
-      ].join('|'));
+  return Promise.race([promise,timeout]).finally(()=>clearTimeout(timer));
+}
 
-      if(seen.has(key))return;
-      seen.add(key);
-      collected.push(job);
-    });
-  };
+async function loadJobsForFinalSlotCheck(userId){
+  /*
+   * Every job created by the employer app has employer_id. Querying only this
+   * known column avoids probing optional/legacy ownership columns before a
+   * publish. Closed/paused jobs are returned too, then filtered locally.
+   */
+  const result=await promiseTimeout(
+    sb.from('jobs').select('*').eq('employer_id',userId),
+    8000,
+    'Alygnn could not finish checking your current job slots.'
+  );
 
-  for(const column of ['employer_id','created_by','user_id','owner_id']){
-    const result=await sb
-      .from('jobs')
-      .select('*')
-      .eq(column,userId);
-
-    if(!result.error){
-      successfulQueries+=1;
-      addRows(result.data);
-    }else{
-      console.warn(`Final slot check using ${column} failed:`,result.error);
-    }
+  if(result.error){
+    throw result.error;
   }
 
-  if(companyId){
-    const companyResult=await sb
-      .from('jobs')
-      .select('*')
-      .eq('company_id',companyId);
-
-    if(!companyResult.error){
-      successfulQueries+=1;
-      addRows(companyResult.data);
-    }else{
-      console.warn('Final slot check using company_id failed:',companyResult.error);
-    }
-  }
-
-  if(!successfulQueries){
-    throw new Error('Alygnn could not verify current job-slot usage.');
-  }
-
-  return collected;
+  return Array.isArray(result.data)?result.data:[];
 }
 
 async function enforceFinalJobSlotAccess(){
@@ -2547,26 +2522,40 @@ async function enforceFinalJobSlotAccess(){
     throw new Error('Your employer session expired. Sign in again and retry.');
   }
 
-  const companyId=
-    draft?.company_id||
-    liveCompany?.id||
-    '';
-
-  const entitlementResult=await sb
-    .from('employer_entitlements')
-    .select('*')
-    .eq('employer_id',userId)
-    .maybeSingle();
-
   let entitlement=null;
-  if(entitlementResult.error){
-    // Keep publishing usable for free employers when entitlement storage has
-    // not been provisioned yet. Slot usage is still checked against live jobs.
-    console.warn('Final entitlement check unavailable; using free-slot fallback:',entitlementResult.error);
-  }else{
-    entitlement=entitlementResult.data||null;
+
+  try{
+    const entitlementResult=await promiseTimeout(
+      sb
+        .from('employer_entitlements')
+        .select('*')
+        .eq('employer_id',userId)
+        .maybeSingle(),
+      5000,
+      'Alygnn could not finish checking your hiring plan.'
+    );
+
+    if(entitlementResult.error){
+      console.warn(
+        'Final entitlement check unavailable; using free-slot fallback:',
+        entitlementResult.error
+      );
+    }else{
+      entitlement=entitlementResult.data||null;
+    }
+  }catch(error){
+    /*
+     * Existing/free employers may not have an entitlement row yet. Do not let
+     * that optional billing lookup freeze publishing; live slot usage is still
+     * checked below and the free limit remains 1.
+     */
+    console.warn(
+      'Final entitlement check timed out; using free-slot fallback:',
+      error
+    );
   }
-  const jobs=await loadJobsForFinalSlotCheck(userId,companyId);
+
+  const jobs=await loadJobsForFinalSlotCheck(userId);
   const used=jobs.filter(jobConsumesSlot).length;
   const limit=slotLimitForEntitlement(entitlement);
 
@@ -3064,28 +3053,57 @@ function missingColumn(error){
 }
 
 async function insertJob(){
-  let result=await sb
-    .from('jobs')
-    .insert(
-      extendedJobPayload()
-    )
-    .select('id')
-    .single();
+  /*
+   * Do not request the inserted row back here. In WebView builds an INSERT
+   * followed by .select().single() can leave the Publish button waiting for a
+   * representation even though the write itself is the only thing we need.
+   * Supabase's normal INSERT response is enough to confirm success.
+   */
+  let result=await promiseTimeout(
+    sb
+      .from('jobs')
+      .insert(extendedJobPayload()),
+    12000,
+    'Publishing is taking too long. Check My Jobs before trying again.'
+  );
 
   if(
     result.error&&
     missingColumn(result.error)
   ){
-    result=await sb
-      .from('jobs')
-      .insert(
-        baseJobPayload()
-      )
-      .select('id')
-      .single();
+    result=await promiseTimeout(
+      sb
+        .from('jobs')
+        .insert(baseJobPayload()),
+      12000,
+      'Publishing is taking too long. Check My Jobs before trying again.'
+    );
   }
 
   return result;
+}
+
+async function resolvePublishedJobIdBestEffort(){
+  try{
+    const result=await promiseTimeout(
+      sb
+        .from('jobs')
+        .select('id')
+        .eq('employer_id',session.user.id)
+        .eq('title',draft.title)
+        .order('created_at',{ascending:false})
+        .limit(1)
+        .maybeSingle(),
+      3000,
+      'Job ID lookup timed out.'
+    );
+
+    if(!result.error&&result.data?.id){
+      publishedJobId=result.data.id;
+    }
+  }catch(error){
+    console.warn('Published job ID lookup skipped:',error);
+  }
 }
 
 async function publishJob(){
@@ -3139,7 +3157,6 @@ async function publishJob(){
     button.textContent='Publishing…';
 
     const{
-      data,
       error
     }=await insertJob();
 
@@ -3147,13 +3164,9 @@ async function publishJob(){
       throw error;
     }
 
-    if(!data?.id){
-      throw new Error(
-        'Alygnn did not receive the published job ID.'
-      );
-    }
-
-    publishedJobId=data.id;
+    /* The insert is complete. Resolve the ID separately without blocking UI. */
+    publishedJobId='';
+    resolvePublishedJobIdBestEffort();
 
     sessionStorage.removeItem(
       'alygnnJobDraft'
@@ -3181,9 +3194,11 @@ async function publishJob(){
       error
     );
 
+    const errorText=String(error?.message||'');
+
     showMessage(
-      error?.message
-        ?'Could not publish the job: '+error.message
+      errorText
+        ?'Could not finish publishing: '+errorText
         :'Could not publish the job. Please try again.'
     );
 
