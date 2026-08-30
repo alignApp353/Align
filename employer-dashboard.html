@@ -1763,7 +1763,9 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       billing_period: data?.billing_period ? String(data.billing_period).toLowerCase() : null,
       test_mode: data?.test_mode === true,
       test_plan: data?.test_plan ? String(data.test_plan).toLowerCase() : null,
-      urgently_hiring: data?.urgently_hiring === true
+      urgently_hiring: data?.urgently_hiring === true,
+      weekly_slot_count: Math.max(0, Number(data?.weekly_slot_count || 0)),
+      weekly_slots_expires_at: data?.weekly_slots_expires_at || null
     });
 
     try {
@@ -1794,6 +1796,18 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           free_job_used: jobs.length > 0,
           slot_limit: 1
         });
+      }
+
+      // Server summary is the source of truth for effective capacity.
+      // It includes temporary $99 Weekly slots without replacing the base plan.
+      const accessResult = await sb.rpc('get_employer_posting_access');
+      if (!accessResult.error && accessResult.data) {
+        billingEntitlement = {
+          ...billingEntitlement,
+          slot_limit: Math.max(0, Number(accessResult.data.slot_limit || 0)),
+          weekly_slot_count: Math.max(0, Number(accessResult.data.weekly_slot_count || 0)),
+          weekly_slots_expires_at: accessResult.data.weekly_slots_expires_at || null
+        };
       }
     } catch (error) {
       console.error('Failed to load employer billing entitlement:', error);
@@ -1917,7 +1931,14 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           ? new Date(billingEntitlement.current_period_end).toLocaleString()
           : 'No expiration set';
         const urgent = billingEntitlement.urgently_hiring ? ' · Urgently Hiring enabled' : '';
-        testBanner.innerHTML = `<strong>TEST PACKAGE ACTIVE</strong> · ${entitlementDisplayName()}${billing ? ' · ' + billing : ''} · ${paidJobLimit()} job slot${paidJobLimit() === 1 ? '' : 's'}${urgent}<br>Expires: ${expiry} · No payment was charged.`;
+        const weeklyCount = Math.max(0, Number(billingEntitlement.weekly_slot_count || 0));
+        const weeklyExpiry = billingEntitlement.weekly_slots_expires_at
+          ? new Date(billingEntitlement.weekly_slots_expires_at).toLocaleString()
+          : '';
+        const weeklyCopy = weeklyCount
+          ? ` · +${weeklyCount} Weekly slot${weeklyCount===1?'':'s'}${weeklyExpiry ? ' (expires ' + weeklyExpiry + ')' : ''}`
+          : '';
+        testBanner.innerHTML = `<strong>TEST PACKAGE ACTIVE</strong> · ${entitlementDisplayName()}${billing ? ' · ' + billing : ''} · ${paidJobLimit()} total job slot${paidJobLimit() === 1 ? '' : 's'}${weeklyCopy}${urgent}<br>Base plan expires: ${expiry} · No payment was charged.`;
         testBanner.classList.add('show');
       } else {
         testBanner.classList.remove('show');
