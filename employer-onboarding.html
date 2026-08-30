@@ -448,7 +448,27 @@ function validateCurrent(){
     websiteField.value=normalized;
 
     const emailField=document.getElementById('business-email');
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value.trim())){showMessage('Enter a valid business email address.');return false}
+    const businessEmail=emailField.value.trim().toLowerCase();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(businessEmail)){
+      emailField.focus();
+      showMessage('Enter a valid business email address.');
+      return false;
+    }
+
+    const businessEmailDomain=businessEmail.split('@')[1]||'';
+    const personalEmailDomains=new Set([
+      'gmail.com','googlemail.com','hotmail.com','outlook.com','live.com',
+      'icloud.com','me.com','mac.com','aol.com','yahoo.com','ymail.com',
+      'proton.me','protonmail.com','pm.me','gmx.com','mail.com','zoho.com'
+    ]);
+
+    if(personalEmailDomains.has(businessEmailDomain)){
+      emailField.focus();
+      showMessage('Please use a company email address instead of a personal email.');
+      return false;
+    }
+
+    emailField.value=businessEmail;
 
     const phoneField=document.getElementById('business-phone');
     if(!isValidPhone(phoneField.value)){
@@ -706,7 +726,10 @@ async function ensureVerificationQueueRow(session,companyId,data){
     return existing;
   }
 
-  const emailDomain=String(session.user.email||'')
+  // Use the Business Email entered during onboarding for verification.
+  // The login/account email may legitimately be a different address.
+  const emailDomain=String(data.business_email||'')
+    .trim()
     .toLowerCase()
     .split('@')[1]||'';
 
