@@ -63,15 +63,14 @@ module.exports=async function handler(req,res){
   try{
     const{data:owned,error:ownedError}=await supabase.from('companies').select('id,account_number,company_name,verification_status').eq('owner_user_id',user.id).maybeSingle();if(ownedError)throw ownedError;if(owned)return sendJson(res,409,{success:false,error:'You already own a company workspace.',company:{id:owned.id,accountNumber:owned.account_number,name:owned.company_name,verificationStatus:owned.verification_status}});
     const{data:membership,error:membershipError}=await supabase.from('company_members').select('id,role,membership_status,company_id,companies(account_number,company_name,verification_status)').eq('user_id',user.id).in('membership_status',['pending','active','suspended']).limit(1).maybeSingle();if(membershipError)throw membershipError;if(membership){const joined=Array.isArray(membership.companies)?membership.companies[0]:membership.companies;return sendJson(res,409,{success:false,error:'Your account is already connected to a company workspace.',company:{id:membership.company_id,accountNumber:joined?.account_number||null,name:joined?.company_name||null,verificationStatus:joined?.verification_status||'pending_review'}})}
-    const domainMatch=emailDomain===payload.website_domain;const reasons=[];if(!domainMatch)reasons.push('email_website_domain_mismatch');if(payload.business_phone.replace(/\D/g,'').length<10)reasons.push('business_phone_needs_review');/* Every new employer requires human approval. Automated checks may add review flags, but they never approve the company. */const status='pending_review';const accountNumber=await uniqueAccountNumber();
+    const domainMatch=emailDomain===payload.website_domain;const reasons=[];if(!domainMatch)reasons.push('email_website_domain_mismatch');if(payload.business_phone.replace(/\D/g,'').length<10)reasons.push('business_phone_needs_review');/* Alygnn requires manual admin approval for every employer. Automated checks can add flags, but never approve. */const status='pending_review';const accountNumber=await uniqueAccountNumber();
     const companyInsert={account_number:accountNumber,company_name:payload.company_name,verified_domain:domainMatch?emailDomain:null,verification_status:status,owner_user_id:user.id,website:payload.website,business_phone:payload.business_phone,industry:payload.industry,company_size:payload.company_size,headquarters:payload.headquarters};
     const{data:company,error:companyError}=await supabase.from('companies').insert(companyInsert).select('id,account_number,company_name,verification_status,verified_domain').single();if(companyError||!company)throw new Error(companyError?.message||'Unable to create the company workspace.');createdCompanyId=company.id;
     const{error:memberError}=await supabase.from('company_members').insert({company_id:company.id,user_id:user.id,role:'owner',membership_status:'active',approved_by:user.id,approved_at:new Date().toISOString()});if(memberError)throw new Error(`Unable to create the owner membership: ${memberError.message}`);
     await insertBlueprint(company.id,payload);
 
-    // Keep the admin verification queue in the SAME transaction flow as company creation.
-    // The admin page reads employer_verifications, so a company is not reviewable until
-    // this row exists. Service-role access makes this independent of browser RLS.
+    // The admin verification page reads employer_verifications. Create/update that
+    // row here with service-role access so browser RLS cannot prevent queue creation.
     const verificationRow={
       user_id:user.id,
       company_id:company.id,
@@ -87,15 +86,18 @@ module.exports=async function handler(req,res){
       blueprint_complete:true,
       verification_status:'pending_review',
       verification_flags:reasons,
+      reviewed_by:null,
+      reviewed_at:null,
+      rejection_reason:null,
       updated_at:new Date().toISOString()
     };
 
-    const{error:verificationQueueError}=await supabase
+    const{error:queueError}=await supabase
       .from('employer_verifications')
       .upsert(verificationRow,{onConflict:'user_id'});
 
-    if(verificationQueueError){
-      throw new Error(`Unable to add the company to the employer verification queue: ${verificationQueueError.message}`);
+    if(queueError){
+      throw new Error(`Unable to add the employer to the verification queue: ${queueError.message}`);
     }
 
     const details={company_name:company.company_name,account_number:company.account_number,verification_status:company.verification_status,verification_reasons:reasons,email_domain:emailDomain,website_domain:payload.website_domain,company_voice:payload.company_voice,top_company_priorities:payload.company_priorities.slice(0,3),top_candidate_priorities:payload.candidate_priorities.slice(0,3),ein_last4:payload.ein_last4,ein_hash:payload.ein_hash,dba_name:payload.dba_name||null};
