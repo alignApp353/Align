@@ -2509,7 +2509,7 @@ async function loadJobsForFinalSlotCheck(userId,companyId){
   for(const column of ['employer_id','created_by','user_id','owner_id']){
     const result=await sb
       .from('jobs')
-      .select('id,status,employer_id,company_id,created_at,title')
+      .select('*')
       .eq(column,userId);
 
     if(!result.error){
@@ -2523,7 +2523,7 @@ async function loadJobsForFinalSlotCheck(userId,companyId){
   if(companyId){
     const companyResult=await sb
       .from('jobs')
-      .select('id,status,employer_id,company_id,created_at,title')
+      .select('*')
       .eq('company_id',companyId);
 
     if(!companyResult.error){
@@ -2558,12 +2558,14 @@ async function enforceFinalJobSlotAccess(){
     .eq('employer_id',userId)
     .maybeSingle();
 
+  let entitlement=null;
   if(entitlementResult.error){
-    console.error('Final entitlement check failed:',entitlementResult.error);
-    throw new Error('Alygnn could not verify your hiring capacity.');
+    // Keep publishing usable for free employers when entitlement storage has
+    // not been provisioned yet. Slot usage is still checked against live jobs.
+    console.warn('Final entitlement check unavailable; using free-slot fallback:',entitlementResult.error);
+  }else{
+    entitlement=entitlementResult.data||null;
   }
-
-  const entitlement=entitlementResult.data||null;
   const jobs=await loadJobsForFinalSlotCheck(userId,companyId);
   const used=jobs.filter(jobConsumesSlot).length;
   const limit=slotLimitForEntitlement(entitlement);
