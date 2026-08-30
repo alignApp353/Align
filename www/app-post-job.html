@@ -813,7 +813,7 @@ async function loadJobsForSlotCheck(userId,companyId){
   for(const column of ['employer_id','created_by','user_id','owner_id']){
     const result=await sb
       .from('jobs')
-      .select('id,status,employer_id,company_id,created_at,title')
+      .select('*')
       .eq(column,userId);
 
     if(!result.error){
@@ -827,7 +827,7 @@ async function loadJobsForSlotCheck(userId,companyId){
   if(companyId){
     const companyResult=await sb
       .from('jobs')
-      .select('id,status,employer_id,company_id,created_at,title')
+      .select('*')
       .eq('company_id',companyId);
 
     if(!companyResult.error){
@@ -854,7 +854,7 @@ async function validEditJob(userId,companyId){
 
   const {data,error}=await sb
     .from('jobs')
-    .select('id,employer_id,company_id')
+    .select('*')
     .eq('id',editId)
     .maybeSingle();
 
@@ -1404,8 +1404,17 @@ el('description').addEventListener('input', () => {
       ? (Array.isArray(membership.companies)?membership.companies[0]:membership.companies)
       : null;
 
-    const slotAllowed=await enforceJobSlotAccess(userId,currentCompanyId);
-    if(!slotAllowed)return;
+    /*
+     * The builder should never become unusable because a preflight slot lookup
+     * hits an older jobs-table schema or a temporary Supabase/RLS issue.
+     * We still perform the authoritative slot check again on Publish.
+     */
+    try{
+      const slotAllowed=await enforceJobSlotAccess(userId,currentCompanyId);
+      if(!slotAllowed)return;
+    }catch(slotCheckError){
+      console.error('Job-slot preflight check deferred:',slotCheckError);
+    }
 
     let verificationDocument=null;
 
