@@ -528,8 +528,14 @@ function renderConversationList(){
   const list=filteredThreads();
 
   if(!list.length){
+    const emptyListCopy = threads.length
+      ? 'No conversations match your search.'
+      : currentRole === 'employer'
+        ? 'No conversations yet. Start from a candidate application to begin messaging.'
+        : 'No conversations yet. Messages about your applications will appear here.';
+
     el.innerHTML=`<div style="padding:30px 18px;text-align:center;color:var(--muted);font-size:12px;line-height:1.55">
-      ${threads.length?'No conversations match your search.':'No conversations yet. Start from a candidate application to begin messaging.'}
+      ${emptyListCopy}
     </div>`;
     return;
   }
@@ -629,11 +635,15 @@ function renderChat(){
   const d=activeConversationDetails();
 
   if(!d){
+    const emptyChatCopy = currentRole === 'employer'
+      ? 'Choose a conversation from the left, or start one from a candidate application.'
+      : 'Choose a conversation from the left when you receive a message about one of your applications.';
+
     panel.innerHTML=`
       <div class="empty-chat">
         <div class="empty-chat-icon">✉</div>
         <div class="empty-chat-title">No conversation selected</div>
-        <div class="empty-chat-copy">Choose a conversation from the left, or start one from a candidate application.</div>
+        <div class="empty-chat-copy">${emptyChatCopy}</div>
       </div>`;
     return;
   }
