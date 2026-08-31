@@ -157,10 +157,21 @@ async function fulfillCheckout(session) {
   if (!employerId || !product) return;
 
   if (product === 'additional_slot' || product === 'single_job') {
-    /*
-     * The current $150 product is a REUSABLE slot for the remainder
-     * of the employer's active monthly billing period.
-     */
+    // Standalone $150/month Second Job Slot. The included free slot remains,
+    // so this subscription gives the employer 2 total reusable active slots.
+    if (session.mode === 'subscription' && session.subscription) {
+      const subscription = await stripeGet(`subscriptions/${encodeURIComponent(session.subscription)}`);
+      await rpc('sync_second_job_slot_subscription', {
+        p_employer_id: employerId,
+        p_status: subscription.status === 'trialing' ? 'trialing' : 'active',
+        p_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
+        p_payment_reference: session.id,
+        p_amount_cents: session.amount_total || 15000
+      });
+      return;
+    }
+
+    // Legacy one-time checkout compatibility.
     await rpc('grant_additional_reusable_slot', {
       p_employer_id: employerId,
       p_quantity: 1,
@@ -204,7 +215,24 @@ async function fulfillCheckout(session) {
 
 async function fulfillSubscription(subscription, forceStatus) {
   const meta = subscription.metadata || {};
-  if (String(meta.product || '') !== 'job_plan' || !meta.employer_id) return;
+  const product = String(meta.product || '').toLowerCase();
+  if (!meta.employer_id) return;
+
+  if (product === 'additional_slot' || product === 'single_job') {
+    const status = forceStatus || (subscription.status === 'trialing' ? 'trialing' : subscription.status);
+    await rpc('sync_second_job_slot_subscription', {
+      p_employer_id: meta.employer_id,
+      p_status: status,
+      p_expires_at: subscription.current_period_end
+        ? new Date(subscription.current_period_end * 1000).toISOString()
+        : null,
+      p_payment_reference: null,
+      p_amount_cents: 15000
+    });
+    return;
+  }
+
+  if (product !== 'job_plan') return;
   await upsertPlan({
     employerId: meta.employer_id,
     plan: meta.plan,
