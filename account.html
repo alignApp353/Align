@@ -76,6 +76,8 @@ nav{
   gap:28px;
 }
 
+.nav-links.nav-readiness-pending{ visibility:hidden; }
+
 .nav-links a{
   color:var(--text-muted);
   text-decoration:none;
@@ -1177,7 +1179,7 @@ select.form-input{
 
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
-  <div class="nav-links">
+  <div class="nav-links nav-readiness-pending" id="candidate-nav-links">
     <a href="account.html" class="active">Account</a>
     <a href="my-jobs.html">My jobs</a>
     <a href="messages.html">Messages</a>
@@ -1202,6 +1204,25 @@ select.form-input{
     <button class="nav-signout" onclick="signOutFromNav()">Sign out</button>
   </div>
 </nav>
+<script>
+(function(){
+  const nav = document.getElementById('candidate-nav-links');
+  const swipe = document.getElementById('candidate-swipe-link') || document.getElementById('nav-swipe-link');
+  if(!nav || !swipe) return;
+
+  let cached = null;
+  try { cached = window.sessionStorage.getItem('alygnn_matching_ready_v1'); } catch (_) {}
+
+  if(cached === '1'){
+    swipe.style.display = '';
+    nav.classList.remove('nav-readiness-pending');
+  }else if(cached === '0'){
+    swipe.style.display = 'none';
+    nav.classList.remove('nav-readiness-pending');
+  }
+})();
+</script>
+
 
 <div class="loading" id="loading">Loading your account...</div>
 
@@ -1909,6 +1930,20 @@ async function claimPendingCandidateOnboarding(user) {
 async function signOutFromNav() {
   await sb.auth.signOut({ scope: 'local' });
   window.location.href = 'index.html';
+}
+
+
+function syncCandidateSwipeNav(matchingReady) {
+  const ready = matchingReady === true;
+  const nav = document.getElementById('candidate-nav-links');
+  const swipe = document.getElementById('candidate-swipe-link') || document.getElementById('nav-swipe-link');
+
+  try {
+    window.sessionStorage.setItem('alygnn_matching_ready_v1', ready ? '1' : '0');
+  } catch (_) {}
+
+  if (swipe) swipe.style.display = ready ? '' : 'none';
+  if (nav) nav.classList.remove('nav-readiness-pending');
 }
 
 let currentUserId = null;
@@ -2622,8 +2657,10 @@ async function initAccountPage(){
       : (!hasResume ? 'align-upload.html' : 'preferences.html');
   }
 
-  if (hasResume && profile?.preferences) {
-    if (swipeLink) swipeLink.style.display = '';
+  syncCandidateSwipeNav(matchingReady);
+
+  if (matchingReady) {
+    // Candidate setup is complete.
   } else if (!hasResume) {
     setupBanner.style.display = 'flex';
     setupTitle.textContent = 'Upload your resume to start swiping';
