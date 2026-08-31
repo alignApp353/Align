@@ -2437,6 +2437,27 @@ function clearMessage(){
 }
 
 
+function isPostingCapacityError(error){
+  const text=String(error?.message||'').toLowerCase();
+  return(
+    text.includes('reusable job slot')||
+    text.includes('job slot')||
+    text.includes('slot limit')||
+    text.includes('no active weekly job slot')||
+    text.includes('add more capacity')||
+    text.includes('choose paid hiring capacity')
+  );
+}
+
+function goToPricingForAnotherSlot(reason='slot_limit'){
+  const params=new URLSearchParams({
+    reason,
+    return:'preview'
+  });
+  location.replace('app-employer-pricing.html?'+params.toString());
+}
+
+
 function slotEntitlementActive(entitlement){
   const plan=String(entitlement?.plan||'free').toLowerCase();
   if(!plan||plan==='free')return true;
@@ -3195,6 +3216,19 @@ async function publishJob(){
     );
 
     const errorText=String(error?.message||'');
+
+    if(isPostingCapacityError(error)){
+      showMessage(
+        'Your included free job slot is already being used. Choose another job slot to post this role.'
+      );
+      button.disabled=false;
+      button.textContent='Choose a Plan';
+
+      setTimeout(()=>{
+        goToPricingForAnotherSlot('slot_limit');
+      },450);
+      return;
+    }
 
     showMessage(
       errorText
