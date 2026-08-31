@@ -8,7 +8,7 @@
 //   SUPABASE_ANON_KEY=<your publishable/anon key>
 //
 // IMPORTANT: The webhook file supplied with this patch is what grants the
-// $150 reusable add-on slot / Job Boost / plan entitlement after Stripe confirms payment.
+// $150/month Second Job Slot / Job Boost / plan entitlement after Stripe confirms payment.
 
 const STRIPE_API = 'https://api.stripe.com/v1';
 
@@ -126,13 +126,9 @@ async function getEmployerPostingAccess(token) {
 }
 
 function additionalSlotEligible(access) {
-  const plan=String(access?.plan||'').toLowerCase();
-
-  return(
-    access?.active_paid_plan===true &&
-    String(access?.billing_period||'').toLowerCase()==='monthly' &&
-    ['launch','growth','scale','business','enterprise'].includes(plan)
-  );
+  // The $150/month Second Job Slot is a standalone option. It does not require
+  // Launch/Growth/Scale. Block a second purchase while the slot is already active.
+  return Number(access?.addon_slot_count || 0) < 1;
 }
 
 async function stripeCreateCheckout(params) {
@@ -193,7 +189,7 @@ module.exports = async function handler(req, res) {
     let jobId = '';
 
     // Backward compatibility: the former $150 "single_job" product is now
-    // the CURRENT $150 reusable monthly-plan add-on.
+    // the standalone $150/month Second Job Slot.
     if (!product && plan && plan !== 'single_job') product = 'job_plan';
     if (!product && plan === 'single_job') product = 'additional_slot';
     if (product === 'single_job') product = 'additional_slot';
@@ -203,16 +199,16 @@ module.exports = async function handler(req, res) {
 
       if (!additionalSlotEligible(access)) {
         return send(res, 400, {
-          error: 'The $150 additional reusable slot requires an active monthly Launch, Growth, or Scale plan.'
+          error: 'Your Second Job Slot is already active.'
         });
       }
 
-      plan = String(access.plan || '').toLowerCase();
+      plan = 'second_job_slot';
       billing = 'monthly';
-      name = 'Alygnn Additional Reusable Job Slot';
+      name = 'Alygnn Second Job Slot';
       cents = 15000;
       slots = 1;
-      mode = 'payment';
+      mode = 'subscription';
 
     } else if (product === 'job_boost') {
       jobId = String(input.job_id || '');
