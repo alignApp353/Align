@@ -3140,6 +3140,16 @@
 
 
   </style>
+
+<style id="alygnn-messaging-employer-nav">
+.bottom-nav{grid-template-columns:repeat(6,1fr)!important}
+.messaging-nav-badge{
+  position:absolute;top:2px;right:calc(50% - 19px);min-width:15px;height:15px;padding:0 4px;
+  border-radius:999px;background:#E64141;color:#fff;font-size:8px;font-weight:900;
+  display:grid;place-items:center;border:2px solid var(--card);
+}
+</style>
+
 </head>
 <body data-employer-dashboard-build="2026-08-30-slot-paywall-open-closed-tabs">
   <div class="loading" id="loading">
@@ -3467,7 +3477,11 @@
           <h3>Application</h3>
 
           <div class="candidate-profile-actions">
-            <button class="primary-btn" data-candidate-page-action="reviewed" type="button">
+            <button class="primary-btn" id="candidate-page-message" type="button">
+              Message Candidate
+            </button>
+
+            <button class="secondary-btn" data-candidate-page-action="reviewed" type="button">
               Mark Reviewed
             </button>
 
@@ -3916,6 +3930,18 @@
         </svg>
       </span>
       <span>Applicants</span>
+    </button>
+
+    <button class="nav-item" id="employer-messages-nav" type="button" aria-label="Messages" onclick="location.href='app-messages.html?role=employer'">
+      <span class="nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"></path>
+          <path d="M8 9h8"></path>
+          <path d="M8 13h5"></path>
+        </svg>
+      </span>
+      <span>Messages</span>
+      <span class="messaging-nav-badge" id="employer-message-badge" hidden>0</span>
     </button>
 
     <button class="nav-item" data-view="company" type="button" aria-label="Company">
@@ -8411,6 +8437,7 @@
         }
 
         safeRenderAll();
+        refreshEmployerMessageBadge();
       }catch(error){
         console.error('Employer workspace failed to initialize:',error);
         safeRenderAll();
@@ -8655,6 +8682,57 @@
     $('candidate-profile-back').onclick = () => {
       setView('applicants');
     };
+
+    $('candidate-page-message').onclick = () => {
+      const application = state.activeCandidate;
+
+      if(!application?.id){
+        toast('Select an applicant before starting a conversation.');
+        return;
+      }
+
+      location.href =
+        'app-chat.html?role=employer&application=' +
+        encodeURIComponent(String(application.id));
+    };
+
+    async function refreshEmployerMessageBadge(){
+      const badge = $('employer-message-badge');
+      if(!badge || !state.session?.user?.id) return;
+
+      try{
+        const {data:conversations,error:conversationError}=await sb
+          .from('application_conversations')
+          .select('id')
+          .eq('employer_id',state.session.user.id);
+
+        if(conversationError) throw conversationError;
+
+        const ids=(conversations||[]).map(row=>row.id).filter(Boolean);
+        if(!ids.length){
+          badge.hidden=true;
+          badge.textContent='0';
+          return;
+        }
+
+        const {data:messages,error:messageError}=await sb
+          .from('application_messages')
+          .select('id,sender_id,read_at')
+          .in('conversation_id',ids)
+          .neq('sender_id',state.session.user.id)
+          .is('read_at',null);
+
+        if(messageError) throw messageError;
+
+        const count=(messages||[]).length;
+        badge.textContent=count>99?'99+':String(count);
+        badge.hidden=count===0;
+      }catch(error){
+        // Messaging SQL may not be installed yet. Keep the rest of the dashboard usable.
+        console.warn('Employer message badge unavailable:',error);
+        badge.hidden=true;
+      }
+    }
 
     $('candidate-page-view-resume').onclick = async () => {
       const application = state.activeCandidate;
