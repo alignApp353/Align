@@ -231,6 +231,23 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     }
   };
 
+  const ADDITIONAL_SLOT = {
+    name:'1 Job Slot',
+    price:150,
+    suffix:'/ month',
+    billing:'Monthly',
+    kind:'additional_slot_subscription',
+    slots:'1 additional active reusable job slot',
+    features:[
+      'No 25-candidate cap on the paid slot',
+      'No 7-day job-slot limit',
+      'AI candidate matching and candidate management',
+      'Messaging and resume access',
+      'Close or pause a job and reuse the slot',
+      'Limited to 1 single-slot subscription per employer'
+    ]
+  };
+
   const LEGACY_PLAN_ALIASES = {
     business:'launch',
     enterprise:'growth',
@@ -239,6 +256,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
   let selectedBilling = 'quarterly';
   let selectedPlan = 'launch';
+  let selectedProduct = 'job_plan';
+  let addonAlreadyActive = false;
   let session = null;
 
   function money(n){
@@ -261,8 +280,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     el.textContent='';
   }
 
+  function isAddon(){
+    return selectedProduct === 'additional_slot';
+  }
+
   function activeProduct(){
-    return CATALOG[selectedBilling]?.[selectedPlan] || CATALOG.quarterly.launch;
+    return isAddon() ? ADDITIONAL_SLOT : (CATALOG[selectedBilling]?.[selectedPlan] || CATALOG.quarterly.launch);
   }
 
   function resetTermsAcceptance(){
@@ -273,13 +296,37 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
   function updateUrl(){
     const url=new URL(location.href);
-    url.searchParams.set('plan',selectedPlan);
-    url.searchParams.set('billing',selectedBilling);
+    if(isAddon()){
+      url.searchParams.set('product','additional_slot');
+      url.searchParams.set('billing','monthly');
+      url.searchParams.delete('plan');
+    }else{
+      url.searchParams.delete('product');
+      url.searchParams.set('plan',selectedPlan);
+      url.searchParams.set('billing',selectedBilling);
+    }
     history.replaceState({},'',url);
   }
 
   function renderPlanOptions(){
     const options=document.getElementById('plan-options');
+    const tabs=document.querySelector('.billing-tabs');
+
+    if(isAddon()){
+      if(tabs) tabs.style.display='none';
+      options.classList.add('weekly');
+      options.innerHTML=`
+        <button type="button" class="plan-option active" disabled>
+          <div class="name">1 Job Slot</div>
+          <div class="price">$150 <span>/ month</span></div>
+          <div class="slots">1 additional active reusable job slot</div>
+        </button>
+      `;
+      document.getElementById('enterprise-note').style.display='none';
+      return;
+    }
+
+    if(tabs) tabs.style.display='inline-flex';
     const plans=CATALOG[selectedBilling];
     options.classList.toggle('weekly',selectedBilling==='weekly');
     options.innerHTML=Object.entries(plans).map(([key,p])=>`
@@ -324,6 +371,19 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
   function renderSummary(){
     const p=activeProduct();
+
+    const heading=document.querySelector('.heading h1');
+    const headingCopy=document.querySelector('.heading p');
+    const panelTitle=document.querySelector('.panel-title');
+    if(isAddon()){
+      if(heading) heading.textContent='Add 1 reusable job slot.';
+      if(headingCopy) headingCopy.textContent='Add one full paid job slot for $150 per month. It has no 25-candidate cap and no 7-day slot limit.';
+      if(panelTitle) panelTitle.textContent='1. Confirm your job slot';
+    }else{
+      if(heading) heading.textContent='Confirm your job-slot plan.';
+      if(headingCopy) headingCopy.textContent='Choose your billing period and job-slot capacity. Your access is activated only after secure payment is confirmed.';
+      if(panelTitle) panelTitle.textContent='1. Confirm your plan';
+    }
     document.getElementById('summary-name').textContent=p.name;
     document.getElementById('summary-billing').textContent=p.billing;
     document.getElementById('summary-price').innerHTML=`${displayPrice(p.price)} <span>${p.suffix}</span>`;
@@ -335,11 +395,14 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       document.getElementById('tax-row').style.display='none';
       document.getElementById('due-total').textContent='$0.00';
       document.getElementById('trust-copy').textContent='Developer test mode · No charge';
-      document.getElementById('authorization-copy').textContent=`By continuing, you confirm this is a test activation of the ${p.name} ${p.billing.toLowerCase()} package. No payment will be processed.`;
+      document.getElementById('authorization-copy').textContent=isAddon() ? 'By continuing, you confirm this is a developer test activation of the $150/month single job slot. No payment will be processed.' : `By continuing, you confirm this is a test activation of the ${p.name} ${p.billing.toLowerCase()} package. No payment will be processed.`;
     }else{
       document.getElementById('tax-row').style.display='flex';
       document.getElementById('due-total').textContent=money(p.price)+' + tax';
-      if(selectedBilling==='monthly'){
+      if(isAddon()){
+        document.getElementById('trust-copy').textContent='🔒 Secure checkout · 1 job slot billed monthly';
+        document.getElementById('authorization-copy').textContent='By continuing, you authorize $150 plus applicable tax each month for this reusable job slot until canceled according to the Terms.';
+      }else if(selectedBilling==='monthly'){
         document.getElementById('trust-copy').textContent='🔒 Secure checkout · Subscription billed monthly';
         document.getElementById('authorization-copy').textContent=`By continuing, you authorize ${displayPrice(p.price)} plus applicable tax each month until canceled according to the Terms.`;
       }else if(selectedBilling==='quarterly'){
@@ -361,6 +424,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   function setBilling(billing, preserveAcceptance=false){
+    if(isAddon()) return;
     if(!CATALOG[billing]) billing='quarterly';
     const oldBilling=selectedBilling;
     selectedBilling=billing;
@@ -378,6 +442,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   function setPlan(plan, preserveAcceptance=false){
+    if(isAddon()) return;
     if(!CATALOG[selectedBilling][plan]){
       plan=selectedBilling==='weekly'?'weekly_slot':'launch';
     }
@@ -396,7 +461,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const p=activeProduct();
     button.disabled=!accepted;
     button.textContent=accepted
-      ? (developerTestMode ? `Activate ${p.name} test package — $0` : `Continue to secure payment — ${displayPrice(p.price)}`)
+      ? (developerTestMode ? (isAddon() ? 'Activate 1 Job Slot test — $0' : `Activate ${p.name} test package — $0`) : `Continue to secure payment — ${displayPrice(p.price)}`)
       : 'Accept terms to continue';
   }
 
@@ -410,7 +475,11 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
   async function init(){
     const params=new URLSearchParams(location.search);
-    let requestedBilling=(params.get('billing')||'quarterly').toLowerCase();
+    selectedProduct=(params.get('product')||'job_plan').toLowerCase();
+    if(selectedProduct==='single_job') selectedProduct='additional_slot';
+    if(selectedProduct!=='additional_slot') selectedProduct='job_plan';
+
+    let requestedBilling=isAddon() ? 'monthly' : (params.get('billing')||'quarterly').toLowerCase();
     if(!CATALOG[requestedBilling]) requestedBilling='quarterly';
     let requestedPlan=normalizeRequestedPlan(params.get('plan'),requestedBilling);
 
@@ -445,16 +514,38 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       return;
     }
 
+    if(isAddon()){
+      try{
+        const { data:access, error:accessError } = await sb.rpc('get_employer_posting_access');
+        if(!accessError){
+          addonAlreadyActive = Math.max(0, Number(access?.addon_slot_count || 0)) >= 1;
+        }
+      }catch(e){
+        console.warn('Could not verify existing single-slot access:',e);
+      }
+    }
+
     const email=session.user.email||'Employer account';
     document.getElementById('account-email').textContent=email;
     document.getElementById('account-avatar').textContent=(email[0]||'A').toUpperCase();
     applyDeveloperTestMode();
+    if(isAddon() && addonAlreadyActive){
+      showMessage('Your $150/month single job slot is already active. Only one can be active per employer.','info');
+      const checkoutButton=document.getElementById('checkout-btn');
+      checkoutButton.disabled=true;
+      checkoutButton.textContent='1 job slot already active';
+    }
     document.body.classList.add('ready');
   }
 
   async function startCheckout(){
     if(!session){
       location.replace('login.html?role=employer');
+      return;
+    }
+
+    if(isAddon() && addonAlreadyActive){
+      showMessage('Your $150/month single job slot is already active. Only one can be active per employer.','info');
       return;
     }
 
@@ -475,12 +566,14 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       // The server-backed RPC updates employer_entitlements, so the database
       // trigger and the dashboard both recognize the same test slot limit.
       // No payment-provider request is made in this branch.
-      const testRpc = selectedBilling === 'weekly'
-        ? sb.rpc('activate_employer_test_weekly_slot')
-        : sb.rpc('activate_employer_test_plan',{
-            p_plan:selectedPlan,
-            p_billing:selectedBilling
-          });
+      const testRpc = isAddon()
+        ? sb.rpc('activate_employer_test_addon_slot')
+        : selectedBilling === 'weekly'
+          ? sb.rpc('activate_employer_test_weekly_slot')
+          : sb.rpc('activate_employer_test_plan',{
+              p_plan:selectedPlan,
+              p_billing:selectedBilling
+            });
 
       const { data:testData, error:testError } = await testRpc;
 
@@ -497,9 +590,9 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         server_activated:true,
         employer_id:session.user.id,
         email:session.user.email||'',
-        plan:selectedPlan,
-        billing:selectedBilling,
-        slot_limit:Number(testData?.slot_limit || slotLimitFor(selectedPlan,selectedBilling)),
+        plan:isAddon() ? 'second_job_slot' : selectedPlan,
+        billing:isAddon() ? 'monthly' : selectedBilling,
+        slot_limit:Number(testData?.slot_limit || (isAddon() ? 2 : slotLimitFor(selectedPlan,selectedBilling))),
         urgently_hiring:testData?.urgently_hiring === true || ['growth','scale'].includes(selectedPlan),
         activated_at:testData?.activated_at || new Date().toISOString(),
         expires_at:testData?.expires_at || testExpiresAt(selectedBilling),
@@ -517,15 +610,17 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         console.warn('Could not save local test diagnostic:',e);
       }
 
-      button.textContent=selectedBilling==='weekly'?'Weekly test slot added ✓':'Test package activated ✓';
+      button.textContent=isAddon()?'1 Job Slot test activated ✓':(selectedBilling==='weekly'?'Weekly test slot added ✓':'Test package activated ✓');
       showMessage(
-        selectedBilling==='weekly'
-          ? `Weekly Job Slot added. Your total temporary/base capacity is now ${testEntitlement.slot_limit} job slot${testEntitlement.slot_limit===1?'':'s'}. No payment was processed.`
-          : `${p.name} test package activated with ${testEntitlement.slot_limit} total job slot${testEntitlement.slot_limit===1?'':'s'}. No payment was processed.`,
+        isAddon()
+          ? `1 reusable paid job slot activated for testing. Your total capacity is now ${testEntitlement.slot_limit} job slots. No payment was processed.`
+          : selectedBilling==='weekly'
+            ? `Weekly Job Slot added. Your total temporary/base capacity is now ${testEntitlement.slot_limit} job slot${testEntitlement.slot_limit===1?'':'s'}. No payment was processed.`
+            : `${p.name} test package activated with ${testEntitlement.slot_limit} total job slot${testEntitlement.slot_limit===1?'':'s'}. No payment was processed.`,
         'info'
       );
       setTimeout(()=>{
-        location.href='employer-dashboard.html?test_plan=1&plan='+encodeURIComponent(selectedPlan)+'&billing='+encodeURIComponent(selectedBilling);
+        location.href=isAddon() ? 'employer-dashboard.html?test_addon=1' : 'employer-dashboard.html?test_plan=1&plan='+encodeURIComponent(selectedPlan)+'&billing='+encodeURIComponent(selectedBilling);
       },700);
       return;
     }
@@ -539,12 +634,15 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
         body:JSON.stringify({
-          plan:selectedPlan,
-          billing:selectedBilling,
+          product:isAddon() ? 'additional_slot' : 'job_plan',
+          plan:isAddon() ? 'second_job_slot' : selectedPlan,
+          billing:isAddon() ? 'monthly' : selectedBilling,
           purchase_type:p.kind,
           terms_accepted:true,
           terms_version:TERMS_VERSION,
-          success_url:location.origin+'/employer-dashboard.html?payment=success&plan='+encodeURIComponent(selectedPlan)+'&billing='+encodeURIComponent(selectedBilling),
+          success_url:isAddon()
+            ? location.origin+'/employer-dashboard.html?payment=success&product=additional_slot'
+            : location.origin+'/employer-dashboard.html?payment=success&plan='+encodeURIComponent(selectedPlan)+'&billing='+encodeURIComponent(selectedBilling),
           cancel_url:location.href
         })
       });
@@ -557,7 +655,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       location.href=data.url;
     }catch(error){
       console.error(error);
-      showMessage('The checkout page is updated, but /api/create-checkout-session must also recognize the new Launch, Growth, Scale, quarterly, monthly, and weekly price IDs before payments can complete.','info');
+      showMessage(error?.message || 'Secure checkout could not be opened. Please try again.','info');
       button.disabled=false;
       button.textContent=original;
     }
