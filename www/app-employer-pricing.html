@@ -230,7 +230,7 @@ h1{font-family:'DM Serif Display',Georgia,serif;font-size:34px;line-height:1.05;
     </div>
     <div class="capacity-row">
       <div class="capacity-box"><strong id="slot-limit">1</strong><span>Reusable slot capacity</span></div>
-      <div class="capacity-box"><strong id="slot-used">0</strong><span>Active / pending jobs</span></div>
+      <div class="capacity-box"><strong id="slot-used">0 / 1</strong><span>Slots in use</span></div>
     </div>
   </section>
 
@@ -307,6 +307,8 @@ const CATALOG={
 
 const PAGE_PARAMS=new URLSearchParams(location.search);
 const SLOT_GATE_REASON=PAGE_PARAMS.get('reason')==='slot_limit';
+const SLOT_GATE_USED=Math.max(0,Number(PAGE_PARAMS.get('used')||0)||0);
+const SLOT_GATE_LIMIT=Math.max(1,Number(PAGE_PARAMS.get('limit')||1)||1);
 
 let session=null;
 let billing=SLOT_GATE_REASON?'weekly':'quarterly';
@@ -356,22 +358,34 @@ function jobConsumesSlot(job){
 }
 
 function usedSlots(){
-  return jobs.filter(jobConsumesSlot).length;
+  const liveUsed=jobs.filter(jobConsumesSlot).length;
+
+  // When this page was opened by the Post Job gate, the previous screen already
+  // calculated the authoritative visible usage. Keep that value as a fallback
+  // if an older jobs schema prevents one of the pricing-page queries from seeing
+  // the same rows. Live data wins whenever it is greater.
+  if(SLOT_GATE_REASON){
+    return Math.max(liveUsed,SLOT_GATE_USED);
+  }
+
+  return liveUsed;
 }
 
 function effectiveSlotLimit(){
-  if(!entitlement||!entitlementActive())return 1;
+  let liveLimit=1;
 
-  const plan=String(entitlement?.plan||'free').toLowerCase();
-  const stored=Number(entitlement?.slot_limit);
-  const fallback=defaultSlotLimit();
+  if(entitlement&&entitlementActive()){
+    const plan=String(entitlement?.plan||'free').toLowerCase();
+    const stored=Number(entitlement?.slot_limit);
+    const fallback=defaultSlotLimit();
 
-  // A weekly purchase adds one temporary paid slot to the free reusable slot.
-  if(plan==='weekly_slot'){
-    return Math.max(2,Number.isFinite(stored)&&stored>0?stored:2);
+    // A weekly purchase adds one temporary paid slot to the free reusable slot.
+    liveLimit=plan==='weekly_slot'
+      ?Math.max(2,Number.isFinite(stored)&&stored>0?stored:2)
+      :Math.max(1,Number.isFinite(stored)&&stored>0?stored:fallback);
   }
 
-  return Math.max(1,Number.isFinite(stored)&&stored>0?stored:fallback);
+  return SLOT_GATE_REASON ? Math.max(liveLimit,SLOT_GATE_LIMIT) : liveLimit;
 }
 
 function renderSlotGateNotice(){
@@ -403,19 +417,22 @@ function renderSlotGateNotice(){
 function renderCurrent(){
   $('current-plan').textContent=planLabel();
   $('current-status').textContent=entitlementActive()?'Active':'Inactive';
-  $('slot-limit').textContent=String(effectiveSlotLimit());
-  $('slot-used').textContent=String(usedSlots());
+  const limit=effectiveSlotLimit();
+  const used=usedSlots();
+
+  $('slot-limit').textContent=String(limit);
+  $('slot-used').textContent=`${used} / ${limit}`;
 
   const plan=String(entitlement?.plan||'free').toLowerCase();
   const paidPlanActive=plan!=='free'&&plan!==''&&entitlementActive();
-  const freeOccupied=usedSlots()>=1;
+  const freeOccupied=used>=1;
   const freeUnavailable=paidPlanActive||freeOccupied;
 
   $('free-btn').disabled=freeUnavailable;
   $('free-btn').textContent=paidPlanActive
-    ? 'Included in your current plan'
+    ? `${used} / ${limit} slots in use`
     : freeOccupied
-      ? 'Included free slot is in use'
+      ? '1 / 1 free slot in use'
       : 'Use included free slot';
 
   renderSlotGateNotice();
@@ -475,7 +492,7 @@ async function queryPricingJobs(userId,companyId){
   for(const column of ['employer_id','created_by','user_id','owner_id']){
     const result=await sb
       .from('jobs')
-      .select('id,status,employer_id,company_id')
+      .select('*')
       .eq(column,userId);
 
     if(!result.error)addRows(result.data);
@@ -484,7 +501,7 @@ async function queryPricingJobs(userId,companyId){
   if(companyId){
     const result=await sb
       .from('jobs')
-      .select('id,status,employer_id,company_id')
+      .select('*')
       .eq('company_id',companyId);
 
     if(!result.error)addRows(result.data);
@@ -542,7 +559,26 @@ async function loadAccount(){
     companyId=membershipResult.data?.company_id||'';
   }
 
+  if(!companyId){
+    companyId=String(
+      session.user.user_metadata?.company_id||
+      localStorage.getItem('alygnn_company_id')||
+      localStorage.getItem(`alygnn_company_id_${session.user.id}`)||
+      ''
+    ).trim();
+  }
+
   jobs=await queryPricingJobs(session.user.id,companyId);
+
+  console.log('Alygnn pricing slot usage:',{
+    employer_id:session.user.id,
+    company_id:companyId||null,
+    jobs:jobs.map(job=>({id:job?.id,status:job?.status,employer_id:job?.employer_id,company_id:job?.company_id})),
+    used:usedSlots(),
+    limit:effectiveSlotLimit(),
+    gate_used:SLOT_GATE_USED,
+    gate_limit:SLOT_GATE_LIMIT
+  });
   renderCurrent();
   $('loading').hidden=true;
 }
@@ -558,8 +594,9 @@ document.querySelectorAll('[data-billing]').forEach(btn=>{
 });
 
 $('free-btn').addEventListener('click',()=>{
-  if($('free-btn').disabled) return;
-  location.href='app-post-job.html';
+  if($('free-btn').disabled)return;
+  sessionStorage.removeItem('alygnn_job_slot_gate');
+  location.assign('app-post-job.html?from=pricing');
 });
 
 $('additional-slot-btn').addEventListener('click',()=>{
