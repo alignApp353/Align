@@ -37,6 +37,8 @@ nav{
   transform:translateX(-50%);
   height:100%;
 }
+.nav-links.nav-readiness-pending{ visibility:hidden; }
+
 .nav-links a{
   height:100%;
   display:flex;
@@ -207,7 +209,7 @@ body.auth-ready #auth-loading { display: none; }
 
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
-  <div class="nav-links">
+  <div class="nav-links nav-readiness-pending" id="candidate-nav-links">
     <a href="account.html">Account</a>
     <a href="my-jobs.html" class="active">My jobs</a>
     <a href="messages.html">Messages</a>
@@ -232,6 +234,25 @@ body.auth-ready #auth-loading { display: none; }
     <button class="nav-signout" onclick="signOut()">Sign out</button>
   </div>
 </nav>
+<script>
+(function(){
+  const nav = document.getElementById('candidate-nav-links');
+  const swipe = document.getElementById('candidate-swipe-link') || document.getElementById('nav-swipe-link');
+  if(!nav || !swipe) return;
+
+  let cached = null;
+  try { cached = window.sessionStorage.getItem('alygnn_matching_ready_v1'); } catch (_) {}
+
+  if(cached === '1'){
+    swipe.style.display = '';
+    nav.classList.remove('nav-readiness-pending');
+  }else if(cached === '0'){
+    swipe.style.display = 'none';
+    nav.classList.remove('nav-readiness-pending');
+  }
+})();
+</script>
+
 
 <main>
   <div class="eyebrow">Your jobs</div>
@@ -322,6 +343,20 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       detectSessionInUrl: true
     }
   });
+
+
+function syncCandidateSwipeNav(matchingReady) {
+  const ready = matchingReady === true;
+  const nav = document.getElementById('candidate-nav-links');
+  const swipe = document.getElementById('candidate-swipe-link') || document.getElementById('nav-swipe-link');
+
+  try {
+    window.sessionStorage.setItem('alygnn_matching_ready_v1', ready ? '1' : '0');
+  } catch (_) {}
+
+  if (swipe) swipe.style.display = ready ? '' : 'none';
+  if (nav) nav.classList.remove('nav-readiness-pending');
+}
 
 let currentUserId = null;
 let currentTab = 'applied';
@@ -837,10 +872,7 @@ document.getElementById('search-input').addEventListener('input', render);
   // Only expose Swipe after onboarding is complete.
   const hasResume = !!(profile?.resume_file_path || profile?.resume_data);
   const hasPreferences = !!profile?.preferences;
-  const swipeLink = document.getElementById('nav-swipe-link');
-  if (swipeLink && hasResume && hasPreferences) {
-    swipeLink.style.display = '';
-  }
+  syncCandidateSwipeNav(hasResume && hasPreferences);
 
   await loadCandidateNotifications(profile || null);
 })();
