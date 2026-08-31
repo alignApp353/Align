@@ -254,11 +254,12 @@ h1{font-family:'DM Serif Display',Georgia,serif;font-size:34px;line-height:1.05;
 
   <section class="addon" id="additional-slot" hidden>
     <div class="addon-top">
-      <div><h3>Additional reusable slot</h3></div>
-      <div class="addon-price">$150<small>monthly-plan add-on</small></div>
+      <div><h3>Second Job Slot</h3></div>
+      <div class="addon-price">$150<small>/ month</small></div>
     </div>
-    <p>Add one more reusable active job slot to an active monthly plan. Closing or pausing the job makes this slot available again during the same billing period.</p>
-    <button class="btn secondary full" id="additional-slot-btn" type="button">Add reusable slot — $150</button>
+    <p>Keep your included free slot and add 1 more reusable active job slot. That gives you 2 total active job slots while this monthly slot is active.</p>
+    <div class="plan-slots" style="margin-top:12px">1 free slot + 1 paid slot = 2 total</div>
+    <button class="btn secondary full" id="additional-slot-btn" type="button">Add Second Job Slot — $150/month</button>
   </section>
 
 
@@ -272,7 +273,7 @@ h1{font-family:'DM Serif Display',Georgia,serif;font-size:34px;line-height:1.05;
     </div>
   </section>
 
-  <p class="fineprint">Weekly slots start immediately after successful purchase and expire 7 days later. Monthly and quarterly slots are reusable while the paid term remains active.</p>
+  <p class="fineprint">Weekly slots start immediately after successful purchase and expire 7 days later. The $150 Second Job Slot renews monthly until canceled. Monthly and quarterly plans are reusable while the paid term remains active.</p>
   <div class="message" id="message" hidden></div>
 </main>
 
@@ -316,6 +317,14 @@ function showMessage(text){
   $('message').hidden=false;
 }
 
+function standaloneSecondSlotActive(){
+  const expiry=entitlement?.addon_slots_expires_at;
+  const count=Math.max(0,Number(entitlement?.addon_slot_count||0));
+  if(count<1||!expiry)return false;
+  const time=new Date(expiry).getTime();
+  return !Number.isNaN(time)&&time>Date.now();
+}
+
 function planLabel(){
   const p=String(entitlement?.plan||'free').toLowerCase();
   if(p==='weekly_slot') return 'Weekly Job Slot';
@@ -323,6 +332,7 @@ function planLabel(){
   if(p==='growth') return 'Growth';
   if(p==='scale') return 'Scale';
   if(p==='enterprise') return 'Enterprise';
+  if(standaloneSecondSlotActive()) return 'Free + Second Job Slot';
   return 'Free';
 }
 
@@ -373,10 +383,16 @@ function effectiveSlotLimit(){
     const stored=Number(entitlement?.slot_limit);
     const fallback=defaultSlotLimit();
 
-    // A weekly purchase adds one temporary paid slot to the free reusable slot.
+    // Weekly gives one temporary slot on top of the included free slot.
     liveLimit=plan==='weekly_slot'
       ?Math.max(2,Number.isFinite(stored)&&stored>0?stored:2)
       :Math.max(1,Number.isFinite(stored)&&stored>0?stored:fallback);
+  }
+
+  // The standalone $150/month Second Job Slot is additive to the included
+  // free slot (or to a paid plan if the employer later upgrades).
+  if(standaloneSecondSlotActive()){
+    liveLimit+=1;
   }
 
   return SLOT_GATE_REASON ? Math.max(liveLimit,SLOT_GATE_LIMIT) : liveLimit;
@@ -426,8 +442,17 @@ function renderCurrent(){
   $('free-btn').textContent=paidPlanActive
     ? `${used} / ${limit} slots in use`
     : freeOccupied
-      ? '1 / 1 free slot in use'
+      ? 'Included free slot in use (1 / 1)'
       : 'Use included free slot';
+
+  const secondBtn=$('additional-slot-btn');
+  if(secondBtn){
+    const active=standaloneSecondSlotActive();
+    secondBtn.disabled=active;
+    secondBtn.textContent=active
+      ? `Second Job Slot active · ${used} / ${limit} slots in use`
+      : 'Add Second Job Slot — $150/month';
+  }
 
   renderSlotGateNotice();
 }
@@ -594,13 +619,8 @@ $('free-btn').addEventListener('click',()=>{
 });
 
 $('additional-slot-btn').addEventListener('click',()=>{
-  const activeMonthly=
-    String(entitlement?.billing_period||'').toLowerCase()==='monthly' &&
-    entitlementActive() &&
-    ['launch','growth','scale'].includes(String(entitlement?.plan||'').toLowerCase());
-
-  if(!activeMonthly){
-    showMessage('The $150 additional reusable slot is available only with an active monthly Launch, Growth, or Scale plan.');
+  if(standaloneSecondSlotActive()){
+    showMessage('Your $150/month Second Job Slot is already active.');
     return;
   }
 
