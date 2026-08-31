@@ -236,16 +236,17 @@ const CATALOG={
 };
 
 const ADDITIONAL_SLOT={
-  name:'Additional Reusable Slot',
+  name:'Second Job Slot',
   price:150,
-  suffix:'one-time add-on',
-  kind:'addon_slot',
+  suffix:'/ month',
+  kind:'additional_slot_subscription',
   slots:1,
   features:[
+    'Keep your included free reusable slot',
     '+1 reusable active job slot',
-    'Requires an active monthly Launch, Growth, or Scale plan',
-    'Valid through the end of your current monthly billing period',
-    'Close or pause a job and reuse the slot during that period'
+    '2 total active job slots while subscribed',
+    'Close or pause a job and reuse either slot',
+    'Renews monthly until canceled'
   ]
 };
 
@@ -309,9 +310,9 @@ function renderOptions(){
   if(isAddon()){
     $('plan-options').innerHTML=`
       <button type="button" class="plan-option active" disabled>
-        <div class="name">Additional reusable slot</div>
-        <div class="price">$150 <span>one-time add-on</span></div>
-        <div class="slots">+1 reusable slot through the end of the current monthly billing period</div>
+        <div class="name">Second Job Slot</div>
+        <div class="price">$150 <span>/ month</span></div>
+        <div class="slots">1 included free slot + 1 paid reusable slot = 2 total</div>
       </button>
     `;
     return;
@@ -344,7 +345,7 @@ function renderSummary(){
     `${display(p.price)} <small>${p.suffix}</small>`;
 
   $('summary-slots').textContent=isAddon()
-    ?'+1 reusable slot for the remainder of your current monthly term'
+    ?'1 additional reusable slot · 2 total with your included free slot'
     :`${p.slots} active reusable job slot${p.slots===1?'':'s'}`;
 
   $('features').innerHTML=p.features.map(x=>`<li>${x}</li>`).join('');
@@ -355,7 +356,7 @@ function renderSummary(){
     $('due').textContent='$0.00';
 
     $('authorization').textContent=isAddon()
-      ?'By continuing, you confirm this is a developer test activation of one additional reusable monthly slot. No payment will be processed.'
+      ?'By continuing, you confirm this is a developer test activation of the $150/month Second Job Slot. No payment will be processed.'
       :`By continuing, you confirm this is a developer test activation of ${p.name}. No payment will be processed.`;
   }else{
     $('tax-row').hidden=false;
@@ -363,7 +364,7 @@ function renderSummary(){
 
     if(isAddon()){
       $('authorization').textContent=
-        'By continuing, you authorize a $150 plus applicable tax one-time payment for one additional reusable job slot valid through the end of your current active monthly plan period.';
+        "By continuing, you authorize $150 plus applicable tax each month for the Second Job Slot until canceled according to Alygnn\'s Terms.";
     }else if(billing==='monthly'){
       $('authorization').textContent=
         `By continuing, you authorize ${display(p.price)} plus applicable tax each month until canceled according to Alygnn's Terms.`;
@@ -381,10 +382,10 @@ function renderSummary(){
 
 function renderAll(){
   if(isAddon()){
-    $('checkout-heading').textContent='Add one reusable job slot.';
+    $('checkout-heading').textContent='Add your second job slot.';
     $('checkout-lede').textContent=
-      'This $150 add-on increases your active monthly capacity by one reusable slot through the end of your current billing period.';
-    $('plan-panel-title').textContent='1. Confirm your add-on';
+      'Keep your included free slot and add one more reusable job slot for $150 per month, giving you 2 total active job slots.';
+    $('plan-panel-title').textContent='1. Confirm your Second Job Slot';
   }else{
     $('checkout-heading').textContent='Confirm your job-slot plan.';
     $('checkout-lede').textContent=
@@ -480,15 +481,8 @@ async function loadPostingAccess(){
 }
 
 function addonEligible(){
-  if(!postingAccess) return false;
-
-  const exactPlan=String(postingAccess.plan||'').toLowerCase();
-
-  return(
-    postingAccess.active_paid_plan===true &&
-    String(postingAccess.billing_period||'').toLowerCase()==='monthly' &&
-    ['launch','growth','scale','business','enterprise'].includes(exactPlan)
-  );
+  if(!postingAccess) return true;
+  return Number(postingAccess?.addon_slot_count||0) < 1;
 }
 
 async function initialize(){
@@ -532,7 +526,7 @@ async function initialize(){
     $('terms').disabled=true;
 
     showMessage(
-      'The $150 additional reusable slot requires an active monthly Launch, Growth, or Scale plan.'
+      'Your Second Job Slot is already active. You already have 2 total reusable job slots.'
     );
   }
 
@@ -566,13 +560,13 @@ async function activateDeveloperTest(){
     if(error){
       console.error(error);
       showMessage(
-        'The test add-on RPC is not installed yet. Run the updated reusable-slot SQL in Supabase, then try again. No payment was processed.'
+        'The Second Job Slot test RPC is not installed yet. Run the updated $150 Second Job Slot SQL in Supabase, then try again. No payment was processed.'
       );
       updateCheckoutButton();
       return;
     }
 
-    btn.textContent='Test reusable slot added ✓';
+    btn.textContent='Second Job Slot activated ✓';
 
     setTimeout(()=>{
       location.href=returnMode==='preview'
@@ -626,7 +620,7 @@ async function startCheckout(){
 
   if(isAddon()&&!addonEligible()){
     showMessage(
-      'The $150 additional reusable slot requires an active monthly Launch, Growth, or Scale plan.'
+      'Your Second Job Slot is already active. You already have 2 total reusable job slots.'
     );
     return;
   }
