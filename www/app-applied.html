@@ -545,6 +545,18 @@ html[data-effective-theme="dark"] .bottom-nav .nav-item.active::before{
   background:#73A4CE;
 }
 </style>
+
+<style id="alygnn-employer-first-messaging-candidate">
+.bottom-nav{grid-template-columns:repeat(5,1fr)!important}
+.actions.has-message{grid-template-columns:1fr 1fr}
+.actions .message-reply-btn{grid-column:1 / -1}
+.messaging-nav-badge{
+  position:absolute;top:2px;right:calc(50% - 19px);min-width:15px;height:15px;padding:0 4px;
+  border-radius:999px;background:#E64141;color:#fff;font-size:8px;font-weight:900;
+  display:grid;place-items:center;border:2px solid var(--card);
+}
+</style>
+
 </head>
 <body data-candidate-nav-build="2026-08-26-isolated-header">
 <div class="app">
@@ -609,6 +621,18 @@ html[data-effective-theme="dark"] .bottom-nav .nav-item.active::before{
     <span class="nav-label">My Jobs</span>
   </button>
 
+  <button class="nav-item" id="candidate-messages-nav" type="button" onclick="location.href='app-messages.html?role=candidate'">
+    <span class="nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"></path>
+        <path d="M8 9h8"></path>
+        <path d="M8 13h5"></path>
+      </svg>
+    </span>
+    <span class="nav-label">Messages</span>
+    <span class="messaging-nav-badge" id="candidate-message-badge" hidden>0</span>
+  </button>
+
   <button class="nav-item" type="button" onclick="location.href='app-account.html#settings'">
     <span class="nav-icon" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none">
@@ -638,7 +662,11 @@ let active='applied';
 let currentUserId='';
 let jobsChannel=null;
 let applicationsChannel=null;
+let conversationsChannel=null;
+let messagesChannel=null;
 let reloadTimer=null;
+let startedConversations=new Map();
+let messagingAvailable=false;
 
 const esc=value=>String(value??'').replace(
   /[&<>"']/g,
@@ -946,7 +974,7 @@ function render(){
                 :''
             }
 
-            <div class="actions">
+            <div class="actions ${startedConversations.has(String(row.id))?'has-message':''}">
               <button
                 class="btn primary"
                 onclick="location.href='app-job-details.html?id=${encodeURIComponent(job.id||row.job_id)}&from=my-jobs'"
@@ -960,6 +988,15 @@ function render(){
               >
                 Details
               </button>
+
+              ${startedConversations.has(String(row.id))?`
+                <button
+                  class="btn primary message-reply-btn"
+                  onclick="location.href='app-chat.html?role=candidate&application=${encodeURIComponent(row.id)}'"
+                >
+                  Open Messages
+                </button>
+              `:''}
             </div>
           </div>
         `;
@@ -1052,6 +1089,66 @@ async function loadApplications(userId){
     });
 }
 
+async function loadStartedConversations(userId){
+  startedConversations=new Map();
+  messagingAvailable=false;
+
+  try{
+    const {data,error}=await sb
+      .from('application_conversations')
+      .select('id,application_id,last_message_at')
+      .eq('candidate_id',userId)
+      .order('last_message_at',{ascending:false});
+
+    if(error) throw error;
+
+    (data||[]).forEach(row=>{
+      if(row.application_id){
+        startedConversations.set(String(row.application_id),row);
+      }
+    });
+
+    messagingAvailable=true;
+    await refreshCandidateMessageBadge(userId);
+  }catch(error){
+    console.warn('Candidate messaging unavailable:',error);
+    const badge=document.getElementById('candidate-message-badge');
+    if(badge) badge.hidden=true;
+  }
+}
+
+async function refreshCandidateMessageBadge(userId){
+  const badge=document.getElementById('candidate-message-badge');
+  if(!badge) return;
+
+  const ids=[...startedConversations.values()]
+    .map(row=>row.id)
+    .filter(Boolean);
+
+  if(!ids.length){
+    badge.hidden=true;
+    badge.textContent='0';
+    return;
+  }
+
+  const {data,error}=await sb
+    .from('application_messages')
+    .select('id,sender_id,read_at')
+    .in('conversation_id',ids)
+    .neq('sender_id',userId)
+    .is('read_at',null);
+
+  if(error){
+    console.warn('Could not load candidate unread messages:',error);
+    badge.hidden=true;
+    return;
+  }
+
+  const count=(data||[]).length;
+  badge.textContent=count>99?'99+':String(count);
+  badge.hidden=count===0;
+}
+
 async function loadSkippedJobs(userId){
   try{
     const skippedResult=await sb
@@ -1124,7 +1221,8 @@ async function loadMyJobs(userId){
   try{
     await Promise.all([
       loadApplications(userId),
-      loadSkippedJobs(userId)
+      loadSkippedJobs(userId),
+      loadStartedConversations(userId)
     ]);
 
     document.getElementById('message').textContent='';
@@ -1162,6 +1260,14 @@ function startRealtimeSync(userId){
     sb.removeChannel(jobsChannel);
   }
 
+  if(conversationsChannel){
+    sb.removeChannel(conversationsChannel);
+  }
+
+  if(messagesChannel){
+    sb.removeChannel(messagesChannel);
+  }
+
   /*
    * Employer decisions update applications.
    * Listen to them so Accepted / Not Selected changes appear without the
@@ -1193,6 +1299,33 @@ function startRealtimeSync(userId){
         event:'*',
         schema:'public',
         table:'jobs'
+      },
+      scheduleReload
+    )
+    .subscribe();
+
+  conversationsChannel=sb
+    .channel(`candidate-conversations-${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event:'*',
+        schema:'public',
+        table:'application_conversations',
+        filter:`candidate_id=eq.${userId}`
+      },
+      scheduleReload
+    )
+    .subscribe();
+
+  messagesChannel=sb
+    .channel(`candidate-message-events-${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event:'*',
+        schema:'public',
+        table:'application_messages'
       },
       scheduleReload
     )
