@@ -68,7 +68,7 @@
   .sidebar {
     background: var(--card-bg); border-right: 1px solid var(--border);
     padding: 32px 20px; position: fixed; top: 64px; left: 0;
-    width: 240px; height: calc(100vh - 64px); overflow-y: auto;
+    width: 240px; height: calc(100vh - 64px); overflow: hidden;
   }
   /* .sidebar is fixed (out of normal flow), so .main gets a matching
      left margin to sit beside it instead of sliding underneath. */
@@ -499,6 +499,23 @@
     font-size: 14px; color: var(--text-muted);
   }
   body.auth-ready #auth-loading { display: none; }
+
+  /* Fixed employer shell:
+     - top navigation stays pinned
+     - sidebar stays pinned and never becomes its own scroll area
+     - scrolling anywhere moves the main page content only */
+  @media (min-width: 861px) {
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .sidebar {
+      overflow: hidden !important;
+      overscroll-behavior: none;
+    }
+  }
+
 </style>
 </head>
 <body>
