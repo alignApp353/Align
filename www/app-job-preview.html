@@ -2539,10 +2539,90 @@ async function loadJobsForFinalSlotCheck(userId){
 
 async function enforceFinalJobSlotAccess(){
   const userId=session?.user?.id;
+
   if(!userId){
-    throw new Error('Your employer session expired. Sign in again and retry.');
+    throw new Error(
+      'Your employer session expired. Sign in again and retry.'
+    );
   }
 
+  /*
+   * ALWAYS ask the unified Supabase posting-access function first.
+   * It includes the active base plan + standalone Second Job Slot
+   * + every active $99 Weekly Job Slot.
+   *
+   * Example:
+   *   Growth 5 slots + one Weekly slot = slot_limit 6.
+   *
+   * The older local entitlement row only knows Growth=5 and would
+   * incorrectly block the 6th job.
+   */
+  try{
+    const result=await promiseTimeout(
+      sb.rpc('get_employer_posting_access'),
+      8000,
+      'Alygnn could not finish checking your current job slots.'
+    );
+
+    if(!result.error && result.data){
+      const access=result.data;
+      const used=Math.max(
+        0,
+        Number(access.active_job_count||0)
+      );
+      const limit=Math.max(
+        1,
+        Number(access.slot_limit||1)
+      );
+
+      if(access.can_post===true){
+        sessionStorage.removeItem(
+          'alygnn_job_slot_gate'
+        );
+        return true;
+      }
+
+      sessionStorage.setItem(
+        'alygnn_job_slot_gate',
+        JSON.stringify({
+          used,
+          limit,
+          checked_at:new Date().toISOString(),
+          source:'app-job-preview-rpc'
+        })
+      );
+
+      const params=new URLSearchParams({
+        reason:'slot_limit',
+        used:String(used),
+        limit:String(limit)
+      });
+
+      location.replace(
+        'app-employer-pricing.html?'+
+        params.toString()
+      );
+
+      return false;
+    }
+
+    if(result.error){
+      console.warn(
+        'Unified posting-access RPC unavailable; using compatibility fallback:',
+        result.error
+      );
+    }
+  }catch(error){
+    console.warn(
+      'Unified posting-access check timed out; using compatibility fallback:',
+      error
+    );
+  }
+
+  /*
+   * Compatibility fallback for an installation where the RPC has not
+   * been deployed yet. The database trigger is still the final guard.
+   */
   let entitlement=null;
 
   try{
@@ -2556,38 +2636,38 @@ async function enforceFinalJobSlotAccess(){
       'Alygnn could not finish checking your hiring plan.'
     );
 
-    if(entitlementResult.error){
-      console.warn(
-        'Final entitlement check unavailable; using free-slot fallback:',
-        entitlementResult.error
-      );
-    }else{
+    if(!entitlementResult.error){
       entitlement=entitlementResult.data||null;
     }
   }catch(error){
-    /*
-     * Existing/free employers may not have an entitlement row yet. Do not let
-     * that optional billing lookup freeze publishing; live slot usage is still
-     * checked below and the free limit remains 1.
-     */
     console.warn(
-      'Final entitlement check timed out; using free-slot fallback:',
+      'Fallback entitlement lookup unavailable:',
       error
     );
   }
 
-  const jobs=await loadJobsForFinalSlotCheck(userId);
-  const used=jobs.filter(jobConsumesSlot).length;
-  const limit=slotLimitForEntitlement(entitlement);
+  const jobs=
+    await loadJobsForFinalSlotCheck(userId);
 
-  if(used<limit)return true;
+  const used=
+    jobs.filter(jobConsumesSlot).length;
 
-  sessionStorage.setItem('alygnn_job_slot_gate',JSON.stringify({
-    used,
-    limit,
-    checked_at:new Date().toISOString(),
-    source:'app-job-preview'
-  }));
+  const limit=
+    slotLimitForEntitlement(entitlement);
+
+  if(used<limit){
+    return true;
+  }
+
+  sessionStorage.setItem(
+    'alygnn_job_slot_gate',
+    JSON.stringify({
+      used,
+      limit,
+      checked_at:new Date().toISOString(),
+      source:'app-job-preview-fallback'
+    })
+  );
 
   const params=new URLSearchParams({
     reason:'slot_limit',
@@ -2596,7 +2676,8 @@ async function enforceFinalJobSlotAccess(){
   });
 
   location.replace(
-    'app-employer-pricing.html?'+params.toString()
+    'app-employer-pricing.html?'+
+    params.toString()
   );
 
   return false;
