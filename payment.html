@@ -244,7 +244,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       'AI candidate matching and candidate management',
       'Messaging and resume access',
       'Close or pause a job and reuse the slot',
-      'Limited to 1 single-slot subscription per employer'
+      'Buy another $150/month slot whenever you need more capacity'
     ]
   };
 
@@ -257,7 +257,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   let selectedBilling = 'quarterly';
   let selectedPlan = 'launch';
   let selectedProduct = 'job_plan';
-  let addonAlreadyActive = false;
   let session = null;
 
   function money(n){
@@ -377,7 +376,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const panelTitle=document.querySelector('.panel-title');
     if(isAddon()){
       if(heading) heading.textContent='Add 1 reusable job slot.';
-      if(headingCopy) headingCopy.textContent='Add one full paid job slot for $150 per month. It has no 25-candidate cap and no 7-day slot limit.';
+      if(headingCopy) headingCopy.textContent='Add one full paid job slot for $150 per month. Each purchase adds +1 reusable slot to your current hiring capacity.';
       if(panelTitle) panelTitle.textContent='1. Confirm your job slot';
     }else{
       if(heading) heading.textContent='Confirm your job-slot plan.';
@@ -514,38 +513,16 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       return;
     }
 
-    if(isAddon()){
-      try{
-        const { data:access, error:accessError } = await sb.rpc('get_employer_posting_access');
-        if(!accessError){
-          addonAlreadyActive = Math.max(0, Number(access?.addon_slot_count || 0)) >= 1;
-        }
-      }catch(e){
-        console.warn('Could not verify existing single-slot access:',e);
-      }
-    }
-
     const email=session.user.email||'Employer account';
     document.getElementById('account-email').textContent=email;
     document.getElementById('account-avatar').textContent=(email[0]||'A').toUpperCase();
     applyDeveloperTestMode();
-    if(isAddon() && addonAlreadyActive){
-      showMessage('Your $150/month single job slot is already active. Only one can be active per employer.','info');
-      const checkoutButton=document.getElementById('checkout-btn');
-      checkoutButton.disabled=true;
-      checkoutButton.textContent='1 job slot already active';
-    }
     document.body.classList.add('ready');
   }
 
   async function startCheckout(){
     if(!session){
       location.replace('login.html?role=employer');
-      return;
-    }
-
-    if(isAddon() && addonAlreadyActive){
-      showMessage('Your $150/month single job slot is already active. Only one can be active per employer.','info');
       return;
     }
 
@@ -590,7 +567,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         server_activated:true,
         employer_id:session.user.id,
         email:session.user.email||'',
-        plan:isAddon() ? 'second_job_slot' : selectedPlan,
+        plan:isAddon() ? 'additional_job_slot' : selectedPlan,
         billing:isAddon() ? 'monthly' : selectedBilling,
         slot_limit:Number(testData?.slot_limit || (isAddon() ? 2 : slotLimitFor(selectedPlan,selectedBilling))),
         urgently_hiring:testData?.urgently_hiring === true || ['growth','scale'].includes(selectedPlan),
@@ -613,7 +590,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       button.textContent=isAddon()?'1 Job Slot test activated ✓':(selectedBilling==='weekly'?'Weekly test slot added ✓':'Test package activated ✓');
       showMessage(
         isAddon()
-          ? `1 reusable paid job slot activated for testing. Your total capacity is now ${testEntitlement.slot_limit} job slots. No payment was processed.`
+          ? `1 reusable paid job slot activated for testing. Your total capacity is now ${testEntitlement.slot_limit} job slots. You can activate another $150 slot again if needed. No payment was processed.`
           : selectedBilling==='weekly'
             ? `Weekly Job Slot added. Your total temporary/base capacity is now ${testEntitlement.slot_limit} job slot${testEntitlement.slot_limit===1?'':'s'}. No payment was processed.`
             : `${p.name} test package activated with ${testEntitlement.slot_limit} total job slot${testEntitlement.slot_limit===1?'':'s'}. No payment was processed.`,
@@ -635,7 +612,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
         body:JSON.stringify({
           product:isAddon() ? 'additional_slot' : 'job_plan',
-          plan:isAddon() ? 'second_job_slot' : selectedPlan,
+          plan:isAddon() ? 'additional_job_slot' : selectedPlan,
           billing:isAddon() ? 'monthly' : selectedBilling,
           purchase_type:p.kind,
           terms_accepted:true,
