@@ -445,11 +445,6 @@ nav{
     <div id="job-benefits"></div>
   </div>
 
-  <div class="section" id="work-authorization-section" style="display:none;">
-    <h2>Work authorization & sponsorship</h2>
-    <div id="job-work-authorization"></div>
-  </div>
-
   <div class="section" id="details-section" style="display:none;">
     <h2>Details</h2>
     <div class="field-grid" id="job-field-grid"></div>
@@ -460,18 +455,6 @@ nav{
 <script>
 const SUPABASE_URL = 'https://auth.alygnn.com';
 const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-
-function alygnnAuthStorageKey() {
-  let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
-  if (!tabId) {
-    tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
-      ? window.crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-    window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
-  }
-  return `alygnn-auth-${tabId}`;
-}
-
 const { createClient } = supabase;
 const sb = // Keep Alygnn authentication isolated to this browser tab.
 // This lets a candidate account stay open in one tab while a different
@@ -479,7 +462,6 @@ const sb = // Keep Alygnn authentication isolated to this browser tab.
 createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       storage: window.sessionStorage,
-      storageKey: alygnnAuthStorageKey(),
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true
@@ -816,29 +798,6 @@ function renderJob(job, appInfo, interviewInfo){
     document.getElementById('job-benefits').innerHTML = renderListOrText(job.benefits);
   }
 
-  const workAuthLabels = {
-    opt: 'Open to OPT',
-    stem_opt: 'STEM OPT extension support',
-    cpt: 'Open to CPT',
-    h1b_sponsorship: 'H-1B sponsorship available',
-    h1b_transfer: 'H-1B transfer support',
-    no_sponsorship: 'No employment visa sponsorship'
-  };
-
-  const workAuthValues = Array.isArray(job.work_authorization_support)
-    ? job.work_authorization_support
-    : String(job.work_authorization_support || '')
-        .split(/[\n,]/)
-        .map(v => v.trim())
-        .filter(Boolean);
-
-  if(workAuthValues.length){
-    document.getElementById('work-authorization-section').style.display = '';
-    document.getElementById('job-work-authorization').innerHTML = renderListOrText(
-      workAuthValues.map(v => workAuthLabels[v] || v).join('\n')
-    );
-  }
-
   const gridEl = document.getElementById('job-field-grid');
   const seenLabels = new Set();
   const gridHtml = DETAIL_FIELD_MAP
@@ -866,6 +825,19 @@ async function initJobDetailsPage(){
     const navBack = document.getElementById('nav-back');
     navBack.href = 'employer-dashboard.html#jobs';
     navBack.textContent = '← Back to My Jobs';
+  }
+
+  if(getParam('from') === 'messages'){
+    const navBack = document.getElementById('nav-back');
+    if(navBack){
+      const applicationId = getParam('app') || '';
+      const jobId = getParam('job') || '';
+      const params = new URLSearchParams();
+      if(applicationId) params.set('application', applicationId);
+      if(jobId) params.set('job', jobId);
+      navBack.href = `messages.html${params.toString() ? `?${params.toString()}` : ''}`;
+      navBack.textContent = '← Back to Messages';
+    }
   }
 
   if(getParam('from') === 'swipe'){
