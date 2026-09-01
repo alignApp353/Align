@@ -8,7 +8,7 @@
 //   SUPABASE_ANON_KEY=<your publishable/anon key>
 //
 // IMPORTANT: The webhook file supplied with this patch is what grants the
-// $150/month Second Job Slot / Job Boost / plan entitlement after Stripe confirms payment.
+// $150/month Additional Job Slot / Job Boost / plan entitlement after Stripe confirms payment.
 
 const STRIPE_API = 'https://api.stripe.com/v1';
 
@@ -97,39 +97,6 @@ async function verifyOwnedActiveJob(token, userId, jobId) {
 }
 
 
-async function getEmployerPostingAccess(token) {
-  const base=(process.env.SUPABASE_URL||'https://auth.alygnn.com').replace(/\/$/,'');
-  const anon=process.env.SUPABASE_ANON_KEY;
-
-  if(!anon) throw new Error('SUPABASE_ANON_KEY is not configured.');
-
-  const response=await fetch(base+'/rest/v1/rpc/get_employer_posting_access',{
-    method:'POST',
-    headers:{
-      apikey:anon,
-      Authorization:'Bearer '+token,
-      'Content-Type':'application/json'
-    },
-    body:'{}'
-  });
-
-  const data=await response.json().catch(()=>null);
-
-  if(!response.ok){
-    throw new Error(
-      (data&&(data.message||data.error))||
-      'Could not verify employer hiring capacity.'
-    );
-  }
-
-  return data||{};
-}
-
-function additionalSlotEligible(access) {
-  // The $150/month Second Job Slot is a standalone option. It does not require
-  // Launch/Growth/Scale. Block a second purchase while the slot is already active.
-  return Number(access?.addon_slot_count || 0) < 1;
-}
 
 async function stripeCreateCheckout(params) {
   const secret = process.env.STRIPE_SECRET_KEY;
@@ -189,23 +156,17 @@ module.exports = async function handler(req, res) {
     let jobId = '';
 
     // Backward compatibility: the former $150 "single_job" product is now
-    // the standalone $150/month Second Job Slot.
+    // the standalone $150/month Additional Job Slot.
     if (!product && plan && plan !== 'single_job') product = 'job_plan';
     if (!product && plan === 'single_job') product = 'additional_slot';
     if (product === 'single_job') product = 'additional_slot';
 
     if (product === 'additional_slot') {
-      const access = await getEmployerPostingAccess(token);
-
-      if (!additionalSlotEligible(access)) {
-        return send(res, 400, {
-          error: 'Your Second Job Slot is already active.'
-        });
-      }
-
-      plan = 'second_job_slot';
+      // $150/month is an à-la-carte +1 slot. Employers may purchase it
+      // repeatedly; every active subscription adds one reusable job slot.
+      plan = 'additional_job_slot';
       billing = 'monthly';
-      name = 'Alygnn Second Job Slot';
+      name = 'Alygnn Additional Job Slot';
       cents = 15000;
       slots = 1;
       mode = 'subscription';
