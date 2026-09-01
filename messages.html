@@ -410,6 +410,42 @@ function setSidebar(){
   }
 }
 
+
+function parseProfileResumeData(value){
+  if(!value)return {};
+  if(typeof value==='object'&&!Array.isArray(value))return value;
+  if(typeof value==='string'){
+    try{
+      const parsed=JSON.parse(value);
+      return parsed&&typeof parsed==='object'?parsed:{};
+    }catch(_){
+      return {};
+    }
+  }
+  return {};
+}
+
+function candidateNameFromProfile(profile){
+  const p=profile||{};
+  const resume=parseProfileResumeData(p.resume_data);
+  const personal=(resume?.personal&&typeof resume.personal==='object')
+    ?resume.personal
+    :{};
+
+  const resumePersonalName=[
+    personal.first_name,
+    personal.last_name
+  ].filter(Boolean).join(' ').trim();
+
+  return String(
+    p.full_name ||
+    resume.name ||
+    resume.full_name ||
+    resumePersonalName ||
+    'Candidate'
+  ).trim();
+}
+
 async function loadRequestedApplicationContext(){
   const params=new URLSearchParams(location.search);
   requestedApplicationId=params.get('application');
@@ -437,7 +473,7 @@ async function loadRequestedApplicationContext(){
       .eq('id',jobId)
       .maybeSingle(),
     sb.from('profiles')
-      .select('id,full_name,company_name')
+      .select('id,full_name,company_name,resume_data')
       .eq('id',application.candidate_id)
       .maybeSingle()
   ]);
@@ -506,7 +542,7 @@ async function loadThreadDetails(){
       ? sb.from('jobs').select('id,title,status,location,company').in('id',jobIds)
       : Promise.resolve({data:[]}),
     userIds.length
-      ? sb.from('profiles').select('id,full_name,company_name').in('id',userIds)
+      ? sb.from('profiles').select('id,full_name,company_name,resume_data').in('id',userIds)
       : Promise.resolve({data:[]}),
     threads.length
       ? sb.from('messages').select('id,thread_id,sender_id,body,created_at,read_at').in('thread_id',threads.map(t=>t.id)).order('created_at',{ascending:false})
@@ -534,7 +570,7 @@ async function loadThreadDetails(){
     const other=profilesMap[otherId]||{};
     const job=jobsMap[t.job_id]||{};
     const displayName=currentRole==='employer'
-      ? (other.full_name||'Candidate')
+      ? candidateNameFromProfile(other)
       : (job.company||other.company_name||other.full_name||'Company');
 
     threadDetails.set(t.id,{
@@ -640,7 +676,7 @@ function activeConversationDetails(){
   if(requestedApplicationContext){
     const c=requestedApplicationContext;
     const otherName=currentRole==='employer'
-      ? (c.candidate?.full_name||'Candidate')
+      ? candidateNameFromProfile(c.candidate)
       : (c.job?.company||'Company');
 
     return {
