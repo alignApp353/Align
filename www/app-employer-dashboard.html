@@ -818,7 +818,7 @@
       background:rgba(255,255,255,.96);
       border-top:1px solid rgba(221,227,232,.9);
       display:grid;
-      grid-template-columns:repeat(6,1fr);
+      grid-template-columns:repeat(5,1fr);
       backdrop-filter:blur(22px);
       -webkit-backdrop-filter:blur(22px);
     }
@@ -3291,10 +3291,6 @@
             <span class="score" id="candidate-page-score">Alygnn Score</span>
             <span class="app-status" id="candidate-page-status">applied</span>
           </div>
-
-          <button class="primary-btn" id="candidate-page-message" type="button" style="width:100%;margin-top:16px;min-height:50px">
-            Message Candidate
-          </button>
         </section>
 
         <section class="candidate-match-card" id="candidate-page-match-card">
@@ -3481,6 +3477,10 @@
           <h3>Application</h3>
 
           <div class="candidate-profile-actions">
+            <button class="primary-btn" id="candidate-page-message" type="button">
+              Message Candidate
+            </button>
+
             <button class="secondary-btn" data-candidate-page-action="reviewed" type="button">
               Mark Reviewed
             </button>
@@ -4860,7 +4860,7 @@
   .muted{color:#7A8795}
 </style>
 </head>
-<body data-messaging-build="2026-08-31-visible-employer-chat">
+<body>
   <h1>${escapeResume(data?.name || 'Candidate')}</h1>
   ${
     data?.headline
@@ -8598,6 +8598,41 @@
       }
 
       try{
+        /*
+         * Supabase is the source of truth for capacity because it includes:
+         *   - the base monthly/quarterly plan
+         *   - the standalone $150 Second Job Slot
+         *   - every active $99 Weekly Job Slot
+         *
+         * This prevents the dashboard from falling back to Growth=5 when
+         * the live server capacity is Growth 5 + Weekly 1 = 6.
+         */
+        const accessResult=await sb.rpc('get_employer_posting_access');
+
+        if(!accessResult.error && accessResult.data){
+          const access=accessResult.data;
+          const used=Math.max(0,Number(access.active_job_count||0));
+          const limit=Math.max(1,Number(access.slot_limit||1));
+
+          if(access.can_post!==true){
+            openSlotPricing(used,limit);
+            return;
+          }
+
+          sessionStorage.removeItem('alygnn_job_slot_gate');
+          sessionStorage.removeItem('alygnnEditJobId');
+          location.href='app-post-job.html';
+          return;
+        }
+
+        if(accessResult.error){
+          console.warn(
+            'Server posting-access check unavailable; using compatibility fallback:',
+            accessResult.error
+          );
+        }
+
+        // Compatibility fallback only if the RPC itself is unavailable.
         const [entitlement,freshJobs]=await Promise.all([
           loadDashboardEntitlement(),
           queryJobs(state.session.user.id)
@@ -8613,7 +8648,6 @@
           return;
         }
 
-        // A normal Post a Job tap must always be treated as a NEW job.
         sessionStorage.removeItem('alygnnEditJobId');
         location.href='app-post-job.html';
       }catch(error){
@@ -8651,7 +8685,7 @@
       $('notifications-sheet').hidden = false;
     };
     $('team-settings').onclick = () => openProModal('Team collaboration');
-    $('billing-settings').onclick = () => { location.href='app-employer-billing.html'; };
+    $('billing-settings').onclick = () => { location.href='app-employer-pricing.html'; };
     $('integration-settings').onclick = () => openProModal('ATS and calendar integrations');
     $('security-settings').onclick = () => toast('Account and security controls will connect here.');
     $('privacy-settings').onclick = () => toast('Privacy controls will connect here.');
@@ -8682,6 +8716,7 @@
     $('candidate-profile-back').onclick = () => {
       setView('applicants');
     };
+
     $('candidate-page-message').onclick = () => {
       const application = state.activeCandidate;
 
@@ -8690,36 +8725,9 @@
         return;
       }
 
-      const data = candidateData(application) || {};
-      const job = jobFor(application) || {};
-      const candidateName = String(
-        data.name ||
-        application.candidate_name ||
-        application.applicant_name ||
-        'Candidate'
-      ).trim();
-      const jobTitle = String(
-        job.title ||
-        application.job_title ||
-        'Job application'
-      ).trim();
-
-      try{
-        sessionStorage.setItem(
-          'alygnnMessageContext',
-          JSON.stringify({
-            applicationId:String(application.id),
-            candidateName,
-            jobTitle
-          })
-        );
-      }catch(_){}
-
       location.href =
         'app-chat.html?role=employer&application=' +
-        encodeURIComponent(String(application.id)) +
-        '&candidate=' + encodeURIComponent(candidateName) +
-        '&job=' + encodeURIComponent(jobTitle);
+        encodeURIComponent(String(application.id));
     };
 
     async function refreshEmployerMessageBadge(){
