@@ -1782,6 +1782,29 @@ body[data-profile-complete="true"] #profile-hero{display:none!important}
 body[data-profile-complete="true"] #snapshot-section{display:none!important}
 </style>
 
+
+<style id="alygnn-candidate-messages-nav">
+#candidate-bottom-nav{grid-template-columns:repeat(5,1fr)!important}
+.messaging-nav-badge{
+  position:absolute;
+  top:2px;
+  right:calc(50% - 19px);
+  min-width:15px;
+  height:15px;
+  padding:0 4px;
+  border-radius:999px;
+  background:#E64141;
+  color:#fff;
+  font-size:8px;
+  font-weight:900;
+  line-height:1;
+  display:grid;
+  place-items:center;
+  border:2px solid var(--card-bg,var(--card,#fff));
+}
+.messaging-nav-badge[hidden]{display:none!important}
+</style>
+
 </head>
 
 <body data-candidate-nav-build="2026-08-26-discover-color-sync">
@@ -2293,6 +2316,19 @@ body[data-profile-complete="true"] #snapshot-section{display:none!important}
       </svg>
     </span>
     <span class="nav-label">My Jobs</span>
+  </button>
+
+
+  <button class="nav-item" id="nav-messages" type="button" onclick="window.location.href='app-messages.html?role=candidate'">
+    <span class="nav-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"></path>
+        <path d="M8 9h8"></path>
+        <path d="M8 13h5"></path>
+      </svg>
+    </span>
+    <span class="nav-label">Messages</span>
+    <span class="messaging-nav-badge" id="candidate-message-badge" hidden>0</span>
   </button>
 
   <button class="nav-item" id="nav-settings" type="button" onclick="openSettingsView()">
@@ -3605,6 +3641,68 @@ setInterval(()=>{
   refreshTimeBasedDashboardCopy();
 },60*1000);
 
+</script>
+
+
+<script id="alygnn-candidate-message-badge-script">
+(async function(){
+  const badge=document.getElementById('candidate-message-badge');
+  if(!badge || typeof sb==='undefined') return;
+
+  async function refresh(){
+    try{
+      const {data,error}=await sb.auth.getSession();
+      if(error) throw error;
+      const userId=data?.session?.user?.id;
+      if(!userId){ badge.hidden=true; return; }
+
+      const conversations=await sb
+        .from('application_conversations')
+        .select('id')
+        .eq('candidate_id',userId);
+
+      if(conversations.error) throw conversations.error;
+      const ids=(conversations.data||[]).map(row=>row.id).filter(Boolean);
+      if(!ids.length){
+        badge.textContent='0';
+        badge.hidden=true;
+        return;
+      }
+
+      const unread=await sb
+        .from('application_messages')
+        .select('id')
+        .in('conversation_id',ids)
+        .neq('sender_id',userId)
+        .is('read_at',null);
+
+      if(unread.error) throw unread.error;
+      const count=(unread.data||[]).length;
+      badge.textContent=count>99?'99+':String(count);
+      badge.hidden=count===0;
+    }catch(error){
+      console.warn('Candidate message badge unavailable:',error);
+      badge.hidden=true;
+    }
+  }
+
+  window.AlygnnRefreshCandidateMessageBadge=refresh;
+  await refresh();
+  window.addEventListener('pageshow',refresh);
+  window.addEventListener('focus',refresh);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible') refresh();
+  });
+
+  try{
+    const channel=sb
+      .channel('candidate-nav-message-badge-'+Math.random().toString(36).slice(2))
+      .on('postgres_changes',{event:'*',schema:'public',table:'application_messages'},refresh)
+      .on('postgres_changes',{event:'*',schema:'public',table:'application_conversations'},refresh)
+      .subscribe();
+    window.addEventListener('pagehide',()=>{ try{ sb.removeChannel(channel); }catch(_){} },{once:true});
+  }catch(_){}
+})();
 </script>
 
 </body>
