@@ -8682,7 +8682,6 @@
     $('candidate-profile-back').onclick = () => {
       setView('applicants');
     };
-
     $('candidate-page-message').onclick = () => {
       const application = state.activeCandidate;
 
@@ -8691,9 +8690,36 @@
         return;
       }
 
+      const data = candidateData(application) || {};
+      const job = jobFor(application) || {};
+      const candidateName = String(
+        data.name ||
+        application.candidate_name ||
+        application.applicant_name ||
+        'Candidate'
+      ).trim();
+      const jobTitle = String(
+        job.title ||
+        application.job_title ||
+        'Job application'
+      ).trim();
+
+      try{
+        sessionStorage.setItem(
+          'alygnnMessageContext',
+          JSON.stringify({
+            applicationId:String(application.id),
+            candidateName,
+            jobTitle
+          })
+        );
+      }catch(_){}
+
       location.href =
         'app-chat.html?role=employer&application=' +
-        encodeURIComponent(String(application.id));
+        encodeURIComponent(String(application.id)) +
+        '&candidate=' + encodeURIComponent(candidateName) +
+        '&job=' + encodeURIComponent(jobTitle);
     };
 
     async function refreshEmployerMessageBadge(){
