@@ -3797,13 +3797,23 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           message.includes('job credit') ||
           message.includes('single job');
 
-        if (isBillingBlock) {
-          showToast('No job slot is available. Delete or close an existing job, or choose a plan with more slots.');
+        const missingWorkAuthColumn =
+          message.includes('work_authorization_support') &&
+          (
+            message.includes('schema cache') ||
+            message.includes('column') ||
+            message.includes('could not find')
+          );
+
+        if (missingWorkAuthColumn) {
+          showToast('Job posting setup needs one Supabase update for Work Authorization. Run the provided SQL once, then post again.');
+        } else if (isBillingBlock || message.includes('reusable job slots') || message.includes('job slots are currently in use')) {
+          showToast(error.message || 'No job slot is available.');
           await loadBillingEntitlement();
           updatePostingAccessUI();
-          setTimeout(() => redirectToPricing(getPostingAccess().reason), 700);
         } else {
-          showToast('Could not post job. Please try again.');
+          // Surface the real database reason while this flow is being validated.
+          showToast(error.message || 'Could not post job. Please try again.');
         }
         return;
       }
