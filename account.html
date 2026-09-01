@@ -1867,11 +1867,47 @@ function candidateNotificationBackdrop(event){
   }
 }
 
-function markAllCandidateNotificationsRead(){
+async function markAllCandidateNotificationsRead(){
+  const markRead = document.getElementById('candidate-mark-read-btn');
+
+  if(markRead){
+    markRead.disabled = true;
+    markRead.textContent = 'Marking…';
+  }
+
+  // Immediately mark every currently visible notification as read in the UI.
   const reads = getCandidateNotificationReads();
   candidateNotifications.forEach(item => reads.add(item.id));
   saveCandidateNotificationReads(reads);
   renderCandidateNotifications();
+
+  // Message notifications are backed by messages.read_at in Supabase.
+  // Mark those rows read too so they do not come back on the next realtime/poll refresh.
+  const messageIds = candidateNotifications
+    .filter(item => String(item.id || '').startsWith('message-'))
+    .map(item => String(item.id).slice('message-'.length))
+    .filter(Boolean);
+
+  if(messageIds.length && currentUserId){
+    const { error } = await sb
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .in('id', messageIds)
+      .neq('sender_id', currentUserId);
+
+    if(error){
+      console.warn('Could not mark all message notifications read:', error);
+    }
+  }
+
+  // Rebuild notifications from the latest database state so the badge,
+  // unread count, and list all stay synchronized.
+  await loadCandidateNotifications(candidateNotificationProfileCache);
+
+  if(markRead){
+    markRead.disabled = false;
+    markRead.textContent = 'Mark all read';
+  }
 }
 
 function openCandidateNotificationItem(id, action){
