@@ -23,7 +23,9 @@
     background: rgba(246,248,247,0.95); backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
     padding: 0 5%; display: flex; align-items: center;
-    justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100;
+    justify-content: space-between; height: 64px;
+    position: fixed; top: 0; left: 0; right: 0; width: 100%;
+    z-index: 1000;
   }
   .logo { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--brand); letter-spacing: -0.5px; text-decoration: none; }
   .logo span { color: var(--sage); }
@@ -63,7 +65,10 @@
   }
   .notif-view-all:hover{ opacity:.8; }
 
-  .layout { min-height: calc(100vh - 64px); }
+  .layout {
+    min-height: 100vh;
+    padding-top: 64px;
+  }
 
   .sidebar {
     background: var(--card-bg); border-right: 1px solid var(--border);
@@ -501,15 +506,10 @@
   body.auth-ready #auth-loading { display: none; }
 
   /* Fixed employer shell:
-     - top navigation stays pinned
-     - sidebar stays pinned and never becomes its own scroll area
-     - scrolling anywhere moves the main page content only */
+     - top navigation is fixed to the viewport
+     - sidebar stays fixed and never becomes its own scroll area
+     - only the document/main page content scrolls */
   @media (min-width: 861px) {
-    nav {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
     .sidebar {
       overflow: hidden !important;
       overscroll-behavior: none;
