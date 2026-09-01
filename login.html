@@ -138,7 +138,7 @@
 <body>
 
 <div class="left-panel" id="left-panel">
-  <a class="panel-logo" href="index.html">Alygnn<span>.</span></a>
+  <a class="panel-logo" id="login-home-logo" href="index.html">Alygnn<span>.</span></a>
   <div class="panel-content">
     <div class="seeker-content">
       <h2>Jobs that fit<br><em>your reality.</em></h2>
@@ -165,7 +165,7 @@
 <div class="right-panel">
   <div class="form-container">
 
-    <a href="index.html" class="back-link">
+    <a href="index.html" class="back-link" id="login-back-link">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
       Back to Alygnn
     </a>
@@ -328,6 +328,15 @@ const { createClient } = supabase;
   function switchRole(role) {
     currentRole = role;
     const isEmp = role === 'employer';
+
+    // Keep the login page anchored to the correct public home.
+    // Job Seeker -> index.html, Employer -> employers.html.
+    const publicHome = isEmp ? 'employers.html' : 'index.html';
+    const homeLogo = document.getElementById('login-home-logo');
+    const backLink = document.getElementById('login-back-link');
+    if (homeLogo) homeLogo.href = publicHome;
+    if (backLink) backLink.href = publicHome;
+
     document.getElementById('left-panel').classList.toggle('is-employer', isEmp);
     document.getElementById('role-seeker').classList.toggle('active', !isEmp);
     document.getElementById('role-employer').classList.toggle('active', isEmp);
