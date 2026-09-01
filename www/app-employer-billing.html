@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F6F8F7">
+<title>Billing & Plan | Alygnn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){let p=String(localStorage.getItem('alygnnEmployerTheme')||localStorage.getItem('alygnnTheme')||'auto').toLowerCase();if(['system','system-default','default'].includes(p))p='auto';const dark=p==='dark'||(p==='auto'&&matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.dataset.theme=dark?'dark':'light';document.querySelector('meta[name="theme-color"]')?.setAttribute('content',dark?'#07121D':'#F6F8F7');})();
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
+:root{--brand:#5D7FA3;--brand-dark:#35679A;--sage:#8CB69B;--bg:#F6F8F7;--card:#fff;--text:#172333;--muted:#657589;--border:#DDE3E8;--green:#218A59;--green-bg:#EAF7EF;--blue-bg:#EBF3FB;--amber:#946312;--amber-bg:#FFF5DA;--red:#BC4A4A;--red-bg:#FDECEC;--shadow:0 14px 38px rgba(31,49,69,.08)}
+html[data-theme="dark"]{--bg:#07121D;--card:#101C29;--text:#F5F7FA;--muted:#AAB6C4;--border:#2B3A4B;--green:#7BD7A8;--green-bg:#102C22;--blue-bg:#14283B;--amber:#F1C466;--amber-bg:#302613;--red:#FF9292;--red-bg:#382020;--shadow:none}
+html,body{min-height:100%;width:100%}body{background:radial-gradient(circle at top,rgba(93,127,163,.10),transparent 30%),var(--bg);color:var(--text);padding-bottom:calc(40px + env(safe-area-inset-bottom))}button{font:inherit}.loading{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:var(--bg)}.loading[hidden]{display:none}.spinner{width:42px;height:42px;border:4px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .75s linear infinite}.loading-copy{margin-top:12px;color:var(--muted);font-size:12px;font-weight:800}@keyframes spin{to{transform:rotate(360deg)}}
+.header{position:sticky;top:0;z-index:30;min-height:98px;padding:calc(12px + env(safe-area-inset-top)) 18px 12px;display:grid;grid-template-columns:50px 1fr 50px;align-items:center;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--border)}.back{width:44px;height:44px;border:1px solid var(--border);border-radius:50%;background:var(--card);color:var(--text);font-size:19px;cursor:pointer}.logo{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:32px;color:var(--brand)}.logo span{color:var(--sage)}
+.page{max-width:620px;margin:auto;padding:28px 18px 46px}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:1.6px;color:var(--brand-dark);font-weight:900}.title{margin-top:8px;font-size:35px;line-height:1.05;letter-spacing:-.8px;font-weight:900}.subtitle{margin-top:12px;color:var(--muted);font-size:15px;line-height:1.55}
+.card{margin-top:20px;background:var(--card);border:1px solid var(--border);border-radius:24px;padding:20px;box-shadow:var(--shadow)}.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.kicker{font-size:10px;color:var(--brand-dark);text-transform:uppercase;letter-spacing:1.25px;font-weight:900}.plan-name{margin-top:5px;font-size:25px;font-weight:900}.status{padding:7px 10px;border-radius:999px;background:var(--green-bg);color:var(--green);font-size:10px;font-weight:900}.price{margin-top:14px;font-size:31px;font-weight:900}.price small{font-size:11px;color:var(--muted);font-weight:700}.plan-copy{margin-top:8px;color:var(--muted);font-size:12px;line-height:1.55}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:17px}.metric{padding:13px 9px;border:1px solid var(--border);border-radius:16px;background:color-mix(in srgb,var(--card) 87%,var(--bg));text-align:center}.metric strong{display:block;font-size:18px}.metric span{display:block;margin-top:3px;font-size:8px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.65px}.meter{height:8px;margin-top:15px;border-radius:999px;background:var(--border);overflow:hidden}.meter div{height:100%;width:0;background:linear-gradient(90deg,var(--brand),var(--sage));transition:.25s}
+.pending{border-color:color-mix(in srgb,var(--amber) 50%,var(--border));background:linear-gradient(145deg,color-mix(in srgb,var(--card) 92%,var(--amber-bg)),var(--card))}.pending-title{font-size:17px;font-weight:900}.pending-copy{margin-top:8px;color:var(--muted);font-size:12px;line-height:1.55}.pending-date{margin-top:11px;padding:10px 12px;border-radius:13px;background:var(--amber-bg);color:var(--amber);font-size:11px;font-weight:900}
+.section-title{margin-top:30px;font-size:20px;font-weight:900}.section-copy{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.55}.plans{display:grid;gap:12px;margin-top:13px}.plan-option{background:var(--card);border:1px solid var(--border);border-radius:21px;padding:18px;box-shadow:var(--shadow)}.plan-option.current{border-color:color-mix(in srgb,var(--green) 55%,var(--border));background:linear-gradient(145deg,color-mix(in srgb,var(--card) 94%,var(--green-bg)),var(--card))}.plan-option.recommended{border-color:color-mix(in srgb,var(--brand) 65%,var(--border))}.option-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.option-name{font-size:19px;font-weight:900}.option-slots{margin-top:4px;color:var(--muted);font-size:11px}.option-price{text-align:right;font-size:21px;font-weight:900;white-space:nowrap}.option-price small{display:block;font-size:9px;color:var(--muted);font-weight:700}.tag{display:inline-block;margin-top:8px;padding:5px 8px;border-radius:999px;background:var(--blue-bg);color:var(--brand-dark);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.7px}.action{width:100%;min-height:49px;margin-top:14px;border-radius:15px;font-size:12px;font-weight:900;cursor:pointer}.action.primary{border:0;background:var(--brand-dark);color:#fff}.action.secondary{border:1px solid var(--brand);background:var(--blue-bg);color:var(--brand-dark)}.action.neutral{border:1px solid var(--border);background:var(--card);color:var(--text)}.action:disabled{opacity:.55;cursor:default}.action-hint{margin-top:7px;text-align:center;color:var(--muted);font-size:9px;line-height:1.45}
+.addon-row{display:flex;justify-content:space-between;gap:12px}.addon-title{font-size:17px;font-weight:900}.addon-price{font-size:20px;font-weight:900}.addon-price small{font-size:9px;color:var(--muted)}.addon-copy{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.5}.addon-state{display:inline-block;margin-top:11px;padding:6px 9px;border-radius:999px;background:var(--green-bg);color:var(--green);font-size:9px;font-weight:900}
+.note{margin-top:20px;border:1px solid var(--border);border-radius:18px;padding:14px 15px;color:var(--muted);background:color-mix(in srgb,var(--card) 85%,var(--bg));font-size:11px;line-height:1.55}.message{display:none;margin-top:16px;padding:14px 15px;border-radius:16px;font-size:11px;font-weight:800;line-height:1.5}.message.show{display:block}.message.info{background:var(--blue-bg);color:var(--text)}.message.success{background:var(--green-bg);color:var(--green)}.message.error{background:var(--red-bg);color:var(--red)}
+@media(max-width:400px){.metrics{grid-template-columns:1fr 1fr}.metrics .metric:last-child{grid-column:1/-1}.title{font-size:31px}.option-top,.addon-row{display:block}.option-price{margin-top:8px;text-align:left}.addon-price{margin-top:8px}}
+</style>
+</head>
+<body>
+<div class="loading" id="loading"><div><div class="spinner"></div><div class="loading-copy">Loading your billing plan…</div></div></div>
+<header class="header"><button class="back" id="back-btn" type="button" aria-label="Back">←</button><div class="logo">Alygnn<span>.</span></div><div></div></header>
+<main class="page">
+  <div class="eyebrow">Employer billing</div>
+  <h1 class="title">Billing &amp; plan</h1>
+  <p class="subtitle">See your current hiring plan, renewal date, job-slot usage, and upgrade or downgrade without creating a second subscription.</p>
+
+  <section class="card" id="current-card">
+    <div class="card-top"><div><div class="kicker">Current plan</div><div class="plan-name" id="current-plan">Free</div></div><span class="status" id="current-status">Active</span></div>
+    <div class="price" id="current-price">$0 <small>/ month</small></div>
+    <div class="plan-copy" id="current-copy">Your included reusable job slot is always available.</div>
+    <div class="meter"><div id="usage-fill"></div></div>
+    <div class="metrics">
+      <div class="metric"><strong id="used-slots">0</strong><span>Slots in use</span></div>
+      <div class="metric"><strong id="slot-limit">1</strong><span>Total capacity</span></div>
+      <div class="metric"><strong id="renewal-date">—</strong><span id="renewal-label">Next billing</span></div>
+    </div>
+  </section>
+
+  <section class="card pending" id="pending-card" hidden>
+    <div class="kicker">Scheduled change</div>
+    <div class="pending-title" id="pending-title">Downgrade scheduled</div>
+    <div class="pending-copy" id="pending-copy"></div>
+    <div class="pending-date" id="pending-date"></div>
+    <button class="action neutral" id="cancel-pending" type="button">Keep my current plan</button>
+  </section>
+
+  <h2 class="section-title" id="change-title">Change plan</h2>
+  <p class="section-copy" id="change-copy">Upgrades take effect immediately and only the prorated difference for the rest of the current billing period is charged. Downgrades wait until your next billing cycle.</p>
+  <div class="plans" id="plans"></div>
+
+  <h2 class="section-title">Additional capacity</h2>
+  <section class="card">
+    <div class="addon-row"><div><div class="kicker">Standalone add-on</div><div class="addon-title">Second Job Slot</div></div><div class="addon-price">$150 <small>/ month</small></div></div>
+    <div class="addon-copy">Keeps your included free slot and adds one more reusable active job slot. This subscription is separate from Launch, Growth, and Scale.</div>
+    <div class="addon-state" id="addon-state" hidden>Active</div>
+    <button class="action secondary" id="addon-btn" type="button">Add Second Job Slot</button>
+  </section>
+
+  <button class="action neutral" id="pricing-btn" type="button">View all pricing options</button>
+  <div class="note"><strong>How plan changes work:</strong> an upgrade is prorated immediately, so the unused value of the current plan is credited and only the net difference for the rest of the billing cycle is due. A downgrade is scheduled for renewal, so current features and capacity stay unchanged until the next billing cycle.</div>
+  <div class="message" id="message"></div>
+</main>
+<script>
+const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const MANAGE_ENDPOINT='https://alygnn.com/api/manage-subscription';
+const PLAN_CATALOG={
+  monthly:{
+    launch:{name:'Launch',price:299,cents:29900,slots:3,rank:1},
+    growth:{name:'Growth',price:449,cents:44900,slots:5,rank:2},
+    scale:{name:'Scale',price:649,cents:64900,slots:8,rank:3}
+  },
+  quarterly:{
+    launch:{name:'Launch',price:750,cents:75000,slots:3,rank:1},
+    growth:{name:'Growth',price:1140,cents:114000,slots:5,rank:2},
+    scale:{name:'Scale',price:1700,cents:170000,slots:8,rank:3}
+  }
+};
+let session=null,summary=null,access=null,entitlement=null,busy=false;
+const $=id=>document.getElementById(id);
+function money(cents){return '$'+(Number(cents||0)/100).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});}
+function planName(code){return ({launch:'Launch',growth:'Growth',scale:'Scale',free:'Free',weekly_slot:'Weekly Job Slot'})[String(code||'').toLowerCase()]||'Free';}
+function fmtDate(value,short=false){if(!value)return '—';const d=new Date(value);if(Number.isNaN(d.getTime()))return '—';return d.toLocaleDateString('en-US',short?{month:'short',day:'numeric'}:{month:'long',day:'numeric',year:'numeric'});}
+function billingLabel(value){return String(value||'').toLowerCase()==='quarterly'?'Quarterly':'Monthly';}
+function suffix(value){return String(value||'').toLowerCase()==='quarterly'?'/ 3 months':'/ month';}
+function showMessage(text,type='info'){const box=$('message');box.textContent=text;box.className='message show '+type;}
+function clearMessage(){const box=$('message');box.className='message';box.textContent='';}
+async function openUrl(url){const browser=window.Capacitor?.Plugins?.Browser;if(browser?.open){await browser.open({url});return;}location.href=url;}
+async function api(payload){const r=await fetch(MANAGE_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify(payload)});const data=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(data.error||'Could not update billing.'),{data,status:r.status});return data;}
+function exactEntitlementPlan(){const exact=String(entitlement?.test_plan||'').toLowerCase();if(['launch','growth','scale'].includes(exact))return exact;const legacy=String(entitlement?.plan||'').toLowerCase();if(legacy==='business')return 'launch';if(legacy==='enterprise')return Number(entitlement?.slot_limit||0)>=8?'scale':'growth';return ['launch','growth','scale'].includes(legacy)?legacy:'free';}
+async function loadData(){
+  const [summaryResult,accessResult,entResult]=await Promise.all([
+    api({action:'summary'}).catch(error=>({error})),
+    sb.rpc('get_employer_posting_access'),
+    sb.from('employer_entitlements').select('*').eq('employer_id',session.user.id).maybeSingle()
+  ]);
+  if(summaryResult.error)console.warn(summaryResult.error);else summary=summaryResult.summary||null;
+  if(accessResult.error)console.warn(accessResult.error);else access=accessResult.data||{};
+  entitlement=entResult.error?{}:(entResult.data||{});
+  if(!summary){
+    const exact=exactEntitlementPlan();
+    const billing=String(entitlement?.billing_period||'free').toLowerCase();
+    const item=PLAN_CATALOG[billing]?.[exact];
+    summary={
+      current_plan:item?exact:'free',billing_period:billing,
+      subscription_status:String(entitlement?.subscription_status||'free').toLowerCase(),
+      current_period_end:entitlement?.current_period_end||null,
+      amount_cents:item?.cents||Number(entitlement?.plan_amount_cents||0),
+      slot_limit:Number(entitlement?.slot_limit||item?.slots||1),
+      pending_plan:entitlement?.pending_plan||null,
+      pending_billing_period:entitlement?.pending_billing_period||null,
+      pending_plan_effective_at:entitlement?.pending_plan_effective_at||null,
+      managed_subscription:false
+    };
+  }
+}
+function currentContext(){
+  const plan=String(summary?.current_plan||'free').toLowerCase();
+  const billing=String(summary?.billing_period||'free').toLowerCase();
+  const item=PLAN_CATALOG[billing]?.[plan]||null;
+  return {plan,billing,item,managed:!!summary?.managed_subscription&&!!item};
+}
+function renderCurrent(){
+  const {plan,billing,item,managed}=currentContext();
+  const addonCount=Math.max(0,Number(access?.addon_slot_count??entitlement?.addon_slot_count??0));
+  const addonExpiry=entitlement?.addon_slots_expires_at;
+  const addonActive=addonCount>0&&(!addonExpiry||new Date(addonExpiry).getTime()>Date.now());
+  const label=item?planName(plan):(addonActive&&plan==='free'?'Free + Second Job Slot':planName(plan));
+  $('current-plan').textContent=label;
+  const status=String(summary?.subscription_status||'').toLowerCase();
+  $('current-status').textContent=plan==='free'?'Active':status==='past_due'?'Payment due':['active','trialing'].includes(status)?'Active':'Inactive';
+
+  if(item){
+    $('current-price').innerHTML=`${money(summary?.amount_cents||item.cents)} <small>${suffix(billing)}</small>`;
+    $('current-copy').textContent=managed
+      ?`${item.slots} reusable active job slots on your ${billingLabel(billing).toLowerCase()} recurring plan.`
+      :`${item.slots} reusable active job slots. This older ${billingLabel(billing).toLowerCase()} term is active, but it is not attached to a recurring Stripe subscription yet.`;
+  }else if(addonActive&&plan==='free'){
+    $('current-price').innerHTML='$150 <small>/ month</small>';
+    $('current-copy').textContent='Your included free slot plus one paid Second Job Slot gives you 2 total reusable active job slots.';
+  }else{
+    $('current-price').innerHTML='$0 <small>/ month</small>';
+    $('current-copy').textContent='Every employer keeps one included reusable active job slot.';
+  }
+
+  const used=Math.max(0,Number(access?.active_job_count||0));
+  const limit=Math.max(1,Number(access?.slot_limit||summary?.slot_limit||1));
+  $('used-slots').textContent=String(used);
+  $('slot-limit').textContent=String(limit);
+  $('usage-fill').style.width=Math.min(100,(used/limit)*100)+'%';
+  $('renewal-date').textContent=summary?.current_period_end?fmtDate(summary.current_period_end,true):'—';
+  $('renewal-label').textContent=item?(managed?'Next billing':'Term ends'):'Next billing';
+  $('addon-state').hidden=!addonActive;
+  $('addon-btn').disabled=addonActive;
+  $('addon-btn').textContent=addonActive?'Second Job Slot active':'Add Second Job Slot — $150/month';
+}
+function renderPending(){
+  const target=String(summary?.pending_plan||'').toLowerCase();
+  const pendingBilling=String(summary?.pending_billing_period||summary?.billing_period||'monthly').toLowerCase();
+  if(!PLAN_CATALOG[pendingBilling]?.[target]||!summary?.pending_plan_effective_at){$('pending-card').hidden=true;return;}
+  $('pending-card').hidden=false;
+  $('pending-title').textContent=`Downgrade to ${planName(target)} scheduled`;
+  $('pending-copy').textContent=`You keep your current plan and capacity until the end of this ${billingLabel(pendingBilling).toLowerCase()} billing cycle. ${planName(target)} begins automatically at renewal.`;
+  $('pending-date').textContent='Effective '+fmtDate(summary.pending_plan_effective_at);
+}
+function renderPlans(){
+  const {plan:current,billing:currentBilling,item:currentItem,managed}=currentContext();
+  const displayBilling=currentItem?currentBilling:'monthly';
+  const catalog=PLAN_CATALOG[displayBilling];
+  $('change-title').textContent=currentItem?`Change ${billingLabel(displayBilling).toLowerCase()} plan`:'Choose a monthly plan';
+
+  if(currentItem&&!managed){
+    $('change-copy').textContent=`Your current ${billingLabel(displayBilling).toLowerCase()} term is a legacy prepaid term. It stays unchanged through ${fmtDate(summary?.current_period_end)}. New recurring plans support prorated upgrades and next-cycle downgrades.`;
+  }else if(currentItem){
+    $('change-copy').textContent=`Upgrades take effect immediately and Stripe charges only the prorated net difference for the rest of this ${billingLabel(displayBilling).toLowerCase()} cycle. Downgrades take effect at renewal.`;
+  }else{
+    $('change-copy').textContent='Choose a recurring monthly plan. After purchase, upgrades are prorated and downgrades are scheduled for the next billing cycle.';
+  }
+
+  $('plans').innerHTML=Object.entries(catalog).map(([key,p])=>{
+    const isCurrent=!!currentItem&&key===current;
+    const higher=managed&&p.rank>currentItem.rank;
+    const lower=managed&&p.rank<currentItem.rank;
+    let button='';let hint='';
+    if(isCurrent){
+      button='<button class="action neutral" disabled>Current plan</button>';
+    }else if(currentItem&&!managed){
+      button='<button class="action neutral" disabled>Available after current term</button>';
+      hint='Your existing prepaid term must finish first.';
+    }else if(higher){
+      button=`<button class="action primary" data-change-plan="${key}">Upgrade to ${p.name}</button>`;
+      hint='Effective immediately after payment. Stripe credits unused time and invoices only the prorated net difference.';
+    }else if(lower){
+      button=`<button class="action secondary" data-change-plan="${key}">Downgrade to ${p.name}</button>`;
+      hint=`Keeps ${planName(current)} through ${fmtDate(summary?.current_period_end,true)}, then changes at renewal.`;
+    }else{
+      button=`<button class="action primary" data-checkout-plan="${key}">Choose ${p.name}</button>`;
+      hint='Starts a secure recurring monthly subscription.';
+    }
+    return `<article class="plan-option ${isCurrent?'current':''} ${key==='growth'?'recommended':''}"><div class="option-top"><div><div class="option-name">${p.name}</div><div class="option-slots">${p.slots} reusable active job slots</div>${key==='growth'?'<span class="tag">Most popular</span>':''}</div><div class="option-price">$${Number(p.price).toLocaleString('en-US')}<small>${suffix(displayBilling)}</small></div></div>${button}${hint?`<div class="action-hint">${hint}</div>`:''}</article>`;
+  }).join('');
+
+  document.querySelectorAll('[data-change-plan]').forEach(btn=>btn.onclick=()=>changePlan(btn.dataset.changePlan,btn));
+  document.querySelectorAll('[data-checkout-plan]').forEach(btn=>btn.onclick=()=>location.href='app-employer-payment.html?plan='+encodeURIComponent(btn.dataset.checkoutPlan)+'&billing=monthly');
+}
+async function changePlan(target,button){
+  if(busy)return;
+  const {plan:current,billing,item}=currentContext();
+  if(!item)return;
+  const targetItem=PLAN_CATALOG[billing]?.[target];
+  if(!targetItem)return;
+  const upgrade=targetItem.rank>item.rank;
+  const cycle=billingLabel(billing).toLowerCase();
+  const wording=upgrade
+    ?`Upgrade from ${planName(current)} to ${planName(target)} now? Stripe will credit unused ${planName(current)} time and charge only the prorated net difference for the rest of this ${cycle} billing cycle.`
+    :`Schedule a downgrade from ${planName(current)} to ${planName(target)}? You keep ${planName(current)} until ${fmtDate(summary?.current_period_end)}, then ${planName(target)} starts at the next ${cycle} billing cycle.`;
+  if(!confirm(wording))return;
+
+  busy=true;clearMessage();const original=button.textContent;button.disabled=true;button.textContent=upgrade?'Calculating prorated upgrade…':'Scheduling downgrade…';
+  try{
+    const data=await api({action:'change_plan',target_plan:target});
+    if(data.hosted_invoice_url&&data.pending_update){
+      showMessage('Stripe needs payment confirmation before the upgrade can take effect. Opening the secure invoice now.','info');
+      await openUrl(data.hosted_invoice_url);
+    }else if(upgrade){
+      showMessage(data.amount_due_cents!=null
+        ?`Upgrade submitted. Stripe invoiced the prorated net amount of ${money(data.amount_due_cents)}. The higher plan becomes active when payment confirms.`
+        :'Upgrade submitted. The higher plan becomes active after Stripe confirms the prorated payment.','success');
+    }else{
+      showMessage(`Downgrade scheduled for ${fmtDate(data.effective_at)}. Your current plan and capacity stay unchanged until then.`,'success');
+    }
+    await loadData();renderAll();
+  }catch(error){
+    console.error(error);
+    if(error.data?.requires_checkout)location.href='app-employer-pricing.html';
+    else showMessage(error.message||'Could not change your plan.','error');
+  }finally{
+    busy=false;button.disabled=false;button.textContent=original;
+  }
+}
+async function cancelPending(){
+  if(busy)return;
+  if(!confirm('Cancel the scheduled downgrade and keep your current plan?'))return;
+  busy=true;clearMessage();const btn=$('cancel-pending');const original=btn.textContent;btn.disabled=true;btn.textContent='Canceling…';
+  try{await api({action:'cancel_scheduled_change'});showMessage('Scheduled downgrade canceled. Your current plan will continue.','success');await loadData();renderAll();}
+  catch(error){showMessage(error.message||'Could not cancel the scheduled change.','error');}
+  finally{busy=false;btn.disabled=false;btn.textContent=original;}
+}
+function renderAll(){renderCurrent();renderPending();renderPlans();}
+$('back-btn').onclick=()=>location.href='app-employer-dashboard.html#settings';
+$('pricing-btn').onclick=()=>location.href='app-employer-pricing.html';
+$('addon-btn').onclick=()=>{if(!$('addon-btn').disabled)location.href='app-employer-payment.html?product=additional_slot&billing=monthly';};
+$('cancel-pending').onclick=cancelPending;
+async function refresh(){if(document.visibilityState!=='visible')return;const {data}=await sb.auth.getSession();if(!data?.session)return;session=data.session;await loadData();renderAll();}
+document.addEventListener('visibilitychange',refresh);window.addEventListener('focus',refresh);window.addEventListener('pageshow',refresh);
+(async()=>{try{const {data,error}=await sb.auth.getSession();if(error||!data.session){location.replace('app-employer-login.html');return;}session=data.session;await loadData();renderAll();}catch(error){console.error(error);showMessage('Could not load your billing plan. Please try again.','error');}finally{$('loading').hidden=true;}})();
+</script>
+</body>
+</html>
