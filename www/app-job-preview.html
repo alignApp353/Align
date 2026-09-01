@@ -3316,16 +3316,19 @@ function wire(){
 
   $('view-job-btn').onclick=()=>{
     if(publishedJobId){
-      location.href=
+      // Employer live-view is a terminal preview, not another step in the
+      // job-builder history. Replace the success screen and tell the details
+      // page to return directly to My Jobs.
+      location.replace(
         'app-job-details.html?id='+
-        encodeURIComponent(
-          publishedJobId
-        );
+        encodeURIComponent(publishedJobId)+
+        '&from=employer-live'
+      );
       return;
     }
 
     location.replace(
-      'app-employer-dashboard.html'
+      'app-employer-dashboard.html?view=jobs'
     );
   };
 }
