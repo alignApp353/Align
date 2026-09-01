@@ -1979,14 +1979,25 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       test_plan: data?.test_plan ? String(data.test_plan).toLowerCase() : null,
       urgently_hiring: data?.urgently_hiring === true,
       weekly_slot_count: Math.max(0, Number(data?.weekly_slot_count || 0)),
-      weekly_slots_expires_at: data?.weekly_slots_expires_at || null
+      weekly_slots_expires_at: data?.weekly_slots_expires_at || null,
+      addon_slot_count: Math.max(0, Number(data?.addon_slot_count || 0)),
+      addon_slots_expires_at: data?.addon_slots_expires_at || null,
+      server_access_loaded: data?.server_access_loaded === true,
+      server_can_post: typeof data?.server_can_post === 'boolean' ? data.server_can_post : null,
+      server_reason: data?.server_reason ? String(data.server_reason) : null,
+      server_active_job_count: Number.isFinite(Number(data?.server_active_job_count))
+        ? Math.max(0, Number(data.server_active_job_count))
+        : null,
+      server_available_slots: Number.isFinite(Number(data?.server_available_slots))
+        ? Math.max(0, Number(data.server_available_slots))
+        : null
     });
 
     try {
       // New schema used by Launch / Growth / Scale / Weekly and test-mode access.
       let result = await sb
         .from('employer_entitlements')
-        .select('plan, subscription_status, current_period_end, free_job_used, paid_job_credits, slot_limit, billing_period, test_mode, test_plan, urgently_hiring')
+        .select('plan, subscription_status, current_period_end, free_job_used, paid_job_credits, slot_limit, billing_period, test_mode, test_plan, urgently_hiring, addon_slot_count, addon_slots_expires_at')
         .eq('employer_id', currentUser.id)
         .maybeSingle();
 
@@ -2013,15 +2024,25 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       }
 
       // Server summary is the source of truth for effective capacity.
-      // It includes temporary $99 Weekly slots without replacing the base plan.
+      // It includes the free slot, the repeatable $150/month additional slot, Weekly slots,
+      // and any active Launch / Growth / Scale capacity.
       const accessResult = await sb.rpc('get_employer_posting_access');
       if (!accessResult.error && accessResult.data) {
         billingEntitlement = {
           ...billingEntitlement,
-          slot_limit: Math.max(0, Number(accessResult.data.slot_limit || 0)),
+          slot_limit: Math.max(1, Number(accessResult.data.slot_limit || 1)),
           weekly_slot_count: Math.max(0, Number(accessResult.data.weekly_slot_count || 0)),
-          weekly_slots_expires_at: accessResult.data.weekly_slots_expires_at || null
+          weekly_slots_expires_at: accessResult.data.weekly_slots_expires_at || null,
+          addon_slot_count: Math.max(0, Number(accessResult.data.addon_slot_count || 0)),
+          addon_slots_expires_at: accessResult.data.addon_slots_expires_at || null,
+          server_access_loaded: true,
+          server_can_post: accessResult.data.can_post === true,
+          server_reason: String(accessResult.data.reason || ''),
+          server_active_job_count: Math.max(0, Number(accessResult.data.active_job_count || 0)),
+          server_available_slots: Math.max(0, Number(accessResult.data.available_slots || 0))
         };
+      } else if (accessResult.error) {
+        console.warn('Could not load server posting access:', accessResult.error);
       }
     } catch (error) {
       console.error('Failed to load employer billing entitlement:', error);
@@ -2095,13 +2116,43 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       return { allowed: false, reason: 'billing-loading', label: 'Checking slots…' };
     }
 
+    // Prefer the server RPC whenever it loaded successfully. This matters for
+    // the repeatable $150/month additional slot: the employer can still have plan="free"
+    // while the RPC correctly reports 2 total reusable slots.
+    if (billingEntitlement.server_access_loaded === true) {
+      const used = Number.isFinite(billingEntitlement.server_active_job_count)
+        ? billingEntitlement.server_active_job_count
+        : activeJobCount();
+      const limit = Math.max(1, Number(billingEntitlement.slot_limit || 1));
+      const allowed = billingEntitlement.server_can_post === true;
+
+      return allowed
+        ? {
+            allowed: true,
+            reason: billingEntitlement.server_reason || 'slot-available',
+            label: '+ Post new job',
+            used,
+            limit
+          }
+        : {
+            allowed: false,
+            reason: billingEntitlement.server_reason || 'slot-limit',
+            label: '+ Add a job slot',
+            used,
+            limit
+          };
+    }
+
     const used = activeJobCount();
 
-    if (hasActivePaidPlan()) {
-      const limit = paidJobLimit();
-      return used < limit
-        ? { allowed: true, reason: 'slot-available', label: '+ Post new job', used, limit }
-        : { allowed: false, reason: 'slot-limit', label: '+ Add a job slot', used, limit };
+    // Compatibility fallback if the server RPC is temporarily unavailable.
+    // Any effective capacity above the free 1-slot baseline should be honored
+    // in the UI; the database trigger remains the final enforcement layer.
+    const effectiveLimit = paidJobLimit();
+    if (hasActivePaidPlan() || effectiveLimit > 1) {
+      return used < effectiveLimit
+        ? { allowed: true, reason: 'slot-available', label: '+ Post new job', used, limit: effectiveLimit }
+        : { allowed: false, reason: 'slot-limit', label: '+ Add a job slot', used, limit: effectiveLimit };
     }
 
     // Free employers have one reusable slot. Deleting or closing the job frees it.
