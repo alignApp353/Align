@@ -44,30 +44,103 @@ function time(v){if(!v)return'';const d=new Date(v),s=Math.max(0,(Date.now()-d)/
 function setNotice(text,error=false){$('notice').hidden=!text;$('notice').className='notice'+(error?' error':'');$('notice').textContent=text||''}
 async function resolveRole(){const q=new URLSearchParams(location.search).get('role');if(q==='employer'||q==='candidate')return q;try{const {data}=await sb.from('profiles').select('role').eq('id',session.user.id).maybeSingle();if(String(data?.role||'').toLowerCase()==='employer')return'employer'}catch(_){}const meta=String(session.user.user_metadata?.role||session.user.user_metadata?.account_type||session.user.app_metadata?.role||'').toLowerCase();return meta==='employer'?'employer':'candidate'}
 async function deleteConversation(id,name){if(role!=='employer'||deleting)return;const label=name||'this candidate';if(!confirm(`Delete the conversation with ${label}?\n\nThis permanently removes the chat and its messages for both sides. You can start a new conversation later from the application.`))return;deleting=true;setNotice('Deleting conversation…');try{const {error}=await sb.rpc('delete_application_conversation',{p_conversation_id:id});if(error)throw error;setNotice('Conversation deleted.');await load()}catch(error){console.error(error);setNotice(error?.message||'Conversation could not be deleted.',true)}finally{deleting=false}}
+function cleanIdentity(value,generic=[]){
+  const text=String(value??'').trim();
+  if(!text)return'';
+  const normalized=text.toLowerCase();
+  return generic.includes(normalized)?'':text;
+}
+function profileName(profile={}){
+  return cleanIdentity(profile.full_name,['candidate','applicant'])||
+    cleanIdentity(profile.name,['candidate','applicant'])||
+    cleanIdentity([profile.first_name,profile.last_name].filter(Boolean).join(' '),['candidate','applicant']);
+}
+function applicationName(application={}){
+  return cleanIdentity(application.candidate_name,['candidate','applicant'])||
+    cleanIdentity(application.applicant_name,['candidate','applicant'])||
+    cleanIdentity(application.full_name,['candidate','applicant'])||
+    cleanIdentity([application.first_name,application.last_name].filter(Boolean).join(' '),['candidate','applicant'])||
+    cleanIdentity(String(application.candidate_email||application.email||'').split('@')[0],['candidate','applicant']);
+}
 async function load(){
   try{
     const {data,error}=await sb.from('application_conversations').select('*').order('last_message_at',{ascending:false});
     if(error)throw error;
     const conversations=data||[];
     if(!conversations.length){$('list').innerHTML=`<div class="empty"><strong>No messages yet</strong><p>${role==='candidate'?'When an employer messages you about an application, the conversation will appear here. Candidates cannot start new employer chats.':'Open an applicant and choose Message Candidate to start a conversation.'}</p></div>`;return}
-    const jobIds=[...new Set(conversations.map(x=>x.job_id).filter(Boolean))];
-    const candidateIds=[...new Set(conversations.map(x=>x.candidate_id).filter(Boolean))];
+
+    const applicationIds=[...new Set(conversations.map(x=>x.application_id).filter(Boolean).map(String))];
     const conversationIds=conversations.map(x=>x.id);
-    let jobs=[],profiles=[],messages=[];
-    if(jobIds.length){const r=await sb.from('jobs').select('*').in('id',jobIds);if(!r.error)jobs=r.data||[]}
-    if(candidateIds.length){const r=await sb.from('profiles').select('*').in('id',candidateIds);if(!r.error)profiles=r.data||[]}
-    if(conversationIds.length){const r=await sb.from('application_messages').select('*').in('conversation_id',conversationIds).order('created_at',{ascending:false});if(r.error)throw r.error;messages=r.data||[]}
+    let applications=[],jobs=[],profiles=[],messages=[];
+
+    if(applicationIds.length){
+      const r=await sb.from('applications').select('*').in('id',applicationIds);
+      if(!r.error)applications=r.data||[];
+      else console.warn('Could not load application identity for messages:',r.error);
+    }
+
+    const applicationMap=new Map(applications.map(x=>[String(x.id),x]));
+    const effectiveJobIds=[...new Set(conversations.map(c=>{
+      const a=applicationMap.get(String(c.application_id))||{};
+      return a.job_id||c.job_id;
+    }).filter(Boolean).map(String))];
+    const effectiveCandidateIds=[...new Set(conversations.map(c=>{
+      const a=applicationMap.get(String(c.application_id))||{};
+      return a.candidate_id||a.user_id||a.profile_id||c.candidate_id;
+    }).filter(Boolean).map(String))];
+
+    if(effectiveJobIds.length){
+      const r=await sb.from('jobs').select('*').in('id',effectiveJobIds);
+      if(!r.error)jobs=r.data||[];
+      else console.warn('Could not load message job identity:',r.error);
+    }
+
+    if(effectiveCandidateIds.length){
+      const byId=await sb.from('profiles').select('*').in('id',effectiveCandidateIds);
+      if(!byId.error)profiles.push(...(byId.data||[]));
+      else console.warn('Could not load message candidate profiles by id:',byId.error);
+
+      const loadedKeys=new Set();
+      profiles.forEach(p=>{
+        if(p?.id)loadedKeys.add(String(p.id));
+        if(p?.user_id)loadedKeys.add(String(p.user_id));
+      });
+      const missing=effectiveCandidateIds.filter(id=>!loadedKeys.has(String(id)));
+      if(missing.length){
+        const byUserId=await sb.from('profiles').select('*').in('user_id',missing);
+        if(!byUserId.error)profiles.push(...(byUserId.data||[]));
+        else console.warn('Could not load message candidate profiles by user_id:',byUserId.error);
+      }
+    }
+
+    if(conversationIds.length){
+      const r=await sb.from('application_messages').select('*').in('conversation_id',conversationIds).order('created_at',{ascending:false});
+      if(r.error)throw r.error;
+      messages=r.data||[];
+    }
+
     const jobMap=new Map(jobs.map(x=>[String(x.id),x]));
-    const profileMap=new Map(profiles.map(x=>[String(x.id),x]));
+    const profileMap=new Map();
+    profiles.forEach(p=>{
+      if(p?.id)profileMap.set(String(p.id),p);
+      if(p?.user_id)profileMap.set(String(p.user_id),p);
+    });
     const last=new Map(),unread=new Map();
     for(const m of messages){const id=String(m.conversation_id);if(!last.has(id))last.set(id,m);if(String(m.sender_id)!==String(session.user.id)&&!m.read_at)unread.set(id,(unread.get(id)||0)+1)}
+
     $('list').innerHTML=conversations.map(c=>{
-      const j=jobMap.get(String(c.job_id))||{};
-      const p=profileMap.get(String(c.candidate_id))||{};
+      const a=applicationMap.get(String(c.application_id))||{};
+      const candidateKey=a.candidate_id||a.user_id||a.profile_id||c.candidate_id;
+      const jobKey=a.job_id||c.job_id;
+      const p=profileMap.get(String(candidateKey))||{};
+      const j=jobMap.get(String(jobKey))||{};
       const m=last.get(String(c.id));
-      const candidate=c.candidate_name||p.full_name||p.name||[p.first_name,p.last_name].filter(Boolean).join(' ')||'Candidate';
-      const company=c.company_name||j.company||j.company_name||j.employer_name||'Employer';
-      const jobTitle=c.job_title||j.title||'Job application';
+      const snapshotCandidate=cleanIdentity(c.candidate_name,['candidate','applicant']);
+      const candidate=profileName(p)||applicationName(a)||snapshotCandidate||'Candidate';
+      const snapshotCompany=cleanIdentity(c.company_name,['employer','company']);
+      const company=cleanIdentity(j.company)||cleanIdentity(j.company_name)||cleanIdentity(j.employer_name)||snapshotCompany||'Employer';
+      const snapshotJob=cleanIdentity(c.job_title,['job application','position']);
+      const jobTitle=cleanIdentity(j.title)||cleanIdentity(a.job_title)||snapshotJob||'Job application';
       const name=role==='employer'?candidate:company;
       const count=unread.get(String(c.id))||0;
       return `<div class="thread"><button class="thread-main" type="button" onclick="location.href='app-chat.html?role=${role}&application=${encodeURIComponent(c.application_id)}'"><div class="avatar">${esc(initials(name))}</div><div><div class="name">${esc(name)}</div><div class="job">${esc(jobTitle)}</div><div class="preview">${esc(m?.body||'Conversation started')}</div></div><div><div class="time">${esc(time(m?.created_at||c.last_message_at))}</div>${count?`<div class="unread">${count>99?'99+':count}</div>`:''}</div></button>${role==='employer'?`<button class="delete-thread" type="button" aria-label="Delete conversation with ${esc(candidate)}" data-delete-id="${esc(c.id)}" data-delete-name="${esc(candidate)}"><svg viewBox="0 0 24 24"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg></button>`:''}</div>`
