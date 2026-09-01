@@ -1499,6 +1499,8 @@ let candidateProfile={};
 let candidatePreferences={};
 let candidateResume={};
 let jobs=[];
+let appliedJobIds=new Set();
+let skippedJobIds=new Set();
 let currentIndex=0;
 const SWIPE_COMMIT_THRESHOLD=70;
 let applied=0;
@@ -2301,7 +2303,45 @@ function dragEnd(e){
   }
 }
 
+async function loadCandidateDecisions(){
+  appliedJobIds=new Set();
+  skippedJobIds=new Set();
+
+  const applicationsResult=await sb
+    .from('applications')
+    .select('job_id')
+    .eq('candidate_id',session.user.id);
+
+  if(applicationsResult.error) throw applicationsResult.error;
+
+  for(const row of applicationsResult.data||[]){
+    if(row?.job_id!=null) appliedJobIds.add(String(row.job_id));
+  }
+
+  applied=(applicationsResult.data||[]).length;
+
+  const skippedResult=await sb
+    .from('skipped_jobs')
+    .select('job_id')
+    .eq('candidate_id',session.user.id);
+
+  if(skippedResult.error){
+    console.warn('Could not load passed jobs:',skippedResult.error);
+    skipped=0;
+    return;
+  }
+
+  for(const row of skippedResult.data||[]){
+    if(row?.job_id!=null) skippedJobIds.add(String(row.job_id));
+  }
+
+  skipped=skippedJobIds.size;
+}
+
 async function createApplication(job){
+  const key=String(job.id);
+  if(appliedJobIds.has(key)) return true;
+
   const {data:existing,error:checkError}=await sb
     .from('applications')
     .select('id')
@@ -2309,8 +2349,12 @@ async function createApplication(job){
     .eq('job_id',job.id)
     .maybeSingle();
 
-  if(checkError)console.warn(checkError);
-  if(existing)return true;
+  if(checkError)throw checkError;
+
+  if(existing){
+    appliedJobIds.add(key);
+    return true;
+  }
 
   const {error}=await sb.from('applications').insert({
     candidate_id:session.user.id,
@@ -2323,34 +2367,89 @@ async function createApplication(job){
   });
 
   if(error)throw error;
+  appliedJobIds.add(key);
   return false;
+}
+
+async function createSkip(job){
+  const key=String(job.id);
+  if(skippedJobIds.has(key)) return true;
+
+  const {data:existing,error:checkError}=await sb
+    .from('skipped_jobs')
+    .select('job_id')
+    .eq('candidate_id',session.user.id)
+    .eq('job_id',job.id)
+    .maybeSingle();
+
+  if(checkError)throw checkError;
+
+  if(existing){
+    skippedJobIds.add(key);
+    return true;
+  }
+
+  const {error}=await sb.from('skipped_jobs').insert({
+    candidate_id:session.user.id,
+    job_id:job.id
+  });
+
+  if(error)throw error;
+  skippedJobIds.add(key);
+  return false;
+}
+
+async function removeApplicationDecision(job){
+  const {error}=await sb
+    .from('applications')
+    .delete()
+    .eq('candidate_id',session.user.id)
+    .eq('job_id',job.id);
+  if(error)throw error;
+  appliedJobIds.delete(String(job.id));
+}
+
+async function removeSkipDecision(job){
+  const {error}=await sb
+    .from('skipped_jobs')
+    .delete()
+    .eq('candidate_id',session.user.id)
+    .eq('job_id',job.id);
+  if(error)throw error;
+  skippedJobIds.delete(String(job.id));
 }
 
 async function animateSwipe(direction){
   setupTopCard();
   if(!activeCard)return;
 
-  const job=jobs[Number(activeCard.dataset.index)];
-  activeCard.classList.add(direction==='right'?'swipe-right':'swipe-left');
+  const card=activeCard;
+  const job=jobs[Number(card.dataset.index)];
+  if(!job)return;
 
-  history.push({job,direction,index:currentIndex});
-
-  if(direction==='right'){
-    try{
+  // Save the decision first. This keeps navigation/reloads from resurrecting jobs.
+  try{
+    if(direction==='right'){
       const alreadyExists=await createApplication(job);
-      applied++;
+      if(!alreadyExists) applied++;
       showToast(alreadyExists?'Already applied':'Application submitted');
-    }catch(error){
-      console.error(error);
-      showToast(error.message||'Could not apply');
+    }else{
+      const alreadyExists=await createSkip(job);
+      if(!alreadyExists) skipped++;
+      showToast('Passed');
     }
-  }else{
-    skipped++;
-    showToast('Passed');
+  }catch(error){
+    console.error(error);
+    showToast(error?.message || (direction==='right'?'Could not apply':'Could not pass this job'));
+    resetDecisionStamps(card);
+    card.style.transition='transform .2s ease';
+    card.style.transform='';
+    return;
   }
 
+  card.classList.add(direction==='right'?'swipe-right':'swipe-left');
+  history.push({job,direction,index:currentIndex});
   currentIndex++;
-
   setTimeout(renderCards,350);
 }
 
@@ -2364,23 +2463,31 @@ function applyCurrent(){
   if(activeCard)animateSwipe('right');
 }
 
-function undo(){
+async function undo(){
   if(!history.length){
     showToast('Nothing to undo');
     return;
   }
 
-  const last=history.pop();
+  const last=history[history.length-1];
 
-  if(last.direction==='right'){
-    applied=Math.max(0,applied-1);
-  }else{
-    skipped=Math.max(0,skipped-1);
+  try{
+    if(last.direction==='right'){
+      await removeApplicationDecision(last.job);
+      applied=Math.max(0,applied-1);
+    }else{
+      await removeSkipDecision(last.job);
+      skipped=Math.max(0,skipped-1);
+    }
+
+    history.pop();
+    currentIndex=last.index;
+    renderCards();
+    showToast('Undone');
+  }catch(error){
+    console.error(error);
+    showToast(error?.message||'Could not undo');
   }
-
-  currentIndex=last.index;
-  renderCards();
-  showToast('Undone');
 }
 
 function updateStats(){
@@ -2420,6 +2527,10 @@ async function loadJobs(){
   }
 
   jobs=(data||[])
+    .filter(job=>{
+      const key=String(job.id);
+      return !appliedJobIds.has(key) && !skippedJobIds.has(key);
+    })
     .map(job=>{
       const result=calculateAlygnnScore(job);
       return {
@@ -2588,12 +2699,12 @@ function enforceCandidateNav(){
 
   document.getElementById('profile-button').textContent=initials(fullName);
 
-  const {count}=await sb
-    .from('applications')
-    .select('*',{count:'exact',head:true})
-    .eq('candidate_id',session.user.id);
-
-  applied=count||0;
+  try{
+    await loadCandidateDecisions();
+  }catch(decisionError){
+    console.error('Could not load candidate job decisions:',decisionError);
+    showToast('Could not restore your job history');
+  }
 
   try{
     await loadCandidateMatchingProfile();
