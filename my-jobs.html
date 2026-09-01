@@ -458,6 +458,8 @@ function candidateStatusNotification(app, job){
 
 let candidateMessageNotificationChannel = null;
 let candidateNotificationProfileCache = null;
+let candidateMessageNotificationPollTimer = null;
+let candidateMessageNotificationRefreshBusy = false;
 
 async function loadCandidateMessageNotificationItems(){
   if(!currentUserId)return [];
@@ -539,8 +541,34 @@ async function loadCandidateMessageNotificationItems(){
   }
 }
 
+async function refreshCandidateMessageNotifications(){
+  if(candidateMessageNotificationRefreshBusy || !currentUserId)return;
+
+  candidateMessageNotificationRefreshBusy = true;
+  try{
+    await loadCandidateNotifications(candidateNotificationProfileCache);
+  }finally{
+    candidateMessageNotificationRefreshBusy = false;
+  }
+}
+
+function ensureCandidateMessageNotificationPolling(){
+  if(candidateMessageNotificationPollTimer || !currentUserId)return;
+
+  // Realtime is the primary path. This lightweight fallback makes the bell
+  // reliable even if a browser/network temporarily misses a websocket event.
+  candidateMessageNotificationPollTimer = window.setInterval(()=>{
+    if(document.visibilityState === 'visible'){
+      refreshCandidateMessageNotifications();
+    }
+  },5000);
+}
+
 function ensureCandidateMessageNotificationRealtime(){
-  if(candidateMessageNotificationChannel||!currentUserId)return;
+  if(candidateMessageNotificationChannel||!currentUserId){
+    ensureCandidateMessageNotificationPolling();
+    return;
+  }
 
   candidateMessageNotificationChannel=sb
     .channel('candidate-message-notifications-'+currentUserId)
@@ -550,10 +578,34 @@ function ensureCandidateMessageNotificationRealtime(){
       table:'messages'
     },async payload=>{
       if(payload?.new?.sender_id===currentUserId)return;
-      await loadCandidateNotifications(candidateNotificationProfileCache);
+      await refreshCandidateMessageNotifications();
     })
-    .subscribe();
+    .subscribe(status=>{
+      if(status === 'SUBSCRIBED'){
+        // Re-check immediately in case a message arrived while the channel
+        // was connecting.
+        refreshCandidateMessageNotifications();
+      }
+
+      if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+        console.warn('Candidate message notification realtime status:',status);
+      }
+    });
+
+  ensureCandidateMessageNotificationPolling();
 }
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState === 'visible' && currentUserId){
+    refreshCandidateMessageNotifications();
+  }
+});
+
+window.addEventListener('focus',()=>{
+  if(currentUserId){
+    refreshCandidateMessageNotifications();
+  }
+});
 
 async function loadCandidateNotifications(profile){
   if(!currentUserId) return;
