@@ -149,11 +149,11 @@
   .testimonial-quote { font-size: 17px; line-height: 1.7; color: var(--text); font-style: italic; margin-bottom: 16px; }
   .testimonial-author { font-size: 13px; color: var(--text-muted); font-weight: 500; }
 
-  .cta-section { margin: 0 8% 100px; background: var(--brand); border-radius: 28px; padding: 80px 10%; text-align: center; color: white; }
+  .cta-section { margin: 0 8% 36px; background: var(--brand); border-radius: 28px; padding: 72px 10%; text-align: center; color: white; }
   .cta-section h2 { color: white; letter-spacing: -1px; }
   .cta-section p { color: rgba(255,255,255,0.75); font-size: 17px; margin: 16px 0 40px; font-weight: 300; }
 
-  .footer-main { padding: 64px 8% 40px; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 40px; }
+  .footer-main { padding: 52px 8% 36px; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1.45fr .9fr .9fr .9fr; gap: 34px; }
   .footer-brand p { font-size: 14px; color: var(--text-muted); line-height: 1.7; margin-top: 12px; max-width: 260px; font-weight: 300; }
   .footer-social-row { display: flex; align-items: center; gap: 10px; margin-top: 18px; }
   .footer-social { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); color: var(--text-muted); transition: all 0.2s; }
@@ -188,7 +188,7 @@
     .testimonial-grid { grid-template-columns: 1fr; }
     .dash-stats-row { grid-template-columns: 1fr; }
     .logo-tag { display: none; }
-    .footer-main { grid-template-columns: 1fr 1fr; gap: 32px; padding-top: 48px; }
+    .footer-main { grid-template-columns: 1fr 1fr; gap: 32px; padding-top: 44px; }
     .footer-brand { grid-column: 1 / -1; }
     .footer-bottom { flex-direction: column; text-align: center; }
   }
@@ -401,9 +401,19 @@
   <div class="footer-col">
     <h4>Employers</h4>
     <ul>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#faq">Employer FAQ</a></li>
       <li><a href="login.html?role=employer" id="footer-employer-account">Employer account</a></li>
       <li><a href="login.html?role=employer" id="footer-employer-dashboard">Employer dashboard</a></li>
-      <li id="footer-pricing-item" hidden><a href="pricing.html" id="footer-pricing-link">Pricing</a></li>
+    </ul>
+  </div>
+
+  <div class="footer-col">
+    <h4>Jobseekers</h4>
+    <ul>
+      <li><a href="index.html">Find jobs</a></li>
+      <li><a href="login.html">Sign in</a></li>
+      <li><a href="index.html#features">How Alygnn works</a></li>
     </ul>
   </div>
 
@@ -420,6 +430,7 @@
 
 <div class="footer-bottom">
   <span>© 2026 Alygnn.</span>
+  <a href="pricing.html" id="footer-pricing-link" hidden>Pricing</a>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -458,7 +469,6 @@ const { createClient } = supabase;
   const bottomCta        = document.getElementById('cta-bottom-btn');
   const footerEmployerAccount = document.getElementById('footer-employer-account');
   const footerEmployerDashboard = document.getElementById('footer-employer-dashboard');
-  const footerPricingItem = document.getElementById('footer-pricing-item');
   const footerPricingLink = document.getElementById('footer-pricing-link');
 
   const { data: { session } } = await sb.auth.getSession();
@@ -495,8 +505,7 @@ const { createClient } = supabase;
 
   // Pricing stays completely hidden from signed-out visitors. Once an
   // employer is authenticated, expose it only down in the Employers footer.
-  if (footerPricingItem) footerPricingItem.hidden = false;
-  if (footerPricingLink) footerPricingLink.href = 'pricing.html';
+  if (footerPricingLink) { footerPricingLink.hidden = false; footerPricingLink.href = 'pricing.html'; }
 })();
 </script>
 </body>
