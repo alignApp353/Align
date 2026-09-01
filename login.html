@@ -138,7 +138,7 @@
 <body>
 
 <div class="left-panel" id="left-panel">
-  <a class="panel-logo" id="panel-logo-link" href="index.html">Alygnn<span>.</span></a>
+  <a class="panel-logo" href="index.html">Alygnn<span>.</span></a>
   <div class="panel-content">
     <div class="seeker-content">
       <h2>Jobs that fit<br><em>your reality.</em></h2>
@@ -165,7 +165,7 @@
 <div class="right-panel">
   <div class="form-container">
 
-    <a href="index.html" class="back-link" id="back-to-alygnn">
+    <a href="index.html" class="back-link">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
       Back to Alygnn
     </a>
@@ -185,12 +185,6 @@
       <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Create account</button>
     </div>
 
-    <!-- Consent sits next to social signup so it is visible before Google/Apple. -->
-    <label class="terms-check" id="signup-terms-wrap" style="display:none; margin-top:-2px;">
-      <input type="checkbox" id="signup-terms" />
-      <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
-    </label>
-
     <button class="google-btn" onclick="handleGoogle()">
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
         <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -198,14 +192,14 @@
         <path d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/>
         <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
       </svg>
-      <span id="google-button-text">Sign in with Google</span>
+      Continue with Google
     </button>
 
     <button class="google-btn" onclick="handleApple()" >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="black">
         <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.39.07 2.36.74 3.18.8 1.21-.24 2.37-.93 3.67-.84 1.58.13 2.77.79 3.53 1.98-3.25 1.94-2.48 6.18.57 7.37-.67 1.63-1.53 3.24-2.95 3.57zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
       </svg>
-      <span id="apple-button-text">Continue with Apple</span>
+      Continue with Apple
     </button>
 
     <div class="divider"><span id="divider-text">or sign in with email</span></div>
@@ -277,6 +271,10 @@
         </div>
         <div id="password-match-message" style="display:none;margin-top:7px;font-size:11px;font-weight:500;"></div>
       </div>
+      <label class="terms-check">
+        <input type="checkbox" id="signup-terms" />
+        <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+      </label>
       <button class="btn-submit" id="signup-btn" onclick="doSignup()" style="margin-top:6px;">Create account</button>
     </div>
 
@@ -294,29 +292,10 @@
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-  // Reserved for the admin console (admin-login.html) only — never a
-  // valid job seeker or employer account.
-  const ADMIN_EMAIL = 'admin@alygnn.com';
-  
-function alygnnAuthStorageKey() {
-  let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
-  if (!tabId) {
-    tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
-      ? window.crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-    window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
-  }
-  return `alygnn-auth-${tabId}`;
-}
-
-const { createClient } = supabase;
-  const sb = // Keep Alygnn authentication isolated to this browser tab.
-// This lets a candidate account stay open in one tab while a different
-// employer account is signed in in another tab.
-createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       storage: window.sessionStorage,
-      storageKey: alygnnAuthStorageKey(),
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true
@@ -334,43 +313,13 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
   const redirectFor = r => window.location.origin + (r === 'employer' ? '/employer-account.html' : '/account.html');
 
-  document.addEventListener('DOMContentLoaded', () => {
-    if (currentRole !== 'employer') {
-      const backLink = document.getElementById('back-to-alygnn');
-      const logoLink = document.getElementById('panel-logo-link');
-      if (backLink) backLink.href = 'index.html';
-      if (logoLink) logoLink.href = 'index.html';
-    }
-  });
-
   function switchRole(role) {
     currentRole = role;
     const isEmp = role === 'employer';
-
     document.getElementById('left-panel').classList.toggle('is-employer', isEmp);
     document.getElementById('role-seeker').classList.toggle('active', !isEmp);
     document.getElementById('role-employer').classList.toggle('active', isEmp);
     document.getElementById('company-field').style.display = isEmp ? 'block' : 'none';
-
-    // Keep the login page on the correct side of Alygnn.
-    // Employer -> employers.html
-    // Job seeker -> index.html
-    const homeHref = isEmp ? 'employers.html' : 'index.html';
-    const backLink = document.getElementById('back-to-alygnn');
-    const logoLink = document.getElementById('panel-logo-link');
-
-    if (backLink) backLink.href = homeHref;
-    if (logoLink) logoLink.href = homeHref;
-
-    // Preserve the selected role on refresh/back navigation.
-    const url = new URL(window.location.href);
-    if (isEmp) {
-      url.searchParams.set('role', 'employer');
-    } else {
-      url.searchParams.delete('role');
-    }
-    history.replaceState(null, '', url.pathname + url.search + url.hash);
-
     hideMsg();
     refreshCopy();
   }
@@ -385,9 +334,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       ? `New here? <a href="#" onclick="switchTab('signup'); return false;">Create a free account</a>`
       : `Already have one? <a href="#" onclick="switchTab('login'); return false;">Sign in</a>`;
     document.getElementById('divider-text').textContent = isLogin ? 'or sign in with email' : 'or sign up with email';
-    document.getElementById('google-button-text').textContent = isLogin ? 'Sign in with Google' : 'Sign up with Google';
-    document.getElementById('apple-button-text').textContent = isLogin ? 'Continue with Apple' : 'Sign up with Apple';
-    document.getElementById('signup-terms-wrap').style.display = isLogin ? 'none' : 'flex';
     document.getElementById('login-btn').textContent = isEmp ? 'Sign in to Dashboard' : 'Sign in to Alygnn';
     document.getElementById('signup-btn').textContent = isEmp ? 'Create employer account' : 'Create account';
     document.getElementById('switch-prompt').innerHTML = isLogin
@@ -430,45 +376,30 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
     if (!email || !password) { showMsg('Please enter your email and password.'); return; }
-    if (email.toLowerCase() === ADMIN_EMAIL) {
-      showMsg('This email is reserved for admin access. Use Admin login below instead.');
-      return;
-    }
     hideMsg();
     const btn = document.getElementById('login-btn');
     const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Signing in…';
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     btn.disabled = false; btn.textContent = orig;
-    if (error) {
-      const raw = String(error.message || '').toLowerCase();
-      if (raw.includes('invalid login credentials') || raw.includes('invalid credentials')) {
-        showMsg('Email or password is incorrect. If you have not created an account yet, choose Create account.');
-      } else if (raw.includes('email not confirmed') || raw.includes('confirm your email')) {
-        showMsg('Please verify your email before signing in.');
-      } else {
-        showMsg(error.message || 'Unable to sign in. Please try again.');
-      }
-      return;
-    }
-    const r = data.user?.user_metadata?.role || 'seeker';
-
-    // The tab they picked (currentRole) is what they're asserting about
-    // their own account — if it doesn't match the account's real role,
-    // sign them back out immediately rather than silently redirecting
-    // into the other experience under the wrong context. Checked before
-    // savePendingPreferences so a rejected login attempt has no side effects.
-    if (r !== currentRole) {
-      await sb.auth.signOut({ scope: 'local' });
-      if (currentRole === 'employer') {
-        showMsg('This is not an employer account. Switch to the Job Seeker tab to sign in, or create a new employer account.');
-      } else {
-        showMsg('This is an employer account. Switch to the Employer tab above to sign in.');
-      }
-      return;
-    }
-
+    if (error) { showMsg(error.message); return; }
     await savePendingPreferences(data.user);
-    window.location.href = redirectFor(r);
+
+    // Route from the account's saved Alygnn role first. Older accounts may
+    // not have reliable role metadata on the auth user object.
+    let r = String(data.user?.user_metadata?.role || '').toLowerCase();
+    try {
+      const { data: roleProfile } = await sb
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      r = String(roleProfile?.role || r || currentRole || 'seeker').toLowerCase();
+    } catch (_) {
+      r = String(r || currentRole || 'seeker').toLowerCase();
+    }
+
+    window.location.href = redirectFor(r === 'employer' ? 'employer' : 'seeker');
   }
 
   async function doSignup() {
@@ -478,10 +409,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const confirmPassword = document.getElementById('signup-password-confirm').value;
     const company = document.getElementById('signup-company').value.trim();
     if (!name || !email || !password || !confirmPassword) { showMsg('Please fill in all fields.'); return; }
-    if (email.toLowerCase() === ADMIN_EMAIL) {
-      showMsg('This email is reserved and cannot be used to create a job seeker or employer account.');
-      return;
-    }
     if (currentRole === 'employer' && !company) { showMsg('Please enter your company name.'); return; }
     if (password.length < 8) { showMsg('Password must be at least 8 characters.'); return; }
     if (password !== confirmPassword) { showMsg('Passwords do not match.'); return; }
@@ -564,237 +491,30 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   async function handleGoogle() {
     const isSignupTab = document.getElementById('signup-form').style.display !== 'none';
     if (isSignupTab && !document.getElementById('signup-terms').checked) {
-      showMsg('Check the box above to agree to the Terms of Service and Privacy Policy, then continue with Google.');
-      document.getElementById('signup-terms').focus();
+      showMsg('Please agree to the Terms of Service and Privacy Policy to continue.');
       return;
     }
-
-    const oauthMode = isSignupTab ? 'signup' : 'login';
-    sessionStorage.setItem('alygnn_oauth_mode', oauthMode);
-    sessionStorage.setItem('alygnn_oauth_role', currentRole);
-
-    const params = new URLSearchParams();
-    params.set('oauth_return', '1');
-    params.set('oauth_mode', oauthMode);
-    params.set('role', currentRole === 'employer' ? 'employer' : 'jobseeker');
-    params.set('provider', 'google');
-
-    const { error } = await sb.auth.signInWithOAuth({
+    // Pass the currently selected role in the redirect URL so
+    // set-password.html can save it to the profiles table after
+    // Google OAuth completes — fixing the role routing for Google sign-ins.
+    const roleParam = currentRole === 'employer' ? '?role=employer' : '';
+    await sb.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/login.html?' + params.toString() }
+      options: { redirectTo: window.location.origin + '/set-password.html' + roleParam }
     });
-    if (error) showMsg(error.message || 'Could not open Google sign in. Please try again.');
-  }
-
-  async function getOAuthSession() {
-    let { data: { session } } = await sb.auth.getSession();
-    if (session) return session;
-
-    return await new Promise(resolve => {
-      let finished = false;
-      const finish = value => {
-        if (finished) return;
-        finished = true;
-        try { subscription?.unsubscribe(); } catch (_) {}
-        resolve(value || null);
-      };
-
-      const { data: { subscription } } = sb.auth.onAuthStateChange((_event, nextSession) => {
-        if (nextSession) finish(nextSession);
-      });
-
-      setTimeout(async () => {
-        const { data } = await sb.auth.getSession();
-        finish(data.session || null);
-      }, 2500);
-    });
-  }
-
-  async function validateGoogleIntent(session, intent) {
-    const response = await fetch(SUPABASE_URL + '/functions/v1/validate-google-login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + session.access_token
-      },
-      body: JSON.stringify({ intent })
-    });
-
-    let payload = {};
-    try { payload = await response.json(); } catch (_) {}
-    if (!response.ok) throw new Error(payload.error || 'Could not verify this Google account.');
-    return payload;
-  }
-
-  async function handleOAuthReturn() {
-    const params = new URLSearchParams(window.location.search);
-
-    if (params.get('oauth_return') !== '1') {
-      if (params.get('error') === 'no_account') {
-        switchTab('login');
-        const providerLabel = params.get('provider') === 'apple' ? 'Apple' : 'Google';
-        showMsg(`No Alygnn account was found for that ${providerLabel} account. Create an account first.`);
-      }
-      return;
-    }
-
-    const intent = params.get('oauth_mode') === 'signup' ? 'signup' : 'login';
-    const requestedRole = params.get('role') === 'employer' ? 'employer' : 'seeker';
-    const provider = params.get('provider') === 'apple' ? 'apple' : 'google';
-    const providerLabel = provider === 'apple' ? 'Apple' : 'Google';
-
-    showMsg(
-      intent === 'signup'
-        ? `Finishing your ${providerLabel} account…`
-        : `Checking your Alygnn account…`,
-      'success'
-    );
-
-    const session = await getOAuthSession();
-
-    if (!session?.user) {
-      showMsg(`${providerLabel} sign in did not finish. Please try again.`);
-      return;
-    }
-
-    if ((session.user.email || '').toLowerCase() === ADMIN_EMAIL) {
-      await sb.auth.signOut({ scope: 'local' });
-      switchTab('login');
-      showMsg('This email is reserved for admin access and cannot sign in here. Use Admin login below instead.');
-      return;
-    }
-
-    try {
-      if (provider === 'google') {
-        const result = await validateGoogleIntent(session, intent);
-
-        if (!result.allowed) {
-          await sb.auth.signOut({ scope: 'local' });
-          const clean = new URL(window.location.origin + '/login.html');
-          clean.searchParams.set('role', requestedRole === 'employer' ? 'employer' : 'jobseeker');
-          clean.searchParams.set('provider', 'google');
-          clean.searchParams.set('error', 'no_account');
-          history.replaceState({}, '', clean.pathname + clean.search);
-          switchTab('login');
-          showMsg('No Alygnn account was found for that Google account. Create an account first.');
-          return;
-        }
-      }
-
-      const { data: existingProfile, error: existingProfileError } = await sb
-        .from('profiles')
-        .select('role,full_name,company_name')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      if (existingProfileError && existingProfileError.code !== 'PGRST116') {
-        throw existingProfileError;
-      }
-
-      // Apple OAuth can create an auth identity on first contact. On the Sign in
-      // tab, do not treat that as a completed Alygnn account unless a profile
-      // already exists.
-      if (provider === 'apple' && intent === 'login' && !existingProfile) {
-        await sb.auth.signOut({ scope: 'local' });
-
-        const clean = new URL(window.location.origin + '/login.html');
-        clean.searchParams.set('role', requestedRole === 'employer' ? 'employer' : 'jobseeker');
-        clean.searchParams.set('provider', 'apple');
-        clean.searchParams.set('error', 'no_account');
-        history.replaceState({}, '', clean.pathname + clean.search);
-
-        switchTab('login');
-        showMsg('No Alygnn account was found for that Apple account. Create an account first.');
-        return;
-      }
-
-      if (intent === 'signup') {
-        const fullName =
-          session.user.user_metadata?.full_name ||
-          session.user.user_metadata?.name ||
-          existingProfile?.full_name ||
-          '';
-
-        const profilePayload = {
-          id: session.user.id,
-          role: requestedRole,
-          full_name: fullName
-        };
-
-        const { error: profileError } = await sb
-          .from('profiles')
-          .upsert(profilePayload, { onConflict: 'id' });
-
-        if (profileError) {
-          console.error(`Could not save ${providerLabel} signup profile:`, profileError);
-          throw profileError;
-        }
-
-        await savePendingPreferences(session.user, fullName);
-        window.location.replace(redirectFor(requestedRole));
-        return;
-      }
-
-      const savedRole =
-        existingProfile?.role ||
-        session.user.user_metadata?.role ||
-        requestedRole;
-
-      if (savedRole !== requestedRole) {
-        await sb.auth.signOut({ scope: 'local' });
-        switchRole(requestedRole);
-        switchTab('login');
-
-        showMsg(
-          requestedRole === 'employer'
-            ? `This ${providerLabel} account is connected to a Job Seeker account. Switch to Job Seeker to sign in.`
-            : `This ${providerLabel} account is connected to an Employer account. Switch to Employer to sign in.`
-        );
-        return;
-      }
-
-      window.location.replace(
-        redirectFor(savedRole === 'employer' ? 'employer' : 'seeker')
-      );
-    } catch (error) {
-      console.error(`${providerLabel} account validation failed:`, error);
-      await sb.auth.signOut({ scope: 'local' });
-      switchTab('login');
-      showMsg(error.message || `We could not verify this ${providerLabel} account. Please try again.`);
-    }
   }
 
   async function handleApple() {
     const isSignupTab = document.getElementById('signup-form').style.display !== 'none';
-
     if (isSignupTab && !document.getElementById('signup-terms').checked) {
-      showMsg('Check the box above to agree to the Terms of Service and Privacy Policy, then continue with Apple.');
-      document.getElementById('signup-terms').focus();
+      showMsg('Please agree to the Terms of Service and Privacy Policy to continue.');
       return;
     }
-
-    const oauthMode = isSignupTab ? 'signup' : 'login';
-
-    sessionStorage.setItem('alygnn_oauth_mode', oauthMode);
-    sessionStorage.setItem('alygnn_oauth_role', currentRole);
-
-    const params = new URLSearchParams();
-    params.set('oauth_return', '1');
-    params.set('oauth_mode', oauthMode);
-    params.set('role', currentRole === 'employer' ? 'employer' : 'jobseeker');
-    params.set('provider', 'apple');
-
-    const { error } = await sb.auth.signInWithOAuth({
+    const roleParam = currentRole === 'employer' ? '?role=employer' : '';
+    await sb.auth.signInWithOAuth({
       provider: 'apple',
-      options: {
-        redirectTo: window.location.origin + '/login.html?' + params.toString()
-      }
+      options: { redirectTo: window.location.origin + '/set-password.html' + roleParam }
     });
-
-    if (error) {
-      showMsg(error.message || 'Could not open Apple sign in. Please try again.');
-    }
   }
 
   async function doForgot() {
@@ -851,8 +571,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const lbl = document.getElementById('strength-label');
     lbl.textContent = labels[score]; lbl.style.color = lc[score];
   }
-
-  handleOAuthReturn();
 </script>
 </body>
 </html>
