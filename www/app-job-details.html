@@ -692,7 +692,7 @@ html[data-effective-theme="dark"] .toast{
       <div class="overview-grid" id="overview-grid"></div>
     </section>
 
-    <section class="section">
+    <section class="section" id="candidate-match-section">
       <h2 class="section-title">Your Alygnn match</h2>
       <p class="section-sub">A clear breakdown of how this job aligns with your profile.</p>
 
@@ -792,6 +792,10 @@ let currentPassed=false;
 let candidatePreferences={};
 let currentMatchScore=0;
 let toastTimer=null;
+
+function isEmployerLiveView(){
+  return new URLSearchParams(window.location.search).get('from')==='employer-live';
+}
 
 function escapeHtml(value){
   return String(value??'').replace(/[&<>"']/g,c=>({
@@ -1196,7 +1200,14 @@ function renderJob(){
   const logoInitials=initials(company);
 
   document.title=(job.title||'Job Details')+' | Alygnn';
-  document.getElementById('hero-match').textContent='★ '+score+'% Match';
+
+  if(isEmployerLiveView()){
+    document.getElementById('hero-match').textContent='✓ Live listing';
+    const matchSection=document.getElementById('candidate-match-section');
+    if(matchSection) matchSection.hidden=true;
+  }else{
+    document.getElementById('hero-match').textContent='★ '+score+'% Match';
+  }
   document.getElementById('job-title').textContent=job.title||'Job Opportunity';
   document.getElementById('company-name').textContent=company;
   document.getElementById('company-logo').textContent=logoInitials;
@@ -1296,6 +1307,14 @@ function setApplicationActions(){
   const applyInner=applyBar.querySelector('.apply-inner');
   const primary=document.getElementById('apply-btn');
   const secondary=document.getElementById('pass-btn');
+
+  if(isEmployerLiveView()){
+    // Employers can inspect the live listing, but should never see candidate
+    // apply/pass controls for their own job.
+    applyBar.hidden=true;
+    applyBar.style.display='none';
+    return;
+  }
 
   applyBar.hidden=false;
   applyBar.style.display='block';
@@ -1501,6 +1520,13 @@ async function shareJob(){
 }
 
 document.getElementById('back-btn').addEventListener('click',()=>{
+  const from=new URLSearchParams(window.location.search).get('from');
+
+  if(from==='employer-live'){
+    window.location.replace('app-employer-dashboard.html?view=jobs');
+    return;
+  }
+
   const fromMyJobs=
     new URLSearchParams(window.location.search).get('from')==='my-jobs';
 
@@ -1607,7 +1633,12 @@ document.getElementById('apply-btn').addEventListener('click',handlePrimaryActio
     }
 
     renderJob();
-    await syncApplicationState();
+
+    if(isEmployerLiveView()){
+      setApplicationActions();
+    }else{
+      await syncApplicationState();
+    }
   }catch(error){
     console.error(error);
     const loadingState=document.getElementById('loading-state');
