@@ -357,6 +357,39 @@
     stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;
   }
 
+
+  /* Width correction for fixed 240px employer sidebar.
+     The original page still had main{width:100%}; adding margin-left:240px
+     made the document 240px wider than the viewport and caused horizontal
+     scrolling / clipped content. */
+  html, body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  @media (min-width: 901px) {
+    .layout {
+      width: 100% !important;
+      max-width: 100% !important;
+      overflow-x: clip !important;
+    }
+
+    main {
+      box-sizing: border-box !important;
+      margin-left: 240px !important;
+      width: calc(100% - 240px) !important;
+      max-width: calc(100% - 240px) !important;
+      min-width: 0 !important;
+      overflow-x: hidden !important;
+    }
+
+    main > * {
+      max-width: 100%;
+      min-width: 0;
+    }
+  }
+
 </style>
 </head>
 <body>
