@@ -244,14 +244,14 @@ const ADDITIONAL_SLOT={
   name:'Second Job Slot',
   price:150,
   suffix:'/ month',
-  kind:'additional_slot_subscription',
+  kind:'second_slot_subscription',
   slots:1,
   features:[
-    'Keep your included free reusable slot',
-    '+1 reusable active job slot',
-    '2 total active job slots while subscribed',
-    'Close or pause a job and reuse either slot',
-    'Renews monthly until canceled'
+    'For employers without a monthly or quarterly plan',
+    'Keeps your included free reusable slot',
+    'Adds a second reusable active job slot',
+    'Renews monthly until canceled',
+    'Additional capacity after this is $99/week'
   ]
 };
 
@@ -295,6 +295,53 @@ function item(){
   return CATALOG[billing]?.[plan]||CATALOG.quarterly.launch;
 }
 
+function currentSlotLimit(){
+  const live=Number(postingAccess?.slot_limit);
+  if(Number.isFinite(live)&&live>=0) return live;
+
+  const basePaid=basePaidPlanActive();
+  if(basePaid){
+    const base=Number(postingAccess?.base_slot_limit);
+    if(Number.isFinite(base)&&base>0) return base;
+  }
+
+  return 1;
+}
+
+function addedSlotTotal(){
+  return currentSlotLimit()+1;
+}
+
+function basePaidPlanActive(){
+  if(!postingAccess) return false;
+  if(postingAccess.base_paid_plan !== undefined){
+    return postingAccess.base_paid_plan===true;
+  }
+  return postingAccess.active_paid_plan===true;
+}
+
+function secondSlotActive(){
+  if(!postingAccess) return false;
+  if(postingAccess.second_slot_active===true) return true;
+
+  const count=Number(
+    postingAccess.second_slot_count ??
+    postingAccess.addon_slot_count ??
+    0
+  );
+  const expiry=
+    postingAccess.second_slot_expires_at||
+    postingAccess.addon_slots_expires_at;
+
+  if(!(count>0)||!expiry) return false;
+  const time=new Date(expiry).getTime();
+  return !Number.isNaN(time)&&time>Date.now();
+}
+
+function isAdditiveSlotPurchase(){
+  return isAddon() || billing==='weekly' || plan==='weekly_slot';
+}
+
 function returnToPricing(){
   let url='app-employer-pricing.html';
   if(returnMode==='preview') url+='?return=preview';
@@ -317,7 +364,7 @@ function renderOptions(){
       <button type="button" class="plan-option active" disabled>
         <div class="name">Second Job Slot</div>
         <div class="price">$150 <span>/ month</span></div>
-        <div class="slots">1 included free slot + 1 paid reusable slot = 2 total</div>
+        <div class="slots">1 free slot + 1 monthly slot = 2 base slots</div>
       </button>
     `;
     return;
@@ -328,7 +375,11 @@ function renderOptions(){
       ${p.popular?'<span class="popular">Most popular</span>':''}
       <div class="name">${p.name}</div>
       <div class="price">${display(p.price)} <span>${p.suffix}</span></div>
-      <div class="slots">${p.slots} active reusable job slot${p.slots===1?'':'s'}</div>
+      <div class="slots">${
+        key==='weekly_slot'
+          ? `${currentSlotLimit()} current + 1 weekly slot = ${addedSlotTotal()} total`
+          : `${p.slots} active reusable job slot${p.slots===1?'':'s'}`
+      }</div>
     </button>
   `).join('');
 
@@ -350,8 +401,10 @@ function renderSummary(){
     `${display(p.price)} <small>${p.suffix}</small>`;
 
   $('summary-slots').textContent=isAddon()
-    ?'1 additional reusable slot · 2 total with your included free slot'
-    :`${p.slots} active reusable job slot${p.slots===1?'':'s'}`;
+    ? 'Second reusable job slot · 2 base slots while subscribed'
+    : (billing==='weekly'||plan==='weekly_slot')
+      ? `+1 temporary reusable slot · ${addedSlotTotal()} total after activation`
+      : `${p.slots} active reusable job slot${p.slots===1?'':'s'}`;
 
   $('features').innerHTML=p.features.map(x=>`<li>${x}</li>`).join('');
   $('subtotal').textContent=money(p.price);
@@ -361,7 +414,7 @@ function renderSummary(){
     $('due').textContent='$0.00';
 
     $('authorization').textContent=isAddon()
-      ?'By continuing, you confirm this is a developer test activation of the $150/month Second Job Slot. No payment will be processed.'
+      ?'By continuing, you confirm this is a developer test activation of the standalone $150/month Second Job Slot. No payment will be processed.'
       :`By continuing, you confirm this is a developer test activation of ${p.name}. No payment will be processed.`;
   }else{
     $('tax-row').hidden=false;
@@ -369,7 +422,7 @@ function renderSummary(){
 
     if(isAddon()){
       $('authorization').textContent=
-        "By continuing, you authorize $150 plus applicable tax each month for the Second Job Slot until canceled according to Alygnn\'s Terms.";
+        "By continuing, you authorize $150 plus applicable tax each month for the standalone Second Job Slot until canceled according to Alygnn\'s Terms.";
     }else if(billing==='monthly'){
       $('authorization').textContent=
         `By continuing, you authorize ${display(p.price)} plus applicable tax each month until canceled according to Alygnn's Terms.`;
@@ -389,12 +442,17 @@ function renderAll(){
   if(isAddon()){
     $('checkout-heading').textContent='Add your second job slot.';
     $('checkout-lede').textContent=
-      'Keep your included free slot and add one more reusable job slot for $150 per month, giving you 2 total active job slots.';
+      'The standalone Second Job Slot is $150/month for employers who are not on a monthly or quarterly plan. It gives you 2 base reusable slots total.';
     $('plan-panel-title').textContent='1. Confirm your Second Job Slot';
+  }else if(billing==='weekly' || plan==='weekly_slot'){
+    $('checkout-heading').textContent='Add a weekly job slot.';
+    $('checkout-lede').textContent=
+      `You currently have ${currentSlotLimit()} reusable job slot${currentSlotLimit()===1?'':'s'}. This $99 Weekly Job Slot adds 1 more for 7 days, giving you ${addedSlotTotal()} total while active.`;
+    $('plan-panel-title').textContent='1. Confirm your Weekly Job Slot';
   }else{
     $('checkout-heading').textContent='Confirm your job-slot plan.';
     $('checkout-lede').textContent=
-      'Your job-slot capacity is reusable during its active term. Closing or pausing a job frees that slot for another opening.';
+      'Your monthly or quarterly plan includes reusable job-slot capacity. Any capacity beyond the plan is added with $99 Weekly Job Slots.';
     $('plan-panel-title').textContent='1. Confirm your plan';
   }
 
@@ -487,7 +545,22 @@ async function loadPostingAccess(){
 
 function addonEligible(){
   if(!postingAccess) return true;
-  return Number(postingAccess?.addon_slot_count||0) < 1;
+
+  // The $150 Second Job Slot is a standalone alternative to plans.
+  // If a monthly/quarterly plan is active, extra capacity is $99/week instead.
+  return !basePaidPlanActive() && !secondSlotActive();
+}
+
+function addonIneligibleMessage(){
+  if(basePaidPlanActive()){
+    return 'The $150/month Second Job Slot is only available when you are not on a monthly or quarterly plan. Your plan can add another slot for $99/week.';
+  }
+
+  if(secondSlotActive()){
+    return `Your $150/month Second Job Slot is already active. You currently have ${currentSlotLimit()} total reusable job slots. Add more capacity for $99/week.`;
+  }
+
+  return 'The Second Job Slot is not available for this account right now.';
 }
 
 async function initialize(){
@@ -529,10 +602,7 @@ async function initialize(){
   if(isAddon()&&!addonEligible()){
     $('checkout-btn').disabled=true;
     $('terms').disabled=true;
-
-    showMessage(
-      'Your Second Job Slot is already active. You already have 2 total reusable job slots.'
-    );
+    showMessage(addonIneligibleMessage());
   }
 
   developerTestMode=FORCE_DEVELOPER_TEST_MODE || TEST_MODE_EMAILS.includes(email.toLowerCase());
@@ -562,12 +632,12 @@ async function activateDeveloperTest(){
   const btn=$('checkout-btn');
 
   if(isAddon()){
-    const {data,error}=await sb.rpc('activate_employer_test_addon_slot');
+    const {data,error}=await sb.rpc('activate_employer_test_second_slot');
 
     if(error){
       console.error(error);
       showMessage(
-        'Second Job Slot test activation is not enabled in Supabase yet. Run ALYGNN-APP-TEST-MODE.sql, then try again. No payment was processed.'
+        'Second Job Slot test activation is not enabled yet. Run ALYGNN-SLOT-RULES-CORRECTION.sql in Supabase, then try again. No payment was processed.'
       );
       updateCheckoutButton();
       return;
@@ -626,9 +696,7 @@ async function startCheckout(){
   }
 
   if(isAddon()&&!addonEligible()){
-    showMessage(
-      'Your Second Job Slot is already active. You already have 2 total reusable job slots.'
-    );
+    showMessage(addonIneligibleMessage());
     return;
   }
 
