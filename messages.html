@@ -410,42 +410,6 @@ function setSidebar(){
   }
 }
 
-
-function parseProfileResumeData(value){
-  if(!value)return {};
-  if(typeof value==='object'&&!Array.isArray(value))return value;
-  if(typeof value==='string'){
-    try{
-      const parsed=JSON.parse(value);
-      return parsed&&typeof parsed==='object'?parsed:{};
-    }catch(_){
-      return {};
-    }
-  }
-  return {};
-}
-
-function candidateNameFromProfile(profile){
-  const p=profile||{};
-  const resume=parseProfileResumeData(p.resume_data);
-  const personal=(resume?.personal&&typeof resume.personal==='object')
-    ?resume.personal
-    :{};
-
-  const resumePersonalName=[
-    personal.first_name,
-    personal.last_name
-  ].filter(Boolean).join(' ').trim();
-
-  return String(
-    p.full_name ||
-    resume.name ||
-    resume.full_name ||
-    resumePersonalName ||
-    'Candidate'
-  ).trim();
-}
-
 async function loadRequestedApplicationContext(){
   const params=new URLSearchParams(location.search);
   requestedApplicationId=params.get('application');
@@ -473,7 +437,7 @@ async function loadRequestedApplicationContext(){
       .eq('id',jobId)
       .maybeSingle(),
     sb.from('profiles')
-      .select('id,full_name,company_name,resume_data')
+      .select('id,full_name,company_name')
       .eq('id',application.candidate_id)
       .maybeSingle()
   ]);
@@ -506,24 +470,30 @@ async function getOrCreateRequestedThread(){
   const applicationId=requestedApplicationId||new URLSearchParams(location.search).get('application');
   if(!applicationId)return null;
 
-  const {data,error}=await sb.rpc('get_or_create_application_thread',{p_application_id:applicationId});
+  // Employer-first messaging: an empty conversation is never created from the
+  // website. Only return an existing employer-started conversation here.
+  const {data,error}=await sb
+    .from('application_conversations')
+    .select('id')
+    .eq('application_id',String(applicationId))
+    .maybeSingle();
+
   if(error){
-    console.error('Could not create/open message thread:',error);
-    showSetup('This application loaded, but the private message thread could not be created. Run the updated Alygnn messaging SQL in Supabase, then refresh.');
+    console.error('Could not open application conversation:',error);
     return null;
   }
-  return typeof data==='string'?data:(data?.id||data?.thread_id||null);
+  return data?.id||null;
 }
 
 async function loadThreads(){
   const {data,error}=await sb
-    .from('message_threads')
-    .select('id,application_id,job_id,employer_id,candidate_id,created_at,updated_at,last_message_at')
+    .from('application_conversations')
+    .select('id,application_id,job_id,employer_id,candidate_id,candidate_name,job_title,company_name,employer_started_at,created_at,last_message_at')
     .order('last_message_at',{ascending:false,nullsFirst:false});
 
   if(error){
     console.error(error);
-    showSetup('Messaging tables are not available yet. Run the Alygnn messaging SQL in Supabase once, then refresh.');
+    showSetup('Messages could not be loaded. Make sure the employer-first messaging SQL is installed in Supabase.');
     threads=[];
     return;
   }
@@ -535,52 +505,53 @@ async function loadThreadDetails(){
   if(!threads.length)return;
 
   const jobIds=[...new Set(threads.map(t=>t.job_id).filter(Boolean))];
-  const userIds=[...new Set(threads.flatMap(t=>[t.employer_id,t.candidate_id]).filter(Boolean))];
+  const conversationIds=threads.map(t=>t.id).filter(Boolean);
 
-  const [jobsResult,profilesResult,lastMessagesResult]=await Promise.all([
+  const [jobsResult,lastMessagesResult]=await Promise.all([
     jobIds.length
-      ? sb.from('jobs').select('id,title,status,location,company').in('id',jobIds)
+      ? sb.from('jobs').select('*').in('id',jobIds)
       : Promise.resolve({data:[]}),
-    userIds.length
-      ? sb.from('profiles').select('id,full_name,company_name,resume_data').in('id',userIds)
-      : Promise.resolve({data:[]}),
-    threads.length
-      ? sb.from('messages').select('id,thread_id,sender_id,body,created_at,read_at').in('thread_id',threads.map(t=>t.id)).order('created_at',{ascending:false})
+    conversationIds.length
+      ? sb.from('application_messages')
+          .select('id,conversation_id,sender_id,body,created_at,read_at')
+          .in('conversation_id',conversationIds)
+          .order('created_at',{ascending:false})
       : Promise.resolve({data:[]})
   ]);
 
   if(jobsResult.error)console.error(jobsResult.error);
-  if(profilesResult.error)console.error(profilesResult.error);
   if(lastMessagesResult.error)console.error(lastMessagesResult.error);
 
-  const jobsMap=Object.fromEntries((jobsResult.data||[]).map(j=>[j.id,j]));
-  const profilesMap=Object.fromEntries((profilesResult.data||[]).map(p=>[p.id,p]));
-
+  const jobsMap=Object.fromEntries((jobsResult.data||[]).map(j=>[String(j.id),j]));
   const newestByThread={};
   const unreadByThread={};
+
   for(const m of (lastMessagesResult.data||[])){
-    if(!newestByThread[m.thread_id])newestByThread[m.thread_id]=m;
-    if(m.sender_id!==currentUser.id&&!m.read_at){
-      unreadByThread[m.thread_id]=(unreadByThread[m.thread_id]||0)+1;
+    const id=String(m.conversation_id);
+    if(!newestByThread[id])newestByThread[id]=m;
+    if(String(m.sender_id)!==String(currentUser.id)&&!m.read_at){
+      unreadByThread[id]=(unreadByThread[id]||0)+1;
     }
   }
 
   for(const t of threads){
-    const otherId=currentUser.id===t.employer_id?t.candidate_id:t.employer_id;
-    const other=profilesMap[otherId]||{};
-    const job=jobsMap[t.job_id]||{};
+    const job=jobsMap[String(t.job_id)]||{};
+    const candidateName=String(t.candidate_name||'').trim();
+    const companyName=String(t.company_name||job.company_name||job.company||job.employer_name||'').trim();
     const displayName=currentRole==='employer'
-      ? candidateNameFromProfile(other)
-      : (job.company||other.company_name||other.full_name||'Company');
+      ? (candidateName||'Candidate')
+      : (companyName||'Company');
+    const jobTitle=String(t.job_title||job.title||'Job application').trim();
+    const mergedJob={...job,title:jobTitle};
 
     threadDetails.set(t.id,{
       thread:t,
-      otherId,
+      otherId:currentRole==='employer'?t.candidate_id:t.employer_id,
       name:displayName,
       initials:initials(displayName),
-      job,
-      lastMessage:newestByThread[t.id]||null,
-      unread:unreadByThread[t.id]||0
+      job:mergedJob,
+      lastMessage:newestByThread[String(t.id)]||null,
+      unread:unreadByThread[String(t.id)]||0
     });
   }
 }
@@ -620,7 +591,7 @@ function renderConversationList(){
         <div class="conversation-copy">
           <div class="conversation-top">
             <div class="conversation-name">${escapeHtml(d.name||'Conversation')}</div>
-            <div class="conversation-time">${escapeHtml(timeLabel(last?.created_at||t.last_message_at||t.updated_at))}</div>
+            <div class="conversation-time">${escapeHtml(timeLabel(last?.created_at||t.last_message_at||t.created_at))}</div>
           </div>
           <div class="conversation-job">${escapeHtml(d.job?.title||'Job')}</div>
           <div class="conversation-preview">${escapeHtml(last?.body||'Start the conversation')}</div>
@@ -631,13 +602,12 @@ function renderConversationList(){
 }
 
 async function markThreadRead(threadId){
-  const {error}=await sb
-    .from('messages')
-    .update({read_at:new Date().toISOString()})
-    .eq('thread_id',threadId)
-    .neq('sender_id',currentUser.id)
-    .is('read_at',null);
-  if(error)console.warn('Could not mark messages read:',error);
+  try{
+    const {error}=await sb.rpc('mark_application_conversation_read',{p_conversation_id:threadId});
+    if(error)console.warn('Could not mark messages read:',error);
+  }catch(error){
+    console.warn('Could not mark messages read:',error);
+  }
 }
 
 async function openThread(threadId){
@@ -653,9 +623,9 @@ async function openThread(threadId){
 
 async function loadMessages(threadId){
   const {data,error}=await sb
-    .from('messages')
-    .select('id,thread_id,sender_id,body,created_at,read_at')
-    .eq('thread_id',threadId)
+    .from('application_messages')
+    .select('id,conversation_id,sender_id,body,created_at,read_at')
+    .eq('conversation_id',threadId)
     .order('created_at',{ascending:true});
   if(error){
     console.error(error);
@@ -676,7 +646,7 @@ function activeConversationDetails(){
   if(requestedApplicationContext){
     const c=requestedApplicationContext;
     const otherName=currentRole==='employer'
-      ? candidateNameFromProfile(c.candidate)
+      ? (c.candidate?.full_name||'Candidate')
       : (c.job?.company||'Company');
 
     return {
@@ -746,8 +716,8 @@ function renderChat(){
              </div>`).join('')}`
         : `<div class="empty-chat" style="min-height:100%">
              <div class="empty-chat-icon">✉</div>
-             <div class="empty-chat-title">Start the conversation</div>
-             <div class="empty-chat-copy">This thread is connected to ${escapeHtml(d.job?.title||'the application')}.</div>
+             <div class="empty-chat-title">${currentRole==='employer'?'Start the conversation':'Conversation opened'}</div>
+             <div class="empty-chat-copy">${currentRole==='employer'?'Send the first message to this applicant.':'The employer opened this conversation about '+escapeHtml(d.job?.title||'your application')+'.'}</div>
            </div>`}
     </div>
 
@@ -777,33 +747,63 @@ async function sendMessage(){
   if(!body)return;
 
   btn.disabled=true;
+  showSetup('');
+  document.getElementById('setup-note').style.display='none';
 
-  // A brand-new application may not have a thread until the first chat is
-  // opened. Create/fetch it now rather than leaving the employer on an empty page.
+  // No existing conversation means this must be the employer's first message.
+  // Candidates are never allowed to create/start a thread.
   if(!activeThreadId&&requestedApplicationId){
-    activeThreadId=await getOrCreateRequestedThread();
-    if(activeThreadId){
-      await loadThreads();
-      await loadThreadDetails();
+    if(currentRole!=='employer'){
+      btn.disabled=false;
+      showSetup('The employer must start the conversation before you can reply.');
+      return;
     }
+
+    const ctx=requestedApplicationContext||{};
+    const candidateName=ctx.candidate?.full_name||ctx.candidate?.name||'Candidate';
+    const jobTitle=ctx.job?.title||'Job application';
+
+    const {data,error}=await sb.rpc('start_application_conversation_v3',{
+      p_application_id:String(requestedApplicationId),
+      p_body:body,
+      p_candidate_name:candidateName,
+      p_job_title:jobTitle
+    });
+
+    btn.disabled=false;
+    if(error){
+      console.error(error);
+      showSetup(error.message||'Could not start this conversation.');
+      return;
+    }
+
+    input.value='';
+    activeThreadId=data?.conversation_id||null;
+    await loadThreads();
+    await loadThreadDetails();
+    if(activeThreadId)await loadMessages(activeThreadId);
+    renderConversationList();
+    renderChat();
+    if(activeThreadId)subscribeToMessages(activeThreadId);
+    return;
   }
 
   if(!activeThreadId){
     btn.disabled=false;
-    showSetup('Could not start this conversation. Run the updated Alygnn messaging SQL in Supabase, then try again.');
+    showSetup('No employer-started conversation is available yet.');
     return;
   }
 
   const {data,error}=await sb
-    .from('messages')
-    .insert({thread_id:activeThreadId,sender_id:currentUser.id,body})
-    .select('id,thread_id,sender_id,body,created_at,read_at')
+    .from('application_messages')
+    .insert({conversation_id:activeThreadId,sender_id:currentUser.id,body})
+    .select('id,conversation_id,sender_id,body,created_at,read_at')
     .single();
 
   btn.disabled=false;
   if(error){
     console.error(error);
-    showSetup('Could not send the message. Check the messaging SQL/RLS setup.');
+    showSetup(error.message||'Could not send the message.');
     return;
   }
 
@@ -818,14 +818,14 @@ async function sendMessage(){
 function subscribeToMessages(threadId){
   if(messageChannel)sb.removeChannel(messageChannel);
 
-  messageChannel=sb.channel('messages-thread-'+threadId)
+  messageChannel=sb.channel('application-messages-thread-'+threadId)
     .on('postgres_changes',{
-      event:'INSERT',schema:'public',table:'messages',
-      filter:`thread_id=eq.${threadId}`
+      event:'INSERT',schema:'public',table:'application_messages',
+      filter:`conversation_id=eq.${threadId}`
     },async payload=>{
       const m=payload.new;
       if(!activeMessages.some(x=>x.id===m.id))activeMessages.push(m);
-      if(m.sender_id!==currentUser.id)await markThreadRead(threadId);
+      if(String(m.sender_id)!==String(currentUser.id))await markThreadRead(threadId);
       const d=threadDetails.get(threadId);
       if(d){d.lastMessage=m;d.unread=0}
       renderConversationList();
@@ -837,16 +837,16 @@ function subscribeToMessages(threadId){
 function subscribeToThreads(){
   if(threadChannel)sb.removeChannel(threadChannel);
 
-  threadChannel=sb.channel('message-threads-'+currentUser.id)
+  threadChannel=sb.channel('application-conversations-'+currentUser.id)
     .on('postgres_changes',{
-      event:'*',schema:'public',table:'message_threads'
+      event:'*',schema:'public',table:'application_conversations'
     },async ()=>{
       await refreshAll(false);
     })
     .on('postgres_changes',{
-      event:'INSERT',schema:'public',table:'messages'
+      event:'INSERT',schema:'public',table:'application_messages'
     },async payload=>{
-      if(payload.new.thread_id===activeThreadId)return;
+      if(payload.new.conversation_id===activeThreadId)return;
       await refreshAll(false);
     })
     .subscribe();
