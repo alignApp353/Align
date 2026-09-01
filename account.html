@@ -1547,12 +1547,117 @@ function candidateStatusNotification(app, job){
   return null;
 }
 
+
+let candidateMessageNotificationChannel = null;
+let candidateNotificationProfileCache = null;
+
+async function loadCandidateMessageNotificationItems(){
+  if(!currentUserId)return [];
+
+  try{
+    const {data:threads,error:threadsError}=await sb
+      .from('message_threads')
+      .select('id,job_id,employer_id,candidate_id')
+      .eq('candidate_id',currentUserId);
+
+    if(threadsError)throw threadsError;
+
+    const candidateThreads=threads||[];
+    if(!candidateThreads.length)return [];
+
+    const threadIds=candidateThreads.map(t=>t.id).filter(Boolean);
+    if(!threadIds.length)return [];
+
+    const {data:messageRows,error:messagesError}=await sb
+      .from('messages')
+      .select('id,thread_id,sender_id,body,created_at,read_at')
+      .in('thread_id',threadIds)
+      .neq('sender_id',currentUserId)
+      .is('read_at',null)
+      .order('created_at',{ascending:false})
+      .limit(20);
+
+    if(messagesError)throw messagesError;
+
+    const unreadMessages=messageRows||[];
+    if(!unreadMessages.length)return [];
+
+    const threadMap=new Map(
+      candidateThreads.map(thread=>[String(thread.id),thread])
+    );
+
+    const jobIds=[...new Set(
+      candidateThreads.map(thread=>thread.job_id).filter(Boolean)
+    )];
+
+    let jobs=[];
+    if(jobIds.length){
+      const {data:jobRows,error:jobsError}=await sb
+        .from('jobs')
+        .select('id,title,company')
+        .in('id',jobIds);
+
+      if(jobsError)throw jobsError;
+      jobs=jobRows||[];
+    }
+
+    const jobMap=new Map(
+      jobs.map(job=>[String(job.id),job])
+    );
+
+    return unreadMessages.map(message=>{
+      const thread=threadMap.get(String(message.thread_id))||{};
+      const job=jobMap.get(String(thread.job_id))||{};
+      const company=String(job.company||'Employer').trim();
+      const jobTitle=String(job.title||'your application').trim();
+      const preview=String(message.body||'').trim().replace(/\s+/g,' ');
+      const shortPreview=preview.length>90?preview.slice(0,87)+'…':preview;
+
+      return {
+        id:`message-${message.id}`,
+        icon:'✉',
+        iconClass:'',
+        title:`New message from ${company}`,
+        copy:shortPreview
+          ? `${jobTitle}: ${shortPreview}`
+          : `You received a new message about ${jobTitle}.`,
+        time:'New',
+        action:`messages.html?thread=${encodeURIComponent(message.thread_id)}`
+      };
+    });
+  }catch(error){
+    console.warn('Could not load message notifications:',error);
+    return [];
+  }
+}
+
+function ensureCandidateMessageNotificationRealtime(){
+  if(candidateMessageNotificationChannel||!currentUserId)return;
+
+  candidateMessageNotificationChannel=sb
+    .channel('candidate-message-notifications-'+currentUserId)
+    .on('postgres_changes',{
+      event:'INSERT',
+      schema:'public',
+      table:'messages'
+    },async payload=>{
+      if(payload?.new?.sender_id===currentUserId)return;
+      await loadCandidateNotifications(candidateNotificationProfileCache);
+    })
+    .subscribe();
+}
+
 async function loadCandidateNotifications(profile){
   if(!currentUserId) return;
+
+  candidateNotificationProfileCache = profile || null;
 
   const items = [];
   const hasResume = !!(profile?.resume_file_path || profile?.resume_data);
   const hasPreferences = !!profile?.preferences;
+
+  const messageItems = await loadCandidateMessageNotificationItems();
+  items.push(...messageItems);
 
   try{
     const { data: apps, error: appsError } = await sb
@@ -1620,6 +1725,7 @@ async function loadCandidateNotifications(profile){
 
   candidateNotifications = items;
   renderCandidateNotifications();
+  ensureCandidateMessageNotificationRealtime();
 }
 
 function renderCandidateNotifications(){
@@ -1647,7 +1753,7 @@ function renderCandidateNotifications(){
       <div class="notification-empty">
         <div class="notification-empty-icon">✓</div>
         <strong>You’re all caught up</strong>
-        <span>No new application or profile notifications right now.</span>
+        <span>No new messages, application updates, or profile notifications right now.</span>
       </div>
     `;
     return;
