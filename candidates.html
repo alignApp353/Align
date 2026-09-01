@@ -335,6 +335,27 @@
   .notif-bell:hover { color:var(--brand); border-color:var(--brand); }
   .notif-bell svg { width:18px; height:18px; }
 
+  /* Employer notifications — same behavior as My Jobs. */
+  .notif-wrap { position:relative; }
+  .notif-badge {
+    position:absolute; top:-5px; right:-5px; min-width:16px; height:16px; padding:0 4px;
+    background:var(--rose); color:white; font-size:10px; font-weight:700;
+    border-radius:999px; display:flex; align-items:center; justify-content:center; line-height:1;
+  }
+  .notif-dropdown {
+    position:absolute; top:calc(100% + 10px); right:0; width:340px; max-height:420px;
+    overflow-y:auto; background:var(--card); border:1px solid var(--border);
+    border-radius:14px; box-shadow:0 12px 32px rgba(0,0,0,0.12); z-index:1200;
+  }
+  .notif-dropdown-header { font-size:13px; font-weight:600; color:var(--text); padding:14px 16px 8px; }
+  .notif-empty { font-size:13px; color:var(--muted); padding:20px 16px; text-align:center; }
+  .notif-item { display:block; padding:10px 16px; border-top:1px solid var(--border); text-decoration:none; color:inherit; }
+  .notif-item:hover { background:var(--brand-light); }
+  .notif-item.unread { background:var(--brand-light); }
+  .notif-item-title { font-size:13px; font-weight:600; color:var(--text); margin-bottom:2px; }
+  .notif-item-body { font-size:12px; color:var(--muted); line-height:1.4; }
+  .notif-item-time { font-size:11px; color:var(--muted); margin-top:4px; }
+
   .sidebar-label {
     font-size:10px !important; letter-spacing:2px !important;
     text-transform:uppercase; color:var(--muted) !important;
@@ -411,9 +432,16 @@
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
   <div class="nav-right">
-    <button class="notif-bell" type="button" aria-label="Notifications" onclick="window.location.href='employer-dashboard.html'">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-    </button>
+    <div class="notif-wrap" id="notif-wrap">
+      <button class="notif-bell" id="notif-bell" type="button" aria-label="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-badge" id="notif-badge" style="display:none">0</span>
+      </button>
+      <div class="notif-dropdown" id="notif-dropdown" style="display:none">
+        <div class="notif-dropdown-header">Notifications</div>
+        <div id="notif-list"><div class="notif-empty">No notifications yet.</div></div>
+      </div>
+    </div>
     <span class="nav-user" id="nav-user-name"></span>
     <button class="btn-logout" type="button" onclick="logoutEmployerWorkspace()">Sign out</button>
   </div>
@@ -536,6 +564,318 @@ function timeAgo(iso){
   const days=Math.floor(hrs/24);
   if(days<7)return days+'d ago';
   return new Date(iso).toLocaleDateString();
+}
+
+
+let candidatePageNotificationItems = [];
+let candidatePageMessageChannel = null;
+let candidatePageNotificationPollTimer = null;
+let candidatePageNotificationRefreshBusy = false;
+
+function candidatePageEmployerCandidateName(candidateId){
+  const match = candidates.find(c => String(c.profile?.id || '') === String(candidateId || ''));
+  const profile = match?.profile || {};
+  const direct = String(profile.full_name || '').trim();
+  if(direct) return direct;
+
+  let resume = profile.resume_data;
+  if(typeof resume === 'string'){
+    try { resume = JSON.parse(resume); } catch (_) { resume = {}; }
+  }
+  if(!resume || typeof resume !== 'object') resume = {};
+  const personal = resume.personal && typeof resume.personal === 'object' ? resume.personal : {};
+
+  return String(
+    resume.name ||
+    resume.full_name ||
+    [personal.first_name, personal.last_name].filter(Boolean).join(' ') ||
+    'Candidate'
+  ).trim();
+}
+
+async function fetchCandidatePageUnreadMessages(){
+  if(!currentUser?.id) return [];
+
+  try{
+    const {data:threads,error:threadsError}=await sb
+      .from('message_threads')
+      .select('id,job_id,candidate_id,employer_id')
+      .eq('employer_id',currentUser.id);
+
+    if(threadsError) throw threadsError;
+
+    const employerThreads=threads||[];
+    const threadIds=employerThreads.map(t=>t.id).filter(Boolean);
+    if(!threadIds.length) return [];
+
+    const {data:messageRows,error:messagesError}=await sb
+      .from('messages')
+      .select('id,thread_id,sender_id,body,created_at,read_at')
+      .in('thread_id',threadIds)
+      .neq('sender_id',currentUser.id)
+      .is('read_at',null)
+      .order('created_at',{ascending:false})
+      .limit(20);
+
+    if(messagesError) throw messagesError;
+
+    const threadMap=new Map(employerThreads.map(t=>[String(t.id),t]));
+    const jobMap=new Map(jobs.map(job=>[String(job.id),job]));
+
+    return (messageRows||[]).map(message=>{
+      const thread=threadMap.get(String(message.thread_id))||{};
+      const job=jobMap.get(String(thread.job_id))||{};
+      const candidateName=candidatePageEmployerCandidateName(thread.candidate_id);
+      const jobTitle=String(job.title||'your job').trim();
+      const preview=String(message.body||'').trim().replace(/\s+/g,' ');
+      const shortPreview=preview.length>90 ? preview.slice(0,87)+'…' : preview;
+
+      return {
+        id:`message-${message.id}`,
+        source:'message',
+        message_id:message.id,
+        thread_id:message.thread_id,
+        type:'message',
+        title:`New message from ${candidateName}`,
+        body:shortPreview ? `${jobTitle}: ${shortPreview}` : `New reply about ${jobTitle}.`,
+        link:`messages.html?thread=${encodeURIComponent(message.thread_id)}`,
+        read_at:null,
+        created_at:message.created_at
+      };
+    });
+  }catch(error){
+    console.warn('Could not load employer message notifications:',error);
+    return [];
+  }
+}
+
+async function fetchCandidatePageNotifications(){
+  const [{data,error},messageItems]=await Promise.all([
+    sb
+      .from('notifications')
+      .select('id,type,title,body,link,read_at,created_at')
+      .order('created_at',{ascending:false})
+      .limit(20),
+    fetchCandidatePageUnreadMessages()
+  ]);
+
+  if(error) console.warn('Could not load employer notifications:',error);
+
+  return [...messageItems,...(error?[]:(data||[]))]
+    .sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0))
+    .slice(0,20);
+}
+
+function candidatePageNotificationApplication(n){
+  const rawLink=String(n?.link||'');
+
+  try{
+    const url=new URL(rawLink||location.href,location.origin);
+    const applicationId=
+      url.searchParams.get('application') ||
+      url.searchParams.get('application_id') ||
+      url.searchParams.get('app');
+    const jobId=url.searchParams.get('job') || url.searchParams.get('job_id');
+
+    if(applicationId){
+      const exact=candidates.find(c=>c.applicationId===applicationId);
+      if(exact) return exact;
+    }
+    if(jobId){
+      const byJob=candidates
+        .filter(c=>c.job?.id===jobId)
+        .sort((a,b)=>new Date(b.appliedAt||0)-new Date(a.appliedAt||0));
+      if(byJob.length) return byJob[0];
+    }
+  }catch(_){}
+
+  const haystack=`${n?.title||''} ${n?.body||''}`.toLowerCase();
+  const scored=candidates.map(c=>{
+    const name=String(c.profile?.full_name||'').trim().toLowerCase();
+    const jobTitle=String(c.job?.title||'').trim().toLowerCase();
+    let score=0;
+    if(name&&haystack.includes(name)) score+=60;
+    if(jobTitle&&haystack.includes(jobTitle)) score+=50;
+
+    if(n?.created_at&&c.appliedAt){
+      const diff=Math.abs(new Date(n.created_at).getTime()-new Date(c.appliedAt).getTime());
+      if(Number.isFinite(diff)){
+        if(diff<5*60*1000) score+=20;
+        else if(diff<60*60*1000) score+=10;
+        else if(diff<24*60*60*1000) score+=4;
+      }
+    }
+    return {c,score};
+  }).sort((a,b)=>b.score-a.score);
+
+  return scored[0]?.score>0 ? scored[0].c : null;
+}
+
+function renderCandidatePageNotifications(items){
+  candidatePageNotificationItems=items||[];
+
+  const badge=document.getElementById('notif-badge');
+  const list=document.getElementById('notif-list');
+  if(!badge||!list) return;
+
+  const unreadCount=candidatePageNotificationItems.filter(n=>!n.read_at).length;
+  if(unreadCount>0){
+    badge.style.display='flex';
+    badge.textContent=unreadCount>9?'9+':String(unreadCount);
+  }else{
+    badge.style.display='none';
+  }
+
+  if(!candidatePageNotificationItems.length){
+    list.innerHTML='<div class="notif-empty">No notifications yet.</div>';
+    return;
+  }
+
+  list.innerHTML=candidatePageNotificationItems.slice(0,6).map(n=>{
+    const isApplicant=
+      String(n.type||'').toLowerCase().includes('applicant') ||
+      String(n.title||'').toLowerCase().includes('applicant') ||
+      String(n.body||'').toLowerCase().includes('applied');
+
+    if(isApplicant){
+      const c=candidatePageNotificationApplication(n);
+      if(c?.job){
+        const name=c.profile?.full_name||'A candidate';
+        return `
+          <a class="notif-item ${n.read_at?'':'unread'}" href="#"
+             onclick="handleCandidatePageApplicantNotification(event,'${n.id}')">
+            <div class="notif-item-title">${escapeHtml(c.job.title)} — New applicant</div>
+            <div class="notif-item-body">${escapeHtml(name)} applied to this job.</div>
+            <div class="notif-item-time">${timeAgo(n.created_at)}</div>
+          </a>`;
+      }
+    }
+
+    if(n.source==='message'){
+      return `
+        <a class="notif-item unread" href="${escapeHtml(n.link||'#')}"
+           onclick="handleCandidatePageMessageNotification(event,'${n.id}')">
+          <div class="notif-item-title">${escapeHtml(n.title)}</div>
+          ${n.body?`<div class="notif-item-body">${escapeHtml(n.body)}</div>`:''}
+          <div class="notif-item-time">${timeAgo(n.created_at)}</div>
+        </a>`;
+    }
+
+    return `
+      <a class="notif-item ${n.read_at?'':'unread'}" href="${n.link?escapeHtml(n.link):'#'}"
+         onclick="markCandidatePageNotificationRead('${n.id}')">
+        <div class="notif-item-title">${escapeHtml(n.title)}</div>
+        ${n.body?`<div class="notif-item-body">${escapeHtml(n.body)}</div>`:''}
+        <div class="notif-item-time">${timeAgo(n.created_at)}</div>
+      </a>`;
+  }).join('');
+}
+
+async function markCandidatePageNotificationRead(id){
+  await sb.from('notifications')
+    .update({read_at:new Date().toISOString()})
+    .eq('id',id);
+}
+
+async function handleCandidatePageApplicantNotification(event,id){
+  if(event) event.preventDefault();
+
+  const n=candidatePageNotificationItems.find(item=>item.id===id);
+  const c=candidatePageNotificationApplication(n);
+
+  await markCandidatePageNotificationRead(id);
+
+  const dropdown=document.getElementById('notif-dropdown');
+  if(dropdown) dropdown.style.display='none';
+
+  if(!c?.job?.id||!c?.applicationId){
+    showToast('Could not match that notification to an application.');
+    return;
+  }
+
+  const params=new URLSearchParams({
+    job:c.job.id,
+    application:c.applicationId
+  });
+  window.location.href='candidates.html?'+params.toString();
+}
+
+async function handleCandidatePageMessageNotification(event,id){
+  if(event) event.preventDefault();
+
+  const n=candidatePageNotificationItems.find(item=>item.id===id);
+  if(!n) return;
+
+  if(n.message_id){
+    const {error}=await sb
+      .from('messages')
+      .update({read_at:new Date().toISOString()})
+      .eq('id',n.message_id)
+      .neq('sender_id',currentUser.id)
+      .is('read_at',null);
+    if(error) console.warn('Could not mark employer message notification read:',error);
+  }
+
+  const dropdown=document.getElementById('notif-dropdown');
+  if(dropdown) dropdown.style.display='none';
+
+  window.location.href=n.link||'messages.html';
+}
+
+async function refreshCandidatePageNotifications(){
+  const items=await fetchCandidatePageNotifications();
+  renderCandidatePageNotifications(items);
+}
+
+function initCandidatePageNotifications(){
+  const bell=document.getElementById('notif-bell');
+  const dropdown=document.getElementById('notif-dropdown');
+  const wrap=document.getElementById('notif-wrap');
+  if(!bell||!dropdown||!wrap) return;
+
+  refreshCandidatePageNotifications();
+
+  bell.addEventListener('click',e=>{
+    e.stopPropagation();
+    const isOpen=dropdown.style.display!=='none';
+    dropdown.style.display=isOpen?'none':'block';
+    if(!isOpen) refreshCandidatePageNotifications();
+  });
+
+  document.addEventListener('click',e=>{
+    if(!wrap.contains(e.target)) dropdown.style.display='none';
+  });
+
+  sb.channel('candidate-page-employer-notifications-'+currentUser.id)
+    .on('postgres_changes',{
+      event:'INSERT',schema:'public',table:'notifications',
+      filter:`recipient_id=eq.${currentUser.id}`
+    },()=>refreshCandidatePageNotifications())
+    .subscribe();
+
+  if(!candidatePageMessageChannel){
+    candidatePageMessageChannel=sb
+      .channel('candidate-page-employer-message-notifications-'+currentUser.id)
+      .on('postgres_changes',{
+        event:'INSERT',schema:'public',table:'messages'
+      },async payload=>{
+        if(payload?.new?.sender_id===currentUser.id) return;
+        if(candidatePageNotificationRefreshBusy) return;
+        candidatePageNotificationRefreshBusy=true;
+        try{
+          await refreshCandidatePageNotifications();
+        }finally{
+          candidatePageNotificationRefreshBusy=false;
+        }
+      })
+      .subscribe();
+  }
+
+  if(!candidatePageNotificationPollTimer){
+    candidatePageNotificationPollTimer=window.setInterval(()=>{
+      if(document.visibilityState==='visible') refreshCandidatePageNotifications();
+    },5000);
+  }
 }
 
 async function syncSidebarPostLabel(){
@@ -924,6 +1264,7 @@ async function loadData(){
   }
 
   renderGroups();
+  initCandidatePageNotifications();
   document.body.classList.add('auth-ready');
 
   if(focusedApplicationId){
