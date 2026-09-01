@@ -24,10 +24,10 @@
     --text-muted: #4A5968;
   }
 
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-top: 64px; }
 
   nav {
-    position: sticky; top: 0; z-index: 100;
+    position: fixed; top: 0; left: 0; right: 0; width: 100%; z-index: 1000;
     background: rgba(246,248,247,0.92); backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
     padding: 0 5%; display: flex; align-items: center; justify-content: space-between; height: 64px;
@@ -87,9 +87,9 @@
 <body>
 
 <nav>
-  <a href="index.html" class="logo">Alygnn<span>.</span></a>
+  <a href="index.html" class="logo" id="contact-home-logo">Alygnn<span>.</span></a>
   <div class="nav-links">
-    <a href="index.html">← Back to Alygnn</a>
+    <a href="index.html" id="contact-back-home">← Back to Alygnn</a>
   </div>
 </nav>
 
@@ -117,7 +117,7 @@
 </div>
 
 <footer>
-  <a href="index.html">Alygnn</a>
+  <a href="index.html" id="contact-footer-home">Alygnn</a>
   <span><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></span>
 </footer>
 
@@ -149,6 +149,63 @@ const { createClient } = supabase;
     }
   }
     );
+
+
+  async function setContactHomeDestination() {
+    const logo = document.getElementById('contact-home-logo');
+    const back = document.getElementById('contact-back-home');
+    const footerHome = document.getElementById('contact-footer-home');
+
+    let home = 'index.html';
+
+    const params = new URLSearchParams(window.location.search);
+    const explicitEmployer =
+      String(params.get('from') || '').toLowerCase() === 'employer' ||
+      String(params.get('role') || '').toLowerCase() === 'employer';
+
+    const referrer = String(document.referrer || '').toLowerCase();
+    const employerReferrer =
+      referrer.includes('/employers.html') ||
+      referrer.includes('/employer-account.html') ||
+      referrer.includes('/employer-dashboard.html') ||
+      referrer.includes('/candidates.html');
+
+    if (explicitEmployer || employerReferrer) {
+      home = 'employers.html';
+    }
+
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+
+      if (session?.user?.id) {
+        const { data: profile } = await sb
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        const role = String(
+          profile?.role ||
+          session.user.user_metadata?.role ||
+          ''
+        ).toLowerCase();
+
+        if (role === 'employer') {
+          home = 'employers.html';
+        } else if (role) {
+          home = 'index.html';
+        }
+      }
+    } catch (error) {
+      console.warn('Could not resolve contact home destination:', error);
+    }
+
+    if (logo) logo.href = home;
+    if (back) back.href = home;
+    if (footerHome) footerHome.href = home;
+  }
+
+  setContactHomeDestination();
 
   const form = document.getElementById('contact-form');
   const submitBtn = document.getElementById('submit-btn');
