@@ -292,10 +292,22 @@
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-  const { createClient } = supabase;
+  function alygnnAuthStorageKey() {
+  let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
+  if (!tabId) {
+    tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+      ? window.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
+  }
+  return `alygnn-auth-${tabId}`;
+}
+
+const { createClient } = supabase;
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       storage: window.sessionStorage,
+      storageKey: alygnnAuthStorageKey(),
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true
@@ -383,23 +395,8 @@
     btn.disabled = false; btn.textContent = orig;
     if (error) { showMsg(error.message); return; }
     await savePendingPreferences(data.user);
-
-    // Route from the account's saved Alygnn role first. Older accounts may
-    // not have reliable role metadata on the auth user object.
-    let r = String(data.user?.user_metadata?.role || '').toLowerCase();
-    try {
-      const { data: roleProfile } = await sb
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .maybeSingle();
-
-      r = String(roleProfile?.role || r || currentRole || 'seeker').toLowerCase();
-    } catch (_) {
-      r = String(r || currentRole || 'seeker').toLowerCase();
-    }
-
-    window.location.href = redirectFor(r === 'employer' ? 'employer' : 'seeker');
+    const r = data.user?.user_metadata?.role || 'seeker';
+    window.location.href = redirectFor(r);
   }
 
   async function doSignup() {
