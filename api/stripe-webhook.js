@@ -103,7 +103,20 @@ function planInfo(plan) {
   }[key] || null;
 }
 
-async function upsertPlan({ employerId, plan, billing, status, periodEnd }) {
+function planAmountCents(plan, billing) {
+  const key = String(plan || '').toLowerCase();
+  const period = String(billing || '').toLowerCase();
+  if (period === 'monthly') {
+    return { launch: 29900, growth: 44900, scale: 64900 }[key] || null;
+  }
+  if (period === 'quarterly') {
+    return { launch: 75000, growth: 114000, scale: 170000 }[key] || null;
+  }
+  if (period === 'weekly') return key === 'weekly_slot' ? 9900 : null;
+  return null;
+}
+
+async function upsertPlan({ employerId, plan, billing, status, periodEnd, subscriptionId, customerId, scheduleId }) {
   const info = planInfo(plan);
   if (!employerId || !info) return;
 
@@ -119,6 +132,10 @@ async function upsertPlan({ employerId, plan, billing, status, periodEnd }) {
     test_mode: false,
     test_plan: plan,
     urgently_hiring: info.urgent,
+    plan_amount_cents: planAmountCents(plan, billing),
+    stripe_plan_subscription_id: subscriptionId || null,
+    stripe_plan_customer_id: customerId || null,
+    stripe_plan_schedule_id: scheduleId || null,
     updated_at: new Date().toISOString()
   };
 
@@ -140,6 +157,35 @@ async function upsertPlan({ employerId, plan, billing, status, periodEnd }) {
   });
 }
 
+async function clearPendingIfApplied(employerId, activePlan) {
+  if (!employerId || !activePlan) return;
+  const url = new URL(`${supabaseBase()}/rest/v1/employer_entitlements`);
+  url.searchParams.set('employer_id', 'eq.' + employerId);
+  url.searchParams.set('select', 'pending_plan');
+  url.searchParams.set('limit', '1');
+
+  const read = await fetch(url, { headers: serviceHeaders() });
+  const rows = await read.json().catch(() => []);
+  if (!read.ok || !Array.isArray(rows) || !rows[0]) return;
+
+  if (String(rows[0].pending_plan || '').toLowerCase() !== String(activePlan).toLowerCase()) return;
+
+  const patchUrl = new URL(`${supabaseBase()}/rest/v1/employer_entitlements`);
+  patchUrl.searchParams.set('employer_id', 'eq.' + employerId);
+  await fetch(patchUrl, {
+    method: 'PATCH',
+    headers: serviceHeaders({ Prefer: 'return=minimal' }),
+    body: JSON.stringify({
+      pending_plan: null,
+      pending_billing_period: null,
+      pending_plan_effective_at: null,
+      stripe_plan_schedule_id: null,
+      plan_change_updated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+  });
+}
+
 function plusDaysUnix(days) {
   return Math.floor(Date.now() / 1000) + days * 86400;
 }
@@ -157,21 +203,21 @@ async function fulfillCheckout(session) {
   if (!employerId || !product) return;
 
   if (product === 'additional_slot' || product === 'single_job') {
-    // Every active $150/month Additional Job Slot subscription adds +1 slot.
+    // Standalone $150/month Second Job Slot. The included free slot remains,
+    // so this subscription gives the employer 2 total reusable active slots.
     if (session.mode === 'subscription' && session.subscription) {
       const subscription = await stripeGet(`subscriptions/${encodeURIComponent(session.subscription)}`);
-      await rpc('sync_additional_job_slot_subscription', {
+      await rpc('sync_second_job_slot_subscription', {
         p_employer_id: employerId,
-        p_subscription_id: subscription.id,
-        p_status: subscription.status === 'trialing' ? 'trialing' : subscription.status,
+        p_status: subscription.status === 'trialing' ? 'trialing' : 'active',
         p_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-        p_checkout_session_id: session.id,
+        p_payment_reference: session.id,
         p_amount_cents: session.amount_total || 15000
       });
       return;
     }
 
-    // Legacy one-time checkout compatibility: still grants exactly +1 slot.
+    // Legacy one-time checkout compatibility.
     await rpc('grant_additional_reusable_slot', {
       p_employer_id: employerId,
       p_quantity: 1,
@@ -203,8 +249,12 @@ async function fulfillCheckout(session) {
         plan,
         billing,
         status: subscription.status === 'trialing' ? 'trialing' : 'active',
-        periodEnd: subscription.current_period_end
+        periodEnd: subscription.current_period_end,
+        subscriptionId: subscription.id,
+        customerId: typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id,
+        scheduleId: typeof subscription.schedule === 'string' ? subscription.schedule : subscription.schedule?.id
       });
+      await clearPendingIfApplied(employerId, plan);
       return;
     }
 
@@ -220,14 +270,13 @@ async function fulfillSubscription(subscription, forceStatus) {
 
   if (product === 'additional_slot' || product === 'single_job') {
     const status = forceStatus || (subscription.status === 'trialing' ? 'trialing' : subscription.status);
-    await rpc('sync_additional_job_slot_subscription', {
+    await rpc('sync_second_job_slot_subscription', {
       p_employer_id: meta.employer_id,
-      p_subscription_id: subscription.id,
       p_status: status,
       p_expires_at: subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toISOString()
         : null,
-      p_checkout_session_id: null,
+      p_payment_reference: null,
       p_amount_cents: 15000
     });
     return;
@@ -239,8 +288,12 @@ async function fulfillSubscription(subscription, forceStatus) {
     plan: meta.plan,
     billing: meta.billing || 'monthly',
     status: forceStatus || (subscription.status === 'trialing' ? 'trialing' : 'active'),
-    periodEnd: subscription.current_period_end
+    periodEnd: subscription.current_period_end,
+    subscriptionId: subscription.id,
+    customerId: typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id,
+    scheduleId: typeof subscription.schedule === 'string' ? subscription.schedule : subscription.schedule?.id
   });
+  await clearPendingIfApplied(meta.employer_id, meta.plan);
 }
 
 module.exports = async function handler(req, res) {
