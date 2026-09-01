@@ -2196,6 +2196,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           ? new Date(billingEntitlement.current_period_end).toLocaleString()
           : 'No expiration set';
         const urgent = billingEntitlement.urgently_hiring ? ' · Urgently Hiring enabled' : '';
+        const addonCount = Math.max(0, Number(billingEntitlement.addon_slot_count || 0));
+        const addonCopy = addonCount
+          ? ` · +${addonCount} Additional $150 slot${addonCount===1?'':'s'}`
+          : '';
         const weeklyCount = Math.max(0, Number(billingEntitlement.weekly_slot_count || 0));
         const weeklyExpiry = billingEntitlement.weekly_slots_expires_at
           ? new Date(billingEntitlement.weekly_slots_expires_at).toLocaleString()
@@ -2203,7 +2207,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         const weeklyCopy = weeklyCount
           ? ` · +${weeklyCount} Weekly slot${weeklyCount===1?'':'s'}${weeklyExpiry ? ' (expires ' + weeklyExpiry + ')' : ''}`
           : '';
-        testBanner.innerHTML = `<strong>TEST PACKAGE ACTIVE</strong> · ${entitlementDisplayName()}${billing ? ' · ' + billing : ''} · ${paidJobLimit()} total job slot${paidJobLimit() === 1 ? '' : 's'}${weeklyCopy}${urgent}<br>Base plan expires: ${expiry} · No payment was charged.`;
+        testBanner.innerHTML = `<strong>TEST PACKAGE ACTIVE</strong> · ${entitlementDisplayName()}${billing ? ' · ' + billing : ''} · ${paidJobLimit()} total job slot${paidJobLimit() === 1 ? '' : 's'}${addonCopy}${weeklyCopy}${urgent}<br>Base plan expires: ${expiry} · No payment was charged.`;
         testBanner.classList.add('show');
       } else {
         testBanner.classList.remove('show');
@@ -3807,7 +3811,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
         if (missingWorkAuthColumn) {
           showToast('Job posting setup needs one Supabase update for Work Authorization. Run the provided SQL once, then post again.');
-        } else if (isBillingBlock || message.includes('reusable job slots') || message.includes('job slots are currently in use')) {
+        } else if (
+          isBillingBlock ||
+          message.includes('reusable job slots') ||
+          message.includes('job slots are currently in use') ||
+          message.includes('posting capacity is inconsistent')
+        ) {
           showToast(error.message || 'No job slot is available.');
           await loadBillingEntitlement();
           updatePostingAccessUI();
