@@ -242,7 +242,7 @@ h1{font-family:'DM Serif Display',Georgia,serif;font-size:34px;line-height:1.05;
   </section>
 
   <div class="section-title">Plans</div>
-  <p class="section-copy">Choose how long you want your reusable job-slot capacity.</p>
+  <p class="section-copy">Choose a plan or add extra hiring capacity.</p>
 
   <div class="tabs" role="tablist" aria-label="Billing period">
     <button class="tab active" type="button" data-billing="quarterly">Quarterly</button>
@@ -257,8 +257,8 @@ h1{font-family:'DM Serif Display',Georgia,serif;font-size:34px;line-height:1.05;
       <div><h3>Second Job Slot</h3></div>
       <div class="addon-price">$150<small>/ month</small></div>
     </div>
-    <p>Keep your included free slot and add 1 more reusable active job slot. That gives you 2 total active job slots while this monthly slot is active.</p>
-    <div class="plan-slots" style="margin-top:12px">1 free slot + 1 paid slot = 2 total</div>
+    <p id="additional-slot-copy">Keep the included free slot and add a second reusable job slot for $150 per month.</p>
+    <div class="plan-slots" id="additional-slot-summary" style="margin-top:12px">1 free + 1 monthly slot = 2 total</div>
     <button class="btn secondary full" id="additional-slot-btn" type="button">Add Second Job Slot — $150/month</button>
   </section>
 
@@ -273,7 +273,7 @@ h1{font-family:'DM Serif Display',Georgia,serif;font-size:34px;line-height:1.05;
     </div>
   </section>
 
-  <p class="fineprint">Weekly slots start immediately after successful purchase and expire 7 days later. The $150 Second Job Slot renews monthly until canceled. Monthly plans renew monthly and quarterly plans renew every 3 months until canceled.</p>
+  <p class="fineprint">The $150 Second Job Slot is available only when you are not on a monthly or quarterly plan. Weekly Job Slots add 1 temporary reusable slot for 7 days and can be added to Free, Launch, Growth, or Scale. Monthly plans renew monthly and quarterly plans renew every 3 months until canceled.</p>
   <div class="message" id="message" hidden></div>
 </main>
 
@@ -296,7 +296,7 @@ const CATALOG={
     scale:{name:'Scale',price:649,suffix:'/ month',slots:8,features:['Everything in Growth','Urgently Hiring badge on jobs','High-volume hiring capacity','Advanced candidate tools','Team access and priority support']}
   },
   weekly:{
-    weekly_slot:{name:'Weekly Job Slot',price:99,suffix:'/ 7 days',slots:1,popular:true,features:['Starts immediately after purchase','Expires 7 days after purchase','Close or pause a job and reuse the slot before expiration','AI candidate matching and applicant management','No monthly subscription required']}
+    weekly_slot:{name:'Weekly Job Slot',price:99,suffix:'/ 7 days',slots:1,popular:true,features:['Adds 1 reusable job slot to your current capacity','Starts immediately after purchase','Expires 7 days after purchase','Close or pause a job and reuse the slot before expiration','Available with or without a monthly/quarterly plan']}
   }
 };
 
@@ -308,6 +308,7 @@ const SLOT_GATE_LIMIT=Math.max(1,Number(PAGE_PARAMS.get('limit')||1)||1);
 let session=null;
 let billing=SLOT_GATE_REASON?'weekly':'quarterly';
 let entitlement=null;
+let postingAccess=null;
 let jobs=[];
 
 const $=id=>document.getElementById(id);
@@ -317,7 +318,49 @@ function showMessage(text){
   $('message').hidden=false;
 }
 
+function accessBool(...keys){
+  for(const key of keys){
+    if(postingAccess && postingAccess[key] !== undefined && postingAccess[key] !== null){
+      return postingAccess[key] === true;
+    }
+  }
+  return false;
+}
+
+function accessNumber(...keys){
+  for(const key of keys){
+    const value=Number(postingAccess?.[key]);
+    if(Number.isFinite(value)) return value;
+  }
+  return NaN;
+}
+
+function basePaidPlanActive(){
+  if(postingAccess){
+    return accessBool('base_paid_plan','active_paid_plan');
+  }
+
+  const plan=String(entitlement?.test_plan||entitlement?.plan||'free').toLowerCase();
+  const status=String(entitlement?.subscription_status||'').toLowerCase();
+  const end=entitlement?.current_period_end;
+  const endTime=end?new Date(end).getTime():0;
+
+  return ['launch','growth','scale','business','enterprise'].includes(plan)
+    && ['active','trialing'].includes(status)
+    && (!end || Number.isNaN(endTime) || endTime>Date.now());
+}
+
 function standaloneSecondSlotActive(){
+  if(postingAccess){
+    if(postingAccess.second_slot_active === true) return true;
+    const count=accessNumber('second_slot_count','addon_slot_count');
+    const expiry=postingAccess.second_slot_expires_at||postingAccess.addon_slots_expires_at;
+    if(Number.isFinite(count) && count>0 && expiry){
+      const time=new Date(expiry).getTime();
+      return !Number.isNaN(time)&&time>Date.now();
+    }
+  }
+
   const expiry=entitlement?.addon_slots_expires_at;
   const count=Math.max(0,Number(entitlement?.addon_slot_count||0));
   if(count<1||!expiry)return false;
@@ -325,34 +368,70 @@ function standaloneSecondSlotActive(){
   return !Number.isNaN(time)&&time>Date.now();
 }
 
+function weeklySlotCount(){
+  const count=accessNumber('weekly_slot_count');
+  return Number.isFinite(count)&&count>0?Math.floor(count):0;
+}
+
 function planLabel(){
-  const p=String(entitlement?.plan||'free').toLowerCase();
-  if(p==='weekly_slot') return 'Weekly Job Slot';
-  if(p==='launch') return 'Launch';
-  if(p==='growth') return 'Growth';
-  if(p==='scale') return 'Scale';
-  if(p==='enterprise') return 'Enterprise';
-  if(standaloneSecondSlotActive()) return 'Free + Second Job Slot';
+  const raw=String(
+    postingAccess?.test_plan||
+    postingAccess?.plan||
+    entitlement?.test_plan||
+    entitlement?.plan||
+    'free'
+  ).toLowerCase();
+
+  if(raw==='launch') return 'Launch';
+  if(raw==='growth') return 'Growth';
+  if(raw==='scale') return 'Scale';
+  if(raw==='enterprise') return 'Enterprise';
+
+  if(!basePaidPlanActive() && standaloneSecondSlotActive()){
+    return weeklySlotCount()>0
+      ? 'Free + Second Job Slot + Weekly'
+      : 'Free + Second Job Slot';
+  }
+
+  if(!basePaidPlanActive() && weeklySlotCount()>0){
+    return 'Free + Weekly Job Slot';
+  }
+
   return 'Free';
 }
 
 function entitlementActive(){
-  const status=String(entitlement?.subscription_status||'').toLowerCase();
-  if(['free',''].includes(String(entitlement?.plan||'free').toLowerCase())) return true;
+  // Free access itself is always available. Paid-plan state is determined
+  // separately so the $150 Second Job Slot can exist without a base plan.
+  if(!basePaidPlanActive()) return true;
+
+  const status=String(
+    postingAccess?.subscription_status||
+    entitlement?.subscription_status||
+    ''
+  ).toLowerCase();
+
   if(!['active','trialing'].includes(status)) return false;
-  const end=entitlement?.current_period_end;
-  if(!end) return true;
+
+  const end=postingAccess?.current_period_end||entitlement?.current_period_end;
+  if(!end)return true;
   const time=new Date(end).getTime();
   return Number.isNaN(time)||time>Date.now();
 }
 
-function defaultSlotLimit(){
-  const p=String(entitlement?.plan||'free').toLowerCase();
-  if(p==='growth') return 5;
-  if(p==='scale') return 8;
-  if(p==='enterprise') return Number(entitlement?.slot_limit||15);
-  if(p==='launch') return 3;
-  if(p==='weekly_slot') return 2;
+function defaultBaseLimit(){
+  const raw=String(
+    postingAccess?.test_plan||
+    postingAccess?.plan||
+    entitlement?.test_plan||
+    entitlement?.plan||
+    'free'
+  ).toLowerCase();
+
+  if(raw==='growth') return 5;
+  if(raw==='scale') return 8;
+  if(raw==='enterprise') return Number(entitlement?.slot_limit||15);
+  if(raw==='launch'||raw==='business') return 3;
   return 1;
 }
 
@@ -363,39 +442,40 @@ function jobConsumesSlot(job){
 
 function usedSlots(){
   const liveUsed=jobs.filter(jobConsumesSlot).length;
+  const rpcUsed=accessNumber('active_job_count');
+  let used=Math.max(liveUsed,Number.isFinite(rpcUsed)?rpcUsed:0);
 
-  // When this page was opened by the Post Job gate, the previous screen already
-  // calculated the authoritative visible usage. Keep that value as a fallback
-  // if an older jobs schema prevents one of the pricing-page queries from seeing
-  // the same rows. Live data wins whenever it is greater.
   if(SLOT_GATE_REASON){
-    return Math.max(liveUsed,SLOT_GATE_USED);
+    used=Math.max(used,SLOT_GATE_USED);
   }
 
-  return liveUsed;
+  return used;
 }
 
 function effectiveSlotLimit(){
-  let liveLimit=1;
-
-  if(entitlement&&entitlementActive()){
-    const plan=String(entitlement?.plan||'free').toLowerCase();
-    const stored=Number(entitlement?.slot_limit);
-    const fallback=defaultSlotLimit();
-
-    // Weekly gives one temporary slot on top of the included free slot.
-    liveLimit=plan==='weekly_slot'
-      ?Math.max(2,Number.isFinite(stored)&&stored>0?stored:2)
-      :Math.max(1,Number.isFinite(stored)&&stored>0?stored:fallback);
+  const rpcLimit=accessNumber('slot_limit');
+  if(Number.isFinite(rpcLimit)&&rpcLimit>=0){
+    return SLOT_GATE_REASON
+      ?Math.max(rpcLimit,SLOT_GATE_LIMIT)
+      :rpcLimit;
   }
 
-  // The standalone $150/month Second Job Slot is additive to the included
-  // free slot (or to a paid plan if the employer later upgrades).
-  if(standaloneSecondSlotActive()){
-    liveLimit+=1;
-  }
+  let liveLimit=basePaidPlanActive()
+    ?Math.max(1,Number(entitlement?.slot_limit||defaultBaseLimit()))
+    :1;
 
-  return SLOT_GATE_REASON ? Math.max(liveLimit,SLOT_GATE_LIMIT) : liveLimit;
+  if(standaloneSecondSlotActive()) liveLimit+=1;
+  liveLimit+=weeklySlotCount();
+
+  return SLOT_GATE_REASON
+    ?Math.max(liveLimit,SLOT_GATE_LIMIT)
+    :liveLimit;
+}
+
+function secondSlotEligible(){
+  // $150/month is ONLY the standalone second slot for employers who do not
+  // have an active monthly or quarterly base plan.
+  return !basePaidPlanActive() && !standaloneSecondSlotActive();
 }
 
 function renderSlotGateNotice(){
@@ -418,47 +498,82 @@ function renderSlotGateNotice(){
   }
 
   $('slot-gate-title').textContent='Add capacity to post another job.';
-  $('slot-gate-copy').textContent=
-    `You are using ${used} of ${limit} available job slot${limit===1?'':'s'}. `+
-    'Weekly is best for one extra opening right now. Monthly is best for ongoing hiring. Quarterly gives the best longer-term value.';
+
+  if(basePaidPlanActive()){
+    $('slot-gate-copy').textContent=
+      `You are using ${used} of ${limit} plan slots. Add a Weekly Job Slot for $99 to reach ${limit+1} total slots for 7 days.`;
+  }else if(!standaloneSecondSlotActive()){
+    $('slot-gate-copy').textContent=
+      `Your included free slot is in use. Choose the $150/month Second Job Slot for ongoing two-job capacity, or add a $99 Weekly Job Slot for 7 days.`;
+  }else{
+    $('slot-gate-copy').textContent=
+      `You are using ${used} of ${limit} slots. Your Second Job Slot is active; add another temporary slot for $99/week to reach ${limit+1} total.`;
+  }
+
   notice.hidden=false;
 }
 
 function renderCurrent(){
   $('current-plan').textContent=planLabel();
-  $('current-status').textContent=entitlementActive()?'Active':'Inactive';
+  $('current-status').textContent='Active';
+
   const limit=effectiveSlotLimit();
   const used=usedSlots();
 
   $('slot-limit').textContent=String(limit);
   $('slot-used').textContent=`${used} / ${limit}`;
 
-  const plan=String(entitlement?.plan||'free').toLowerCase();
-  const paidPlanActive=plan!=='free'&&plan!==''&&entitlementActive();
-  const freeOccupied=used>=1;
-  const freeUnavailable=paidPlanActive||freeOccupied;
+  const paidPlanActive=basePaidPlanActive();
+  const freeOccupied=!paidPlanActive&&used>=1;
 
-  $('free-btn').disabled=freeUnavailable;
+  $('free-btn').disabled=paidPlanActive||freeOccupied;
   $('free-btn').textContent=paidPlanActive
-    ? `${used} / ${limit} slots in use`
+    ? `${used} / ${limit} plan slots in use`
     : freeOccupied
       ? 'Included free slot in use (1 / 1)'
       : 'Use included free slot';
 
+  const secondSection=$('additional-slot');
   const secondBtn=$('additional-slot-btn');
+  const addonCopy=$('additional-slot-copy');
+  const addonSummary=$('additional-slot-summary');
+
+  if(secondSection){
+    // Never offer the standalone $150 Second Job Slot to monthly/quarterly
+    // plan customers. Their extra capacity is $99/week.
+    secondSection.hidden=billing!=='monthly' || paidPlanActive;
+  }
+
   if(secondBtn){
     const active=standaloneSecondSlotActive();
+
     secondBtn.disabled=active;
     secondBtn.textContent=active
       ? `Second Job Slot active · ${used} / ${limit} slots in use`
       : 'Add Second Job Slot — $150/month';
+
+    if(addonCopy){
+      addonCopy.textContent=active
+        ? 'Your $150/month Second Job Slot is active. Additional slots are $99/week.'
+        : 'Keep your included free slot and add a second reusable job slot for $150 per month.';
+    }
+
+    if(addonSummary){
+      addonSummary.textContent=active
+        ? `${limit} total slots currently available`
+        : `1 free + 1 monthly slot = 2 total`;
+    }
   }
 
+  // The Weekly card always displays current capacity + 1.
+  renderPlans();
   renderSlotGateNotice();
 }
 
 function renderPlans(){
   const plans=CATALOG[billing];
+  const currentLimit=effectiveSlotLimit();
+
   $('plan-list').innerHTML=Object.entries(plans).map(([key,p])=>`
     <article class="plan ${p.popular?'popular':''}">
       ${p.popular?'<div class="plan-tag">Most popular</div>':''}
@@ -469,20 +584,27 @@ function renderPlans(){
       </div>
       <div class="plan-slots">${
         key==='weekly_slot'
-          ? '1 additional reusable job slot · 2 total while active'
+          ? `+1 reusable job slot · ${currentLimit+1} total while active`
           : `${p.slots} active reusable job slot${p.slots===1?'':'s'}`
       }</div>
       <ul class="features">${p.features.map(x=>`<li>${x}</li>`).join('')}</ul>
-      <button class="btn ${p.popular?'primary':'secondary'} full" type="button" data-plan="${key}">Choose ${p.name}</button>
+      <button class="btn ${p.popular?'primary':'secondary'} full" type="button" data-plan="${key}">
+        ${key==='weekly_slot'
+          ? `Add 1 Weekly Job Slot — $99`
+          : `Choose ${p.name}`}
+      </button>
     </article>
   `).join('');
 
-  $('additional-slot').hidden=billing!=='monthly';
+  const secondSection=$('additional-slot');
+  if(secondSection){
+    secondSection.hidden=billing!=='monthly' || basePaidPlanActive();
+  }
 
   document.querySelectorAll('[data-plan]').forEach(btn=>{
     btn.addEventListener('click',()=>{
-      const plan=btn.dataset.plan;
-      location.href='app-employer-payment.html?plan='+encodeURIComponent(plan)+'&billing='+encodeURIComponent(billing);
+      const selected=btn.dataset.plan;
+      location.href='app-employer-payment.html?plan='+encodeURIComponent(selected)+'&billing='+encodeURIComponent(billing);
     });
   });
 }
@@ -529,6 +651,17 @@ async function queryPricingJobs(userId,companyId){
   return collected;
 }
 
+async function loadPostingAccess(){
+  try{
+    const {data,error}=await sb.rpc('get_employer_posting_access');
+    if(error) throw error;
+    postingAccess=data||null;
+  }catch(error){
+    console.warn('Could not load authoritative posting access:',error);
+    postingAccess=null;
+  }
+}
+
 async function loadAccount(){
   const {data:{session:active},error}=await sb.auth.getSession();
   if(error||!active){
@@ -536,6 +669,8 @@ async function loadAccount(){
     return;
   }
   session=active;
+
+  await loadPostingAccess();
 
   let role='';
   try{
@@ -619,8 +754,13 @@ $('free-btn').addEventListener('click',()=>{
 });
 
 $('additional-slot-btn').addEventListener('click',()=>{
+  if(basePaidPlanActive()){
+    showMessage('The $150/month Second Job Slot is only available without a monthly or quarterly plan. Plan customers can add capacity for $99/week.');
+    return;
+  }
+
   if(standaloneSecondSlotActive()){
-    showMessage('Your $150/month Second Job Slot is already active.');
+    showMessage('Your $150/month Second Job Slot is already active. Additional capacity is $99/week.');
     return;
   }
 
