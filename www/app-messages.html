@@ -136,11 +136,11 @@ async function load(){
       const j=jobMap.get(String(jobKey))||{};
       const m=last.get(String(c.id));
       const snapshotCandidate=cleanIdentity(c.candidate_name,['candidate','applicant']);
-      const candidate=profileName(p)||applicationName(a)||snapshotCandidate||'Candidate';
+      const candidate=snapshotCandidate||profileName(p)||applicationName(a)||'Candidate';
       const snapshotCompany=cleanIdentity(c.company_name,['employer','company']);
-      const company=cleanIdentity(j.company)||cleanIdentity(j.company_name)||cleanIdentity(j.employer_name)||snapshotCompany||'Employer';
+      const company=snapshotCompany||cleanIdentity(j.company)||cleanIdentity(j.company_name)||cleanIdentity(j.employer_name)||'Employer';
       const snapshotJob=cleanIdentity(c.job_title,['job application','position']);
-      const jobTitle=cleanIdentity(j.title)||cleanIdentity(a.job_title)||snapshotJob||'Job application';
+      const jobTitle=snapshotJob||cleanIdentity(j.title)||cleanIdentity(a.job_title)||'Job application';
       const name=role==='employer'?candidate:company;
       const count=unread.get(String(c.id))||0;
       return `<div class="thread"><button class="thread-main" type="button" onclick="location.href='app-chat.html?role=${role}&application=${encodeURIComponent(c.application_id)}'"><div class="avatar">${esc(initials(name))}</div><div><div class="name">${esc(name)}</div><div class="job">${esc(jobTitle)}</div><div class="preview">${esc(m?.body||'Conversation started')}</div></div><div><div class="time">${esc(time(m?.created_at||c.last_message_at))}</div>${count?`<div class="unread">${count>99?'99+':count}</div>`:''}</div></button>${role==='employer'?`<button class="delete-thread" type="button" aria-label="Delete conversation with ${esc(candidate)}" data-delete-id="${esc(c.id)}" data-delete-name="${esc(candidate)}"><svg viewBox="0 0 24 24"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg></button>`:''}</div>`
