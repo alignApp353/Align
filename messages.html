@@ -348,6 +348,172 @@
     min-height: 0;
   }
 
+
+  /* Single-screen Messages workspace.
+     The browser page itself does not scroll. The chat history is the primary
+     vertical scroll area; the conversation list can still handle overflow
+     without adding a second visible scrollbar. */
+  html, body {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    overflow: hidden !important;
+  }
+
+  body {
+    min-height: 0 !important;
+  }
+
+  nav {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 1000;
+  }
+
+  .layout {
+    height: 100vh !important;
+    min-height: 0 !important;
+    padding-top: 64px;
+    overflow: hidden !important;
+  }
+
+  main {
+    height: calc(100vh - 64px) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex;
+    flex-direction: column;
+    padding-top: 22px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .page-kicker,
+  h1,
+  .page-sub,
+  #setup-note,
+  .messages-legal {
+    flex: 0 0 auto;
+  }
+
+  .page-sub {
+    margin-bottom: 14px !important;
+  }
+
+  .chat-shell {
+    flex: 1 1 auto;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  .conversations,
+  .chat-panel {
+    min-height: 0 !important;
+  }
+
+  .conversation-list {
+    min-height: 0 !important;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .conversation-list::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .messages {
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+  }
+
+  .messages-legal {
+    min-height: 26px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 7px;
+    padding-top: 8px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .messages-legal a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+
+  .messages-legal a:hover {
+    color: var(--brand);
+  }
+
+  .chat-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .delete-chat-btn {
+    min-height: 30px;
+    padding: 0 11px;
+    border-radius: 999px;
+    border: 1px solid rgba(215,154,154,.48);
+    background: rgba(215,154,154,.10);
+    color: #a05858;
+    font: 700 10.5px 'DM Sans', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .delete-chat-btn:hover {
+    background: rgba(215,154,154,.18);
+    border-color: var(--rose);
+  }
+
+  .delete-chat-btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 680px) {
+    html, body {
+      overflow: auto !important;
+      height: auto;
+      min-height: 100%;
+    }
+
+    nav {
+      position: sticky !important;
+    }
+
+    .layout {
+      height: auto !important;
+      min-height: calc(100vh - 64px) !important;
+      padding-top: 0;
+      overflow: visible !important;
+    }
+
+    main {
+      height: auto !important;
+      min-height: 0 !important;
+      overflow: visible !important;
+    }
+
+    .messages-legal {
+      padding-bottom: 8px;
+    }
+
+    .delete-chat-btn {
+      font-size: 10px;
+      padding: 0 9px;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -415,6 +581,12 @@
     </section>
 
     <div class="error-note" id="setup-note" style="display:none"></div>
+
+    <div class="messages-legal" aria-label="Legal links">
+      <a href="privacy.html">Privacy</a>
+      <span>·</span>
+      <a href="terms.html">Terms</a>
+    </div>
   </main>
 </div>
 
@@ -558,9 +730,6 @@ function setSidebar(){
       <a href="messages.html" class="side-link active"><span class="side-icon">✉</span><span class="side-label-text">Messages</span></a>
       <hr>
       <a href="account.html" class="side-link"><span class="side-icon">←</span><span class="side-label-text">My account</span></a>`;
-    document.getElementById('account-link').href='account.html';
-    document.getElementById('dashboard-link').href='swipe.html';
-    document.getElementById('dashboard-link').textContent='Discover';
   }
 }
 
@@ -672,7 +841,7 @@ async function getOrCreateRequestedThread(){
 async function loadThreads(){
   const {data,error}=await sb
     .from('message_threads')
-    .select('id,application_id,job_id,employer_id,candidate_id,created_at,updated_at,last_message_at')
+    .select('id,application_id,job_id,employer_id,candidate_id,created_at,updated_at,last_message_at,employer_deleted_at,candidate_deleted_at')
     .order('last_message_at',{ascending:false,nullsFirst:false});
 
   if(error){
@@ -883,9 +1052,14 @@ function renderChat(){
           <div class="chat-head-job">${currentRole==='employer'?'Applied for':'Conversation about'} ${escapeHtml(d.job?.title||'this job')}${jobClosed?' · Closed':''}</div>
         </div>
       </div>
-      ${currentRole==='employer'
-        ? `<a class="context-pill" href="candidates.html?job=${encodeURIComponent(d.thread?.job_id||'')}&application=${encodeURIComponent(d.thread?.application_id||'')}">View candidate</a>`
-        : `<a class="context-pill" href="my-jobs.html">View application</a>`}
+      <div class="chat-actions">
+        ${currentRole==='employer'
+          ? `<a class="context-pill" href="candidates.html?job=${encodeURIComponent(d.thread?.job_id||'')}&application=${encodeURIComponent(d.thread?.application_id||'')}">View candidate</a>`
+          : `<a class="context-pill" href="my-jobs.html">View application</a>`}
+        ${d.thread?.id
+          ? `<button type="button" class="delete-chat-btn" onclick="deleteCurrentConversation()">Delete chat</button>`
+          : ''}
+      </div>
     </div>
 
     <div class="messages" id="messages">
@@ -914,6 +1088,73 @@ function renderChat(){
     const messages=document.getElementById('messages');
     if(messages)messages.scrollTop=messages.scrollHeight;
   });
+}
+
+
+async function deleteCurrentConversation(){
+  if(!activeThreadId)return;
+
+  const d=threadDetails.get(activeThreadId);
+  const personName=String(d?.name||'this conversation').trim();
+
+  const confirmed=window.confirm(
+    `Delete your chat with ${personName}? This removes it from your Alygnn inbox. The other participant keeps their copy.`
+  );
+  if(!confirmed)return;
+
+  const deleteButton=document.querySelector('.delete-chat-btn');
+  if(deleteButton){
+    deleteButton.disabled=true;
+    deleteButton.textContent='Deleting…';
+  }
+
+  const threadToDelete=activeThreadId;
+
+  const {error}=await sb.rpc('delete_message_thread_for_me',{
+    p_thread_id:threadToDelete
+  });
+
+  if(error){
+    console.error('Could not delete conversation:',error);
+    if(deleteButton){
+      deleteButton.disabled=false;
+      deleteButton.textContent='Delete chat';
+    }
+    showSetup(error.message||'Could not delete this conversation. Run the updated messaging SQL, then try again.');
+    return;
+  }
+
+  if(messageChannel){
+    sb.removeChannel(messageChannel);
+    messageChannel=null;
+  }
+
+  requestedApplicationId=null;
+  requestedApplicationContext=null;
+  activeThreadId=null;
+  activeMessages=[];
+
+  try{
+    const cleanUrl=new URL(window.location.href);
+    cleanUrl.searchParams.delete('thread');
+    cleanUrl.searchParams.delete('application');
+    cleanUrl.searchParams.delete('job');
+    history.replaceState({},'',cleanUrl.pathname+cleanUrl.search);
+  }catch(_){}
+
+  await loadThreads();
+  await loadThreadDetails();
+
+  activeThreadId=threads[0]?.id||null;
+
+  if(activeThreadId){
+    await markThreadRead(activeThreadId);
+    await loadMessages(activeThreadId);
+    subscribeToMessages(activeThreadId);
+  }
+
+  renderConversationList();
+  renderChat();
 }
 
 function handleComposerKey(event){
