@@ -1265,11 +1265,6 @@ async function refreshAll(chooseFirst=true){
 }
 
 async function resolveEmployerCompanyName(profile, sessionUser){
-  // Primary source: the same profiles.company_name used by the employer
-  // dashboard/account pages.
-  const fromProfile = String(profile?.company_name || '').trim();
-  if(fromProfile) return fromProfile;
-
   // Google/email metadata may already contain the company name.
   const fromMetadata = String(sessionUser?.user_metadata?.company_name || '').trim();
   if(fromMetadata) return fromMetadata;
@@ -1295,27 +1290,45 @@ async function resolveEmployerCompanyName(profile, sessionUser){
 }
 
 async function init(){
-  const {data:{session},error}=await sb.auth.getSession();
+  let {data:{session},error}=await sb.auth.getSession();
+
+  if(!session && !error){
+    await new Promise(resolve=>setTimeout(resolve,120));
+    const retry=await sb.auth.getSession();
+    session=retry.data?.session||null;
+    error=retry.error||null;
+  }
+
   if(error||!session){
     location.replace('login.html');
     return;
   }
+
   currentUser=session.user;
 
   const {data:profile,error:profileError}=await sb
     .from('profiles')
-    .select('id,role,full_name,company_name,resume_file_path,resume_data,preferences')
+    .select('id,role,full_name,resume_file_path,resume_data,preferences')
     .eq('id',currentUser.id)
     .maybeSingle();
 
   if(profileError){
-    console.error(profileError);
-    location.replace('login.html');
-    return;
+    console.error('Could not load Alygnn profile for Messages:', profileError);
   }
 
   currentProfile=profile||{};
-  currentRole=String(profile?.role||currentUser.user_metadata?.role||'candidate').toLowerCase();
+  currentRole=String(
+    profile?.role ||
+    currentUser.user_metadata?.role ||
+    currentUser.app_metadata?.role ||
+    'candidate'
+  ).toLowerCase();
+
+  // Older candidate accounts may use "seeker" / "jobseeker" instead of
+  // "candidate". They are all candidate-side accounts.
+  if(currentRole==='seeker'||currentRole==='jobseeker'){
+    currentRole='candidate';
+  }
 
   // Candidate Swipe stays unavailable until both onboarding pieces exist,
   // but the whole candidate nav resolves at once so Swipe never pops in late.
