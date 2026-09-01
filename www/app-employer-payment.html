@@ -152,7 +152,7 @@ h1{font-family:'DM Serif Display',Georgia,serif;font-size:32px;line-height:1.08;
   <h1 id="checkout-heading">Confirm your job-slot plan.</h1>
   <p class="lede" id="checkout-lede">Your job-slot capacity is reusable during its active term. Closing or pausing a job frees that slot for another opening.</p>
 
-  <div class="test-banner" id="test-banner" hidden><strong>Developer test mode</strong><br>No payment will be charged on this account. The selected package will be activated as test access.</div>
+  <div class="test-banner" id="test-banner" hidden><strong>Developer test mode</strong><br>No payment will be charged. Choosing a plan will activate the same Alygnn hiring capacity as a paid plan for testing only.</div>
 
   <section class="panel" id="plan-panel">
     <div class="panel-title" id="plan-panel-title">1. Confirm your plan</div>
@@ -199,7 +199,7 @@ h1{font-family:'DM Serif Display',Georgia,serif;font-size:32px;line-height:1.08;
 
     <button class="btn" id="checkout-btn" type="button" disabled>Accept terms to continue</button>
     <div class="message" id="message" hidden></div>
-    <div class="fineprint">Do not use real payment cards in the app until the app-return/deep-link flow is connected and tested.</div>
+    <div class="fineprint" id="payment-fineprint">Do not use real payment cards in the app until the app-return/deep-link flow is connected and tested.</div>
   </section>
 </main>
 
@@ -214,10 +214,15 @@ const CHECKOUT_ENDPOINT='https://alygnn.com/api/create-checkout-session';
 const TERMS_VERSION='2026-08-26';
 
 /*
- * Keep the existing developer test allowlist in this file.
- * The server/RPC remains the authority for granting test access.
+ * TEMPORARY APP TEST MODE.
+ * While true, the Capacitor employer payment screen bypasses Stripe and calls
+ * Supabase developer-test RPCs instead. The SQL patch also has a server-side
+ * expiry switch so this cannot stay enabled forever by accident.
+ *
+ * IMPORTANT: set this back to false before public production release.
  */
-const TEST_MODE_EMAILS=['simoninn18@gmail.com'];
+const FORCE_DEVELOPER_TEST_MODE=true;
+const TEST_MODE_EMAILS=[];
 
 const CATALOG={
   quarterly:{
@@ -530,14 +535,16 @@ async function initialize(){
     );
   }
 
-  developerTestMode=TEST_MODE_EMAILS.includes(email.toLowerCase());
+  developerTestMode=FORCE_DEVELOPER_TEST_MODE || TEST_MODE_EMAILS.includes(email.toLowerCase());
   $('test-banner').hidden=!developerTestMode;
 
   if(developerTestMode){
     $('payment-title').textContent='4. Test activation';
     $('secure-title').textContent='Activate access for testing';
     $('secure-copy').textContent=
-      'This test account can simulate paid hiring capacity without contacting the payment provider.';
+      'Stripe is bypassed in this temporary development build. Alygnn will activate the selected package in Supabase so you can test the real plan limits and features.';
+    const fineprint=$('payment-fineprint');
+    if(fineprint) fineprint.textContent='TEST MODE: $0 will be charged. Disable FORCE_DEVELOPER_TEST_MODE before releasing the app.';
   }
 
   renderAll();
@@ -560,7 +567,7 @@ async function activateDeveloperTest(){
     if(error){
       console.error(error);
       showMessage(
-        'The Second Job Slot test RPC is not installed yet. Run the updated $150 Second Job Slot SQL in Supabase, then try again. No payment was processed.'
+        'Second Job Slot test activation is not enabled in Supabase yet. Run ALYGNN-APP-TEST-MODE.sql, then try again. No payment was processed.'
       );
       updateCheckoutButton();
       return;
