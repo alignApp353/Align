@@ -722,6 +722,9 @@ function activeConversationDetails(){
 
 function renderChat(){
   const panel=document.getElementById('chat-panel');
+  const prevInput=document.getElementById('message-input');
+  const hadFocus=!!(prevInput&&document.activeElement===prevInput);
+  const draftValue=prevInput?prevInput.value:'';
 
   const d=activeConversationDetails();
 
@@ -779,6 +782,15 @@ function renderChat(){
   requestAnimationFrame(()=>{
     const messages=document.getElementById('messages');
     if(messages)messages.scrollTop=messages.scrollHeight;
+    if(hadFocus){
+      const newInput=document.getElementById('message-input');
+      if(newInput){
+        if(draftValue&&!newInput.value)newInput.value=draftValue;
+        newInput.focus();
+        const pos=newInput.value.length;
+        newInput.setSelectionRange(pos,pos);
+      }
+    }
   });
 }
 
