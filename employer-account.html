@@ -624,6 +624,14 @@
     font-size: 14px; color: var(--text-muted);
   }
   body.auth-ready #auth-loading { display: none; }
+
+  /* Keep the employer account header pinned while the account page scrolls. */
+  nav {
+    position: sticky !important;
+    top: 0;
+    z-index: 100;
+  }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -794,26 +802,13 @@
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-  
-function alygnnAuthStorageKey() {
-  let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
-  if (!tabId) {
-    tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
-      ? window.crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-    window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
-  }
-  return `alygnn-auth-${tabId}`;
-}
-
-const { createClient } = supabase;
+  const { createClient } = supabase;
   const sb = // Keep Alygnn authentication isolated to this browser tab.
 // This lets a candidate account stay open in one tab while a different
 // employer account is signed in in another tab.
 createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       storage: window.sessionStorage,
-      storageKey: alygnnAuthStorageKey(),
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true
@@ -1172,14 +1167,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         ['launch','growth','scale','weekly_slot','business','enterprise'].includes(plan)
       );
 
-    let limit = activePaid ? accountPaidLimit(ent) : 1;
+    const limit = activePaid ? accountPaidLimit(ent) : 1;
     const used = accountActiveSlotCount();
-
-    // Unified server capacity includes temporary Weekly slots as add-ons.
-    const accessResult = await sb.rpc('get_employer_posting_access');
-    if (!accessResult.error && accessResult.data) {
-      limit = Math.max(0, Number(accessResult.data.slot_limit || limit));
-    }
 
     accountPostingAccess = {
       allowed: used < limit,
