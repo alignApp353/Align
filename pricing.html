@@ -482,7 +482,7 @@
       <button class="plan-cta" onclick="window.location.href='contact.html?topic=enterprise'">Contact sales</button>
     </div>
   </div>
-  <div class="footnote" style="padding-top:34px;padding-bottom:0;">Need only one additional opening? Add 1 reusable paid job slot for $150/month. Limited to one single-slot subscription per employer.</div>
+  <div class="footnote" style="padding-top:34px;padding-bottom:0;">Need one more opening? Add 1 reusable paid job slot for $150/month. You can add another $150/month slot whenever you need more capacity.</div>
 </section>
 
 <!-- WEEKLY SLOT -->
@@ -509,23 +509,23 @@
 <div class="boost-section" id="single-job-slot">
   <div class="boost-card">
     <div>
-      <div class="boost-kicker">Single-slot option</div>
-      <h2>Add 1 full job slot for $150/month.</h2>
-      <p class="boost-copy">Need one more opening without moving to a larger package? Add one reusable paid job slot with the same core hiring access as a standard paid slot.</p>
+      <div class="boost-kicker">Additional job slot</div>
+      <h2>Add 1 job slot for $150/month.</h2>
+      <p class="boost-copy">Add one reusable paid job slot to your current hiring capacity. Buy another $150/month slot whenever you need another opening.</p>
       <ul class="boost-points">
         <li>1 additional active reusable job slot</li>
         <li>No 25-candidate cap on the paid slot</li>
         <li>No 7-day job-slot limit</li>
         <li>AI matching, candidate management, messaging, and resume access</li>
         <li>Close or pause a job and reuse the slot for another opening</li>
-        <li>Limited to 1 single-slot subscription per employer</li>
+        <li>Buy additional $150/month slots whenever you need more capacity</li>
       </ul>
     </div>
     <div class="boost-price-box">
       <div class="boost-price">$150 <span>/ month</span></div>
       <div class="boost-price-note">One reusable paid job slot. Renews monthly until canceled.</div>
       <button id="single-slot-btn" class="plan-cta" style="background:var(--brand);color:white;border-color:var(--brand);" onclick="handleSingleJobSlot()">Add 1 job slot — $150/month</button>
-      <div class="boost-disclaimer">Only one $150/month single-slot subscription can be active per employer. Need more capacity? Choose Launch, Growth, Scale, or Enterprise.</div>
+      <div class="boost-disclaimer">Each purchase adds 1 reusable paid job slot to your current capacity. Add another whenever you need one.</div>
     </div>
   </div>
 </div>
@@ -551,7 +551,7 @@
 </div>
 
 <div class="footnote">
-  The free job slot is a one-time employer offer and includes access to up to 25 candidates total. Weekly job slots begin immediately upon successful purchase and expire 7 days after purchase. Monthly and quarterly plans count <em>active reusable job slots</em> — when a role is closed or deleted, that slot becomes available for another job while the paid plan remains active. The $150/month single-slot option is a standalone reusable paid job slot and is limited to one active single-slot subscription per employer.
+  The free job slot is a one-time employer offer and includes access to up to 25 candidates total. Weekly job slots begin immediately upon successful purchase and expire 7 days after purchase. Monthly and quarterly plans count <em>active reusable job slots</em> — when a role is closed or deleted, that slot becomes available for another job while the paid plan remains active. Each $150/month additional job slot adds 1 reusable paid slot to the employer’s current capacity and can be purchased again whenever more capacity is needed.
 </div>
 
 <footer class="site-footer">
@@ -634,7 +634,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   let currentSession = null;
   let currentRole = '';
   let freeJobUsed = false;
-  let singleSlotActive = false;
 
   async function initPricingAuth(){
     try{
@@ -677,13 +676,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       try{
         const { data: entitlement } = await sb
           .from('employer_entitlements')
-          .select('free_job_used,addon_slot_count,addon_slots_expires_at')
+          .select('free_job_used')
           .eq('employer_id', currentSession.user.id)
           .maybeSingle();
         freeJobUsed = entitlement?.free_job_used === true;
-        const addonCount = Math.max(0, Number(entitlement?.addon_slot_count || 0));
-        const addonExpiry = entitlement?.addon_slots_expires_at ? new Date(entitlement.addon_slots_expires_at) : null;
-        singleSlotActive = addonCount >= 1 && (!addonExpiry || addonExpiry.getTime() > Date.now());
       }catch(error){
         console.warn('Unable to read free-job status:', error);
       }
@@ -694,14 +690,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         freeBtn.disabled = true;
         freeBtn.style.opacity = '.55';
         freeBtn.style.cursor = 'not-allowed';
-      }
-
-      const singleSlotBtn = document.getElementById('single-slot-btn');
-      if(singleSlotBtn && singleSlotActive){
-        singleSlotBtn.textContent = '1 job slot already active';
-        singleSlotBtn.disabled = true;
-        singleSlotBtn.style.opacity = '.55';
-        singleSlotBtn.style.cursor = 'not-allowed';
       }
 
       const authLink = document.getElementById('nav-auth-link');
@@ -769,7 +757,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   function handleSingleJobSlot(){
-    if(singleSlotActive) return;
     if(currentSession && currentRole === 'employer'){
       window.location.href = 'payment.html?product=additional_slot&billing=monthly';
     }else{
