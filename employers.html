@@ -51,7 +51,7 @@
     --text-muted: #4A5968;
   }
 
-  html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+  html { scroll-behavior: smooth; }
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; padding-top: 64px; }
 
   nav {
@@ -144,22 +144,6 @@
   .bar { flex: 1; background: var(--brand); border-radius: 6px 6px 0 0; opacity: 0.85; position: relative; }
   .bar-label { position: absolute; bottom: -22px; left: 0; right: 0; text-align: center; font-size: 11px; color: var(--text-muted); }
 
-  .pricing-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 56px; max-width: 760px; }
-  .price-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 36px 28px; display: flex; flex-direction: column; position: relative; }
-  .price-card.featured { background: var(--brand); border-color: var(--brand); color: white; }
-  .price-card.featured .price-tier, .price-card.featured .price-desc { color: rgba(255,255,255,0.78); }
-  .price-card.featured .price-amount { color: white; }
-  .price-card.featured .price-amount span { color: rgba(255,255,255,0.7); }
-  .price-card.featured .price-features li::before { color: white; }
-  .price-tag { position: absolute; top: -12px; right: 28px; background: var(--sage); color: white; font-size: 12px; padding: 4px 14px; border-radius: 100px; }
-  .price-tier { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 14px; }
-  .price-amount { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--text); margin-bottom: 6px; }
-  .price-amount span { font-size: 15px; font-family: 'DM Sans', sans-serif; color: var(--text-muted); font-weight: 400; }
-  .price-desc { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px; }
-  .price-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; flex: 1; }
-  .price-features li { font-size: 14px; display: flex; align-items: center; gap: 10px; }
-  .price-features li::before { content: "✓"; color: #3a9463; font-weight: 700; }
-
   .testimonial-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 48px; }
   .testimonial-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 32px; max-width: 600px; }
   .testimonial-quote { font-size: 17px; line-height: 1.7; color: var(--text); font-style: italic; margin-bottom: 16px; }
@@ -201,7 +185,6 @@
     .nav-toggle { display: flex; }
     .stats-row { grid-template-columns: 1fr; }
     .perks-grid { grid-template-columns: 1fr; }
-    .pricing-grid { grid-template-columns: 1fr; }
     .testimonial-grid { grid-template-columns: 1fr; }
     .dash-stats-row { grid-template-columns: 1fr; }
     .logo-tag { display: none; }
@@ -217,7 +200,6 @@
   <a class="logo" href="employers.html">Alygnn<span>.</span><span class="logo-tag">for Employers</span></a>
   <ul class="nav-links">
     <li><a href="#how">How it works</a></li>
-    <li><a href="login.html?role=employer" id="nav-pricing-link">Pricing</a></li>
     <li><a href="#faq">FAQ</a></li>
   </ul>
   <div class="nav-right">
@@ -231,7 +213,6 @@
 </nav>
 <div class="mobile-menu" id="mobile-menu">
   <a href="#how">How it works</a>
-  <a href="login.html?role=employer" id="mobile-pricing-link">Pricing</a>
   <a href="#faq">FAQ</a>
 </div>
 <script>
@@ -259,7 +240,7 @@
     <p class="hero-sub">Stop sifting through resumes that don't fit. Alygnn ranks every applicant by qualification, so you only spend time on candidates worth interviewing.</p>
     <div class="hero-actions">
       <button class="btn-primary" id="hero-cta-btn" onclick="window.location.href='login.html?role=employer'">Post a job</button>
-      <button class="btn-ghost" id="hero-pricing-btn" onclick="window.location.href='login.html?role=employer'">See pricing</button>
+      <button class="btn-ghost" id="hero-pricing-btn" type="button" hidden>Pricing</button>
     </div>
   </div>
 
@@ -365,18 +346,32 @@
   <p class="section-label">FAQ</p>
   <h2>Questions, answered.</h2>
   <div style="margin-top: 40px; max-width: 700px; display: flex; flex-direction: column; gap: 12px;">
+
     <details style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px;">
-      <summary style="cursor: pointer; font-weight: 500; font-size: 15px;">How do I post a job?</summary>
-      <p style="margin-top: 12px; font-size: 14px; color: var(--text-muted); line-height: 1.7;">Create an employer account, fill in your role details, and it's live immediately. You'll start receiving ranked candidates right away.</p>
+      <summary style="cursor: pointer; font-weight: 500; font-size: 15px;">How do job slots work?</summary>
+      <p style="margin-top: 12px; font-size: 14px; color: var(--text-muted); line-height: 1.7;">A job slot lets you keep one opening active at a time. When you close or replace a job, the available slot can be reused for another opening.</p>
     </details>
+
     <details style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px;">
-      <summary style="cursor: pointer; font-weight: 500; font-size: 15px;">How does candidate ranking work?</summary>
-      <p style="margin-top: 12px; font-size: 14px; color: var(--text-muted); line-height: 1.7;">Alygnn's AI compares each applicant's parsed resume against your role's requirements — skills, experience, and seniority — and scores them by fit.</p>
+      <summary style="cursor: pointer; font-weight: 500; font-size: 15px;">How are candidates organized?</summary>
+      <p style="margin-top: 12px; font-size: 14px; color: var(--text-muted); line-height: 1.7;">Candidates stay connected to the job they applied for, making it easier to review applicants by opening, view their profile and resume, and keep each hiring process organized.</p>
     </details>
+
     <details style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px;">
-      <summary style="cursor: pointer; font-weight: 500; font-size: 15px;">Can I cancel anytime?</summary>
-      <p style="margin-top: 12px; font-size: 14px; color: var(--text-muted); line-height: 1.7;">Yes. There are no contracts — cancel your plan at any time from your account settings.</p>
+      <summary style="cursor: pointer; font-weight: 500; font-size: 15px;">How does Alygnn match candidates to my jobs?</summary>
+      <p style="margin-top: 12px; font-size: 14px; color: var(--text-muted); line-height: 1.7;">Alygnn compares your job requirements with relevant candidate information such as skills, experience, role alignment, and education when the role requires it. The match score helps you prioritize candidates, but it does not make hiring decisions for you.</p>
     </details>
+
+    <details style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px;">
+      <summary style="cursor: pointer; font-weight: 500; font-size: 15px;">Can I message candidates through Alygnn?</summary>
+      <p style="margin-top: 12px; font-size: 14px; color: var(--text-muted); line-height: 1.7;">Yes. Conversations stay connected to the candidate's application and the specific job, so your hiring communication stays organized in one place.</p>
+    </details>
+
+    <details style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px;">
+      <summary style="cursor: pointer; font-weight: 500; font-size: 15px;">How does employer verification work?</summary>
+      <p style="margin-top: 12px; font-size: 14px; color: var(--text-muted); line-height: 1.7;">Employer accounts submit business information during onboarding. Alygnn reviews the business before jobs are fully approved to go live, helping create a more trustworthy experience for candidates.</p>
+    </details>
+
   </div>
 </section>
 
@@ -409,6 +404,7 @@
     <ul>
       <li><a href="login.html?role=employer" id="footer-employer-account">Employer account</a></li>
       <li><a href="login.html?role=employer" id="footer-employer-dashboard">Employer dashboard</a></li>
+      <li id="footer-pricing-item"><a href="pricing.html" id="footer-pricing-link">Pricing</a></li>
     </ul>
   </div>
 
@@ -430,21 +426,42 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (async () => {
-  const { createClient } = supabase;
+  
+function alygnnAuthStorageKey() {
+  let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
+  if (!tabId) {
+    tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+      ? window.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
+  }
+  return `alygnn-auth-${tabId}`;
+}
+
+const { createClient } = supabase;
   const sb = createClient(
-    'https://auth.alygnn.com',
-    'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG'
-  );
+      'https://auth.alygnn.com',
+      'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+      {
+    auth: {
+      storage: window.sessionStorage,
+      storageKey: alygnnAuthStorageKey(),
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  }
+    );
 
   const navAuthLink      = document.getElementById('nav-auth-link');
   const navCtaBtn        = document.getElementById('nav-cta-btn');
   const heroCta          = document.getElementById('hero-cta-btn');
-  const bottomCta        = document.getElementById('cta-bottom-btn');
-  const navPricingLink   = document.getElementById('nav-pricing-link');
-  const mobilePricingLink= document.getElementById('mobile-pricing-link');
   const heroPricingBtn   = document.getElementById('hero-pricing-btn');
+  const bottomCta        = document.getElementById('cta-bottom-btn');
   const footerEmployerAccount = document.getElementById('footer-employer-account');
   const footerEmployerDashboard = document.getElementById('footer-employer-dashboard');
+  const footerPricingItem = document.getElementById('footer-pricing-item');
+  const footerPricingLink = document.getElementById('footer-pricing-link');
 
   const { data: { session } } = await sb.auth.getSession();
 
@@ -474,12 +491,15 @@
   if (navAuthLink) { navAuthLink.textContent = 'My account'; navAuthLink.href = 'employer-account.html'; }
   if (navCtaBtn)   { navCtaBtn.textContent = 'Dashboard'; navCtaBtn.onclick = () => window.location.href = 'employer-dashboard.html'; }
   if (heroCta)     { heroCta.textContent = 'Go to dashboard'; heroCta.onclick = () => window.location.href = 'employer-dashboard.html'; }
+  if (heroPricingBtn) { heroPricingBtn.hidden = false; heroPricingBtn.onclick = () => window.location.href = 'pricing.html'; }
   if (bottomCta)   { bottomCta.textContent = 'Go to dashboard'; bottomCta.onclick = () => window.location.href = 'employer-dashboard.html'; }
-  if (navPricingLink)    navPricingLink.href = 'pricing.html';
-  if (mobilePricingLink) mobilePricingLink.href = 'pricing.html';
-  if (heroPricingBtn)    heroPricingBtn.onclick = () => window.location.href = 'pricing.html';
   if (footerEmployerAccount) footerEmployerAccount.href = 'employer-account.html';
   if (footerEmployerDashboard) footerEmployerDashboard.href = 'employer-dashboard.html';
+
+  // Pricing stays completely hidden from signed-out visitors. Once an
+  // employer is authenticated, expose it only down in the Employers footer.
+  if (footerPricingItem) footerPricingItem.hidden = false;
+  if (footerPricingLink) footerPricingLink.href = 'pricing.html';
 })();
 </script>
 </body>
