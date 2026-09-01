@@ -157,21 +157,21 @@ async function fulfillCheckout(session) {
   if (!employerId || !product) return;
 
   if (product === 'additional_slot' || product === 'single_job') {
-    // Standalone $150/month Second Job Slot. The included free slot remains,
-    // so this subscription gives the employer 2 total reusable active slots.
+    // Every active $150/month Additional Job Slot subscription adds +1 slot.
     if (session.mode === 'subscription' && session.subscription) {
       const subscription = await stripeGet(`subscriptions/${encodeURIComponent(session.subscription)}`);
-      await rpc('sync_second_job_slot_subscription', {
+      await rpc('sync_additional_job_slot_subscription', {
         p_employer_id: employerId,
-        p_status: subscription.status === 'trialing' ? 'trialing' : 'active',
+        p_subscription_id: subscription.id,
+        p_status: subscription.status === 'trialing' ? 'trialing' : subscription.status,
         p_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-        p_payment_reference: session.id,
+        p_checkout_session_id: session.id,
         p_amount_cents: session.amount_total || 15000
       });
       return;
     }
 
-    // Legacy one-time checkout compatibility.
+    // Legacy one-time checkout compatibility: still grants exactly +1 slot.
     await rpc('grant_additional_reusable_slot', {
       p_employer_id: employerId,
       p_quantity: 1,
@@ -220,13 +220,14 @@ async function fulfillSubscription(subscription, forceStatus) {
 
   if (product === 'additional_slot' || product === 'single_job') {
     const status = forceStatus || (subscription.status === 'trialing' ? 'trialing' : subscription.status);
-    await rpc('sync_second_job_slot_subscription', {
+    await rpc('sync_additional_job_slot_subscription', {
       p_employer_id: meta.employer_id,
+      p_subscription_id: subscription.id,
       p_status: status,
       p_expires_at: subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toISOString()
         : null,
-      p_payment_reference: null,
+      p_checkout_session_id: null,
       p_amount_cents: 15000
     });
     return;
