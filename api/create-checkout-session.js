@@ -8,7 +8,7 @@
 //   SUPABASE_ANON_KEY=<your publishable/anon key>
 //
 // IMPORTANT: The webhook file supplied with this patch is what grants the
-// $150/month Additional Job Slot / Job Boost / plan entitlement after Stripe confirms payment.
+// $150/month Second Job Slot / Job Boost / plan entitlement after Stripe confirms payment.
 
 const STRIPE_API = 'https://api.stripe.com/v1';
 
@@ -19,9 +19,9 @@ const PLAN_CATALOG = {
     scale:  { name: 'Alygnn Scale',  cents: 64900, slots: 8, mode: 'subscription' }
   },
   quarterly: {
-    launch: { name: 'Alygnn Launch — 3 months', cents: 75000, slots: 3, mode: 'payment' },
-    growth: { name: 'Alygnn Growth — 3 months', cents: 114000, slots: 5, mode: 'payment' },
-    scale:  { name: 'Alygnn Scale — 3 months',  cents: 170000, slots: 8, mode: 'payment' }
+    launch: { name: 'Alygnn Launch — 3 months', cents: 75000, slots: 3, mode: 'subscription' },
+    growth: { name: 'Alygnn Growth — 3 months', cents: 114000, slots: 5, mode: 'subscription' },
+    scale:  { name: 'Alygnn Scale — 3 months',  cents: 170000, slots: 8, mode: 'subscription' }
   },
   weekly: {
     weekly_slot: { name: 'Alygnn Weekly Job Slot — 7 days', cents: 9900, slots: 1, mode: 'payment' }
@@ -97,6 +97,39 @@ async function verifyOwnedActiveJob(token, userId, jobId) {
 }
 
 
+async function getEmployerPostingAccess(token) {
+  const base=(process.env.SUPABASE_URL||'https://auth.alygnn.com').replace(/\/$/,'');
+  const anon=process.env.SUPABASE_ANON_KEY;
+
+  if(!anon) throw new Error('SUPABASE_ANON_KEY is not configured.');
+
+  const response=await fetch(base+'/rest/v1/rpc/get_employer_posting_access',{
+    method:'POST',
+    headers:{
+      apikey:anon,
+      Authorization:'Bearer '+token,
+      'Content-Type':'application/json'
+    },
+    body:'{}'
+  });
+
+  const data=await response.json().catch(()=>null);
+
+  if(!response.ok){
+    throw new Error(
+      (data&&(data.message||data.error))||
+      'Could not verify employer hiring capacity.'
+    );
+  }
+
+  return data||{};
+}
+
+function additionalSlotEligible(access) {
+  // The $150/month Second Job Slot is a standalone option. It does not require
+  // Launch/Growth/Scale. Block a second purchase while the slot is already active.
+  return Number(access?.addon_slot_count || 0) < 1;
+}
 
 async function stripeCreateCheckout(params) {
   const secret = process.env.STRIPE_SECRET_KEY;
@@ -156,17 +189,23 @@ module.exports = async function handler(req, res) {
     let jobId = '';
 
     // Backward compatibility: the former $150 "single_job" product is now
-    // the standalone $150/month Additional Job Slot.
+    // the standalone $150/month Second Job Slot.
     if (!product && plan && plan !== 'single_job') product = 'job_plan';
     if (!product && plan === 'single_job') product = 'additional_slot';
     if (product === 'single_job') product = 'additional_slot';
 
     if (product === 'additional_slot') {
-      // $150/month is an à-la-carte +1 slot. Employers may purchase it
-      // repeatedly; every active subscription adds one reusable job slot.
-      plan = 'additional_job_slot';
+      const access = await getEmployerPostingAccess(token);
+
+      if (!additionalSlotEligible(access)) {
+        return send(res, 400, {
+          error: 'Your Second Job Slot is already active.'
+        });
+      }
+
+      plan = 'second_job_slot';
       billing = 'monthly';
-      name = 'Alygnn Additional Job Slot';
+      name = 'Alygnn Second Job Slot';
       cents = 15000;
       slots = 1;
       mode = 'subscription';
@@ -188,6 +227,26 @@ module.exports = async function handler(req, res) {
       }
       const item = PLAN_CATALOG[billing]?.[plan];
       if (!item) return send(res, 400, { error: 'Unknown Alygnn plan or billing period.' });
+
+      // Do not create a second paid plan while an employer already has one active.
+      // Existing recurring subscribers change plans through Billing & plan so
+      // upgrades can be prorated and downgrades can wait until renewal.
+      if (billing === 'monthly' || billing === 'quarterly') {
+        const access = await getEmployerPostingAccess(token);
+        const currentPlan = String(access?.plan || '').toLowerCase();
+        const currentBilling = String(access?.billing_period || '').toLowerCase();
+        if (
+          access?.active_paid_plan === true &&
+          ['monthly','quarterly'].includes(currentBilling) &&
+          ['launch','growth','scale','business','enterprise'].includes(currentPlan)
+        ) {
+          return send(res, 409, {
+            error: 'You already have an active paid plan. Change it from Settings → Billing & plan so Alygnn can prorate upgrades or schedule downgrades correctly.',
+            manage_plan: true
+          });
+        }
+      }
+
       name = item.name;
       cents = item.cents;
       slots = item.slots;
@@ -222,6 +281,8 @@ module.exports = async function handler(req, res) {
 
     if (mode === 'subscription') {
       params['line_items[0][price_data][recurring][interval]'] = 'month';
+      params['line_items[0][price_data][recurring][interval_count]'] =
+        product === 'job_plan' && billing === 'quarterly' ? 3 : 1;
     }
 
     Object.entries(metadata).forEach(([key, value]) => {
