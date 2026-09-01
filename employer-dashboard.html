@@ -2538,18 +2538,116 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     return new Date(iso).toLocaleDateString();
   }
 
+  let employerMessageNotificationChannel = null;
+  let employerMessageNotificationPollTimer = null;
+  let employerMessageNotificationRefreshBusy = false;
+
+  function employerCandidateName(candidateId) {
+    const match = candidates.find(c => String(c.profile?.id || '') === String(candidateId || ''));
+    const profile = match?.profile || {};
+    const direct = String(profile.full_name || '').trim();
+    if (direct) return direct;
+
+    let resume = profile.resume_data;
+    if (typeof resume === 'string') {
+      try { resume = JSON.parse(resume); } catch (_) { resume = {}; }
+    }
+    if (!resume || typeof resume !== 'object') resume = {};
+
+    const personal = resume.personal && typeof resume.personal === 'object'
+      ? resume.personal
+      : {};
+
+    return String(
+      resume.name ||
+      resume.full_name ||
+      [personal.first_name, personal.last_name].filter(Boolean).join(' ') ||
+      'Candidate'
+    ).trim();
+  }
+
+  async function fetchEmployerUnreadMessageNotifications() {
+    if (!currentUser?.id) return [];
+
+    try {
+      const { data: threads, error: threadsError } = await sb
+        .from('message_threads')
+        .select('id,job_id,candidate_id,employer_id')
+        .eq('employer_id', currentUser.id);
+
+      if (threadsError) throw threadsError;
+
+      const employerThreads = threads || [];
+      const threadIds = employerThreads.map(t => t.id).filter(Boolean);
+      if (!threadIds.length) return [];
+
+      const { data: messageRows, error: messagesError } = await sb
+        .from('messages')
+        .select('id,thread_id,sender_id,body,created_at,read_at')
+        .in('thread_id', threadIds)
+        .neq('sender_id', currentUser.id)
+        .is('read_at', null)
+        .order('created_at', { ascending:false })
+        .limit(20);
+
+      if (messagesError) throw messagesError;
+
+      const unreadMessages = messageRows || [];
+      if (!unreadMessages.length) return [];
+
+      const threadMap = new Map(
+        employerThreads.map(t => [String(t.id), t])
+      );
+      const jobMap = new Map(
+        jobs.map(job => [String(job.id), job])
+      );
+
+      return unreadMessages.map(message => {
+        const thread = threadMap.get(String(message.thread_id)) || {};
+        const job = jobMap.get(String(thread.job_id)) || {};
+        const candidateName = employerCandidateName(thread.candidate_id);
+        const jobTitle = String(job.title || 'your job').trim();
+        const preview = String(message.body || '').trim().replace(/\s+/g, ' ');
+        const shortPreview = preview.length > 90 ? preview.slice(0,87) + '…' : preview;
+
+        return {
+          id: `message-${message.id}`,
+          source: 'message',
+          message_id: message.id,
+          thread_id: message.thread_id,
+          type: 'message',
+          title: `New message from ${candidateName}`,
+          body: shortPreview ? `${jobTitle}: ${shortPreview}` : `New reply about ${jobTitle}.`,
+          link: `messages.html?thread=${encodeURIComponent(message.thread_id)}`,
+          read_at: null,
+          created_at: message.created_at
+        };
+      });
+    } catch (error) {
+      console.warn('Could not load employer message notifications:', error);
+      return [];
+    }
+  }
+
   async function fetchNotifications() {
-    const { data, error } = await sb
-      .from('notifications')
-      .select('id, type, title, body, link, read_at, created_at')
-      .order('created_at', { ascending: false })
-      .limit(20);
+    const [{ data, error }, messageItems] = await Promise.all([
+      sb
+        .from('notifications')
+        .select('id, type, title, body, link, read_at, created_at')
+        .order('created_at', { ascending: false })
+        .limit(20),
+      fetchEmployerUnreadMessageNotifications()
+    ]);
 
     if (error) {
       console.error('Failed to load notifications:', error);
-      return [];
     }
-    return data || [];
+
+    const regularItems = error ? [] : (data || []);
+
+    return [...messageItems, ...regularItems]
+      .sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+      .slice(0, 20);
   }
 
   let notificationItemsCache = [];
@@ -2647,6 +2745,17 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         }
       }
 
+      if (n.source === 'message') {
+        return `
+          <a class="notif-item unread" href="${escapeHtml(n.link || '#')}"
+             onclick="handleEmployerMessageNotification(event, '${n.id}')">
+            <div class="notif-item-title">${escapeHtml(n.title)}</div>
+            ${n.body ? `<div class="notif-item-body">${escapeHtml(n.body)}</div>` : ''}
+            <div class="notif-item-time">${timeAgo(n.created_at)}</div>
+          </a>
+        `;
+      }
+
       return `
         <a class="notif-item ${n.read_at ? '' : 'unread'}" href="${n.link ? escapeHtml(n.link) : '#'}"
            onclick="markNotificationRead('${n.id}')">
@@ -2681,6 +2790,29 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     window.location.href = 'candidates.html?' + params.toString();
   }
 
+  async function handleEmployerMessageNotification(event, id) {
+    if (event) event.preventDefault();
+
+    const n = notificationItemsCache.find(item => item.id === id);
+    if (!n) return;
+
+    if (n.message_id) {
+      const { error } = await sb
+        .from('messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('id', n.message_id)
+        .neq('sender_id', currentUser.id)
+        .is('read_at', null);
+
+      if (error) console.warn('Could not mark employer message notification read:', error);
+    }
+
+    const dropdown = document.getElementById('notif-dropdown');
+    if (dropdown) dropdown.style.display = 'none';
+
+    window.location.href = n.link || 'messages.html';
+  }
+
   async function markNotificationRead(id) {
     await sb.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', id);
   }
@@ -2709,13 +2841,51 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       }
     });
 
-    // Live updates: new applications should light up the bell without a refresh.
+    // Live application notifications.
     sb.channel('notifications-' + currentUser.id)
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'notifications',
         filter: `recipient_id=eq.${currentUser.id}`
       }, () => refreshNotifications())
       .subscribe();
+
+    // Live candidate replies for this employer.
+    if (!employerMessageNotificationChannel) {
+      employerMessageNotificationChannel = sb
+        .channel('employer-message-notifications-' + currentUser.id)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+        }, async payload => {
+          if (payload?.new?.sender_id === currentUser.id) return;
+
+          if (employerMessageNotificationRefreshBusy) return;
+          employerMessageNotificationRefreshBusy = true;
+          try {
+            await refreshNotifications();
+          } finally {
+            employerMessageNotificationRefreshBusy = false;
+          }
+        })
+        .subscribe(status => {
+          if (status === 'SUBSCRIBED') refreshNotifications();
+        });
+    }
+
+    // Fallback: refresh while the dashboard is visible even if a browser/network
+    // misses a websocket event.
+    if (!employerMessageNotificationPollTimer) {
+      employerMessageNotificationPollTimer = window.setInterval(() => {
+        if (document.visibilityState === 'visible') refreshNotifications();
+      }, 5000);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') refreshNotifications();
+    });
+
+    window.addEventListener('focus', () => refreshNotifications());
   }
 
   function escapeHtml(value) {
