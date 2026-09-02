@@ -625,12 +625,34 @@
   }
   body.auth-ready #auth-loading { display: none; }
 
-  /* Keep the employer account header pinned while the account page scrolls. */
-  nav {
-    position: sticky !important;
-    top: 0;
-    z-index: 100;
-  }
+  /* Company profile update request workflow */
+  .profile-update-status{ margin-top:10px; padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:rgba(176,138,62,.08); color:var(--text-muted); font-size:11px; line-height:1.45; }
+  .profile-update-overlay{ display:none; position:fixed; inset:0; z-index:500; background:rgba(26,37,48,.46); align-items:center; justify-content:center; padding:24px; }
+  .profile-update-overlay.show{ display:flex; }
+  .profile-update-modal{ width:min(620px,100%); max-height:calc(100vh - 48px); overflow-y:auto; background:var(--card-bg); border:1px solid var(--border); border-radius:22px; box-shadow:0 24px 70px rgba(26,37,48,.18); padding:28px; position:relative; }
+  .profile-update-close{ position:absolute; top:18px; right:18px; width:34px; height:34px; border:1px solid var(--border); border-radius:50%; background:var(--card-bg); color:var(--text-muted); cursor:pointer; font-size:18px; line-height:1; }
+  .profile-update-eyebrow{ color:var(--brand); font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:7px; }
+  .profile-update-title{ font-family:'DM Serif Display',serif; font-size:26px; letter-spacing:-.4px; padding-right:42px; }
+  .profile-update-copy{ color:var(--text-muted); font-size:13px; line-height:1.55; margin:8px 0 20px; }
+  .profile-update-group{ margin-top:15px; }
+  .profile-update-label{ display:block; font-size:11px; font-weight:600; color:var(--text); margin-bottom:6px; }
+  .profile-update-select,.profile-update-input,.profile-update-textarea{ width:100%; border:1px solid var(--border); border-radius:12px; background:#fff; color:var(--text); font:13px 'DM Sans',sans-serif; padding:12px 14px; outline:none; }
+  .profile-update-select:focus,.profile-update-input:focus,.profile-update-textarea:focus{ border-color:var(--brand); }
+  .profile-update-textarea{ min-height:96px; resize:vertical; }
+  .profile-update-current{ padding:12px 14px; border:1px solid var(--border); border-radius:12px; background:var(--bg); font-size:13px; color:var(--text-muted); min-height:43px; word-break:break-word; }
+  .profile-update-file-note{ margin-top:6px; color:var(--text-muted); font-size:10px; line-height:1.45; }
+  .profile-update-pending{ margin-top:18px; border-top:1px solid var(--border); padding-top:16px; }
+  .profile-update-pending-title{ font-size:11px; font-weight:700; color:var(--text); margin-bottom:8px; }
+  .profile-update-pending-item{ display:flex; justify-content:space-between; gap:12px; padding:9px 10px; border:1px solid var(--border); border-radius:10px; background:var(--bg); font-size:11px; color:var(--text-muted); margin-top:6px; }
+  .profile-update-pending-item strong{ color:var(--text); font-weight:600; }
+  .profile-update-error,.profile-update-success{ display:none; margin-top:14px; padding:10px 12px; border-radius:10px; font-size:11px; line-height:1.45; }
+  .profile-update-error.show{ display:block; background:rgba(215,154,154,.16); color:#8a4a4a; border:1px solid var(--rose); }
+  .profile-update-success.show{ display:block; background:rgba(111,191,143,.14); color:#2d6b45; border:1px solid var(--mint); }
+  .profile-update-actions{ display:flex; justify-content:flex-end; gap:9px; margin-top:20px; }
+  .profile-update-cancel,.profile-update-submit{ min-height:42px; padding:0 18px; border-radius:11px; cursor:pointer; font:600 12px 'DM Sans',sans-serif; }
+  .profile-update-cancel{ border:1px solid var(--border); background:var(--card-bg); color:var(--text); }
+  .profile-update-submit{ border:0; background:var(--brand); color:#fff; }
+  .profile-update-submit:disabled{ opacity:.5; cursor:not-allowed; }
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -689,7 +711,7 @@
       <div class="profile-info">
         <div class="company-eyebrow">
           <span class="company-eyebrow-label">Company profile</span>
-          <a href="contact.html" class="company-support-link">Request an update →</a>
+          <a href="#" class="company-support-link" onclick="openProfileUpdateModal(event)">Request an update →</a>
         </div>
 
         <div class="company-title-row">
@@ -752,8 +774,9 @@
           <span class="verification-status-dot"></span>
           <p class="verification-note" id="verification-note">Once your business profile is complete, our team reviews it before you can post jobs. You'll be notified once it's approved.</p>
         </div>
-        <a href="contact.html" class="verification-help">Need to change something?</a>
+        <a href="#" class="verification-help" onclick="openProfileUpdateModal(event)">Need to change something?</a>
       </div>
+      <div class="profile-update-status" id="profile-update-status" style="display:none"></div>
     </div>
   </div>
 
@@ -795,6 +818,62 @@
 
 </div>
 
+
+<div class="profile-update-overlay" id="profile-update-overlay" onclick="if(event.target===this) closeProfileUpdateModal()">
+  <div class="profile-update-modal" role="dialog" aria-modal="true" aria-labelledby="profile-update-title">
+    <button type="button" class="profile-update-close" onclick="closeProfileUpdateModal()" aria-label="Close">×</button>
+    <div class="profile-update-eyebrow">Verified company profile</div>
+    <h2 class="profile-update-title" id="profile-update-title">Request a company profile update</h2>
+    <p class="profile-update-copy">Your current verified information stays unchanged until Alygnn reviews and approves the request.</p>
+
+    <div class="profile-update-group">
+      <label class="profile-update-label" for="profile-update-field">What would you like to change?</label>
+      <select class="profile-update-select" id="profile-update-field" onchange="handleProfileUpdateFieldChange()">
+        <option value="company_name">Company name</option>
+        <option value="company_headline">About the company</option>
+        <option value="company_website">Website</option>
+        <option value="company_phone">Business phone</option>
+        <option value="business_email">Business email</option>
+        <option value="business_address">Business address</option>
+      </select>
+    </div>
+
+    <div class="profile-update-group">
+      <div class="profile-update-label">Current information</div>
+      <div class="profile-update-current" id="profile-update-current">—</div>
+    </div>
+
+    <div class="profile-update-group">
+      <label class="profile-update-label" for="profile-update-new-value">New information</label>
+      <textarea class="profile-update-textarea" id="profile-update-new-value" maxlength="500" placeholder="Enter the new information"></textarea>
+    </div>
+
+    <div class="profile-update-group">
+      <label class="profile-update-label" for="profile-update-reason">Reason for change</label>
+      <textarea class="profile-update-textarea" id="profile-update-reason" maxlength="1000" placeholder="Tell Alygnn why this information changed"></textarea>
+    </div>
+
+    <div class="profile-update-group">
+      <label class="profile-update-label" for="profile-update-document">Supporting document <span id="profile-update-document-required"></span></label>
+      <input class="profile-update-input" id="profile-update-document" type="file" accept=".pdf,image/png,image/jpeg,application/pdf">
+      <div class="profile-update-file-note" id="profile-update-file-note">Optional for this change. PDF, JPG, or PNG up to 10 MB.</div>
+    </div>
+
+    <div class="profile-update-error" id="profile-update-error"></div>
+    <div class="profile-update-success" id="profile-update-success"></div>
+
+    <div class="profile-update-pending" id="profile-update-pending" style="display:none">
+      <div class="profile-update-pending-title">Pending requests</div>
+      <div id="profile-update-pending-list"></div>
+    </div>
+
+    <div class="profile-update-actions">
+      <button class="profile-update-cancel" type="button" onclick="closeProfileUpdateModal()">Cancel</button>
+      <button class="profile-update-submit" id="profile-update-submit" type="button" onclick="submitProfileUpdateRequest()">Submit request</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="candidate-modal-overlay" onclick="if (event.target === this) closeCandidateModal()">
   <div class="modal-box" id="candidate-modal-box"></div>
 </div>
@@ -802,7 +881,8 @@
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-  function alygnnAuthStorageKey() {
+  
+function alygnnAuthStorageKey() {
   let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
   if (!tabId) {
     tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
@@ -834,6 +914,232 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   // employer-dashboard.html does.
   let employerJobs = [];
   let accountPostingAccess = null;
+
+  const PROFILE_UPDATE_BUCKET = 'employer-profile-update-documents';
+  let pendingProfileUpdateRequests = [];
+
+  const PROFILE_UPDATE_FIELDS = {
+    company_name:{label:'Company name',elementId:'company-name',documentRequired:true},
+    company_headline:{label:'About the company',elementId:'company-headline',documentRequired:false},
+    company_website:{label:'Website',elementId:'company-website',documentRequired:false},
+    company_phone:{label:'Business phone',elementId:'company-phone',documentRequired:false},
+    business_email:{label:'Business email',elementId:'business-email',documentRequired:false},
+    business_address:{label:'Business address',elementId:'business-address',documentRequired:true}
+  };
+
+  function profileUpdateCurrentValue(fieldKey){
+    const config=PROFILE_UPDATE_FIELDS[fieldKey];
+    const el=config?document.getElementById(config.elementId):null;
+    if(!el) return '';
+    return String(('value' in el?el.value:el.textContent)||'').trim();
+  }
+
+  function profileUpdateFieldLabel(fieldKey){
+    return PROFILE_UPDATE_FIELDS[fieldKey]?.label||'Company profile';
+  }
+
+  function profileUpdateEscape(value){
+    const div=document.createElement('div');
+    div.textContent=String(value??'');
+    return div.innerHTML;
+  }
+
+  function showProfileUpdateMessage(kind,message){
+    const errorBox=document.getElementById('profile-update-error');
+    const successBox=document.getElementById('profile-update-success');
+    errorBox.className='profile-update-error';
+    successBox.className='profile-update-success';
+    errorBox.textContent='';
+    successBox.textContent='';
+    if(kind==='error'){
+      errorBox.textContent=message;
+      errorBox.classList.add('show');
+    }else if(kind==='success'){
+      successBox.textContent=message;
+      successBox.classList.add('show');
+    }
+  }
+
+  async function loadProfileUpdateRequests(){
+    if(!currentUserId) return [];
+    const {data,error}=await sb
+      .from('employer_profile_update_requests')
+      .select('id,field_key,current_value,requested_value,reason,status,admin_note,created_at,reviewed_at')
+      .eq('employer_id',currentUserId)
+      .order('created_at',{ascending:false})
+      .limit(20);
+
+    if(error){
+      console.warn('Company profile update requests are not available yet:',error);
+      pendingProfileUpdateRequests=[];
+      updateProfileUpdateStatus();
+      return [];
+    }
+
+    pendingProfileUpdateRequests=(data||[]).filter(item=>item.status==='pending');
+    updateProfileUpdateStatus();
+    renderPendingProfileUpdates();
+    return data||[];
+  }
+
+  function updateProfileUpdateStatus(){
+    const box=document.getElementById('profile-update-status');
+    if(!box) return;
+    const count=pendingProfileUpdateRequests.length;
+    if(!count){
+      box.style.display='none';
+      box.textContent='';
+      return;
+    }
+    box.style.display='block';
+    box.textContent=count===1
+      ? '1 company profile update is pending Alygnn review. Your verified information stays unchanged until it is approved.'
+      : `${count} company profile updates are pending Alygnn review. Your verified information stays unchanged until they are approved.`;
+  }
+
+  function renderPendingProfileUpdates(){
+    const wrap=document.getElementById('profile-update-pending');
+    const list=document.getElementById('profile-update-pending-list');
+    if(!wrap||!list) return;
+
+    if(!pendingProfileUpdateRequests.length){
+      wrap.style.display='none';
+      list.innerHTML='';
+      return;
+    }
+
+    wrap.style.display='block';
+    list.innerHTML=pendingProfileUpdateRequests.map(item=>`
+      <div class="profile-update-pending-item">
+        <span><strong>${profileUpdateEscape(profileUpdateFieldLabel(item.field_key))}</strong><br>${profileUpdateEscape(item.requested_value||'')}</span>
+        <span>Pending review</span>
+      </div>
+    `).join('');
+  }
+
+  function handleProfileUpdateFieldChange(){
+    const fieldKey=document.getElementById('profile-update-field')?.value||'company_name';
+    const config=PROFILE_UPDATE_FIELDS[fieldKey];
+    const currentBox=document.getElementById('profile-update-current');
+    const newValue=document.getElementById('profile-update-new-value');
+    const required=document.getElementById('profile-update-document-required');
+    const note=document.getElementById('profile-update-file-note');
+    const submit=document.getElementById('profile-update-submit');
+
+    if(currentBox) currentBox.textContent=profileUpdateCurrentValue(fieldKey)||'Not provided';
+    if(newValue){
+      newValue.value='';
+      newValue.maxLength=fieldKey==='company_headline'?200:500;
+      newValue.placeholder=`Enter the new ${String(config?.label||'information').toLowerCase()}`;
+    }
+
+    if(config?.documentRequired){
+      required.textContent='(required)';
+      note.textContent='Required for this identity-sensitive change. PDF, JPG, or PNG up to 10 MB.';
+    }else{
+      required.textContent='(optional)';
+      note.textContent='Optional for this change. PDF, JPG, or PNG up to 10 MB.';
+    }
+
+    const alreadyPending=pendingProfileUpdateRequests.some(item=>item.field_key===fieldKey);
+    if(submit){
+      submit.disabled=alreadyPending;
+      submit.textContent=alreadyPending?'Already pending':'Submit request';
+    }
+
+    showProfileUpdateMessage('','');
+  }
+
+  async function openProfileUpdateModal(event){
+    if(event) event.preventDefault();
+    await loadProfileUpdateRequests();
+
+    const reason=document.getElementById('profile-update-reason');
+    const file=document.getElementById('profile-update-document');
+    if(reason) reason.value='';
+    if(file) file.value='';
+
+    handleProfileUpdateFieldChange();
+    renderPendingProfileUpdates();
+    document.getElementById('profile-update-overlay')?.classList.add('show');
+    document.body.style.overflow='hidden';
+  }
+
+  function closeProfileUpdateModal(){
+    document.getElementById('profile-update-overlay')?.classList.remove('show');
+    document.body.style.overflow='';
+    showProfileUpdateMessage('','');
+  }
+
+  function safeProfileUpdateFileName(name){
+    return String(name||'document')
+      .replace(/[^a-zA-Z0-9._-]+/g,'-')
+      .replace(/^-+|-+$/g,'')
+      .slice(-120)||'document';
+  }
+
+  async function uploadProfileUpdateDocument(fieldKey,file){
+    if(!file) return null;
+    if(file.size>10*1024*1024) throw new Error('Supporting documents must be 10 MB or smaller.');
+    const allowed=['application/pdf','image/jpeg','image/png'];
+    if(!allowed.includes(file.type)) throw new Error('Upload a PDF, JPG, or PNG supporting document.');
+
+    const path=`${currentUserId}/${fieldKey}/${Date.now()}-${safeProfileUpdateFileName(file.name)}`;
+    const {error}=await sb.storage
+      .from(PROFILE_UPDATE_BUCKET)
+      .upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
+    if(error) throw error;
+    return path;
+  }
+
+  async function submitProfileUpdateRequest(){
+    if(!currentUserId) return;
+
+    const fieldKey=document.getElementById('profile-update-field')?.value||'';
+    const config=PROFILE_UPDATE_FIELDS[fieldKey];
+    const requestedValue=document.getElementById('profile-update-new-value')?.value.trim()||'';
+    const reason=document.getElementById('profile-update-reason')?.value.trim()||'';
+    const file=document.getElementById('profile-update-document')?.files?.[0]||null;
+    const submit=document.getElementById('profile-update-submit');
+
+    if(!config) return showProfileUpdateMessage('error','Choose what you want to change.');
+    if(!requestedValue) return showProfileUpdateMessage('error','Enter the new information you want Alygnn to review.');
+    if(requestedValue===profileUpdateCurrentValue(fieldKey)) return showProfileUpdateMessage('error','That information already matches your current company profile.');
+    if(reason.length<5) return showProfileUpdateMessage('error','Add a short reason for the change.');
+    if(config.documentRequired&&!file) return showProfileUpdateMessage('error',`Upload a supporting document for the ${config.label.toLowerCase()} change.`);
+
+    let uploadedPath=null;
+    submit.disabled=true;
+    submit.textContent='Submitting…';
+    showProfileUpdateMessage('','');
+
+    try{
+      uploadedPath=await uploadProfileUpdateDocument(fieldKey,file);
+
+      const {error}=await sb.rpc('submit_employer_profile_update_request',{
+        p_field_key:fieldKey,
+        p_requested_value:requestedValue,
+        p_reason:reason,
+        p_supporting_document_path:uploadedPath
+      });
+
+      if(error) throw error;
+
+      showProfileUpdateMessage('success','Request submitted. Your current verified information will stay unchanged while Alygnn reviews it.');
+      await loadProfileUpdateRequests();
+      handleProfileUpdateFieldChange();
+
+      setTimeout(closeProfileUpdateModal,1200);
+    }catch(error){
+      console.error('Company profile update request failed:',error);
+      if(uploadedPath){
+        try{ await sb.storage.from(PROFILE_UPDATE_BUCKET).remove([uploadedPath]); }catch(_){}
+      }
+      showProfileUpdateMessage('error',error.message||'Could not submit this request. Please try again.');
+      submit.disabled=false;
+      submit.textContent='Submit request';
+    }
+  }
 
   async function waitForSession(maxWaitMs = 5000) {
     const started = Date.now();
@@ -1179,8 +1485,14 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         ['launch','growth','scale','weekly_slot','business','enterprise'].includes(plan)
       );
 
-    const limit = activePaid ? accountPaidLimit(ent) : 1;
+    let limit = activePaid ? accountPaidLimit(ent) : 1;
     const used = accountActiveSlotCount();
+
+    // Unified server capacity includes temporary Weekly slots as add-ons.
+    const accessResult = await sb.rpc('get_employer_posting_access');
+    if (!accessResult.error && accessResult.data) {
+      limit = Math.max(0, Number(accessResult.data.slot_limit || limit));
+    }
 
     accountPostingAccess = {
       allowed: used < limit,
@@ -1702,6 +2014,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       verification_status: 'not_submitted'
     };
 
+    const verifiedForProfileUpdates =
+      currentProfile?.employer_verified === true ||
+      String(currentProfile?.verification_status || '').toLowerCase() === 'approved';
+
     // A brand-new employer (never submitted a business profile) shouldn't
     // land on the account page at all — send them straight into guided
     // onboarding instead of showing the half-empty account view.
@@ -1730,6 +2046,11 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       headlineEl.textContent = profile.company_headline;
       headlineEl.classList.remove('headline-empty');
     }
+
+    headlineEl.contentEditable = verifiedForProfileUpdates ? 'false' : 'true';
+    headlineEl.title = verifiedForProfileUpdates
+      ? 'Verified company profile changes require Alygnn review.'
+      : '';
     if (profile?.company_website) websiteEl.value = profile.company_website;
     if (profile?.company_phone)   phoneEl.value   = profile.company_phone;
     if (profile?.business_email) businessEmailEl.value = profile.business_email;
@@ -1738,6 +2059,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     document.getElementById('nav-name').textContent = displayName;
 
     updateVerificationBanner();
+    await loadProfileUpdateRequests();
     await loadEmployerJobs();
     await loadAccountPostingAccess();
     await loadCandidates();
