@@ -373,6 +373,70 @@ function weeklySlotCount(){
   return Number.isFinite(count)&&count>0?Math.floor(count):0;
 }
 
+function activePlanCode(){
+  const raw=String(
+    postingAccess?.test_plan||
+    postingAccess?.plan||
+    entitlement?.test_plan||
+    entitlement?.plan||
+    'free'
+  ).toLowerCase();
+
+  if(raw==='business') return 'launch';
+  if(raw==='enterprise') return 'scale';
+  return raw;
+}
+
+function activeBillingPeriod(){
+  const raw=String(
+    postingAccess?.billing_period||
+    entitlement?.billing_period||
+    'monthly'
+  ).toLowerCase();
+
+  return raw==='quarterly'?'quarterly':'monthly';
+}
+
+function nextUpgradePlan(){
+  const explicit=String(
+    postingAccess?.recommended_upgrade_plan||''
+  ).toLowerCase();
+
+  if(['growth','scale'].includes(explicit))return explicit;
+
+  const current=activePlanCode();
+  if(current==='launch')return'growth';
+  if(current==='growth')return'scale';
+
+  return'';
+}
+
+function weeklyUpgradeRecommended(){
+  return basePaidPlanActive()
+    && weeklySlotCount()>=1
+    && !!nextUpgradePlan();
+}
+
+function upgradeSavingsCopy(){
+  const next=nextUpgradePlan();
+  const current=activePlanCode();
+  const period=activeBillingPeriod();
+
+  const currentItem=CATALOG[period]?.[current];
+  const nextItem=CATALOG[period]?.[next];
+
+  if(!currentItem||!nextItem)return'';
+
+  const difference=nextItem.price-currentItem.price;
+  const extraBaseSlots=
+    (nextItem.slots+1)-
+    (currentItem.slots+1);
+
+  return period==='quarterly'
+    ? `${nextItem.name} adds ${extraBaseSlots} more base slots for $${difference.toLocaleString('en-US')} more per 3-month term.`
+    : `${nextItem.name} adds ${extraBaseSlots} more base slots for $${difference.toLocaleString('en-US')} more per month.`;
+}
+
 function planLabel(){
   const raw=String(
     postingAccess?.test_plan||
@@ -504,8 +568,19 @@ function renderSlotGateNotice(){
   $('slot-gate-title').textContent='Add capacity to post another job.';
 
   if(basePaidPlanActive()){
-    $('slot-gate-copy').textContent=
-      `You are using all ${limit} available slots. Add a Weekly Job Slot for $99 to reach ${limit+1} total slots for 7 days.`;
+    if(weeklyUpgradeRecommended()){
+      const next=nextUpgradePlan();
+      const nextName=next==='growth'?'Growth':'Scale';
+
+      $('slot-gate-title').textContent=
+        `Upgrade to ${nextName} and save on ongoing capacity.`;
+
+      $('slot-gate-copy').textContent=
+        `You already added one $99 Weekly Job Slot and all ${limit} slots are in use. ${upgradeSavingsCopy()} That is better ongoing value than stacking another $99 weekly slot.`;
+    }else{
+      $('slot-gate-copy').textContent=
+        `You are using all ${limit} available slots. Add one Weekly Job Slot for $99 to reach ${limit+1} total slots for 7 days.`;
+    }
   }else if(!standaloneSecondSlotActive()){
     $('slot-gate-copy').textContent=
       `Your included free slot is in use. Choose the $150/month Second Job Slot for ongoing two-job capacity, or add a $99 Weekly Job Slot for 7 days.`;
@@ -539,7 +614,7 @@ function renderCurrent(){
   $('free-btn').textContent=hasAvailableSlot
     ? `Post a Job — ${limit-used} slot${limit-used===1?'':'s'} available`
     : paidPlanActive
-      ? `${used} / ${limit} plan slots in use`
+      ? `${used} / ${limit} total slots in use`
       : `All ${limit} slot${limit===1?' is':'s are'} in use`;
 
   const secondSection=$('additional-slot');
@@ -580,44 +655,129 @@ function renderCurrent(){
 }
 
 function renderPlans(){
-  const plans=CATALOG[billing];
   const currentLimit=effectiveSlotLimit();
 
-  $('plan-list').innerHTML=Object.entries(plans).map(([key,p])=>`
-    <article class="plan ${p.popular?'popular':''}">
-      ${p.popular?'<div class="plan-tag">Most popular</div>':''}
-      <div class="plan-kicker">${p.name}</div>
-      <div class="plan-price-row">
-        <div class="plan-price">$${Number(p.price).toLocaleString('en-US')}</div>
-        <div class="plan-suffix">${p.suffix}</div>
-      </div>
-      <div class="plan-slots">${
-        key==='weekly_slot'
-          ? `+1 reusable job slot · ${currentLimit+1} total while active`
-          : `${p.slots} plan job slots + 1 included free = ${p.slots+1} total`
-      }</div>
-      <ul class="features">${p.features.map(x=>`<li>${x}</li>`).join('')}</ul>
-      <button class="btn ${p.popular?'primary':'secondary'} full" type="button" data-plan="${key}">
-        ${key==='weekly_slot'
-          ? `Add 1 Weekly Job Slot — $99`
-          : `Choose ${p.name}`}
-      </button>
-    </article>
-  `).join('');
+  // If a Launch/Growth customer already has one active Weekly slot,
+  // stop stacking weekly extras and recommend the next plan.
+  if(billing==='weekly' && weeklyUpgradeRecommended()){
+    const current=activePlanCode();
+    const next=nextUpgradePlan();
+    const period=activeBillingPeriod();
 
-  const secondSection=$('additional-slot');
-  if(secondSection){
-    secondSection.hidden=billing!=='monthly' || basePaidPlanActive();
+    const currentItem=CATALOG[period]?.[current];
+    const nextItem=CATALOG[period]?.[next];
+
+    const nextName=next==='growth'?'Growth':'Scale';
+    const difference=
+      currentItem&&nextItem
+        ? nextItem.price-currentItem.price
+        : null;
+
+    const priceSuffix=
+      period==='quarterly'
+        ?'/ 3 months'
+        :'/ month';
+
+    $('plan-list').innerHTML=`
+      <article class="plan popular">
+        <div class="plan-tag">Recommended</div>
+        <div class="plan-kicker">Upgrade to ${nextName}</div>
+
+        <div class="plan-price-row">
+          <div class="plan-price">$${Number(nextItem?.price||0).toLocaleString('en-US')}</div>
+          <div class="plan-suffix">${priceSuffix}</div>
+        </div>
+
+        <div class="plan-slots">
+          ${nextItem
+            ? `${nextItem.slots} plan job slots + 1 included free = ${nextItem.slots+1} base total`
+            : `More ongoing hiring capacity`
+          }
+        </div>
+
+        <ul class="features">
+          <li>You already have one active $99 Weekly Job Slot</li>
+          <li>${difference!=null
+            ? `Upgrade costs only $${difference.toLocaleString('en-US')} more ${period==='quarterly'?'per 3-month term':'per month'} than your current plan`
+            : 'Move to the next plan for better ongoing capacity'
+          }</li>
+          <li>Avoid stacking another $99 temporary weekly slot</li>
+          <li>Your current paid period is credited when upgrading</li>
+        </ul>
+
+        <button
+          class="btn primary full"
+          type="button"
+          id="recommended-upgrade-btn">
+          Upgrade to ${nextName}
+        </button>
+      </article>
+    `;
+
+    $('recommended-upgrade-btn').onclick=()=>{
+      location.href=
+        'app-employer-billing.html?manage=plans&recommended='+
+        encodeURIComponent(next);
+    };
+
+  }else{
+    const plans=CATALOG[billing];
+
+    $('plan-list').innerHTML=Object.entries(plans).map(([key,p])=>`
+      <article class="plan ${p.popular?'popular':''}">
+        ${p.popular?'<div class="plan-tag">Most popular</div>':''}
+
+        <div class="plan-kicker">${p.name}</div>
+
+        <div class="plan-price-row">
+          <div class="plan-price">$${Number(p.price).toLocaleString('en-US')}</div>
+          <div class="plan-suffix">${p.suffix}</div>
+        </div>
+
+        <div class="plan-slots">${
+          key==='weekly_slot'
+            ? `+1 reusable job slot · ${currentLimit+1} total while active`
+            : `${p.slots} plan job slots + 1 included free = ${p.slots+1} total`
+        }</div>
+
+        <ul class="features">
+          ${p.features.map(x=>`<li>${x}</li>`).join('')}
+        </ul>
+
+        <button
+          class="btn ${p.popular?'primary':'secondary'} full"
+          type="button"
+          data-plan="${key}">
+          ${key==='weekly_slot'
+            ? 'Add 1 Weekly Job Slot — $99'
+            : `Choose ${p.name}`
+          }
+        </button>
+      </article>
+    `).join('');
+
+    document.querySelectorAll('[data-plan]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const selected=btn.dataset.plan;
+
+        location.href=
+          'app-employer-payment.html?plan='+
+          encodeURIComponent(selected)+
+          '&billing='+
+          encodeURIComponent(billing);
+      });
+    });
   }
 
-  document.querySelectorAll('[data-plan]').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const selected=btn.dataset.plan;
-      location.href='app-employer-payment.html?plan='+encodeURIComponent(selected)+'&billing='+encodeURIComponent(billing);
-    });
-  });
-}
+  const secondSection=$('additional-slot');
 
+  if(secondSection){
+    // Second Job Slot exists ONLY for Free employers.
+    secondSection.hidden=
+      billing!=='monthly' ||
+      basePaidPlanActive();
+  }
+}
 function switchBilling(next){
   billing=CATALOG[next]?next:'quarterly';
   document.querySelectorAll('[data-billing]').forEach(btn=>{
