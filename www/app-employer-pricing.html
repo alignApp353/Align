@@ -419,7 +419,7 @@ function entitlementActive(){
   return Number.isNaN(time)||time>Date.now();
 }
 
-function defaultBaseLimit(){
+function defaultPlanLimit(){
   const raw=String(
     postingAccess?.test_plan||
     postingAccess?.plan||
@@ -430,9 +430,9 @@ function defaultBaseLimit(){
 
   if(raw==='growth') return 5;
   if(raw==='scale') return 8;
-  if(raw==='enterprise') return Number(entitlement?.slot_limit||15);
+  if(raw==='enterprise') return Number(entitlement?.slot_limit||8);
   if(raw==='launch'||raw==='business') return 3;
-  return 1;
+  return 0;
 }
 
 function jobConsumesSlot(job){
@@ -460,9 +460,13 @@ function effectiveSlotLimit(){
       :rpcLimit;
   }
 
+  // Plan capacity is always plan slots PLUS one included free slot.
   let liveLimit=basePaidPlanActive()
-    ?Math.max(1,Number(entitlement?.slot_limit||defaultBaseLimit()))
-    :1;
+    ? Math.max(
+        1,
+        Number(entitlement?.slot_limit||defaultPlanLimit()) + 1
+      )
+    : 1;
 
   if(standaloneSecondSlotActive()) liveLimit+=1;
   liveLimit+=weeklySlotCount();
@@ -501,7 +505,7 @@ function renderSlotGateNotice(){
 
   if(basePaidPlanActive()){
     $('slot-gate-copy').textContent=
-      `You are using ${used} of ${limit} plan slots. Add a Weekly Job Slot for $99 to reach ${limit+1} total slots for 7 days.`;
+      `You are using all ${limit} available slots. Add a Weekly Job Slot for $99 to reach ${limit+1} total slots for 7 days.`;
   }else if(!standaloneSecondSlotActive()){
     $('slot-gate-copy').textContent=
       `Your included free slot is in use. Choose the $150/month Second Job Slot for ongoing two-job capacity, or add a $99 Weekly Job Slot for 7 days.`;
@@ -590,7 +594,7 @@ function renderPlans(){
       <div class="plan-slots">${
         key==='weekly_slot'
           ? `+1 reusable job slot · ${currentLimit+1} total while active`
-          : `${p.slots} active reusable job slot${p.slots===1?'':'s'}`
+          : `${p.slots} plan job slots + 1 included free = ${p.slots+1} total`
       }</div>
       <ul class="features">${p.features.map(x=>`<li>${x}</li>`).join('')}</ul>
       <button class="btn ${p.popular?'primary':'secondary'} full" type="button" data-plan="${key}">
