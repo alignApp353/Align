@@ -626,6 +626,192 @@ async function upgradeNow({employerId,ent,sub,targetPlan,billing}){
 }
 
 
+
+function stripeCustomerId(sub,ent){
+  return (
+    (typeof sub?.customer==='string' ? sub.customer : sub?.customer?.id) ||
+    ent?.stripe_plan_customer_id ||
+    null
+  );
+}
+
+function normalizePaymentMethod(pm){
+  if(!pm || typeof pm!=='object')return null;
+
+  if(pm.type==='card' && pm.card){
+    return {
+      type:'card',
+      brand:String(pm.card.brand||'card').toLowerCase(),
+      last4:String(pm.card.last4||''),
+      exp_month:Number(pm.card.exp_month||0)||null,
+      exp_year:Number(pm.card.exp_year||0)||null
+    };
+  }
+
+  return {
+    type:String(pm.type||'payment_method'),
+    brand:String(pm.type||'payment method'),
+    last4:'',
+    exp_month:null,
+    exp_year:null
+  };
+}
+
+async function customerSnapshot(customerId,sub){
+  if(!customerId)return {
+    customer_id:null,
+    email:null,
+    payment_method:null,
+    invoices:[]
+  };
+
+  let customer=null;
+  try{
+    customer=await manageStripe(
+      'GET',
+      'customers/'+encodeURIComponent(customerId),
+      {'expand[]':'invoice_settings.default_payment_method'}
+    );
+  }catch(error){
+    console.warn('Could not load Stripe customer:',error?.message||error);
+  }
+
+  let pm=
+    customer?.invoice_settings?.default_payment_method ||
+    sub?.default_payment_method ||
+    null;
+
+  if(typeof pm==='string'){
+    try{
+      pm=await manageStripe(
+        'GET',
+        'payment_methods/'+encodeURIComponent(pm)
+      );
+    }catch(error){
+      console.warn('Could not load Stripe payment method:',error?.message||error);
+      pm=null;
+    }
+  }
+
+  let invoices=[];
+  try{
+    const result=await manageStripe('GET','invoices',{
+      customer:customerId,
+      limit:8
+    });
+
+    invoices=(result?.data||[]).map(invoice=>({
+      id:invoice.id,
+      number:invoice.number||null,
+      created:invoice.created
+        ? new Date(Number(invoice.created)*1000).toISOString()
+        : null,
+      status:String(invoice.status||'').toLowerCase(),
+      amount_paid_cents:Number(invoice.amount_paid||0),
+      amount_due_cents:Number(invoice.amount_due||0),
+      currency:String(invoice.currency||'usd').toLowerCase(),
+      hosted_invoice_url:invoice.hosted_invoice_url||null,
+      invoice_pdf:invoice.invoice_pdf||null,
+      description:
+        invoice.lines?.data?.[0]?.description ||
+        invoice.description ||
+        null
+    }));
+  }catch(error){
+    console.warn('Could not load Stripe invoice history:',error?.message||error);
+  }
+
+  return {
+    customer_id:customerId,
+    email:customer?.email||null,
+    payment_method:normalizePaymentMethod(pm),
+    invoices
+  };
+}
+
+function calculateNextPlanCharge(ent,sub){
+  const currentPlan=subscriptionPlan(ent,sub);
+  const billing=subscriptionBilling(ent,sub);
+
+  if(
+    sub?.cancel_at_period_end===true ||
+    (
+      String(ent?.pending_plan||'').toLowerCase()==='free' &&
+      !!ent?.pending_plan_effective_at
+    )
+  ){
+    return 0;
+  }
+
+  const pending=String(ent?.pending_plan||'').toLowerCase();
+  const pendingBilling=String(
+    ent?.pending_billing_period||billing
+  ).toLowerCase();
+
+  if(MANAGE_CATALOG[pendingBilling]?.[pending]){
+    return MANAGE_CATALOG[pendingBilling][pending].cents;
+  }
+
+  return MANAGE_CATALOG[billing]?.[currentPlan]?.cents ??
+    Number(ent?.plan_amount_cents||0);
+}
+
+async function billingAccountSummary(user,ent,planSub,secondSub){
+  const ids=[
+    stripeCustomerId(planSub,ent),
+    typeof secondSub?.customer==='string'
+      ? secondSub.customer
+      : secondSub?.customer?.id
+  ].filter(Boolean);
+
+  const uniqueIds=[...new Set(ids)];
+  const snapshots=[];
+
+  for(const customerId of uniqueIds){
+    const related=
+      stripeCustomerId(planSub,ent)===customerId
+        ? planSub
+        : secondSub;
+
+    snapshots.push(
+      await customerSnapshot(customerId,related)
+    );
+  }
+
+  const paymentMethod=
+    snapshots.map(row=>row.payment_method).find(Boolean) ||
+    null;
+
+  const stripeEmail=
+    snapshots.map(row=>row.email).find(Boolean) ||
+    null;
+
+  const invoices=[];
+  const seen=new Set();
+
+  for(const snap of snapshots){
+    for(const invoice of snap.invoices||[]){
+      if(!invoice?.id || seen.has(invoice.id))continue;
+      seen.add(invoice.id);
+      invoices.push(invoice);
+    }
+  }
+
+  invoices.sort((a,b)=>{
+    const at=a?.created?new Date(a.created).getTime():0;
+    const bt=b?.created?new Date(b.created).getTime():0;
+    return bt-at;
+  });
+
+  return {
+    billing_email:stripeEmail||user?.email||null,
+    payment_method:paymentMethod,
+    invoices:invoices.slice(0,8),
+    stripe_customer_count:uniqueIds.length,
+    next_plan_charge_cents:calculateNextPlanCharge(ent,planSub)
+  };
+}
+
 async function runManageAction(res,user,input){
   const action=String(input.action||'summary').toLowerCase();
 
@@ -635,17 +821,44 @@ async function runManageAction(res,user,input){
 
   if(action==='summary'){
     let secondSlot=null;
+
     try{
       secondSlot=await resolveSecondSlotSubscription(user.id);
     }catch(error){
-      console.warn('Could not resolve Second Job Slot subscription:',error?.message||error);
+      console.warn(
+        'Could not resolve Second Job Slot subscription:',
+        error?.message||error
+      );
+    }
+
+    let billingAccount={
+      billing_email:user?.email||null,
+      payment_method:null,
+      invoices:[],
+      stripe_customer_count:0,
+      next_plan_charge_cents:calculateNextPlanCharge(ent,sub)
+    };
+
+    try{
+      billingAccount=await billingAccountSummary(
+        user,
+        ent,
+        sub,
+        secondSlot
+      );
+    }catch(error){
+      console.warn(
+        'Could not load billing account summary:',
+        error?.message||error
+      );
     }
 
     return send(res,200,{
       ok:true,
       summary:{
         ...subscriptionSummary(ent,sub),
-        second_job_slot:secondSlotSummary(secondSlot)
+        second_job_slot:secondSlotSummary(secondSlot),
+        billing_account:billingAccount
       }
     });
   }
