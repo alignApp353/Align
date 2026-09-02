@@ -172,10 +172,13 @@
     line-height:1.55;
     text-align:center;
   }
+
+  /* Do not flash the admin-login screen for an already authenticated admin. */
+  body.admin-session-checking .card{ visibility:hidden; }
 </style>
 </head>
 
-<body>
+<body class="admin-session-checking">
 <main class="card">
   <div class="logo">Alygnn<span>.</span></div>
   <div class="pill">ADMIN ACCESS</div>
@@ -183,25 +186,16 @@
   <h1>Admin sign in</h1>
   <p class="sub">Sign in with an Alygnn administrator account to review and manually verify employer businesses.</p>
 
-  <div id="form-fields">
-    <label for="email">Admin email</label>
-    <input id="email" type="email" autocomplete="username" placeholder="you@company.com">
+  <label for="email">Admin email</label>
+  <input id="email" type="email" autocomplete="username" placeholder="admin@alygnn.com">
 
-    <label for="password">Password</label>
-    <div class="password-wrap">
-      <input id="password" type="password" autocomplete="current-password" placeholder="Enter your password">
-      <button class="show" id="show-password" type="button">Show</button>
-    </div>
-
-    <button class="primary" id="sign-in" type="button">Sign in to Admin</button>
+  <label for="password">Password</label>
+  <div class="password-wrap">
+    <input id="password" type="password" autocomplete="current-password" placeholder="Enter your password">
+    <button class="show" id="show-password" type="button">Show</button>
   </div>
 
-  <div id="already-signed-in" style="display:none">
-    <div class="message show success" id="already-signed-in-message"></div>
-    <button class="primary" id="continue-btn" type="button">Continue to Admin →</button>
-    <button class="primary" id="use-different-btn" type="button" style="margin-top:10px;background:transparent;color:var(--muted);border:1px solid var(--border)">Sign out &amp; use a different account</button>
-  </div>
-
+  <button class="primary" id="sign-in" type="button">Sign in to Admin</button>
   <div class="message" id="message"></div>
 
   <a class="back" href="login.html">← Back to regular sign in</a>
@@ -216,18 +210,10 @@ const SUPABASE_URL='https://auth.alygnn.com';
 const SUPABASE_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
 const DESTINATION='employer-verification-admin.html';
 
-// Admin sessions use sessionStorage instead of the default localStorage so
-// they end automatically when the tab/browser closes — a deliberate
-// trade-off for this console (re-login each new session) that regular
-// employer/job-seeker accounts do not use. Note: browsers intentionally
-// restore sessionStorage when a closed tab is reopened or duplicated, so a
-// lingering session can still surface here — which is exactly why we no
-// longer auto-redirect on it below. It's always shown plainly and always
-// requires an explicit click before it's used.
 const sb=supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY,
-  {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.sessionStorage}}
+  {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
 );
 
 const email=document.getElementById('email');
@@ -304,33 +290,29 @@ async function signIn(){
 }
 
 async function redirectIfAlreadyAdmin(){
-  const {data:{session}}=await sb.auth.getSession();
-  if(!session) return;
-
   try{
-    const isAdmin=await checkAdmin(session.user.id);
-    if(isAdmin){
-      document.getElementById('form-fields').style.display='none';
-      document.getElementById('already-signed-in').style.display='block';
-      document.getElementById('already-signed-in-message').textContent=
-        `You're already signed in as ${session.user.email}.`;
-      return;
+    const {data:{session},error}=await sb.auth.getSession();
+    if(error) throw error;
+
+    if(session){
+      const isAdmin=await checkAdmin(session.user.id);
+
+      if(isAdmin){
+        // Already authenticated: go straight to the existing verification page.
+        // The admin-login screen never becomes visible.
+        location.replace(DESTINATION);
+        return;
+      }
+
+      await sb.auth.signOut().catch(()=>{});
     }
-    await sb.auth.signOut();
   }catch(error){
     console.error('Admin session check failed:',error);
   }
+
+  // Only show this page when there is no valid admin session.
+  document.body.classList.remove('admin-session-checking');
 }
-
-document.getElementById('continue-btn').addEventListener('click',()=>{
-  location.replace(DESTINATION);
-});
-
-document.getElementById('use-different-btn').addEventListener('click',async()=>{
-  await sb.auth.signOut();
-  document.getElementById('already-signed-in').style.display='none';
-  document.getElementById('form-fields').style.display='block';
-});
 
 document.getElementById('show-password').addEventListener('click',()=>{
   const hidden=password.type==='password';
