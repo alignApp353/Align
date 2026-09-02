@@ -325,10 +325,189 @@ function subscriptionSummary(ent,sub){
     pending_plan:ent?.pending_plan||null,
     pending_billing_period:ent?.pending_billing_period||null,
     pending_plan_effective_at:ent?.pending_plan_effective_at||null,
+    cancel_at_period_end:
+      sub?.cancel_at_period_end===true ||
+      (
+        String(ent?.pending_plan||'').toLowerCase()==='free' &&
+        !!ent?.pending_plan_effective_at
+      ),
+    cancel_effective_at:
+      sub?.cancel_at_period_end===true && sub?.current_period_end
+        ? new Date(Number(sub.current_period_end)*1000).toISOString()
+        : (
+            String(ent?.pending_plan||'').toLowerCase()==='free'
+              ? ent?.pending_plan_effective_at||null
+              : null
+          ),
     stripe_subscription_id:sub?.id||ent?.stripe_plan_subscription_id||null,
     managed_subscription:!!sub
   };
 }
+
+async function searchSubscriptionByProduct(employerId,product){
+  const q=`metadata[\"employer_id\"]:\"${employerId}\" AND metadata[\"product\"]:\"${product}\"`;
+  const found=await manageStripe('GET','subscriptions/search',{query:q,limit:20});
+  const rows=(found?.data||[])
+    .filter(row=>!['canceled','incomplete_expired'].includes(String(row.status||'')));
+  rows.sort((a,b)=>(b.created||0)-(a.created||0));
+  return rows[0]||null;
+}
+
+async function resolveSecondSlotSubscription(employerId){
+  let sub=await searchSubscriptionByProduct(employerId,'additional_slot');
+  if(!sub)sub=await searchSubscriptionByProduct(employerId,'single_job');
+  return sub;
+}
+
+function secondSlotSummary(sub){
+  if(!sub)return {
+    managed_subscription:false,
+    subscription_status:null,
+    current_period_end:null,
+    cancel_at_period_end:false,
+    cancel_effective_at:null
+  };
+
+  return {
+    managed_subscription:true,
+    subscription_status:String(sub.status||'').toLowerCase(),
+    current_period_end:sub.current_period_end
+      ? new Date(Number(sub.current_period_end)*1000).toISOString()
+      : null,
+    cancel_at_period_end:sub.cancel_at_period_end===true,
+    cancel_effective_at:
+      sub.cancel_at_period_end===true && sub.current_period_end
+        ? new Date(Number(sub.current_period_end)*1000).toISOString()
+        : null,
+    stripe_subscription_id:sub.id||null
+  };
+}
+
+async function cancelPlanAtRenewal({employerId,ent,sub}){
+  const effectiveIso=
+    sub?.current_period_end
+      ? new Date(Number(sub.current_period_end)*1000).toISOString()
+      : ent?.current_period_end||null;
+
+  if(sub&&subscriptionIsActive(sub)){
+    // A scheduled downgrade and a scheduled cancellation should never coexist.
+    await releaseSchedule(sub,ent);
+
+    const updated=await manageStripe(
+      'POST',
+      'subscriptions/'+encodeURIComponent(sub.id),
+      {cancel_at_period_end:'true'}
+    );
+
+    const endIso=updated.current_period_end
+      ? new Date(Number(updated.current_period_end)*1000).toISOString()
+      : effectiveIso;
+
+    await patchEntitlement(employerId,{
+      stripe_plan_schedule_id:null,
+      pending_plan:null,
+      pending_billing_period:null,
+      pending_plan_effective_at:null
+    });
+
+    return {
+      change:'cancellation_scheduled',
+      effective_at:endIso,
+      cancel_at_period_end:true
+    };
+  }
+
+  // Developer test plans are prepaid test terms rather than Stripe subscriptions.
+  // Scheduling "free" lets the app demonstrate the same cancel-at-renewal UX.
+  if(ent?.test_mode===true && recurringPlan(ent) && entitlementLooksActive(ent)){
+    if(!effectiveIso)throw new Error('Could not determine when this test plan ends.');
+
+    await patchEntitlement(employerId,{
+      stripe_plan_schedule_id:null,
+      pending_plan:'free',
+      pending_billing_period:'free',
+      pending_plan_effective_at:effectiveIso
+    });
+
+    return {
+      change:'cancellation_scheduled',
+      effective_at:effectiveIso,
+      cancel_at_period_end:true,
+      test_mode:true
+    };
+  }
+
+  const error=new Error(
+    'This plan is already prepaid without automatic renewal, so there is no future charge to cancel.'
+  );
+  error.status=409;
+  throw error;
+}
+
+async function resumePlanRenewal({employerId,ent,sub}){
+  if(sub&&sub.cancel_at_period_end===true){
+    await manageStripe(
+      'POST',
+      'subscriptions/'+encodeURIComponent(sub.id),
+      {cancel_at_period_end:'false'}
+    );
+  }
+
+  await patchEntitlement(employerId,{
+    pending_plan:null,
+    pending_billing_period:null,
+    pending_plan_effective_at:null
+  });
+
+  return {
+    change:'cancellation_reversed',
+    cancel_at_period_end:false
+  };
+}
+
+async function cancelSecondSlotAtRenewal({sub}){
+  if(!sub||!subscriptionIsActive(sub)){
+    const error=new Error(
+      'The Second Job Slot does not have an active recurring subscription to cancel.'
+    );
+    error.status=409;
+    throw error;
+  }
+
+  const updated=await manageStripe(
+    'POST',
+    'subscriptions/'+encodeURIComponent(sub.id),
+    {cancel_at_period_end:'true'}
+  );
+
+  return {
+    change:'second_slot_cancellation_scheduled',
+    effective_at:updated.current_period_end
+      ? new Date(Number(updated.current_period_end)*1000).toISOString()
+      : null,
+    cancel_at_period_end:true
+  };
+}
+
+async function resumeSecondSlotRenewal({sub}){
+  if(!sub){
+    const error=new Error('Second Job Slot subscription could not be found.');
+    error.status=409;
+    throw error;
+  }
+
+  await manageStripe(
+    'POST',
+    'subscriptions/'+encodeURIComponent(sub.id),
+    {cancel_at_period_end:'false'}
+  );
+
+  return {
+    change:'second_slot_cancellation_reversed',
+    cancel_at_period_end:false
+  };
+}
+
 async function releaseSchedule(sub,ent){
   const scheduleId=(typeof sub?.schedule==='string'?sub.schedule:sub?.schedule?.id)||ent?.stripe_plan_schedule_id;
   if(!scheduleId)return;
@@ -337,6 +516,14 @@ async function releaseSchedule(sub,ent){
   }
 }
 async function scheduleDowngrade({employerId,ent,sub,currentPlan,targetPlan,billing}){
+  if(sub?.cancel_at_period_end===true){
+    sub=await manageStripe(
+      'POST',
+      'subscriptions/'+encodeURIComponent(sub.id),
+      {cancel_at_period_end:'false'}
+    );
+  }
+
   const item=sub?.items?.data?.[0];
   const currentPriceId=typeof item?.price==='string'?item.price:item?.price?.id;
   if(!item?.id||!currentPriceId)throw new Error('Stripe subscription item could not be identified.');
@@ -397,10 +584,11 @@ async function upgradeNow({employerId,ent,sub,targetPlan,billing}){
   const item=sub?.items?.data?.[0];
   if(!item?.id)throw new Error('Stripe subscription item could not be identified.');
 
-  // A previously scheduled downgrade must be removed before an immediate upgrade.
+  // A previously scheduled downgrade/cancellation must be removed before an immediate upgrade.
   await releaseSchedule(sub,ent);
   const targetPrice=await ensureRecurringPrice(targetPlan,billing);
   const updated=await manageStripe('POST','subscriptions/'+encodeURIComponent(sub.id),{
+    cancel_at_period_end:'false',
     'items[0][id]':item.id,
     'items[0][price]':targetPrice,
     'items[0][quantity]':1,
@@ -446,7 +634,20 @@ async function runManageAction(res,user,input){
   ent=await getEntitlement(user.id);
 
   if(action==='summary'){
-    return send(res,200,{ok:true,summary:subscriptionSummary(ent,sub)});
+    let secondSlot=null;
+    try{
+      secondSlot=await resolveSecondSlotSubscription(user.id);
+    }catch(error){
+      console.warn('Could not resolve Second Job Slot subscription:',error?.message||error);
+    }
+
+    return send(res,200,{
+      ok:true,
+      summary:{
+        ...subscriptionSummary(ent,sub),
+        second_job_slot:secondSlotSummary(secondSlot)
+      }
+    });
   }
 
   if(action==='cancel_scheduled_change'){
@@ -460,14 +661,49 @@ async function runManageAction(res,user,input){
     return send(res,200,{ok:true,change:'scheduled_change_canceled'});
   }
 
-  if(action!=='change_plan')return send(res,400,{error:'Unknown billing action.'});
+  if(action==='cancel_plan'){
+    const result=await cancelPlanAtRenewal({
+      employerId:user.id,
+      ent,
+      sub
+    });
+    return send(res,200,{ok:true,...result});
+  }
+
+  if(action==='resume_plan'){
+    const result=await resumePlanRenewal({
+      employerId:user.id,
+      ent,
+      sub
+    });
+    return send(res,200,{ok:true,...result});
+  }
+
+  if(action==='cancel_second_slot'){
+    const secondSlot=await resolveSecondSlotSubscription(user.id);
+    const result=await cancelSecondSlotAtRenewal({sub:secondSlot});
+    return send(res,200,{ok:true,...result});
+  }
+
+  if(action==='resume_second_slot'){
+    const secondSlot=await resolveSecondSlotSubscription(user.id);
+    const result=await resumeSecondSlotRenewal({sub:secondSlot});
+    return send(res,200,{ok:true,...result});
+  }
+
+  if(action!=='change_plan'){
+    return send(res,400,{error:'Unknown billing action.'});
+  }
 
   const target=String(input.target_plan||'').toLowerCase();
   const current=subscriptionPlan(ent,sub);
   const billing=subscriptionBilling(ent,sub);
   const catalog=MANAGE_CATALOG[billing];
 
-  if(!catalog?.[target])return send(res,400,{error:'Choose Launch, Growth, or Scale.'});
+  if(!catalog?.[target]){
+    return send(res,400,{error:'Choose Launch, Growth, or Scale.'});
+  }
+
   if(!subscriptionIsActive(sub)||!catalog?.[current]){
     return send(res,409,{
       error:'This account does not have a recurring Alygnn plan that can be modified automatically. Choose a plan through secure checkout first.',
@@ -475,11 +711,50 @@ async function runManageAction(res,user,input){
       billing_period:billing
     });
   }
-  if(current===target)return send(res,200,{ok:true,change:'none',message:'You are already on this plan.'});
+
+  if(current===target){
+    return send(res,200,{
+      ok:true,
+      change:'none',
+      message:'You are already on this plan.'
+    });
+  }
+
+  // Choosing another plan means the employer wants billing to continue,
+  // so a previously scheduled cancellation is automatically reversed.
+  if(sub?.cancel_at_period_end===true){
+    sub=await manageStripe(
+      'POST',
+      'subscriptions/'+encodeURIComponent(sub.id),
+      {cancel_at_period_end:'false'}
+    );
+  }
+
+  if(String(ent?.pending_plan||'').toLowerCase()==='free'){
+    await patchEntitlement(user.id,{
+      pending_plan:null,
+      pending_billing_period:null,
+      pending_plan_effective_at:null
+    });
+    ent=await getEntitlement(user.id);
+  }
 
   const result=catalog[target].rank>catalog[current].rank
-    ?await upgradeNow({employerId:user.id,ent,sub,targetPlan:target,billing})
-    :await scheduleDowngrade({employerId:user.id,ent,sub,currentPlan:current,targetPlan:target,billing});
+    ?await upgradeNow({
+        employerId:user.id,
+        ent,
+        sub,
+        targetPlan:target,
+        billing
+      })
+    :await scheduleDowngrade({
+        employerId:user.id,
+        ent,
+        sub,
+        currentPlan:current,
+        targetPlan:target,
+        billing
+      });
 
   return send(res,200,{ok:true,...result});
 }
@@ -499,7 +774,15 @@ module.exports = async function handler(req, res) {
     // Billing & plan management shares this existing Vercel function so the
     // Hobby deployment stays below the Serverless Function limit.
     const billingAction = String(input.action || '').toLowerCase();
-    if (['summary','change_plan','cancel_scheduled_change'].includes(billingAction)) {
+    if ([
+      'summary',
+      'change_plan',
+      'cancel_scheduled_change',
+      'cancel_plan',
+      'resume_plan',
+      'cancel_second_slot',
+      'resume_second_slot'
+    ].includes(billingAction)) {
       return await runManageAction(res, user, input);
     }
 
