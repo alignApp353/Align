@@ -7393,6 +7393,38 @@
     }
 
 
+    function requestedDashboardJobId(){
+      return String(
+        new URLSearchParams(location.search).get('open_job')||''
+      ).trim();
+    }
+
+    function openRequestedDashboardJob(){
+      const id=requestedDashboardJobId();
+      if(!id)return false;
+
+      const exists=state.jobs.some(
+        job=>String(job?.id)===id
+      );
+      if(!exists)return false;
+
+      jobsStatusTab='open';
+      renderJobs();
+      openJobPreview(id);
+
+      const url=new URL(location.href);
+      url.searchParams.delete('open_job');
+      url.searchParams.set('view','jobs');
+      history.replaceState(
+        null,
+        '',
+        url.pathname+url.search
+      );
+
+      return true;
+    }
+
+
     async function handleJobAction(action,id){
       const job = state.jobs.find(item => String(item.id) === String(id));
       if(!job) return;
@@ -8467,6 +8499,7 @@
         }
 
         renderJobs();
+        openRequestedDashboardJob();
         safeCall('Applicants',renderApplicants);
         safeCall('Hero',renderHero);
         safeCall('Metrics',renderMetrics);
@@ -9192,6 +9225,13 @@
 
         await refreshApplicationsForCurrentJobs();
         safeRenderAll();
+
+        const initialParams=new URLSearchParams(location.search);
+        if(initialParams.get('view')==='jobs'){
+          setView('jobs');
+          openRequestedDashboardJob();
+        }
+
       }catch(error){
         console.error('Could not refresh employer live data:',error);
       }finally{
