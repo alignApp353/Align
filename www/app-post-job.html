@@ -124,18 +124,6 @@ label{display:block;margin-bottom:8px;font-size:13px;font-weight:900}
 .chip{border:1px solid var(--border);background:#fff;color:var(--text);border-radius:999px;padding:8px 12px;font-size:11px;font-weight:800}
 .chip.selected{background:#EDF3F9;border-color:var(--brand-dark);color:var(--brand-dark)}
 .quick-note{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.45}
-.custom-add-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:12px}
-.custom-add-input{width:100%;min-height:46px;border:1px solid var(--border);border-radius:14px;background:#fff;color:var(--text);padding:0 13px;font-size:12px;font-weight:700;outline:none}
-.custom-add-input:focus{border-color:var(--brand-dark);box-shadow:0 0 0 3px rgba(52,95,145,.09)}
-.custom-add-btn{min-width:72px;min-height:46px;border:1px solid rgba(52,95,145,.28);border-radius:14px;background:#EDF3F9;color:var(--brand-dark);font-size:12px;font-weight:900}
-.custom-add-btn:active{transform:translateY(1px)}
-.professional-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
-.professional-suggestions[hidden]{display:none!important}
-.professional-suggestion{
-  border:1px solid #C9D9E8;border-radius:999px;background:#F7FAFC;color:var(--brand-dark);
-  padding:7px 10px;font-size:10px;font-weight:800
-}
-.professional-suggestion-label{width:100%;font-size:9px;font-weight:900;color:var(--muted);letter-spacing:.55px;text-transform:uppercase}
 .selection-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
 .selection-head label{margin:0}
 .selection-count{color:var(--muted);font-size:10px;font-weight:800;white-space:nowrap}
@@ -171,17 +159,14 @@ html[data-theme="dark"] .choice,
 html[data-theme="dark"] .secondary,
 html[data-theme="dark"] .suggest-list,
 html[data-theme="dark"] .suggest-item,
-html[data-theme="dark"] .chip,
-html[data-theme="dark"] .custom-add-input{
+html[data-theme="dark"] .chip{
   background:var(--card);color:var(--text)
 }
 html[data-theme="dark"] .company-box{background:#0C1722}
 html[data-theme="dark"] .choice.active,
 html[data-theme="dark"] .chip.selected,
 html[data-theme="dark"] .company-ai-link,
-html[data-theme="dark"] .market-pay-button,
-html[data-theme="dark"] .custom-add-btn{background:#15283A;color:#8EB5DF}
-html[data-theme="dark"] .professional-suggestion{background:#0F1B28;color:#8EB5DF;border-color:#365A7C}
+html[data-theme="dark"] .market-pay-button{background:#15283A;color:#8EB5DF}
 html[data-theme="dark"] .market-pay-card{background:#102131;border-color:#29465E}
 html[data-theme="dark"] .lock{background:#2B2414;border-color:#6D5729;color:#F3D58F}
 html[data-theme="dark"] .loading{background:rgba(7,18,29,.97)}
@@ -227,6 +212,7 @@ html[data-theme="dark"] .spinner{border-color:#2B3A4B;border-top-color:#8EB5DF}
         <label>Company</label>
         <div class="company-box">
           <div class="company-name" id="company-name">Loading company…</div>
+          <div class="company-note">Pulled from your employer profile</div>
         </div>
         <button type="button" class="company-ai-link" id="company-ai-link" hidden>Complete Company AI Profile</button>
       </div>
@@ -319,13 +305,8 @@ html[data-theme="dark"] .spinner{border-color:#2B3A4B;border-top-color:#8EB5DF}
           <label>Requirements and skills</label>
           <span class="selection-count" id="skills-count">0 selected</span>
         </div>
-        <div class="selection-help">Alygnn recommends up to 3 role-relevant skills. Tap a suggestion or add your own.</div>
+        <div class="selection-help">Tap every skill that applies. Selected buttons will appear in the candidate preview.</div>
         <div class="chips" id="skill-chips"></div>
-        <div class="custom-add-row">
-          <input class="custom-add-input" id="custom-skill-input" type="text" maxlength="80" placeholder="Type a skill" autocomplete="off" autocapitalize="words" spellcheck="true">
-          <button class="custom-add-btn" id="add-skill-btn" type="button">Add</button>
-        </div>
-        <div class="professional-suggestions" id="skill-typeahead" hidden></div>
         <input type="hidden" id="requirements">
       </div>
 
@@ -334,13 +315,8 @@ html[data-theme="dark"] .spinner{border-color:#2B3A4B;border-top-color:#8EB5DF}
           <label>Benefits</label>
           <span class="selection-count" id="benefits-count">0 selected</span>
         </div>
-        <div class="selection-help">Choose a common benefit or type a benefit this job actually offers.</div>
+        <div class="selection-help">Tap the benefits this job actually offers.</div>
         <div class="chips" id="benefit-chips"></div>
-        <div class="custom-add-row">
-          <input class="custom-add-input" id="custom-benefit-input" type="text" maxlength="80" placeholder="Type a benefit" autocomplete="off" autocapitalize="words" spellcheck="true">
-          <button class="custom-add-btn" id="add-benefit-btn" type="button">Add</button>
-        </div>
-        <div class="professional-suggestions" id="benefit-typeahead" hidden></div>
         <input type="hidden" id="benefits">
       </div>
     </div>
@@ -442,42 +418,18 @@ async function searchLocationCatalog(query){
 
   return data||[];
 }
-const BASE_SKILLS=['Communication skills','Problem solving','Teamwork'];
+const BASE_SKILLS=['Communication skills','Customer service','Time management','Problem solving','Teamwork','Attention to detail','Microsoft Office','Organization','Reliable transportation','High school diploma or equivalent'];
 
 const ROLE_SKILLS={
-sales:['Relationship building','Negotiation','Presentation skills'],
-customer:['Active listening','Conflict resolution','Customer support'],
-manager:['Leadership','Team coaching','Performance management'],
-admin:['Organization','Calendar management','Office administration'],
-analyst:['Critical thinking','Data analysis','Reporting'],
-marketing:['Content creation','Copywriting','Campaign reporting']
+sales:['Sales experience','Lead generation','Cold calling','CRM experience','Negotiation','Relationship building','Goal-oriented mindset','Presentation skills'],
+customer:['Customer support experience','Conflict resolution','Phone etiquette','Data entry','Active listening','Multitasking'],
+manager:['Leadership experience','Team coaching','Performance management','Scheduling','Hiring and training','KPI management'],
+admin:['Calendar management','Email management','Document preparation','Data entry','Office administration','Scheduling'],
+analyst:['Excel','Data analysis','Reporting','SQL','Dashboard creation','Critical thinking','Research skills'],
+marketing:['Content creation','Social media management','Campaign reporting','Copywriting','Canva','Digital marketing']
 };
 
-const PROFESSIONAL_SKILLS=[
-  'Communication skills','Written communication','Verbal communication','Active listening',
-  'Customer service','Customer support','Problem solving','Critical thinking','Teamwork',
-  'Time management','Organization','Attention to detail','Leadership','Team coaching',
-  'Training and development','Relationship building','Negotiation','Presentation skills',
-  'Sales','Account management','Business development','Lead generation','Cold calling',
-  'CRM management','Conflict resolution','Scheduling','Hiring and training','Performance management',
-  'Calendar management','Office administration','Document preparation','Data entry',
-  'Data analysis','Reporting','Research','Microsoft Excel','Microsoft Office','Project management',
-  'Operations management','Inventory management','Quality assurance','Process improvement',
-  'Budget management','Financial analysis','Bookkeeping','Accounting','Cash handling',
-  'Teaching','Tutoring','Lesson planning','Classroom management','Coaching','Mentoring',
-  'Writing','Copywriting','Content creation','Social media management','Campaign management',
-  'Digital marketing','Public speaking','Event coordination','Recruiting','Interviewing',
-  'Bilingual communication','Technical support','Troubleshooting','Software development',
-  'Programming','SQL','Python','JavaScript','Graphic design','Canva','Adobe Creative Suite'
-];
-
-const BENEFITS=[
-  'Health insurance','Dental insurance','Vision insurance','Paid time off','Paid holidays','Sick leave',
-  '401(k)','401(k) matching','Flexible schedule','Remote work','Hybrid work','Employee discount',
-  'Professional development','Paid training','Tuition reimbursement','Parental leave','Life insurance',
-  'Disability insurance','Employee assistance program','Wellness program','Commuter benefits',
-  'Referral bonus','Performance bonus','Mileage reimbursement','Career advancement opportunities'
-];
+const BENEFITS=['Health insurance','Dental insurance','Vision insurance','Paid time off','401(k)','Flexible schedule','Employee discount','Professional development','Paid training','Referral bonus','Performance bonus','Mileage reimbursement','Work from home','Career advancement opportunities'];
 
 
 function roleCategory(title){
@@ -604,178 +556,20 @@ function renderBenefitSuggestions(){
   renderSelectableChips('benefit-chips',BENEFITS,selectedBenefits);
 }
 
-function recommendedSkillNames(){
+function refreshRoleSuggestions(){
   const occupationSkills=occupationSkillNames();
-  if(occupationSkills.length) return occupationSkills.slice(0,3);
+
+  if(occupationSkills.length){
+    renderSelectableChips('skill-chips',occupationSkills,selectedSkills);
+    return;
+  }
 
   const category=roleCategory(el('title').value);
-  const fallback=ROLE_SKILLS[category]||BASE_SKILLS;
-  return [...new Set(fallback)].slice(0,3);
-}
-
-function refreshRoleSuggestions(){
   renderSelectableChips(
     'skill-chips',
-    recommendedSkillNames(),
+    [...BASE_SKILLS,...(ROLE_SKILLS[category]||[])],
     selectedSkills
   );
-}
-
-function normalizeProfessionalText(value){
-  return String(value||'')
-    .replace(/[•●▪◦]/g,' ')
-    .replace(/\s+/g,' ')
-    .trim();
-}
-
-function professionalEntryProblem(value,label){
-  const clean=normalizeProfessionalText(value);
-
-  if(clean.length<2)return `Type a ${label} before adding it.`;
-  if(clean.length>60)return `Keep the ${label} under 60 characters.`;
-  if(/https?:\/\/|www\.|[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(clean)){
-    return `Enter a professional ${label}, not a link or email address.`;
-  }
-  if(/(.)\1{4,}/i.test(clean)){
-    return `Enter a clear professional ${label}.`;
-  }
-  if(!/[a-z]/i.test(clean)){
-    return `Enter a clear professional ${label}.`;
-  }
-
-  const words=clean.split(/\s+/).filter(Boolean);
-  if(words.length>8)return `Keep the ${label} short and professional.`;
-
-  return '';
-}
-
-function titleCaseProfessional(value){
-  const clean=normalizeProfessionalText(value);
-  const preserve=new Map([
-    ['crm','CRM'],['sql','SQL'],['c++','C++'],['401(k)','401(k)'],
-    ['microsoft excel','Microsoft Excel'],['microsoft office','Microsoft Office']
-  ]);
-  const exact=preserve.get(clean.toLowerCase());
-  if(exact)return exact;
-
-  return clean
-    .split(' ')
-    .map((word,index)=>{
-      if(!word)return word;
-      if(index>0&&['and','or','of','to','for','in'].includes(word.toLowerCase())){
-        return word.toLowerCase();
-      }
-      return word.charAt(0).toUpperCase()+word.slice(1);
-    })
-    .join(' ');
-}
-
-function professionalSkillPool(){
-  return [...new Set([
-    ...recommendedSkillNames(),
-    ...(ROLE_SKILLS[roleCategory(el('title').value)]||[]),
-    ...BASE_SKILLS,
-    ...PROFESSIONAL_SKILLS
-  ])];
-}
-
-function rankProfessionalSuggestions(query,values){
-  const q=normalizeProfessionalText(query).toLowerCase();
-  if(!q)return[];
-
-  return [...new Set(values)]
-    .map(value=>{
-      const text=String(value||'');
-      const lower=text.toLowerCase();
-      let score=99;
-
-      if(lower===q)score=0;
-      else if(lower.startsWith(q))score=1;
-      else if(lower.split(/\s+/).some(word=>word.startsWith(q)))score=2;
-      else if(lower.includes(q))score=3;
-      else{
-        const queryWords=q.split(/\s+/).filter(Boolean);
-        if(queryWords.every(word=>lower.includes(word)))score=4;
-      }
-
-      return {value:text,score};
-    })
-    .filter(item=>item.score<99)
-    .sort((a,b)=>a.score-b.score||a.value.length-b.value.length)
-    .slice(0,3)
-    .map(item=>item.value);
-}
-
-function renderProfessionalTypeahead(inputId,boxId,values,selectedSet,renderFn){
-  const input=el(inputId);
-  const box=el(boxId);
-  if(!input||!box)return;
-
-  const suggestions=rankProfessionalSuggestions(input.value,values)
-    .filter(value=>![...selectedSet].some(item=>item.toLowerCase()===value.toLowerCase()));
-
-  if(!normalizeProfessionalText(input.value)||!suggestions.length){
-    box.hidden=true;
-    box.innerHTML='';
-    return;
-  }
-
-  box.innerHTML=
-    '<div class="professional-suggestion-label">Professional suggestions</div>'+
-    suggestions.map((value,index)=>`
-      <button class="professional-suggestion" type="button" data-suggestion-index="${index}">
-        ${escapeHtml(value)}
-      </button>
-    `).join('');
-
-  box.hidden=false;
-
-  box.querySelectorAll('[data-suggestion-index]').forEach(button=>{
-    button.addEventListener('click',()=>{
-      const value=suggestions[Number(button.dataset.suggestionIndex)];
-      if(!value)return;
-      selectedSet.add(value);
-      input.value='';
-      box.hidden=true;
-      box.innerHTML='';
-      renderFn();
-      syncSelectedValues();
-      clearMessage();
-    });
-  });
-}
-
-function addCustomSelection(inputId,selectedSet,renderFn,label,professionalValues,typeaheadId){
-  const input=el(inputId);
-  if(!input)return;
-
-  let value=normalizeProfessionalText(input.value);
-  const problem=professionalEntryProblem(value,label);
-
-  if(problem){
-    showMessage(problem);
-    input.focus();
-    return;
-  }
-
-  const exactMatch=(professionalValues||[]).find(
-    item=>String(item).toLowerCase()===value.toLowerCase()
-  );
-
-  value=exactMatch||titleCaseProfessional(value);
-
-  const duplicate=[...selectedSet].some(item=>item.toLowerCase()===value.toLowerCase());
-  if(!duplicate)selectedSet.add(value);
-
-  input.value='';
-  const box=el(typeaheadId);
-  if(box){
-    box.hidden=true;
-    box.innerHTML='';
-  }
-  renderFn();
-  syncSelectedValues();
-  clearMessage();
 }
 
 async function loadOccupationProfile(onetCode){
@@ -801,18 +595,18 @@ async function loadOccupationProfile(onetCode){
 }
 
 function occupationSkillNames(){
-  const blocked=/^(facebook|c\+\+|instagram|twitter|x|tiktok|microsoft office|microsoft excel|microsoft word)$/i;
-
   const profileSkills=Array.isArray(currentOccupationProfile?.skills)
-    ? currentOccupationProfile.skills
-        .map(item=>String(item?.name||'').trim())
-        .filter(Boolean)
-        .filter(name=>!blocked.test(name))
+    ? currentOccupationProfile.skills.map(item=>item.name).filter(Boolean)
     : [];
 
-  // O*NET software/tools are intentionally excluded from the requirement
-  // recommendations. They can still be added manually when a role truly needs one.
-  return [...new Set(profileSkills)].slice(0,3);
+  const softwareSkills=Array.isArray(currentOccupationProfile?.software)
+    ? currentOccupationProfile.software
+        .filter(item=>item.in_demand||item.hot)
+        .map(item=>item.name)
+        .filter(Boolean)
+    : [];
+
+  return [...new Set([...profileSkills,...softwareSkills])].slice(0,24);
 }
 
 function applyOccupationProfileToForm(){
@@ -823,7 +617,7 @@ function applyOccupationProfileToForm(){
     .filter(Boolean)
     .slice(0,8);
 
-  const skillLines=recommendedSkillNames().slice(0,3);
+  const skillLines=occupationSkillNames().slice(0,12);
 
   if(!el('description').value.trim()){
     const intro=currentOccupationProfile.description||
@@ -837,9 +631,10 @@ function applyOccupationProfileToForm(){
     el('description').dispatchEvent(new Event('input'));
   }
 
-  // Keep the three role-relevant skills as recommendations only.
-  // The employer chooses which ones actually apply before publishing.
-  refreshRoleSuggestions();
+  if(!selectedSkills.size&&skillLines.length){
+    skillLines.forEach(skill=>selectedSkills.add(skill));
+    refreshRoleSuggestions();
+  }
 }
 
 function setupSuggestions(){
@@ -920,61 +715,6 @@ function setupSuggestions(){
 
   locationInput.addEventListener('blur',()=>{
     setTimeout(()=>closeSuggestionBox(locationBox),160);
-  });
-
-  const addSkill=()=>addCustomSelection(
-    'custom-skill-input',
-    selectedSkills,
-    refreshRoleSuggestions,
-    'skill',
-    professionalSkillPool(),
-    'skill-typeahead'
-  );
-
-  const addBenefit=()=>addCustomSelection(
-    'custom-benefit-input',
-    selectedBenefits,
-    renderBenefitSuggestions,
-    'benefit',
-    BENEFITS,
-    'benefit-typeahead'
-  );
-
-  el('add-skill-btn').addEventListener('click',addSkill);
-  el('add-benefit-btn').addEventListener('click',addBenefit);
-
-  el('custom-skill-input').addEventListener('input',()=>{
-    renderProfessionalTypeahead(
-      'custom-skill-input',
-      'skill-typeahead',
-      professionalSkillPool(),
-      selectedSkills,
-      refreshRoleSuggestions
-    );
-  });
-
-  el('custom-benefit-input').addEventListener('input',()=>{
-    renderProfessionalTypeahead(
-      'custom-benefit-input',
-      'benefit-typeahead',
-      BENEFITS,
-      selectedBenefits,
-      renderBenefitSuggestions
-    );
-  });
-
-  el('custom-skill-input').addEventListener('keydown',event=>{
-    if(event.key==='Enter'){
-      event.preventDefault();
-      addSkill();
-    }
-  });
-
-  el('custom-benefit-input').addEventListener('keydown',event=>{
-    if(event.key==='Enter'){
-      event.preventDefault();
-      addBenefit();
-    }
   });
 
   renderBenefitSuggestions();
@@ -1138,6 +878,84 @@ async function enforceJobSlotAccess(userId,companyId){
   // Editing an existing job does not create another occupied slot.
   if(await validEditJob(userId,companyId))return true;
 
+  /*
+   * Supabase's unified posting-access RPC is the primary source of truth.
+   * It includes the base plan PLUS active $99 Weekly Job Slots.
+   *
+   * Example:
+   *   Growth = 5
+   *   Weekly Job Slot = +1
+   *   Current usage = 5
+   *   Live capacity = 6
+   *
+   * The old builder only read employer_entitlements.slot_limit, which could
+   * still be 5 and immediately redirect the employer back to pricing.
+   */
+  try{
+    const {data:access,error:accessError}=await sb.rpc(
+      'get_employer_posting_access'
+    );
+
+    if(accessError)throw accessError;
+
+    if(access&&typeof access==='object'){
+      const used=Math.max(
+        0,
+        Number(access.active_job_count||0)
+      );
+
+      const limit=Math.max(
+        1,
+        Number(access.slot_limit||1)
+      );
+
+      slotUsage={used,limit};
+
+      // Trust the actual numeric capacity too, even if an older RPC boolean
+      // briefly comes back stale.
+      const hasCapacity=
+        used<limit ||
+        access.can_post===true;
+
+      if(hasCapacity){
+        sessionStorage.removeItem(
+          'alygnn_job_slot_gate'
+        );
+        return true;
+      }
+
+      sessionStorage.setItem(
+        'alygnn_job_slot_gate',
+        JSON.stringify({
+          used,
+          limit,
+          checked_at:new Date().toISOString(),
+          source:'app-post-job-rpc'
+        })
+      );
+
+      const params=new URLSearchParams({
+        reason:'slot_limit',
+        used:String(used),
+        limit:String(limit)
+      });
+
+      location.replace(
+        `app-employer-pricing.html?${params.toString()}`
+      );
+      return false;
+    }
+  }catch(error){
+    console.warn(
+      'Unified posting-access check unavailable; using compatibility fallback:',
+      error
+    );
+  }
+
+  /*
+   * Compatibility fallback only. This remains for older installations where
+   * get_employer_posting_access has not been deployed yet.
+   */
   const entitlementResult=await sb
     .from('employer_entitlements')
     .select('*')
@@ -1145,29 +963,44 @@ async function enforceJobSlotAccess(userId,companyId){
     .maybeSingle();
 
   if(entitlementResult.error){
-    // Do not break the job form just because the optional entitlement row/table
-    // is unavailable. Free employers still have one reusable slot. The jobs
-    // query below remains the source of truth for whether that slot is occupied.
-    console.warn('Entitlement check unavailable; using free-slot fallback:',entitlementResult.error);
+    console.warn(
+      'Entitlement check unavailable; using free-slot fallback:',
+      entitlementResult.error
+    );
     slotEntitlement=null;
   }else{
     slotEntitlement=entitlementResult.data||null;
   }
 
-  const ownedJobs=await loadJobsForSlotCheck(userId,companyId);
-  const used=ownedJobs.filter(jobConsumesSlot).length;
-  const limit=slotLimitForEntitlement(slotEntitlement);
+  const ownedJobs=await loadJobsForSlotCheck(
+    userId,
+    companyId
+  );
+
+  const used=
+    ownedJobs.filter(jobConsumesSlot).length;
+
+  const limit=
+    slotLimitForEntitlement(slotEntitlement);
 
   slotUsage={used,limit};
 
-  if(used<limit)return true;
+  if(used<limit){
+    sessionStorage.removeItem(
+      'alygnn_job_slot_gate'
+    );
+    return true;
+  }
 
-  sessionStorage.setItem('alygnn_job_slot_gate',JSON.stringify({
-    used,
-    limit,
-    checked_at:new Date().toISOString(),
-    source:'app-post-job'
-  }));
+  sessionStorage.setItem(
+    'alygnn_job_slot_gate',
+    JSON.stringify({
+      used,
+      limit,
+      checked_at:new Date().toISOString(),
+      source:'app-post-job-fallback'
+    })
+  );
 
   const params=new URLSearchParams({
     reason:'slot_limit',
@@ -1175,7 +1008,9 @@ async function enforceJobSlotAccess(userId,companyId){
     limit:String(limit)
   });
 
-  location.replace(`app-employer-pricing.html?${params.toString()}`);
+  location.replace(
+    `app-employer-pricing.html?${params.toString()}`
+  );
   return false;
 }
 
@@ -1464,7 +1299,6 @@ function saveCurrentJobDraft(){
     pay_max:Number(el('pay-max').value)||null,
     employer_verified:employerVerified,
     verification_status:verificationStatus,
-    skill_selection_version:3,
     created_at:new Date().toISOString()
   };
 
@@ -1490,13 +1324,11 @@ function restoreDraft(){
     if(draft.description) el('description').value = draft.description;
 
     selectedSkills.clear();
-    if(Number(draft.skill_selection_version||0)>=3){
-      String(draft.requirements||'')
-        .split('\n')
-        .map(value=>value.trim())
-        .filter(Boolean)
-        .forEach(value=>selectedSkills.add(value));
-    }
+    String(draft.requirements||'')
+      .split('\n')
+      .map(value=>value.trim())
+      .filter(Boolean)
+      .forEach(value=>selectedSkills.add(value));
 
     selectedBenefits.clear();
     String(draft.benefits||'')
@@ -1524,18 +1356,6 @@ function restoreDraft(){
     }
 
     selectedOnetCode = draft.onet_soc_code || '';
-    if(selectedOnetCode){
-      loadOccupationProfile(selectedOnetCode).then(()=>{
-        // Older drafts could contain auto-selected requirement chips.
-        // Clear them so the new builder shows three recommendations for review
-        // instead of silently choosing requirements for the employer.
-        if(Number(draft.skill_selection_version||0)<3){
-          selectedSkills.clear();
-          refreshRoleSuggestions();
-          syncSelectedValues();
-        }
-      });
-    }
     selectedLocation = draft.location_city ? {
       city: draft.location_city,
       state_code: draft.location_state || null,
@@ -1610,7 +1430,7 @@ el('use-role-data-btn').addEventListener('click',()=>{
 
   applyOccupationProfileToForm();
   showMessage(
-    'Role-specific responsibilities were added and 3 matching skill suggestions are ready for review.',
+    'Role-specific responsibilities were added and matching skill buttons were selected. Review them before publishing.',
     'success'
   );
 });
@@ -1628,6 +1448,11 @@ el('description').addEventListener('input', () => {
 
 (async function init(){
   try{
+    const entryParams=new URLSearchParams(location.search);
+    if(entryParams.get('capacity')==='available'){
+      sessionStorage.removeItem('alygnn_job_slot_gate');
+      sessionStorage.removeItem('alygnnEditJobId');
+    }
     const {data:sessionData,error:sessionError}=await sb.auth.getSession();
 
     if(sessionError||!sessionData.session){
@@ -1813,18 +1638,7 @@ el('description').addEventListener('input', () => {
 
     setupSuggestions();
     restoreDraft();
-
-    const returnStepRaw=sessionStorage.getItem('alygnnJobReturnStep');
-    sessionStorage.removeItem('alygnnJobReturnStep');
-    const returnStep=Number(returnStepRaw);
-
-    // Preview → Back/Edit returns to Step 5 instead of restarting the builder.
-    // Normal entry still starts at Step 1.
-    showStep(
-      Number.isInteger(returnStep)&&returnStep>=1&&returnStep<=5
-        ? returnStep
-        : 1
-    );
+    showStep(1);
   }catch(error){
     console.error(error);
     showMessage('Could not prepare the job form. Please return to the dashboard and try again.');
