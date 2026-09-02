@@ -118,9 +118,76 @@ async function getEmployerPostingAccess(token) {
 }
 
 function additionalSlotEligible(access) {
-  // The $150/month Second Job Slot is a standalone option. It does not require
-  // Launch/Growth/Scale. Block a second purchase while the slot is already active.
-  return Number(access?.addon_slot_count || 0) < 1;
+  // The $150/month Second Job Slot is ONLY for employers without
+  // an active monthly/quarterly Launch/Growth/Scale plan.
+  if (access?.active_paid_plan === true || access?.base_paid_plan === true) {
+    return false;
+  }
+
+  return Number(
+    access?.second_slot_count ??
+    access?.addon_slot_count ??
+    0
+  ) < 1;
+}
+
+function nextSelfServePlan(access) {
+  const plan = String(
+    access?.test_plan ||
+    access?.plan ||
+    'free'
+  ).toLowerCase();
+
+  if (plan === 'launch' || plan === 'business') return 'growth';
+  if (plan === 'growth') return 'scale';
+
+  return null;
+}
+
+function weeklyCheckoutDecision(access) {
+  const weeklyCount = Math.max(
+    0,
+    Number(access?.weekly_slot_count || 0)
+  );
+
+  const paid =
+    access?.active_paid_plan === true ||
+    access?.base_paid_plan === true;
+
+  if (!paid) {
+    return {
+      allowed: true,
+      recommendedPlan: null
+    };
+  }
+
+  if (weeklyCount < 1) {
+    return {
+      allowed: true,
+      recommendedPlan: null
+    };
+  }
+
+  const recommendedPlan =
+    String(
+      access?.recommended_upgrade_plan ||
+      nextSelfServePlan(access) ||
+      ''
+    ).toLowerCase() || null;
+
+  // Launch/Growth should upgrade after one active Weekly extra.
+  if (recommendedPlan) {
+    return {
+      allowed: false,
+      recommendedPlan
+    };
+  }
+
+  // Scale is currently the highest self-serve plan.
+  return {
+    allowed: true,
+    recommendedPlan: null
+  };
 }
 
 async function stripeCreateCheckout(params) {
@@ -1030,8 +1097,14 @@ module.exports = async function handler(req, res) {
       const access = await getEmployerPostingAccess(token);
 
       if (!additionalSlotEligible(access)) {
+        const paid =
+          access?.active_paid_plan === true ||
+          access?.base_paid_plan === true;
+
         return send(res, 400, {
-          error: 'Your Second Job Slot is already active.'
+          error: paid
+            ? 'The $150/month Second Job Slot is only available on the Free employer account. Paid plans use the included free slot plus $99 Weekly Job Slots for temporary extra capacity.'
+            : 'Your Second Job Slot is already active.'
         });
       }
 
@@ -1059,6 +1132,26 @@ module.exports = async function handler(req, res) {
       }
       const item = CHECKOUT_CATALOG[billing]?.[plan];
       if (!item) return send(res, 400, { error: 'Unknown Alygnn plan or billing period.' });
+
+      if (billing === 'weekly' && plan === 'weekly_slot') {
+        const access = await getEmployerPostingAccess(token);
+        const decision = weeklyCheckoutDecision(access);
+
+        if (!decision.allowed) {
+          const recommended =
+            decision.recommendedPlan === 'growth'
+              ? 'Growth'
+              : 'Scale';
+
+          return send(res, 409, {
+            error:
+              `You already have one active $99 Weekly Job Slot. Upgrade to ${recommended} for better ongoing value instead of stacking another weekly slot.`,
+            recommend_upgrade: true,
+            recommended_plan: decision.recommendedPlan,
+            billing_period: String(access?.billing_period || 'monthly').toLowerCase()
+          });
+        }
+      }
 
       // Do not create a second paid plan while an employer already has one active.
       // Existing recurring subscribers change plans through Billing & plan so
