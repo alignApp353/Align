@@ -654,6 +654,37 @@
   .profile-update-submit{ border:0; background:var(--brand); color:#fff; }
   .profile-update-submit:disabled{ opacity:.5; cursor:not-allowed; }
 
+
+  /* Company support identifier */
+  .company-id-row{ grid-column:1 / -1; }
+  .company-id-stack{
+    min-width:0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .company-id-value{
+    min-width:0;
+    font-size:12.5px;
+    line-height:1.35;
+    color:var(--text);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .company-id-copy{
+    flex:0 0 auto;
+    border:1px solid var(--border);
+    background:var(--card-bg);
+    color:var(--brand);
+    border-radius:100px;
+    padding:6px 10px;
+    font:600 10px 'DM Sans',sans-serif;
+    cursor:pointer;
+  }
+  .company-id-copy:hover{ border-color:rgba(93,127,163,.45); }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -765,6 +796,17 @@
           <div class="field-stack">
             <span class="field-label">Business address</span>
             <input type="text" class="field-input" id="business-address" placeholder="Not provided" readonly />
+          </div>
+        </div>
+
+        <div class="company-field-row company-id-row">
+          <span class="field-icon">#</span>
+          <div class="company-id-stack">
+            <div class="field-stack">
+              <span class="field-label">Company ID</span>
+              <div class="company-id-value" id="company-id-value">Loading…</div>
+            </div>
+            <button type="button" class="company-id-copy" id="company-id-copy" onclick="copyCompanyId()" disabled>Copy</button>
           </div>
         </div>
       </div>
@@ -1967,6 +2009,68 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       .subscribe();
   }
 
+
+  let currentCompanyId = '';
+
+  async function loadCompanyId(){
+    const valueEl = document.getElementById('company-id-value');
+    const copyBtn = document.getElementById('company-id-copy');
+    if(!currentUserId || !valueEl) return;
+
+    try{
+      let companyId = '';
+
+      const { data: company, error: companyError } = await sb
+        .from('companies')
+        .select('id')
+        .eq('owner_user_id', currentUserId)
+        .maybeSingle();
+
+      if(!companyError && company?.id){
+        companyId = company.id;
+      }else{
+        const { data: verification } = await sb
+          .from('employer_verifications')
+          .select('company_id')
+          .eq('user_id', currentUserId)
+          .maybeSingle();
+
+        companyId = verification?.company_id || '';
+      }
+
+      currentCompanyId = companyId;
+
+      if(companyId){
+        valueEl.textContent = companyId;
+        valueEl.title = companyId;
+        if(copyBtn) copyBtn.disabled = false;
+      }else{
+        valueEl.textContent = 'Not available';
+        if(copyBtn) copyBtn.disabled = true;
+      }
+    }catch(error){
+      console.warn('Could not load company ID:', error);
+      valueEl.textContent = 'Not available';
+      if(copyBtn) copyBtn.disabled = true;
+    }
+  }
+
+  async function copyCompanyId(){
+    if(!currentCompanyId) return;
+
+    try{
+      await navigator.clipboard.writeText(currentCompanyId);
+      const button = document.getElementById('company-id-copy');
+      if(button){
+        const original = button.textContent;
+        button.textContent = 'Copied';
+        setTimeout(() => { button.textContent = original; }, 1200);
+      }
+    }catch(error){
+      console.warn('Could not copy company ID:', error);
+    }
+  }
+
   async function initEmployerAccountPage(){
     const session = await waitForSession();
     if (!session) { window.location.replace('login.html?role=employer'); return; }
@@ -2059,6 +2163,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     document.getElementById('nav-name').textContent = displayName;
 
     updateVerificationBanner();
+    await loadCompanyId();
     await loadProfileUpdateRequests();
     await loadEmployerJobs();
     await loadAccountPostingAccess();
