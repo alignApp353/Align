@@ -2575,7 +2575,11 @@ async function enforceFinalJobSlotAccess(){
         Number(access.slot_limit||1)
       );
 
-      if(access.can_post===true){
+      const hasCapacity =
+        used < limit ||
+        access.can_post === true;
+
+      if(hasCapacity){
         sessionStorage.removeItem(
           'alygnn_job_slot_gate'
         );
