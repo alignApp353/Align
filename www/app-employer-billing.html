@@ -24,6 +24,11 @@ html,body{min-height:100%;width:100%}body{background:radial-gradient(circle at t
 .pending{border-color:color-mix(in srgb,var(--amber) 50%,var(--border));background:linear-gradient(145deg,color-mix(in srgb,var(--card) 92%,var(--amber-bg)),var(--card))}.pending-title{font-size:17px;font-weight:900}.pending-copy{margin-top:8px;color:var(--muted);font-size:12px;line-height:1.55}.pending-date{margin-top:11px;padding:10px 12px;border-radius:13px;background:var(--amber-bg);color:var(--amber);font-size:11px;font-weight:900}
 .section-title{margin-top:30px;font-size:20px;font-weight:900}.section-copy{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.55}.plans{display:grid;gap:12px;margin-top:13px}.plan-option{background:var(--card);border:1px solid var(--border);border-radius:21px;padding:18px;box-shadow:var(--shadow)}.plan-option.current{border-color:color-mix(in srgb,var(--green) 55%,var(--border));background:linear-gradient(145deg,color-mix(in srgb,var(--card) 94%,var(--green-bg)),var(--card))}.plan-option.recommended{border-color:color-mix(in srgb,var(--brand) 65%,var(--border))}.option-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.option-name{font-size:19px;font-weight:900}.option-slots{margin-top:4px;color:var(--muted);font-size:11px}.option-price{text-align:right;font-size:21px;font-weight:900;white-space:nowrap}.option-price small{display:block;font-size:9px;color:var(--muted);font-weight:700}.tag{display:inline-block;margin-top:8px;padding:5px 8px;border-radius:999px;background:var(--blue-bg);color:var(--brand-dark);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.7px}.action{width:100%;min-height:49px;margin-top:14px;border-radius:15px;font-size:12px;font-weight:900;cursor:pointer}.action.primary{border:0;background:var(--brand-dark);color:#fff}.action.secondary{border:1px solid var(--brand);background:var(--blue-bg);color:var(--brand-dark)}.action.neutral{border:1px solid var(--border);background:var(--card);color:var(--text)}.action:disabled{opacity:.55;cursor:default}.action-hint{margin-top:7px;text-align:center;color:var(--muted);font-size:9px;line-height:1.45}
 .addon-row{display:flex;justify-content:space-between;gap:12px}.addon-title{font-size:17px;font-weight:900}.addon-price{font-size:20px;font-weight:900}.addon-price small{font-size:9px;color:var(--muted)}.addon-copy{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.5}.addon-state{display:inline-block;margin-top:11px;padding:6px 9px;border-radius:999px;background:var(--green-bg);color:var(--green);font-size:9px;font-weight:900}
+.danger-card{border-color:color-mix(in srgb,var(--red) 35%,var(--border));background:linear-gradient(145deg,color-mix(in srgb,var(--card) 96%,var(--red-bg)),var(--card))}
+.danger-title{font-size:17px;font-weight:900}
+.danger-copy{margin-top:7px;color:var(--muted);font-size:11px;line-height:1.55}
+.action.danger{border:1px solid color-mix(in srgb,var(--red) 55%,var(--border));background:var(--red-bg);color:var(--red)}
+.cancel-note{margin-top:9px;color:var(--muted);font-size:9px;line-height:1.5}
 .note{margin-top:20px;border:1px solid var(--border);border-radius:18px;padding:14px 15px;color:var(--muted);background:color-mix(in srgb,var(--card) 85%,var(--bg));font-size:11px;line-height:1.55}.message{display:none;margin-top:16px;padding:14px 15px;border-radius:16px;font-size:11px;font-weight:800;line-height:1.5}.message.show{display:block}.message.info{background:var(--blue-bg);color:var(--text)}.message.success{background:var(--green-bg);color:var(--green)}.message.error{background:var(--red-bg);color:var(--red)}
 @media(max-width:400px){.metrics{grid-template-columns:1fr 1fr}.metrics .metric:last-child{grid-column:1/-1}.title{font-size:31px}.option-top,.addon-row{display:block}.option-price{margin-top:8px;text-align:left}.addon-price{margin-top:8px}}
 </style>
@@ -60,16 +65,28 @@ html,body{min-height:100%;width:100%}body{background:radial-gradient(circle at t
   <p class="section-copy" id="change-copy">Upgrades take effect immediately and only the prorated difference for the rest of the current billing period is charged. Downgrades wait until your next billing cycle.</p>
   <div class="plans" id="plans"></div>
 
+  <section class="card danger-card" id="plan-cancel-card" hidden>
+    <div class="kicker">Renewal & cancellation</div>
+    <div class="danger-title" id="plan-cancel-title">Cancel plan</div>
+    <div class="danger-copy" id="plan-cancel-copy"></div>
+    <button class="action danger" id="cancel-plan-btn" type="button">Cancel plan at renewal</button>
+    <div class="cancel-note" id="plan-cancel-note">
+      Canceling stops the next renewal. It does not remove access you already paid for.
+    </div>
+  </section>
+
   <h2 class="section-title">Additional capacity</h2>
   <section class="card">
     <div class="addon-row"><div><div class="kicker">Standalone add-on</div><div class="addon-title">Second Job Slot</div></div><div class="addon-price">$150 <small>/ month</small></div></div>
     <div class="addon-copy">Keeps your included free slot and adds one more reusable active job slot. This subscription is separate from Launch, Growth, and Scale.</div>
     <div class="addon-state" id="addon-state" hidden>Active</div>
     <button class="action secondary" id="addon-btn" type="button">Add Second Job Slot</button>
+    <button class="action danger" id="addon-cancel-btn" type="button" hidden>Cancel Second Job Slot at renewal</button>
+    <div class="cancel-note" id="addon-cancel-note" hidden></div>
   </section>
 
   <button class="action neutral" id="pricing-btn" type="button">View all pricing options</button>
-  <div class="note"><strong>How plan changes work:</strong> an upgrade is prorated immediately, so the unused value of the current plan is credited and only the net difference for the rest of the billing cycle is due. A downgrade is scheduled for renewal, so current features and capacity stay unchanged until the next billing cycle.</div>
+  <div class="note"><strong>How billing changes work:</strong> Alygnn bills each period up front. Upgrades are prorated immediately. Downgrades and cancellations wait until renewal, so the employer keeps the plan and capacity already paid for through the current billing period. Canceling prevents the next charge; it does not create a refund for the current period.</div>
   <div class="message" id="message"></div>
 </main>
 <script>
@@ -121,6 +138,18 @@ async function loadData(){
       pending_plan:entitlement?.pending_plan||null,
       pending_billing_period:entitlement?.pending_billing_period||null,
       pending_plan_effective_at:entitlement?.pending_plan_effective_at||null,
+      cancel_at_period_end:
+        String(entitlement?.pending_plan||'').toLowerCase()==='free' &&
+        !!entitlement?.pending_plan_effective_at,
+      cancel_effective_at:
+        String(entitlement?.pending_plan||'').toLowerCase()==='free'
+          ? entitlement?.pending_plan_effective_at||null
+          : null,
+      second_job_slot:{
+        managed_subscription:false,
+        cancel_at_period_end:false,
+        cancel_effective_at:null
+      },
       managed_subscription:false
     };
   }
@@ -161,22 +190,106 @@ function renderCurrent(){
   $('usage-fill').style.width=Math.min(100,(used/limit)*100)+'%';
   $('renewal-date').textContent=summary?.current_period_end?fmtDate(summary.current_period_end,true):'—';
   $('renewal-label').textContent=item?(managed?'Next billing':'Term ends'):'Next billing';
+  const secondSlot=summary?.second_job_slot||{};
+  const secondManaged=secondSlot.managed_subscription===true;
+  const secondCancelScheduled=secondSlot.cancel_at_period_end===true;
+
   $('addon-state').hidden=!addonActive;
+  $('addon-state').textContent=secondCancelScheduled
+    ?`Cancels ${fmtDate(secondSlot.cancel_effective_at||secondSlot.current_period_end,true)}`
+    :'Active';
+
   $('addon-btn').disabled=addonActive;
-  $('addon-btn').textContent=addonActive?'Second Job Slot active':'Add Second Job Slot — $150/month';
+  $('addon-btn').textContent=addonActive
+    ?'Second Job Slot active'
+    :'Add Second Job Slot — $150/month';
+
+  const addonCancel=$('addon-cancel-btn');
+  const addonCancelNote=$('addon-cancel-note');
+
+  addonCancel.hidden=!(addonActive&&secondManaged);
+  addonCancelNote.hidden=addonCancel.hidden;
+
+  if(!addonCancel.hidden){
+    addonCancel.textContent=secondCancelScheduled
+      ?'Keep Second Job Slot'
+      :'Cancel Second Job Slot at renewal';
+
+    addonCancelNote.textContent=secondCancelScheduled
+      ?`The slot stays active through ${fmtDate(secondSlot.cancel_effective_at||secondSlot.current_period_end)} and will not renew unless you keep it.`
+      :`Canceling stops the next $150 charge. The slot stays active through ${fmtDate(secondSlot.current_period_end||entitlement?.addon_slots_expires_at)}.`;
+  }
 }
 function renderPending(){
+  const cancelScheduled=summary?.cancel_at_period_end===true;
+  const cancelDate=summary?.cancel_effective_at||summary?.current_period_end||null;
+
+  if(cancelScheduled&&cancelDate){
+    const {plan,billing}=currentContext();
+    $('pending-card').hidden=false;
+    $('pending-title').textContent='Cancellation scheduled';
+    $('pending-copy').textContent=
+      `Your ${planName(plan)} plan stays active with its current capacity through ${fmtDate(cancelDate)}. After that, Alygnn returns the account to the included Free slot and no new ${billingLabel(billing).toLowerCase()} plan charge is made.`;
+    $('pending-date').textContent='Plan ends '+fmtDate(cancelDate);
+    $('cancel-pending').textContent=`Keep ${planName(plan)} plan`;
+    $('cancel-pending').dataset.pendingAction='resume_plan';
+    return;
+  }
+
   const target=String(summary?.pending_plan||'').toLowerCase();
-  const pendingBilling=String(summary?.pending_billing_period||summary?.billing_period||'monthly').toLowerCase();
-  if(!PLAN_CATALOG[pendingBilling]?.[target]||!summary?.pending_plan_effective_at){$('pending-card').hidden=true;return;}
+  const pendingBilling=String(
+    summary?.pending_billing_period||
+    summary?.billing_period||
+    'monthly'
+  ).toLowerCase();
+
+  if(
+    !PLAN_CATALOG[pendingBilling]?.[target] ||
+    !summary?.pending_plan_effective_at
+  ){
+    $('pending-card').hidden=true;
+    $('cancel-pending').dataset.pendingAction='';
+    return;
+  }
+
   $('pending-card').hidden=false;
-  $('pending-title').textContent=`Downgrade to ${planName(target)} scheduled`;
-  $('pending-copy').textContent=`You keep your current plan and capacity until the end of this ${billingLabel(pendingBilling).toLowerCase()} billing cycle. ${planName(target)} begins automatically at renewal.`;
-  $('pending-date').textContent='Effective '+fmtDate(summary.pending_plan_effective_at);
+  $('pending-title').textContent=
+    `Downgrade to ${planName(target)} scheduled`;
+  $('pending-copy').textContent=
+    `You keep your current plan and capacity until the end of this ${billingLabel(pendingBilling).toLowerCase()} billing cycle. ${planName(target)} begins automatically at renewal.`;
+  $('pending-date').textContent=
+    'Effective '+fmtDate(summary.pending_plan_effective_at);
+  $('cancel-pending').textContent='Keep my current plan';
+  $('cancel-pending').dataset.pendingAction='cancel_scheduled_change';
 }
 function renderPlans(){
   const {plan:current,billing:currentBilling,item:currentItem,managed}=currentContext();
   const displayBilling=currentItem?currentBilling:'monthly';
+  const cancelScheduled=summary?.cancel_at_period_end===true;
+
+  const cancelCard=$('plan-cancel-card');
+  const cancelBtn=$('cancel-plan-btn');
+
+  if(currentItem&&(managed||entitlement?.test_mode===true)){
+    cancelCard.hidden=false;
+
+    if(cancelScheduled){
+      cancelBtn.hidden=true;
+      $('plan-cancel-title').textContent='Cancellation scheduled';
+      $('plan-cancel-copy').textContent=
+        `Your ${planName(current)} plan remains active until ${fmtDate(summary?.cancel_effective_at||summary?.current_period_end)}. Use the scheduled-change card above if you want to keep the plan.`;
+    }else{
+      cancelBtn.hidden=false;
+      $('plan-cancel-title').textContent=`Cancel ${planName(current)} plan`;
+      $('plan-cancel-copy').textContent=
+        displayBilling==='quarterly'
+          ? `Your plan is prepaid through ${fmtDate(summary?.current_period_end)}. Cancel now to stop the next 3-month renewal; your current access stays unchanged until then.`
+          : `Your plan is prepaid through ${fmtDate(summary?.current_period_end)}. Cancel now to stop next month's renewal; your current access stays unchanged until then.`;
+      cancelBtn.textContent='Cancel plan at renewal';
+    }
+  }else{
+    cancelCard.hidden=true;
+  }
   const catalog=PLAN_CATALOG[displayBilling];
   $('change-title').textContent=currentItem?`Change ${billingLabel(displayBilling).toLowerCase()} plan`:'Choose a monthly plan';
 
@@ -195,6 +308,9 @@ function renderPlans(){
     let button='';let hint='';
     if(isCurrent){
       button='<button class="action neutral" disabled>Current plan</button>';
+    }else if(cancelScheduled){
+      button='<button class="action neutral" disabled>Keep plan first to make changes</button>';
+      hint='Reverse the scheduled cancellation above before upgrading or downgrading.';
     }else if(currentItem&&!managed){
       button='<button class="action neutral" disabled>Available after current term</button>';
       hint='Your existing prepaid term must finish first.';
@@ -251,17 +367,144 @@ async function changePlan(target,button){
 }
 async function cancelPending(){
   if(busy)return;
-  if(!confirm('Cancel the scheduled downgrade and keep your current plan?'))return;
-  busy=true;clearMessage();const btn=$('cancel-pending');const original=btn.textContent;btn.disabled=true;btn.textContent='Canceling…';
-  try{await api({action:'cancel_scheduled_change'});showMessage('Scheduled downgrade canceled. Your current plan will continue.','success');await loadData();renderAll();}
-  catch(error){showMessage(error.message||'Could not cancel the scheduled change.','error');}
-  finally{busy=false;btn.disabled=false;btn.textContent=original;}
+
+  const btn=$('cancel-pending');
+  const action=btn.dataset.pendingAction||'cancel_scheduled_change';
+  const isCancellation=action==='resume_plan';
+
+  const question=isCancellation
+    ?'Keep your current plan and continue automatic renewal?'
+    :'Cancel the scheduled downgrade and keep your current plan?';
+
+  if(!confirm(question))return;
+
+  busy=true;
+  clearMessage();
+
+  const original=btn.textContent;
+  btn.disabled=true;
+  btn.textContent=isCancellation?'Keeping plan…':'Canceling change…';
+
+  try{
+    await api({action});
+    showMessage(
+      isCancellation
+        ?'Your plan will continue and renew normally.'
+        :'Scheduled downgrade canceled. Your current plan will continue.',
+      'success'
+    );
+    await loadData();
+    renderAll();
+  }catch(error){
+    showMessage(
+      error.message||'Could not update the scheduled billing change.',
+      'error'
+    );
+  }finally{
+    busy=false;
+    btn.disabled=false;
+    btn.textContent=original;
+  }
 }
+
+async function cancelPlan(){
+  if(busy)return;
+
+  const {plan,billing,item}=currentContext();
+  if(!item)return;
+
+  const date=fmtDate(summary?.current_period_end);
+  const renewalCopy=billing==='quarterly'
+    ?`You will keep ${planName(plan)} through ${date}, and Alygnn will NOT charge the next 3-month renewal.`
+    :`You will keep ${planName(plan)} through ${date}, and Alygnn will NOT charge you again next month.`;
+
+  if(!confirm(
+    `Cancel ${planName(plan)} at renewal?\n\n${renewalCopy}\n\nThere is no refund for the current prepaid billing period.`
+  ))return;
+
+  busy=true;
+  clearMessage();
+
+  const btn=$('cancel-plan-btn');
+  const original=btn.textContent;
+  btn.disabled=true;
+  btn.textContent='Scheduling cancellation…';
+
+  try{
+    const data=await api({action:'cancel_plan'});
+    showMessage(
+      `Cancellation scheduled for ${fmtDate(data.effective_at||summary?.current_period_end)}. Your current plan and capacity stay active until then, and there will be no next renewal charge.`,
+      'success'
+    );
+    await loadData();
+    renderAll();
+  }catch(error){
+    showMessage(
+      error.message||'Could not schedule plan cancellation.',
+      'error'
+    );
+  }finally{
+    busy=false;
+    btn.disabled=false;
+    btn.textContent=original;
+  }
+}
+
+async function toggleSecondSlotCancellation(){
+  if(busy)return;
+
+  const slot=summary?.second_job_slot||{};
+  const scheduled=slot.cancel_at_period_end===true;
+
+  const prompt=scheduled
+    ?'Keep your Second Job Slot and continue monthly renewal?'
+    :`Cancel the Second Job Slot at renewal? You keep the slot through ${fmtDate(slot.current_period_end||entitlement?.addon_slots_expires_at)}, and the next $150 monthly charge will not occur.`;
+
+  if(!confirm(prompt))return;
+
+  busy=true;
+  clearMessage();
+
+  const btn=$('addon-cancel-btn');
+  const original=btn.textContent;
+  btn.disabled=true;
+  btn.textContent=scheduled?'Keeping slot…':'Scheduling cancellation…';
+
+  try{
+    const data=await api({
+      action:scheduled
+        ?'resume_second_slot'
+        :'cancel_second_slot'
+    });
+
+    showMessage(
+      scheduled
+        ?'Second Job Slot renewal restored.'
+        :`Second Job Slot cancellation scheduled for ${fmtDate(data.effective_at||slot.current_period_end)}. You keep the slot until then.`,
+      'success'
+    );
+
+    await loadData();
+    renderAll();
+  }catch(error){
+    showMessage(
+      error.message||'Could not update the Second Job Slot subscription.',
+      'error'
+    );
+  }finally{
+    busy=false;
+    btn.disabled=false;
+    btn.textContent=original;
+  }
+}
+
 function renderAll(){renderCurrent();renderPending();renderPlans();}
 $('back-btn').onclick=()=>location.href='app-employer-dashboard.html#settings';
 $('pricing-btn').onclick=()=>location.href='app-employer-pricing.html';
 $('addon-btn').onclick=()=>{if(!$('addon-btn').disabled)location.href='app-employer-payment.html?product=additional_slot&billing=monthly';};
 $('cancel-pending').onclick=cancelPending;
+$('cancel-plan-btn').onclick=cancelPlan;
+$('addon-cancel-btn').onclick=toggleSecondSlotCancellation;
 async function refresh(){if(document.visibilityState!=='visible')return;const {data}=await sb.auth.getSession();if(!data?.session)return;session=data.session;await loadData();renderAll();}
 document.addEventListener('visibilitychange',refresh);window.addEventListener('focus',refresh);window.addEventListener('pageshow',refresh);
 (async()=>{try{const {data,error}=await sb.auth.getSession();if(error||!data.session){location.replace('app-employer-login.html');return;}session=data.session;await loadData();renderAll();}catch(error){console.error(error);showMessage('Could not load your billing plan. Please try again.','error');}finally{$('loading').hidden=true;}})();
