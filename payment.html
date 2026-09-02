@@ -16,8 +16,8 @@
     --text:#1A2530;--muted:#4A5968;--border:#DDE3E8;--mint:#6FBF8F;
     --danger:#B45A5A;--white:#fff;
   }
-  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-  nav{height:68px;padding:0 5%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(246,248,247,.94);backdrop-filter:blur(12px);position:sticky;top:0;z-index:20}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-top:68px}
+  nav{height:68px;padding:0 5%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(246,248,247,.94);backdrop-filter:blur(12px);position:fixed;top:0;left:0;right:0;width:100%;z-index:1000}
   .logo{font-family:'DM Serif Display',serif;font-size:23px;color:var(--brand);text-decoration:none}.logo span{color:var(--sage)}
   .nav-right{display:flex;align-items:center;gap:18px}.nav-link{font-size:14px;color:var(--muted);text-decoration:none}.nav-link:hover{color:var(--text)}
   .dashboard-btn{border:0;border-radius:999px;background:var(--brand);color:white;padding:10px 20px;font:500 14px 'DM Sans',sans-serif;cursor:pointer}
@@ -160,16 +160,6 @@
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
   
-function alygnnAuthStorageKey() {
-  let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
-  if (!tabId) {
-    tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
-      ? window.crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-    window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
-  }
-  return `alygnn-auth-${tabId}`;
-}
 
 const { createClient } = supabase;
   const sb = // Keep Alygnn authentication isolated to this browser tab.
@@ -178,7 +168,6 @@ const { createClient } = supabase;
 createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       storage: window.sessionStorage,
-      storageKey: alygnnAuthStorageKey(),
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true
