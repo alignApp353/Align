@@ -492,7 +492,7 @@ function renderSlotGateNotice(){
 
   if(used<limit){
     $('slot-gate-title').textContent='You have an available job slot.';
-    $('slot-gate-copy').textContent='A slot is available now, so you can return to My Jobs and post without buying more capacity.';
+    $('slot-gate-copy').textContent='A slot is available now. Use the Post a Job button below — no additional purchase is needed.';
     notice.hidden=false;
     return;
   }
@@ -524,14 +524,19 @@ function renderCurrent(){
   $('slot-used').textContent=`${used} / ${limit}`;
 
   const paidPlanActive=basePaidPlanActive();
-  const freeOccupied=!paidPlanActive&&used>=1;
+  const hasAvailableSlot=used<limit;
 
-  $('free-btn').disabled=paidPlanActive||freeOccupied;
-  $('free-btn').textContent=paidPlanActive
-    ? `${used} / ${limit} plan slots in use`
-    : freeOccupied
-      ? 'Included free slot in use (1 / 1)'
-      : 'Use included free slot';
+  /*
+   * This button is the "use capacity" action, not literally only the free slot.
+   * If the employer has ANY available capacity — plan, Second Job Slot, or
+   * Weekly Job Slot — let them go straight to the job builder.
+   */
+  $('free-btn').disabled=!hasAvailableSlot;
+  $('free-btn').textContent=hasAvailableSlot
+    ? `Post a Job — ${limit-used} slot${limit-used===1?'':'s'} available`
+    : paidPlanActive
+      ? `${used} / ${limit} plan slots in use`
+      : `All ${limit} slot${limit===1?' is':'s are'} in use`;
 
   const secondSection=$('additional-slot');
   const secondBtn=$('additional-slot-btn');
@@ -749,8 +754,14 @@ document.querySelectorAll('[data-billing]').forEach(btn=>{
 
 $('free-btn').addEventListener('click',()=>{
   if($('free-btn').disabled)return;
+
+  // A previous full-capacity redirect may still be sitting in sessionStorage.
+  // Once live capacity says a slot is available, clear that stale gate.
   sessionStorage.removeItem('alygnn_job_slot_gate');
-  location.assign('app-post-job.html?from=pricing');
+  sessionStorage.removeItem('alygnnEditJobId');
+  sessionStorage.removeItem('alygnnJobReturnStep');
+
+  location.replace('app-post-job.html?from=pricing&capacity=available');
 });
 
 $('additional-slot-btn').addEventListener('click',()=>{
