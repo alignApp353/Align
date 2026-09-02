@@ -551,6 +551,57 @@ function addonEligible(){
   return !basePaidPlanActive() && !secondSlotActive();
 }
 
+function paymentPlanCode(){
+  const raw=String(
+    postingAccess?.test_plan||
+    postingAccess?.plan||
+    'free'
+  ).toLowerCase();
+
+  if(raw==='business')return'launch';
+  if(raw==='enterprise')return'scale';
+  return raw;
+}
+
+function paymentNextUpgrade(){
+  const explicit=String(
+    postingAccess?.recommended_upgrade_plan||''
+  ).toLowerCase();
+
+  if(['growth','scale'].includes(explicit))return explicit;
+
+  const current=paymentPlanCode();
+  if(current==='launch')return'growth';
+  if(current==='growth')return'scale';
+
+  return'';
+}
+
+function weeklyCheckoutAllowed(){
+  if(!postingAccess)return true;
+
+  if(!basePaidPlanActive())return true;
+
+  const count=Math.max(
+    0,
+    Number(postingAccess?.weekly_slot_count||0)
+  );
+
+  if(count<1)return true;
+
+  // Launch/Growth should upgrade after the first Weekly extra.
+  return !paymentNextUpgrade();
+}
+
+function weeklyIneligibleMessage(){
+  const next=paymentNextUpgrade();
+  const nextName=next==='growth'?'Growth':'Scale';
+
+  return next
+    ? `You already have one active $99 Weekly Job Slot. Upgrade to ${nextName} for better ongoing value instead of stacking another weekly slot.`
+    : 'This Weekly Job Slot is not available for this account right now.';
+}
+
 function addonIneligibleMessage(){
   if(basePaidPlanActive()){
     return 'The $150/month Second Job Slot is only available when you are not on a monthly or quarterly plan. Your plan can add another slot for $99/week.';
@@ -603,6 +654,23 @@ async function initialize(){
     $('checkout-btn').disabled=true;
     $('terms').disabled=true;
     showMessage(addonIneligibleMessage());
+  }
+
+  if(
+    (billing==='weekly'||plan==='weekly_slot') &&
+    !weeklyCheckoutAllowed()
+  ){
+    $('checkout-btn').disabled=true;
+    $('terms').disabled=true;
+
+    const next=paymentNextUpgrade();
+    showMessage(weeklyIneligibleMessage());
+
+    $('checkout-heading').textContent=
+      `Upgrade to ${next==='growth'?'Growth':'Scale'} instead.`;
+
+    $('checkout-lede').textContent=
+      'You already have one active Weekly Job Slot. For ongoing capacity, the next plan is the better-value choice.';
   }
 
   developerTestMode=FORCE_DEVELOPER_TEST_MODE || TEST_MODE_EMAILS.includes(email.toLowerCase());
@@ -697,6 +765,14 @@ async function startCheckout(){
 
   if(isAddon()&&!addonEligible()){
     showMessage(addonIneligibleMessage());
+    return;
+  }
+
+  if(
+    (billing==='weekly'||plan==='weekly_slot') &&
+    !weeklyCheckoutAllowed()
+  ){
+    showMessage(weeklyIneligibleMessage());
     return;
   }
 
