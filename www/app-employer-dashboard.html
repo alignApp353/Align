@@ -5459,6 +5459,7 @@
     }
 
     function setView(name){
+      const previousView = state.currentView;
       state.currentView = name;
 
       document.querySelectorAll('.view').forEach(view => {
@@ -5475,11 +5476,17 @@
       window.scrollTo({top:0,behavior:'smooth'});
 
       /*
-       * My Jobs gets its own direct refresh first.
-       * This prevents an unrelated Dashboard widget error from stopping
-       * the jobs list from rendering.
+       * Always enter My Jobs on Open.
+       * More importantly, render the jobs already in memory BEFORE starting
+       * another network refresh. This prevents the page from appearing empty
+       * while Supabase is still responding.
        */
       if(name==='jobs'){
+        if(previousView !== 'jobs'){
+          jobsStatusTab = 'open';
+        }
+
+        renderJobs();
         refreshJobsView();
       }else if(name==='applicants'){
         renderApplicants();
@@ -6891,18 +6898,13 @@
             : 'open';
 
         renderJobs();
-
-        try{
-          sessionStorage.setItem('alygnnEmployerJobsTab',jobsStatusTab);
-        }catch(_){}
       });
     });
 
+    // Each new visit to My Jobs starts on Open.
+    jobsStatusTab = 'open';
     try{
-      const savedJobsTab = sessionStorage.getItem('alygnnEmployerJobsTab');
-      if(savedJobsTab === 'closed' || savedJobsTab === 'open'){
-        jobsStatusTab = savedJobsTab;
-      }
+      sessionStorage.removeItem('alygnnEmployerJobsTab');
     }catch(_){}
 
 
@@ -8349,6 +8351,83 @@
       return collected;
     }
 
+    function waitForJobs(ms){
+      return new Promise(resolve=>setTimeout(resolve,ms));
+    }
+
+    async function serverActiveJobCount(){
+      try{
+        const {data,error}=await sb.rpc('get_employer_posting_access');
+        if(error) throw error;
+
+        const count=Number(data?.active_job_count);
+        return Number.isFinite(count)&&count>=0 ? count : null;
+      }catch(error){
+        console.warn('Could not read server job count:',error);
+        return null;
+      }
+    }
+
+    async function queryJobsReliably(userId){
+      /*
+       * A Capacitor focus/visibility event can fire while the employer/company
+       * relationship is still resolving. The old code treated that temporary
+       * zero-row result as "you have no jobs" and erased the dashboard.
+       *
+       * Retry an unexpected empty result after company data has had time to
+       * resolve. If we already have jobs in memory, never replace them with a
+       * transient empty response.
+       */
+      let fresh = await queryJobs(userId);
+
+      if(fresh.length){
+        return fresh;
+      }
+
+      const expectedActive = await serverActiveJobCount();
+
+      if(expectedActive === 0 && !(state.jobs||[]).length){
+        // The server also says zero active jobs. Still retry once so closed jobs
+        // can be discovered by company ownership.
+        try{
+          await loadEmployerCompanyData();
+        }catch(_){}
+
+        await waitForJobs(120);
+        fresh = await queryJobs(userId);
+
+        return fresh;
+      }
+
+      // Server says jobs exist, or we already had jobs loaded. Retry instead
+      // of flashing an empty dashboard.
+      try{
+        await loadEmployerCompanyData();
+      }catch(error){
+        console.warn('Company refresh before jobs retry failed:',error);
+      }
+
+      await waitForJobs(180);
+      fresh = await queryJobs(userId);
+
+      if(fresh.length){
+        return fresh;
+      }
+
+      if(Array.isArray(state.jobs) && state.jobs.length){
+        console.warn(
+          'Supabase returned a temporary empty jobs result; keeping cached jobs.'
+        );
+        return state.jobs;
+      }
+
+      // One final short retry for first-load races.
+      await waitForJobs(250);
+      fresh = await queryJobs(userId);
+
+      return fresh;
+    }
+
     async function refreshJobsView(){
       if(!state.session?.user?.id) return;
 
@@ -8365,8 +8444,13 @@
       }
 
       try{
-        const jobs = await queryJobs(state.session.user.id);
-        state.jobs = Array.isArray(jobs) ? jobs : [];
+        const jobs = await queryJobsReliably(state.session.user.id);
+
+        if(Array.isArray(jobs) && jobs.length){
+          state.jobs = jobs;
+        }else if(!Array.isArray(state.jobs) || !state.jobs.length){
+          state.jobs = [];
+        }
 
         /*
          * Jobs and applications must refresh together.
@@ -8425,7 +8509,8 @@
         state.session = data.session;
         await refreshCurrentUser();
         await loadEmployerCompanyData();
-        state.jobs = await queryJobs(state.session.user.id);
+        const initialJobs = await queryJobsReliably(state.session.user.id);
+        state.jobs = Array.isArray(initialJobs) ? initialJobs : [];
 
         try{
           await refreshApplicationsForCurrentJobs();
@@ -9090,8 +9175,13 @@
       try{
         await refreshCompanyProfile();
 
-        const jobs = await queryJobs(state.session.user.id);
-        state.jobs = Array.isArray(jobs) ? jobs : [];
+        const jobs = await queryJobsReliably(state.session.user.id);
+
+        if(Array.isArray(jobs) && jobs.length){
+          state.jobs = jobs;
+        }else if(!Array.isArray(state.jobs) || !state.jobs.length){
+          state.jobs = [];
+        }
 
         await refreshApplicationsForCurrentJobs();
         safeRenderAll();
