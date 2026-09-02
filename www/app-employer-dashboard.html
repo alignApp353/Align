@@ -8699,14 +8699,21 @@
           const used=Math.max(0,Number(access.active_job_count||0));
           const limit=Math.max(1,Number(access.slot_limit||1));
 
-          if(access.can_post!==true){
+          const hasCapacity =
+            used < limit ||
+            access.can_post === true;
+
+          if(!hasCapacity){
             openSlotPricing(used,limit);
             return;
           }
 
+          // Numeric server capacity says there is room. Clear any stale paywall
+          // state from the previous 5/5 check before opening a fresh job.
           sessionStorage.removeItem('alygnn_job_slot_gate');
           sessionStorage.removeItem('alygnnEditJobId');
-          location.href='app-post-job.html';
+          sessionStorage.removeItem('alygnnJobReturnStep');
+          location.href='app-post-job.html?capacity=available';
           return;
         }
 
