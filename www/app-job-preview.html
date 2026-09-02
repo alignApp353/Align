@@ -2099,6 +2099,15 @@ html[data-theme="dark"] .details-footer{
   }
 }
 
+
+.preview-kicker-clean{
+  margin:0 0 14px;
+  color:var(--brand);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+}
 </style>
 </head>
 
@@ -2119,32 +2128,7 @@ html[data-theme="dark"] .details-footer{
 
 <main class="page" id="page" hidden>
 
-  <!-- Mirrors the candidate Discover progress area. -->
-  <section class="candidate-progress-shell" aria-label="Candidate portal preview">
-    <div class="candidate-progress-card">
-      <div class="candidate-stat">
-        <div class="candidate-stat-value">0</div>
-        <div class="candidate-stat-label">Applied</div>
-      </div>
-
-      <div class="candidate-stat">
-        <div class="candidate-stat-value">0</div>
-        <div class="candidate-stat-label">Passed</div>
-      </div>
-
-      <div class="candidate-stat">
-        <div class="candidate-stat-value">1</div>
-        <div class="candidate-stat-label">Left</div>
-      </div>
-
-      <div class="candidate-job-progress">
-        <div class="candidate-progress-copy">Job 1 of 1</div>
-        <div class="candidate-progress-track">
-          <div class="candidate-progress-fill"></div>
-        </div>
-      </div>
-    </div>
-  </section>
+  <div class="preview-kicker-clean">Candidate card preview</div>
 
   <div class="status-wrap" id="status-wrap"></div>
 
@@ -2273,23 +2257,6 @@ html[data-theme="dark"] .details-footer{
     </div>
   </div>
 
-    <div class="candidate-preview-actions" aria-label="Candidate action preview">
-      <button class="candidate-action-btn candidate-undo-btn" type="button" tabindex="-1" aria-hidden="true">
-        <span class="candidate-action-undo">↶</span>
-        <span class="candidate-action-main">Undo</span>
-      </button>
-
-      <button class="candidate-action-btn candidate-skip-btn" type="button" tabindex="-1" aria-hidden="true">
-        <span class="candidate-action-main">Not for me</span>
-        <span class="candidate-action-sub">Skip this job</span>
-      </button>
-
-      <button class="candidate-action-btn candidate-apply-btn" type="button" tabindex="-1" aria-hidden="true">
-        <span class="candidate-action-main">Apply now</span>
-        <span class="candidate-action-sub">Send my application</span>
-        <span class="candidate-action-arrow">→</span>
-      </button>
-    </div>
   </section>
 
   <div class="message" id="message"></div>
@@ -3070,14 +3037,14 @@ function editJob(){
     );
   }
 
-  // Tell the job builder to reopen Step 5 with the saved draft.
-  // This prevents "Back to Edit" from restarting the entire flow.
   sessionStorage.setItem(
     'alygnnJobReturnStep',
     '5'
   );
 
-  location.href='app-post-job.html';
+  location.replace(
+    'app-post-job.html?return=review'
+  );
 }
 
 function baseJobPayload(){
@@ -3400,13 +3367,13 @@ function wire(){
 
   $('view-job-btn').onclick=()=>{
     if(publishedJobId){
-      // Employer live-view is a terminal preview, not another step in the
-      // job-builder history. Replace the success screen and tell the details
-      // page to return directly to My Jobs.
+      const params=new URLSearchParams({
+        view:'jobs',
+        open_job:String(publishedJobId)
+      });
+
       location.replace(
-        'app-job-details.html?id='+
-        encodeURIComponent(publishedJobId)+
-        '&from=employer-live'
+        'app-employer-dashboard.html?'+params.toString()
       );
       return;
     }
