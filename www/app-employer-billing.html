@@ -74,7 +74,7 @@ html,body{min-height:100%;width:100%}body{background:radial-gradient(circle at t
 </main>
 <script>
 const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-const MANAGE_ENDPOINT='https://alygnn.com/api/manage-subscription';
+const MANAGE_ENDPOINT='https://alygnn.com/api/create-checkout-session';
 const PLAN_CATALOG={
   monthly:{
     launch:{name:'Launch',price:299,cents:29900,slots:3,rank:1},
@@ -144,8 +144,8 @@ function renderCurrent(){
   if(item){
     $('current-price').innerHTML=`${money(summary?.amount_cents||item.cents)} <small>${suffix(billing)}</small>`;
     $('current-copy').textContent=managed
-      ?`${item.slots} reusable active job slots on your ${billingLabel(billing).toLowerCase()} recurring plan.`
-      :`${item.slots} reusable active job slots. This older ${billingLabel(billing).toLowerCase()} term is active, but it is not attached to a recurring Stripe subscription yet.`;
+      ?`${item.slots} ${planName(plan)} plan job slots + 1 always-included free slot = ${item.slots+1} base reusable slots. Active Weekly Job Slots are added on top.`
+      :`${item.slots} plan job slots + 1 always-included free slot = ${item.slots+1} base reusable slots. This older ${billingLabel(billing).toLowerCase()} term is active, but it is not attached to a recurring Stripe subscription yet.`;
   }else if(addonActive&&plan==='free'){
     $('current-price').innerHTML='$150 <small>/ month</small>';
     $('current-copy').textContent='Your included free slot plus one paid Second Job Slot gives you 2 total reusable active job slots.';
