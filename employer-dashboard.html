@@ -460,7 +460,18 @@
   .boost-job-option-title{ font-size:14px; font-weight:600; color:var(--text); margin-bottom:3px; }
   .boost-job-option-meta{ font-size:11px; color:var(--text-muted); line-height:1.4; }
   .boost-job-option-action{ flex-shrink:0; color:var(--brand); font-size:12px; font-weight:700; white-space:nowrap; }
-  .boosted-pill{
+  
+  .boost-until{
+    display:inline-block;
+    margin-left:7px;
+    font-size:10px;
+    font-weight:600;
+    color:var(--text-muted);
+    vertical-align:middle;
+    white-space:nowrap;
+  }
+
+.boosted-pill{
     display:inline-flex; align-items:center; margin-left:7px; padding:2px 8px; border-radius:999px;
     font-size:10px; font-weight:700; color:#755b18; background:rgba(231,184,109,.15);
     border:1px solid rgba(231,184,109,.35); vertical-align:middle;
@@ -1972,12 +1983,23 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       requestAnimationFrame(() => openBoostPicker());
     }
 
-    const boostResult = new URLSearchParams(window.location.search).get('boost');
+    const boostParams = new URLSearchParams(window.location.search);
+    const boostResult = boostParams.get('boost');
     if (boostResult === 'success') {
-      showToast('Job Boost activated for 24 hours.');
+      const boostedJobId = boostParams.get('job');
+      const selectedDays = Math.max(0, Number.parseInt(boostParams.get('days') || '0', 10) || 0);
+      const boostedJob = jobs.find(item => item.id === boostedJobId);
+      const untilCopy = boostedJob?.boosted_until ? formatBoostUntil(boostedJob.boosted_until) : '';
+      const durationCopy = selectedDays
+        ? `${selectedDays}-day Job Boost activated`
+        : 'Job Boost activated';
+
+      showToast(`${durationCopy}${untilCopy ? ` · active until ${untilCopy}` : ''}.`);
+
       const url = new URL(window.location.href);
       url.searchParams.delete('boost');
       url.searchParams.delete('job');
+      url.searchParams.delete('days');
       history.replaceState({}, '', url.pathname + url.search + (window.location.hash || '#jobs'));
     }
   }
@@ -3436,7 +3458,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return '';
     return d.toLocaleString([], {
-      month:'short', day:'numeric', hour:'numeric', minute:'2-digit'
+      month:'short', day:'numeric', year:'numeric',
+      hour:'numeric', minute:'2-digit', timeZoneName:'short'
     });
   }
 
@@ -3466,7 +3489,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         <div class="boost-modal-head">
           <div class="boost-modal-kicker">Job Boost · $15 / day</div>
           <div class="boost-modal-title">Choose a job to boost</div>
-          <div class="boost-modal-copy">You need an active job before you can add a 24-hour Job Boost.</div>
+          <div class="boost-modal-copy">You need an active job before you can choose Boost dates.</div>
         </div>
         <button class="btn-primary" type="button" onclick="closeBoostPicker(); openPostJob();">Post a job</button>
       `;
@@ -3476,7 +3499,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         <div class="boost-modal-head">
           <div class="boost-modal-kicker">Job Boost · $15 / day</div>
           <div class="boost-modal-title">Which job do you want to boost?</div>
-          <div class="boost-modal-copy">A Job Boost lasts 24 hours and gives the selected active job priority placement in candidate discovery.</div>
+          <div class="boost-modal-copy">Choose the job first, then select 1–30 Boost days on the calendar. Each day is $15.</div>
         </div>
         <div class="boost-job-list">
           ${activeJobs.map(job => {
@@ -3493,7 +3516,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
                     ${activeBoost ? ' · Boost active until ' + escapeHtml(formatBoostUntil(job.boosted_until)) : ''}
                   </div>
                 </div>
-                <span class="boost-job-option-action">${activeBoost ? 'Add 24 hours →' : 'Boost →'}</span>
+                <span class="boost-job-option-action">${activeBoost ? 'Add days →' : 'Boost →'}</span>
               </button>
             `;
           }).join('')}
@@ -3602,7 +3625,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       <div class="job-row">
         <div class="job-status ${statusClass}"></div>
         <div class="job-info">
-          <div class="job-title-text">${escapeHtml(job.title)}<span class="job-status-badge ${statusClass}">${escapeHtml(statusLabel)}</span>${jobBoostIsActive(job) ? '<span class="boosted-pill">Boosted</span>' : ''}</div>
+          <div class="job-title-text">${escapeHtml(job.title)}<span class="job-status-badge ${statusClass}">${escapeHtml(statusLabel)}</span>${jobBoostIsActive(job) ? `<span class="boosted-pill">Boosted</span><span class="boost-until">until ${escapeHtml(formatBoostUntil(job.boosted_until))}</span>` : ''}</div>
           <div class="job-meta">${escapeHtml(job.job_type || '')} · ${escapeHtml(formatWorkStyleLabel(job.work_style))}${job.salary ? ' · ' + escapeHtml(job.salary) : ''}${job.location ? ' · ' + escapeHtml(job.location) : ''}</div>
         </div>
         <div class="job-stats">
