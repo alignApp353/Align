@@ -820,17 +820,18 @@ button,a{-webkit-tap-highlight-color:transparent}
   <div class="plans" id="plans"></div>
 
   <!-- SECOND JOB SLOT -->
-  <div class="section-head">
-    <div>
-      <h2 class="section-title">Additional capacity</h2>
-      <p class="section-copy">
-        Keep extra reusable hiring capacity separate from your main plan.
-      </p>
+  <div id="second-slot-area">
+    <div class="section-head">
+      <div>
+        <h2 class="section-title">Additional capacity</h2>
+        <p class="section-copy">
+          Add a second ongoing job slot without choosing a paid plan.
+        </p>
+      </div>
     </div>
-  </div>
 
-  <section class="card">
-    <div class="addon-row">
+    <section class="card">
+      <div class="addon-row">
       <div>
         <div class="kicker">Standalone subscription</div>
         <div class="addon-title">Second Job Slot</div>
@@ -857,7 +858,43 @@ button,a{-webkit-tap-highlight-color:transparent}
     </button>
 
     <div class="section-copy" id="addon-cancel-note" hidden></div>
-  </section>
+    </section>
+  </div>
+
+  <!-- PAID PLAN EXTRA CAPACITY -->
+  <div id="paid-extra-area" hidden>
+    <div class="section-head">
+      <div>
+        <h2 class="section-title">Extra hiring capacity</h2>
+        <p class="section-copy" id="paid-extra-heading-copy">
+          Add temporary capacity or move to the next plan when it saves more.
+        </p>
+      </div>
+    </div>
+
+    <section class="card" id="paid-extra-card">
+      <div class="addon-row">
+        <div>
+          <div class="kicker" id="paid-extra-kicker">Temporary capacity</div>
+          <div class="addon-title" id="paid-extra-title">Weekly Job Slot</div>
+        </div>
+
+        <div class="addon-price" id="paid-extra-price">
+          $99
+          <small>/ 7 days</small>
+        </div>
+      </div>
+
+      <div class="addon-copy" id="paid-extra-copy"></div>
+
+      <button
+        class="action primary full mt12"
+        id="paid-extra-btn"
+        type="button">
+        Add 1 Weekly Job Slot — $99
+      </button>
+    </section>
+  </div>
 
   <!-- INVOICES -->
   <div class="section-head">
@@ -1223,8 +1260,18 @@ function renderCurrent(){
     );
     $('current-price-suffix').textContent=suffix(billing);
 
+    const weeklyCount=Math.max(
+      0,
+      Number(access?.weekly_slot_count||0)
+    );
+
     $('current-copy').textContent=
-      `${item.slots} ${planName(plan)} plan job slot${item.slots===1?'':'s'} + 1 always-included free reusable slot.`;
+      `${item.slots} ${planName(plan)} plan job slot${item.slots===1?'':'s'} + 1 always-included free slot` +
+      (
+        weeklyCount>0
+          ? ` + ${weeklyCount} active Weekly Job Slot${weeklyCount===1?'':'s'} = ${item.slots+1+weeklyCount} total.`
+          : ` = ${item.slots+1} total.`
+      );
   }else if(addonActive&&plan==='free'){
     $('current-price').textContent='$150';
     $('current-price-suffix').textContent='/ month';
@@ -1394,7 +1441,10 @@ function renderBillingOverview(context){
     extraParts.push('1 always-free slot');
   }
 
-  if(Number(access?.addon_slot_count||0)>0){
+  if(
+    !item &&
+    Number(access?.addon_slot_count||0)>0
+  ){
     extraParts.push('1 Second Job Slot');
   }
 
@@ -1688,6 +1738,120 @@ function renderCancelPlan(){
       :`You have already paid through ${fmtDate(summary?.current_period_end)}. Canceling stops the next monthly renewal and does not remove your current access early.`;
 
   cancelButton.textContent='Cancel plan at renewal';
+}
+
+
+function billingNextUpgradePlan(){
+  const explicit=String(
+    access?.recommended_upgrade_plan||''
+  ).toLowerCase();
+
+  if(['growth','scale'].includes(explicit)){
+    return explicit;
+  }
+
+  const {plan}=currentContext();
+
+  if(plan==='launch')return'growth';
+  if(plan==='growth')return'scale';
+
+  return'';
+}
+
+function renderPaidExtraCapacity(){
+  const {plan,billing,item}=currentContext();
+  const area=$('paid-extra-area');
+  const secondArea=$('second-slot-area');
+
+  // Standalone Second Job Slot is ONLY shown on Free accounts.
+  secondArea.hidden=!!item;
+
+  if(!item){
+    area.hidden=true;
+    return;
+  }
+
+  area.hidden=false;
+
+  const weekly=Math.max(
+    0,
+    Number(access?.weekly_slot_count||0)
+  );
+
+  const next=billingNextUpgradePlan();
+
+  if(weekly<1){
+    $('paid-extra-kicker').textContent='Temporary capacity';
+    $('paid-extra-title').textContent='Weekly Job Slot';
+    $('paid-extra-price').innerHTML='$99<small>/ 7 days</small>';
+
+    $('paid-extra-copy').textContent=
+      `Add 1 temporary reusable slot on top of your ${planName(plan)} capacity. It expires 7 days after purchase.`;
+
+    $('paid-extra-btn').textContent=
+      'Add 1 Weekly Job Slot — $99';
+
+    $('paid-extra-btn').onclick=()=>{
+      location.href=
+        'app-employer-payment.html?plan=weekly_slot&billing=weekly';
+    };
+
+    return;
+  }
+
+  if(next){
+    const nextItem=PLAN_CATALOG[billing]?.[next];
+    const difference=
+      item&&nextItem
+        ?nextItem.price-item.price
+        :null;
+
+    const nextName=planName(next);
+
+    $('paid-extra-kicker').textContent='Better value';
+    $('paid-extra-title').textContent=`Upgrade to ${nextName}`;
+    $('paid-extra-price').innerHTML=
+      nextItem
+        ? `$${Number(nextItem.price).toLocaleString('en-US')}<small>${suffix(billing)}</small>`
+        : '';
+
+    $('paid-extra-copy').textContent=
+      `You already have one active $99 Weekly Job Slot. ` +
+      (
+        difference!=null
+          ? `${nextName} is only $${difference.toLocaleString('en-US')} more ${billing==='quarterly'?'per 3-month term':'per month'} than your current plan and gives you more ongoing base capacity. `
+          : ''
+      ) +
+      'Upgrade instead of stacking another temporary weekly slot.';
+
+    $('paid-extra-btn').textContent=
+      `See ${nextName} upgrade`;
+
+    $('paid-extra-btn').onclick=()=>{
+      $('plan-management').scrollIntoView({
+        behavior:'smooth',
+        block:'start'
+      });
+    };
+
+    return;
+  }
+
+  // Scale is currently the highest-priced self-serve plan.
+  $('paid-extra-kicker').textContent='Temporary capacity';
+  $('paid-extra-title').textContent='Another Weekly Job Slot';
+  $('paid-extra-price').innerHTML='$99<small>/ 7 days</small>';
+
+  $('paid-extra-copy').textContent=
+    'Scale is currently Alygnn’s highest self-serve plan. Add another temporary Weekly Job Slot when you need short-term capacity above Scale.';
+
+  $('paid-extra-btn').textContent=
+    'Add 1 Weekly Job Slot — $99';
+
+  $('paid-extra-btn').onclick=()=>{
+    location.href=
+      'app-employer-payment.html?plan=weekly_slot&billing=weekly';
+  };
 }
 
 function renderSecondSlot(addonActive){
@@ -2096,6 +2260,7 @@ function renderAll(){
   renderCurrent();
   renderPending();
   renderPlans();
+  renderPaidExtraCapacity();
   renderInvoices();
 }
 
