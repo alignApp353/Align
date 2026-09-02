@@ -88,11 +88,11 @@ body.test-mode .paid-only{display:none}
             <input type="date" id="boost-start-date" readonly aria-readonly="true">
           </div>
           <div class="boost-date-field">
-            <label for="boost-end-date">Boost through</label>
+            <label for="boost-end-date">Boost until</label>
             <input type="date" id="boost-end-date" onchange="updateBoostSelection()">
           </div>
         </div>
-        <div class="boost-date-note">Select the last day you want the boost to run. The boost begins immediately and runs continuously. Maximum 30 days per checkout.</div>
+        <div class="boost-date-note" id="boost-date-note">Your Boost starts at the exact time it is activated and ends at that same clock time on the selected end date. Maximum 30 days per checkout.</div>
         <div class="boost-selection" id="boost-selection">1 day selected · <strong>$15</strong></div>
       </div>
 
@@ -179,30 +179,78 @@ function parseLocalDate(value){
 function formatDate(date){
   return new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',year:'numeric'}).format(date);
 }
+function formatDateTime(date){
+  return new Intl.DateTimeFormat(undefined,{
+    month:'short',day:'numeric',year:'numeric',
+    hour:'numeric',minute:'2-digit',timeZoneName:'short'
+  }).format(date);
+}
+function effectiveBoostStartTime(){
+  const now=new Date();
+  const existing=job?.boosted_until ? new Date(job.boosted_until) : null;
+  return existing && !Number.isNaN(existing.getTime()) && existing>now ? existing : now;
+}
 function setBoostCalendar(){
-  const today=new Date(); today.setHours(12,0,0,0); boostStartDate=today;
-  const maxDate=new Date(today); maxDate.setDate(maxDate.getDate()+29);
+  const base=effectiveBoostStartTime();
+  const calendarStart=new Date(base);
+  calendarStart.setHours(12,0,0,0);
+  boostStartDate=calendarStart;
+
+  const minEnd=new Date(calendarStart);
+  minEnd.setDate(minEnd.getDate()+1);
+  const maxEnd=new Date(calendarStart);
+  maxEnd.setDate(maxEnd.getDate()+30);
+
   const start=document.getElementById('boost-start-date');
   const end=document.getElementById('boost-end-date');
-  start.value=localDateISO(today); end.min=localDateISO(today); end.max=localDateISO(maxDate);
-  if(!end.value)end.value=localDateISO(today);
+
+  start.value=localDateISO(calendarStart);
+  end.min=localDateISO(minEnd);
+  end.max=localDateISO(maxEnd);
+
+  if(!end.value || parseLocalDate(end.value)<minEnd || parseLocalDate(end.value)>maxEnd){
+    end.value=localDateISO(minEnd);
+  }
+
   updateBoostSelection();
 }
 function updateBoostSelection(){
   if(!boostStartDate)return;
+
   const endInput=document.getElementById('boost-end-date');
-  let end=parseLocalDate(endInput.value)||new Date(boostStartDate);
-  const maxDate=new Date(boostStartDate); maxDate.setDate(maxDate.getDate()+29);
-  if(end<boostStartDate)end=new Date(boostStartDate);
-  if(end>maxDate)end=maxDate;
+  const minEnd=new Date(boostStartDate); minEnd.setDate(minEnd.getDate()+1);
+  const maxEnd=new Date(boostStartDate); maxEnd.setDate(maxEnd.getDate()+30);
+
+  let end=parseLocalDate(endInput.value)||new Date(minEnd);
+  if(end<minEnd)end=new Date(minEnd);
+  if(end>maxEnd)end=new Date(maxEnd);
   endInput.value=localDateISO(end);
-  boostDays=Math.max(1,Math.min(30,Math.round((end-boostStartDate)/86400000)+1));
+
+  boostDays=Math.max(1,Math.min(30,Math.round((end-boostStartDate)/86400000)));
   boostTotal=boostDays*15;
+
   const dayLabel=boostDays===1?'day':'days';
   const totalLabel='$'+boostTotal.toLocaleString('en-US');
-  document.getElementById('boost-selection').innerHTML=`${boostDays} ${dayLabel} selected · <strong>${totalLabel}</strong>`;
+  const effectiveStart=effectiveBoostStartTime();
+  const expectedEnd=new Date(effectiveStart.getTime() + boostDays*24*60*60*1000);
+  const alreadyBoosted=job?.boosted_until && new Date(job.boosted_until).getTime()>Date.now();
+
+  document.getElementById('boost-selection').innerHTML=
+    `${boostDays} ${dayLabel} selected · <strong>${totalLabel}</strong><br>` +
+    `<span style="font-size:11px;color:var(--muted)">` +
+    `${alreadyBoosted ? 'Additional Boost starts after the current Boost ends' : 'Starts when activated'} · ` +
+    `ends ${formatDateTime(expectedEnd)}` +
+    `</span>`;
+
   document.getElementById('boost-price').innerHTML=`${totalLabel} <span>/ ${boostDays} ${dayLabel}</span>`;
-  document.getElementById('boost-date-feature').textContent=`Starts immediately and runs continuously through ${formatDate(end)}`;
+
+  document.getElementById('boost-date-feature').textContent=
+    `${alreadyBoosted ? 'Extends your current Boost' : 'Starts when activated'} · ends ${formatDateTime(expectedEnd)}`;
+
+  document.getElementById('boost-date-note').textContent=
+    alreadyBoosted
+      ? `Your current Boost remains active until ${formatDateTime(effectiveStart)}. The additional ${boostDays} ${dayLabel} will begin then and end ${formatDateTime(expectedEnd)}.`
+      : `Your Boost starts at the exact activation time and runs for ${boostDays} × 24 hours, ending ${formatDateTime(expectedEnd)}.`;
   if(developerTestMode){
     document.getElementById('due-total').textContent='$0.00';
     document.getElementById('secure-copy').textContent=`No payment provider will be contacted. This will activate ${boostDays} test boost ${dayLabel} on the selected job.`;
@@ -313,9 +361,17 @@ async function startBoostCheckout(){
     }
 
     btn.textContent='Job Boost activated ✓';
-    showMessage(`The selected job received ${boostDays} day${boostDays===1?'':'s'} of Job Boost visibility. No payment was processed.`,'info');
+    const exactUntil=data?.boosted_until ? new Date(data.boosted_until) : null;
+    const exactUntilCopy=exactUntil && !Number.isNaN(exactUntil.getTime())
+      ? formatDateTime(exactUntil)
+      : '';
+    showMessage(
+      `The selected job received ${boostDays} day${boostDays===1?'':'s'} of Job Boost visibility` +
+      `${exactUntilCopy ? ` and is boosted until ${exactUntilCopy}` : ''}. No payment was processed.`,
+      'info'
+    );
     setTimeout(()=>{
-      location.href='employer-dashboard.html?boost=success&job='+encodeURIComponent(job.id)+'#jobs';
+      location.href='employer-dashboard.html?boost=success&job='+encodeURIComponent(job.id)+'&days='+encodeURIComponent(boostDays)+'#jobs';
     },600);
     return;
   }
@@ -338,7 +394,7 @@ async function startBoostCheckout(){
         duration_hours:boostDays*24,
         terms_accepted:true,
         terms_version:TERMS_VERSION,
-        success_url:location.origin+'/employer-dashboard.html?boost=success&job='+encodeURIComponent(job.id)+'#jobs',
+        success_url:location.origin+'/employer-dashboard.html?boost=success&job='+encodeURIComponent(job.id)+'&days='+encodeURIComponent(boostDays)+'#jobs',
         cancel_url:location.href
       })
     });
