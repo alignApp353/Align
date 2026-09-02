@@ -204,6 +204,37 @@ html[data-theme="dark"] .spinner{border-color:#2B3A4B;border-top-color:#8EB5DF}
     line-height:1.5;
   }
 
+
+.skill-suggest-copy{
+  margin:6px 0 10px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
+.custom-add-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 92px;
+  gap:10px;
+  margin-top:12px;
+}
+.custom-add-row .suggest-wrap{min-width:0}
+.custom-add-btn{
+  min-height:48px;
+  border:1px solid rgba(52,95,145,.28);
+  border-radius:15px;
+  background:#EDF3F9;
+  color:var(--brand-dark);
+  font-size:12px;
+  font-weight:900;
+}
+html[data-theme="dark"] .custom-add-btn{
+  background:#173047;
+  color:#9DC3E7;
+  border-color:#355068;
+}
+@media(max-width:390px){
+  .custom-add-row{grid-template-columns:minmax(0,1fr) 78px}
+}
 </style>
 </head>
 <body>
@@ -249,7 +280,7 @@ html[data-theme="dark"] .spinner{border-color:#2B3A4B;border-top-color:#8EB5DF}
         <label>Company</label>
         <div class="company-box">
           <div class="company-name" id="company-name">Loading company…</div>
-          <div class="company-note">Pulled from your employer profile</div>
+          
         </div>
         <button type="button" class="company-ai-link" id="company-ai-link" hidden>Complete Company AI Profile</button>
       </div>
@@ -342,8 +373,20 @@ html[data-theme="dark"] .spinner{border-color:#2B3A4B;border-top-color:#8EB5DF}
           <label>Requirements and skills</label>
           <span class="selection-count" id="skills-count">0 selected</span>
         </div>
-        <div class="selection-help">Tap every skill that applies. Selected buttons will appear in the candidate preview.</div>
+        <div class="skill-suggest-copy">
+          Alygnn recommends up to 3 role-relevant skills. Tap a suggestion or add your own.
+        </div>
         <div class="chips" id="skill-chips"></div>
+
+        <div class="custom-add-row">
+          <div class="suggest-wrap">
+            <input class="input" id="custom-skill" type="text" maxlength="80"
+              placeholder="Type a skill" autocomplete="off">
+            <div class="suggest-list" id="skill-suggestions"></div>
+          </div>
+          <button class="custom-add-btn" id="add-skill-btn" type="button">Add</button>
+        </div>
+
         <input type="hidden" id="requirements">
       </div>
 
@@ -352,8 +395,20 @@ html[data-theme="dark"] .spinner{border-color:#2B3A4B;border-top-color:#8EB5DF}
           <label>Benefits</label>
           <span class="selection-count" id="benefits-count">0 selected</span>
         </div>
-        <div class="selection-help">Tap the benefits this job actually offers.</div>
+        <div class="skill-suggest-copy">
+          Alygnn recommends up to 3 common benefits. Type at least 3 letters to search, or add your own.
+        </div>
         <div class="chips" id="benefit-chips"></div>
+
+        <div class="custom-add-row">
+          <div class="suggest-wrap">
+            <input class="input" id="custom-benefit" type="text" maxlength="80"
+              placeholder="Type a benefit" autocomplete="off">
+            <div class="suggest-list" id="benefit-suggestions"></div>
+          </div>
+          <button class="custom-add-btn" id="add-benefit-btn" type="button">Add</button>
+        </div>
+
         <input type="hidden" id="benefits">
       </div>
     </div>
@@ -466,7 +521,15 @@ analyst:['Excel','Data analysis','Reporting','SQL','Dashboard creation','Critica
 marketing:['Content creation','Social media management','Campaign reporting','Copywriting','Canva','Digital marketing']
 };
 
-const BENEFITS=['Health insurance','Dental insurance','Vision insurance','Paid time off','401(k)','Flexible schedule','Employee discount','Professional development','Paid training','Referral bonus','Performance bonus','Mileage reimbursement','Work from home','Career advancement opportunities'];
+const BENEFITS=[
+  'Health insurance','Dental insurance','Vision insurance','Paid time off',
+  'Paid holidays','Sick leave','401(k)','401(k) matching','Flexible schedule',
+  'Remote work','Hybrid work','Employee discount','Professional development',
+  'Paid training','Tuition reimbursement','Parental leave','Life insurance',
+  'Disability insurance','Employee assistance program','Wellness program',
+  'Commuter benefits','Referral bonus','Performance bonus','Mileage reimbursement',
+  'Career advancement opportunities'
+];
 
 
 function roleCategory(title){
@@ -589,24 +652,199 @@ function renderSelectableChips(containerId,values,selectedSet){
   syncSelectedValues();
 }
 
-function renderBenefitSuggestions(){
-  renderSelectableChips('benefit-chips',BENEFITS,selectedBenefits);
+function uniqueClean(values){
+  return [...new Set(
+    (values||[])
+      .map(value=>String(value||'').trim())
+      .filter(Boolean)
+  )];
 }
 
-function refreshRoleSuggestions(){
-  const occupationSkills=occupationSkillNames();
+function professionalLabel(value){
+  let clean=String(value||'')
+    .replace(/[<>]/g,'')
+    .replace(/\s+/g,' ')
+    .trim();
 
-  if(occupationSkills.length){
-    renderSelectableChips('skill-chips',occupationSkills,selectedSkills);
-    return;
+  if(!clean)return'';
+
+  const acronyms={
+    'crm':'CRM',
+    'sql':'SQL',
+    'cpr':'CPR',
+    'c++':'C++',
+    'excel':'Excel',
+    'microsoft office':'Microsoft Office',
+    'microsoft excel':'Microsoft Excel',
+    'microsoft word':'Microsoft Word',
+    '401(k)':'401(k)'
+  };
+
+  return acronyms[clean.toLowerCase()] ||
+    clean.charAt(0).toUpperCase()+clean.slice(1);
+}
+
+function recommendedSkills(){
+  const occupation=occupationSkillNames();
+  if(occupation.length){
+    return uniqueClean(occupation).slice(0,3);
   }
 
   const category=roleCategory(el('title').value);
+  return uniqueClean([
+    ...(ROLE_SKILLS[category]||[]),
+    ...BASE_SKILLS
+  ]).slice(0,3);
+}
+
+function recommendedBenefits(){
+  const title=String(el('title').value||'').toLowerCase();
+
+  let priority;
+  if(/remote|software|developer|analyst|data|marketing/.test(title)){
+    priority=['Remote work','Flexible schedule','Professional development'];
+  }else if(/sales|account|business development|representative/.test(title)){
+    priority=['Performance bonus','Paid training','Career advancement opportunities'];
+  }else if(/manager|director|supervisor|lead/.test(title)){
+    priority=['Health insurance','Paid time off','401(k) matching'];
+  }else{
+    priority=['Health insurance','Paid time off','Paid training'];
+  }
+
+  return uniqueClean([...priority,...BENEFITS]).slice(0,3);
+}
+
+function renderBenefitSuggestions(){
+  renderSelectableChips(
+    'benefit-chips',
+    recommendedBenefits(),
+    selectedBenefits
+  );
+}
+
+function refreshRoleSuggestions(){
   renderSelectableChips(
     'skill-chips',
-    [...BASE_SKILLS,...(ROLE_SKILLS[category]||[])],
+    recommendedSkills(),
     selectedSkills
   );
+  renderBenefitSuggestions();
+}
+
+function suggestionMatches(query,values,selectedSet){
+  const q=String(query||'').trim().toLowerCase();
+  if(q.length<3)return[];
+
+  return uniqueClean(values)
+    .filter(value=>!selectedSet.has(value))
+    .filter(value=>value.toLowerCase().includes(q))
+    .slice(0,8);
+}
+
+function renderTextSuggestions(box,rows,onSelect){
+  if(!rows.length){
+    closeSuggestionBox(box);
+    return;
+  }
+
+  box.innerHTML=rows.map((value,index)=>`
+    <button type="button" class="suggest-item custom-result" data-index="${index}">
+      <span class="suggest-main">${escapeHtml(value)}</span>
+    </button>
+  `).join('');
+
+  box.classList.add('show');
+
+  box.querySelectorAll('.custom-result').forEach(button=>{
+    button.addEventListener('click',event=>{
+      event.preventDefault();
+      const value=rows[Number(button.dataset.index)];
+      if(value)onSelect(value);
+      closeSuggestionBox(box);
+    });
+  });
+}
+
+function addCustomSelection(inputId,selectedSet,refreshFn){
+  const input=el(inputId);
+  const value=professionalLabel(input.value);
+
+  if(value.length<2){
+    showMessage('Enter a professional skill or benefit before adding it.');
+    return false;
+  }
+
+  selectedSet.add(value);
+  input.value='';
+  refreshFn();
+  syncSelectedValues();
+  clearMessage();
+  return true;
+}
+
+function setupSkillBenefitTypeahead(){
+  const skillInput=el('custom-skill');
+  const benefitInput=el('custom-benefit');
+  const skillBox=el('skill-suggestions');
+  const benefitBox=el('benefit-suggestions');
+
+  const fullSkillCatalog=()=>uniqueClean([
+    ...occupationSkillNames(),
+    ...Object.values(ROLE_SKILLS).flat(),
+    ...BASE_SKILLS,
+    ...selectedSkills
+  ]);
+
+  const fullBenefitCatalog=()=>uniqueClean([
+    ...BENEFITS,
+    ...selectedBenefits
+  ]);
+
+  skillInput.addEventListener('input',()=>{
+    renderTextSuggestions(
+      skillBox,
+      suggestionMatches(skillInput.value,fullSkillCatalog(),selectedSkills),
+      value=>{
+        skillInput.value=value;
+        addCustomSelection('custom-skill',selectedSkills,refreshRoleSuggestions);
+      }
+    );
+  });
+
+  benefitInput.addEventListener('input',()=>{
+    renderTextSuggestions(
+      benefitBox,
+      suggestionMatches(benefitInput.value,fullBenefitCatalog(),selectedBenefits),
+      value=>{
+        benefitInput.value=value;
+        addCustomSelection('custom-benefit',selectedBenefits,renderBenefitSuggestions);
+      }
+    );
+  });
+
+  el('add-skill-btn').addEventListener('click',()=>{
+    addCustomSelection('custom-skill',selectedSkills,refreshRoleSuggestions);
+    closeSuggestionBox(skillBox);
+  });
+
+  el('add-benefit-btn').addEventListener('click',()=>{
+    addCustomSelection('custom-benefit',selectedBenefits,renderBenefitSuggestions);
+    closeSuggestionBox(benefitBox);
+  });
+
+  skillInput.addEventListener('keydown',event=>{
+    if(event.key==='Enter'){
+      event.preventDefault();
+      el('add-skill-btn').click();
+    }
+  });
+
+  benefitInput.addEventListener('keydown',event=>{
+    if(event.key==='Enter'){
+      event.preventDefault();
+      el('add-benefit-btn').click();
+    }
+  });
 }
 
 async function loadOccupationProfile(onetCode){
@@ -654,7 +892,7 @@ function applyOccupationProfileToForm(){
     .filter(Boolean)
     .slice(0,8);
 
-  const skillLines=occupationSkillNames().slice(0,12);
+  const skillLines=occupationSkillNames().slice(0,3);
 
   if(!el('description').value.trim()){
     const intro=currentOccupationProfile.description||
@@ -1569,7 +1807,7 @@ el('use-role-data-btn').addEventListener('click',()=>{
 
   applyOccupationProfileToForm();
   showMessage(
-    'Role-specific responsibilities were added and matching skill buttons were selected. Review them before publishing.',
+    'Role-specific responsibilities were added and up to 3 matching skills were selected. You can add or remove anything before publishing.',
     'success'
   );
 });
@@ -1776,8 +2014,22 @@ el('description').addEventListener('input', () => {
     }
 
     setupSuggestions();
+    setupSkillBenefitTypeahead();
     restoreDraft();
-    showStep(1);
+    refreshRoleSuggestions();
+
+    const requestedReturnStep=Number(
+      sessionStorage.getItem('alygnnJobReturnStep')||1
+    );
+    sessionStorage.removeItem('alygnnJobReturnStep');
+
+    showStep(
+      Number.isInteger(requestedReturnStep) &&
+      requestedReturnStep>=1 &&
+      requestedReturnStep<=5
+        ? requestedReturnStep
+        : 1
+    );
   }catch(error){
     console.error(error);
     showMessage('Could not prepare the job form. Please return to the dashboard and try again.');
