@@ -574,6 +574,56 @@
     .status-badge.draft{background:#EEF1F4;color:#66717D}
     .status-badge.closed{background:var(--danger-bg);color:var(--danger)}
 
+    .job-access-badges{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .job-access-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      min-height:24px;
+      padding:0 10px;
+      border-radius:999px;
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.35px;
+      text-transform:uppercase;
+      border:1px solid var(--border);
+      background:#F8FAFB;
+      color:var(--text);
+      white-space:nowrap;
+    }
+
+    .job-access-badge.free{
+      background:#EFF9F3;
+      border-color:#B8E0C5;
+      color:#268A58;
+    }
+
+    .job-access-badge.weekly{
+      background:#EEF4FB;
+      border-color:#C8D7EB;
+      color:#3E6799;
+    }
+
+    .job-access-badge.second-slot{
+      background:#FFF8EC;
+      border-color:#F0D39B;
+      color:#A46908;
+    }
+
+    .job-access-note{
+      margin-top:7px;
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.45;
+    }
+
+
     .job-stats{
       display:grid;
       grid-template-columns:repeat(4,minmax(0,1fr));
@@ -5766,6 +5816,48 @@
       );
     }
 
+    function postingAccessType(job){
+      return String(
+        job?.posting_access_type ||
+        job?.postingAccessType ||
+        ''
+      ).toLowerCase();
+    }
+
+    function jobAccessBadge(job){
+      const type = postingAccessType(job);
+
+      if(type === 'free'){
+        return `
+          <div class="job-access-badges">
+            <span class="job-access-badge free">Free job slot</span>
+          </div>
+          <div class="job-access-note">This role is using the employer's included free reusable job slot.</div>
+        `;
+      }
+
+      if(type === 'weekly'){
+        return `
+          <div class="job-access-badges">
+            <span class="job-access-badge weekly">Weekly slot</span>
+          </div>
+          <div class="job-access-note">This role is using a paid $99 Weekly Job Slot.</div>
+        `;
+      }
+
+      if(type === 'second_slot'){
+        return `
+          <div class="job-access-badges">
+            <span class="job-access-badge second-slot">Second job slot</span>
+          </div>
+          <div class="job-access-note">This role is using the standalone second reusable job slot.</div>
+        `;
+      }
+
+      return '';
+    }
+
+
     function jobCard(job,compact = false){
       const apps = jobApplications(job);
       const scores = apps
@@ -5784,6 +5876,7 @@
             <div>
               <div class="job-title">${escapeHtml(job.title || 'Untitled position')}</div>
               <div class="job-meta">Posted ${timeAgo(job.created_at || job.updated_at)}</div>
+              ${jobAccessBadge(job)}
             </div>
             <span class="status-badge ${statusClass(status)}">${escapeHtml(status)}</span>
           </div>
@@ -5861,6 +5954,7 @@
                 <div class="job-title">${title}</div>
                 <div class="job-meta">${posted}</div>
                 <div class="job-meta" style="margin-top:7px">${location} · ${jobType}</div>
+                ${jobAccessBadge(job)}
               </div>
               <span class="status-badge ${statusClass(statusRaw)}">${status}</span>
             </div>
