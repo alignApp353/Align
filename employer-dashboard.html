@@ -406,6 +406,10 @@
   }
   .test-entitlement-banner.show { display:block; }
   .test-entitlement-banner strong { color:#4F9568; }
+  .payment-access-banner{display:none;margin-top:14px;padding:14px 16px;border-radius:12px;border:1px solid rgba(180,90,90,.32);background:#FFF8F7;color:var(--text);font-size:12px;line-height:1.55}
+  .payment-access-banner.show{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .payment-access-banner strong{display:block;color:#914848;font-size:13px;margin-bottom:2px}
+  .payment-access-banner button{border:0;border-radius:999px;background:var(--brand);color:#fff;padding:9px 15px;font:600 11px 'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}
 
   .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--text); color: white; padding: 10px 20px; border-radius: 100px; font-size: 13px; font-weight: 500; transition: transform 0.3s ease; z-index: 200; white-space: nowrap; }
   .toast.show { transform: translateX(-50%) translateY(0); }
@@ -608,6 +612,10 @@
         <div class="page-title">My Jobs</div>
         <div class="page-sub">Manage your job listings</div>
         <div class="test-entitlement-banner" id="test-entitlement-banner"></div>
+        <div class="payment-access-banner" id="payment-access-banner">
+          <div><strong>Candidate access paused</strong><span>We couldn’t process your latest plan payment. Your jobs, applications, messages, and history are safe, but candidate profiles and hiring actions are locked until payment succeeds.</span></div>
+          <button type="button" onclick="openDashboardBillingPortal(this)">Update payment method</button>
+        </div>
       </div>
       <div class="section-header">
         <div class="section-title">Job listings <span id="job-slot-usage" style="font-size:12px; font-weight:400; color:var(--text-muted); margin-left:8px;"></span></div>
@@ -965,7 +973,13 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     billing_period: null,
     test_mode: false,
     test_plan: null,
-    urgently_hiring: false
+    urgently_hiring: false,
+    candidate_access_locked: false,
+    candidate_access_lock_reason: null,
+    weekly_purchase_allowed: false,
+    recommended_upgrade_plan: null,
+    second_slot_eligible: true,
+    active_paid_plan: false
   };
 
   let selectedGooglePlace = null;
@@ -2033,6 +2047,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       weekly_slots_expires_at: data?.weekly_slots_expires_at || null,
       addon_slot_count: Math.max(0, Number(data?.addon_slot_count || 0)),
       addon_slots_expires_at: data?.addon_slots_expires_at || null,
+      candidate_access_locked: data?.candidate_access_locked === true,
+      candidate_access_lock_reason: data?.candidate_access_lock_reason ? String(data.candidate_access_lock_reason) : null,
+      weekly_purchase_allowed: data?.weekly_purchase_allowed === true,
+      recommended_upgrade_plan: data?.recommended_upgrade_plan ? String(data.recommended_upgrade_plan).toLowerCase() : null,
+      second_slot_eligible: data?.second_slot_eligible === true,
+      active_paid_plan: data?.active_paid_plan === true,
       server_access_loaded: data?.server_access_loaded === true,
       server_can_post: typeof data?.server_can_post === 'boolean' ? data.server_can_post : null,
       server_reason: data?.server_reason ? String(data.server_reason) : null,
@@ -2048,12 +2068,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       // New schema used by Launch / Growth / Scale / Weekly and test-mode access.
       let result = await sb
         .from('employer_entitlements')
-        .select('plan, subscription_status, current_period_end, free_job_used, paid_job_credits, slot_limit, billing_period, test_mode, test_plan, urgently_hiring, addon_slot_count, addon_slots_expires_at')
+        .select('plan, subscription_status, current_period_end, free_job_used, paid_job_credits, slot_limit, billing_period, test_mode, test_plan, urgently_hiring, addon_slot_count, addon_slots_expires_at, candidate_access_locked, candidate_access_lock_reason')
         .eq('employer_id', currentUser.id)
         .maybeSingle();
 
       // Keep the site usable before the new SQL migration is installed.
-      if (result.error && /slot_limit|billing_period|test_mode|test_plan|urgently_hiring/i.test(String(result.error.message || ''))) {
+      if (result.error && /slot_limit|billing_period|test_mode|test_plan|urgently_hiring|candidate_access/i.test(String(result.error.message || ''))) {
         result = await sb
           .from('employer_entitlements')
           .select('plan, subscription_status, current_period_end, free_job_used, paid_job_credits')
@@ -2075,8 +2095,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       }
 
       // Server summary is the source of truth for effective capacity.
-      // It includes the free slot, the repeatable $150/month additional slot, Weekly slots,
-      // and any active Launch / Growth / Scale capacity.
+      // It includes the permanent free slot, the Free-only $150 Second Job Slot,
+      // paid-plan capacity, temporary Weekly slots, and candidate billing-lock state.
       const accessResult = await sb.rpc('get_employer_posting_access');
       if (!accessResult.error && accessResult.data) {
         billingEntitlement = {
@@ -2086,6 +2106,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           weekly_slots_expires_at: accessResult.data.weekly_slots_expires_at || null,
           addon_slot_count: Math.max(0, Number(accessResult.data.addon_slot_count || 0)),
           addon_slots_expires_at: accessResult.data.addon_slots_expires_at || null,
+          candidate_access_locked: accessResult.data.candidate_access_locked === true,
+          candidate_access_lock_reason: accessResult.data.candidate_access_lock_reason || null,
+          weekly_purchase_allowed: accessResult.data.weekly_purchase_allowed === true,
+          recommended_upgrade_plan: accessResult.data.recommended_upgrade_plan ? String(accessResult.data.recommended_upgrade_plan).toLowerCase() : null,
+          second_slot_eligible: accessResult.data.second_slot_eligible === true,
+          active_paid_plan: accessResult.data.active_paid_plan === true,
           server_access_loaded: true,
           server_can_post: accessResult.data.can_post === true,
           server_reason: String(accessResult.data.reason || ''),
@@ -2118,8 +2144,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const plan = String(billingEntitlement.plan || '').toLowerCase();
     const status = String(billingEntitlement.subscription_status || '').toLowerCase();
 
-    if (!['active', 'trialing'].includes(status)) return false;
-    if (!entitlementNotExpired()) return false;
+    // Past-due plans keep their paid slot capacity during Stripe retry/grace,
+    // while candidate access is locked separately.
+    if (!['active', 'trialing', 'past_due'].includes(status)) return false;
+    if (status !== 'past_due' && !entitlementNotExpired()) return false;
 
     // A server-authorized test entitlement is treated exactly like paid access
     // for slot testing, while remaining clearly marked test_mode in the DB/UI.
@@ -2142,14 +2170,14 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if (serverLimit > 0) return serverLimit;
 
     const plan = String(billingEntitlement.test_plan || billingEntitlement.plan || '').toLowerCase();
-    if (plan === 'weekly_slot') return 1;
-    if (plan === 'scale') return 8;
-    if (plan === 'growth') return 5;
-    if (plan === 'launch') return 3;
+    if (plan === 'scale') return 9;
+    if (plan === 'growth') return 6;
+    if (plan === 'launch') return 4;
 
-    // Legacy compatibility until old entitlement rows are migrated.
-    if (plan === 'enterprise') return 5;
-    if (plan === 'business') return 3;
+    // Legacy compatibility until old entitlement rows are migrated. Totals
+    // include the permanent free slot.
+    if (plan === 'enterprise') return 6;
+    if (plan === 'business') return 4;
     return 1;
   }
 
@@ -2168,8 +2196,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     }
 
     // Prefer the server RPC whenever it loaded successfully. This matters for
-    // the repeatable $150/month additional slot: the employer can still have plan="free"
-    // while the RPC correctly reports 2 total reusable slots.
+    // all slot sources together: the permanent free slot, Free-only Second Job
+    // Slot, paid-plan slots, and any eligible temporary Weekly slot.
     if (billingEntitlement.server_access_loaded === true) {
       const used = Number.isFinite(billingEntitlement.server_active_job_count)
         ? billingEntitlement.server_active_job_count
@@ -2217,6 +2245,27 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     return getPostingAccess().allowed === true;
   }
 
+  async function openDashboardBillingPortal(button) {
+    const original=button?.textContent||'Update payment method';
+    if(button){button.disabled=true;button.textContent='Opening billing…';}
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if(!session?.access_token) throw new Error('Your session expired. Please sign in again.');
+      const response=await fetch('/api/create-checkout-session',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+        body:JSON.stringify({action:'billing_portal',return_url:location.origin+'/employer-dashboard.html?billing=return'})
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.url) throw new Error(data.error||'Could not open billing settings.');
+      window.location.href=data.url;
+    } catch(error) {
+      console.error(error);
+      showToast(error?.message||'Could not open billing settings.');
+      if(button){button.disabled=false;button.textContent=original;}
+    }
+  }
+
   function redirectToPricing(reason = 'job-limit') {
     const q = new URLSearchParams();
     q.set('reason', reason);
@@ -2247,9 +2296,9 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           ? new Date(billingEntitlement.current_period_end).toLocaleString()
           : 'No expiration set';
         const urgent = billingEntitlement.urgently_hiring ? ' · Urgently Hiring enabled' : '';
-        const addonCount = Math.max(0, Number(billingEntitlement.addon_slot_count || 0));
+        const addonCount = hasActivePaidPlan() ? 0 : Math.max(0, Number(billingEntitlement.addon_slot_count || 0));
         const addonCopy = addonCount
-          ? ` · +${addonCount} Additional $150 slot${addonCount===1?'':'s'}`
+          ? ` · +1 Second Job Slot ($150/month)`
           : '';
         const weeklyCount = Math.max(0, Number(billingEntitlement.weekly_slot_count || 0));
         const weeklyExpiry = billingEntitlement.weekly_slots_expires_at
@@ -2264,6 +2313,11 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         testBanner.classList.remove('show');
         testBanner.textContent = '';
       }
+    }
+
+    const paymentBanner=document.getElementById('payment-access-banner');
+    if(paymentBanner){
+      paymentBanner.classList.toggle('show', billingEntitlement.candidate_access_locked === true);
     }
 
     if (topButton) {
@@ -3065,7 +3119,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   // client had no way to keep it accurate and it just stayed at 0.
   async function loadAppliedCounts() {
     jobAppliedCounts = {};
-    if (jobs.length === 0) return;
+    if (jobs.length === 0 || billingEntitlement.candidate_access_locked === true) return;
 
     const jobIds = jobs.map(j => j.id);
 
@@ -3093,6 +3147,13 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   // scoped the same way as the SELECT policy above.
   async function loadCandidates() {
     if (!currentUser) return;
+
+    if (billingEntitlement.candidate_access_locked === true) {
+      candidates = [];
+      candidatesLoaded = true;
+      renderCandidates();
+      return;
+    }
 
     if (jobs.length === 0) {
       candidates = [];
@@ -3167,6 +3228,11 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   function openJobApplicantsModal(jobId, applicationId = null) {
+    if (billingEntitlement.candidate_access_locked === true) {
+      showToast('Candidate access is paused until your payment is updated.');
+      window.location.href='candidates.html?billing=locked';
+      return;
+    }
     const job = jobs.find(j => j.id === jobId);
     if (!job) {
       showToast('Could not find that job.');
@@ -3295,6 +3361,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
   // ---- Candidate full-profile modal ----
   function openCandidateModal(applicationId) {
+    if (billingEntitlement.candidate_access_locked === true) {
+      showToast('Candidate access is paused until your payment is updated.');
+      return;
+    }
     const c = candidates.find(cand => cand.applicationId === applicationId);
     if (!c) return;
 
@@ -3432,6 +3502,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   async function updateApplicationStatus(applicationId, status) {
+    if (billingEntitlement.candidate_access_locked === true) {
+      showToast('Candidate actions are paused until your payment is updated.');
+      return;
+    }
     const { error } = await sb
       .from('applications')
       .update({ status })
@@ -3630,14 +3704,16 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         </div>
         <div class="job-stats">
           <div><div class="js-val">${job.views || 0}</div><div class="js-label">Views</div></div>
-          <div><div class="js-val">${jobAppliedCounts[job.id] || 0}</div><div class="js-label">Applied</div></div>
+          <div><div class="js-val">${billingEntitlement.candidate_access_locked === true ? '—' : (jobAppliedCounts[job.id] || 0)}</div><div class="js-label">${billingEntitlement.candidate_access_locked === true ? 'Locked' : 'Applied'}</div></div>
         </div>
         <div class="job-actions">
           ${isClosed
             ? closedAction
             : pending
               ? '<button class="btn-view" disabled style="opacity:.45; cursor:not-allowed;" title="This job will accept candidates after business approval.">Candidates</button>'
-              : `<button class="btn-view" onclick="window.location.href='candidates.html?job=${encodeURIComponent(job.id)}'">Candidates</button>`}
+              : billingEntitlement.candidate_access_locked === true
+                ? `<button class="btn-view" onclick="window.location.href='candidates.html?billing=locked'">Unlock candidates</button>`
+                : `<button class="btn-view" onclick="window.location.href='candidates.html?job=${encodeURIComponent(job.id)}'">Candidates</button>`}
           <button class="btn-view" onclick="window.location.href='job-details.html?job=${job.id}&from=employer'">View</button>
           ${isClosed
             ? ''
@@ -4144,14 +4220,14 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     const closeReason = String(job.closed_reason || '').toLowerCase();
 
-    if (closeReason === 'free_candidate_cap') {
-      showToast('This free job reached 25 candidates. Choose a paid job slot to reopen it.');
+    if (closeReason === 'free_candidate_cap' && !hasActivePaidPlan()) {
+      showToast('This free job reached 25 candidates. Choose a paid plan to reopen it.');
       setTimeout(() => redirectToPricing('free-candidate-cap'), 700);
       return;
     }
 
-    if (closeReason === 'weekly_slot_expired') {
-      showToast('The 7-day Weekly Job Slot expired. Choose another job slot to reopen this job.');
+    if (closeReason === 'weekly_slot_expired' && !canCreateNewJob()) {
+      showToast('The 7-day Weekly Job Slot expired. Add capacity or free a slot to reopen this job.');
       setTimeout(() => redirectToPricing('weekly-expired'), 700);
       return;
     }
