@@ -7399,22 +7399,35 @@
       ).trim();
     }
 
-    function openRequestedDashboardJob(){
+    function openRequestedDashboardJob(attempt=0){
       const id=requestedDashboardJobId();
       if(!id)return false;
 
       const exists=state.jobs.some(
         job=>String(job?.id)===id
       );
-      if(!exists)return false;
+
+      if(!exists){
+        // A freshly-published job may need one extra data refresh/render.
+        if(attempt<3){
+          setTimeout(()=>{
+            refreshJobsView()
+              .then(()=>openRequestedDashboardJob(attempt+1))
+              .catch(()=>{});
+          },250);
+        }
+        return false;
+      }
 
       jobsStatusTab='open';
+      setView('jobs');
       renderJobs();
       openJobPreview(id);
 
       const url=new URL(location.href);
       url.searchParams.delete('open_job');
       url.searchParams.set('view','jobs');
+
       history.replaceState(
         null,
         '',
@@ -7423,7 +7436,6 @@
 
       return true;
     }
-
 
     async function handleJobAction(action,id){
       const job = state.jobs.find(item => String(item.id) === String(id));
