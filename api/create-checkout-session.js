@@ -118,76 +118,11 @@ async function getEmployerPostingAccess(token) {
 }
 
 function additionalSlotEligible(access) {
-  // The $150/month Second Job Slot is ONLY for employers without
-  // an active monthly/quarterly Launch/Growth/Scale plan.
-  if (access?.active_paid_plan === true || access?.base_paid_plan === true) {
-    return false;
-  }
-
-  return Number(
-    access?.second_slot_count ??
-    access?.addon_slot_count ??
-    0
-  ) < 1;
-}
-
-function nextSelfServePlan(access) {
-  const plan = String(
-    access?.test_plan ||
-    access?.plan ||
-    'free'
-  ).toLowerCase();
-
-  if (plan === 'launch' || plan === 'business') return 'growth';
-  if (plan === 'growth') return 'scale';
-
-  return null;
-}
-
-function weeklyCheckoutDecision(access) {
-  const weeklyCount = Math.max(
-    0,
-    Number(access?.weekly_slot_count || 0)
-  );
-
-  const paid =
-    access?.active_paid_plan === true ||
-    access?.base_paid_plan === true;
-
-  if (!paid) {
-    return {
-      allowed: true,
-      recommendedPlan: null
-    };
-  }
-
-  if (weeklyCount < 1) {
-    return {
-      allowed: true,
-      recommendedPlan: null
-    };
-  }
-
-  const recommendedPlan =
-    String(
-      access?.recommended_upgrade_plan ||
-      nextSelfServePlan(access) ||
-      ''
-    ).toLowerCase() || null;
-
-  // Launch/Growth should upgrade after one active Weekly extra.
-  if (recommendedPlan) {
-    return {
-      allowed: false,
-      recommendedPlan
-    };
-  }
-
-  // Scale is currently the highest self-serve plan.
-  return {
-    allowed: true,
-    recommendedPlan: null
-  };
+  // The $150/month Second Job Slot is FREE-ACCOUNT ONLY and can exist only once.
+  // The database RPC is the source of truth so direct checkout URLs cannot bypass it.
+  return access?.second_slot_eligible === true &&
+    access?.active_paid_plan !== true &&
+    Number(access?.addon_slot_count || 0) < 1;
 }
 
 async function stripeCreateCheckout(params) {
@@ -297,7 +232,8 @@ function recurringPlan(ent){
 function entitlementLooksActive(ent){
   const status=String(ent?.subscription_status||'').toLowerCase();
   const end=ent?.current_period_end?new Date(ent.current_period_end).getTime():Infinity;
-  return ['active','trialing','past_due'].includes(status)&&!!recurringPlan(ent)&&end>Date.now();
+  if(status==='past_due') return !!recurringPlan(ent);
+  return ['active','trialing'].includes(status)&&!!recurringPlan(ent)&&end>Date.now();
 }
 function shouldResolveSubscription(ent){
   const status=String(ent?.subscription_status||'').toLowerCase();
@@ -308,7 +244,8 @@ function subscriptionIsActive(sub){
   if(!sub)return false;
   const status=String(sub.status||'').toLowerCase();
   const end=sub.current_period_end?Number(sub.current_period_end)*1000:Infinity;
-  return ['active','trialing','past_due'].includes(status)&&end>Date.now();
+  if(status==='past_due') return true;
+  return ['active','trialing'].includes(status)&&end>Date.now();
 }
 function subscriptionPlan(ent,sub){
   const fromStripe=String(sub?.metadata?.plan||'').toLowerCase();
@@ -378,31 +315,39 @@ async function resolveSubscription(employerId,ent){
   return sub;
 }
 function subscriptionSummary(ent,sub){
-  const plan=subscriptionPlan(ent,sub);
-  const billing=subscriptionBilling(ent,sub);
-  const p=MANAGE_CATALOG[billing]?.[plan]||null;
+  const rawPlan=subscriptionPlan(ent,sub);
+  const rawBilling=subscriptionBilling(ent,sub);
+  const status=String(sub?.status||ent?.subscription_status||'free').toLowerCase();
+  const terminal=['canceled','unpaid','incomplete_expired','inactive'].includes(status);
+  const plan=terminal?'free':rawPlan;
+  const billing=terminal?'free':rawBilling;
+  const p=terminal?null:(MANAGE_CATALOG[billing]?.[plan]||null);
   const endUnix=sub?.current_period_end||null;
   return {
     current_plan:plan,
     billing_period:billing,
-    subscription_status:String(sub?.status||ent?.subscription_status||'free').toLowerCase(),
+    subscription_status:status,
     current_period_end:endUnix?new Date(endUnix*1000).toISOString():(ent?.current_period_end||null),
-    amount_cents:p?.cents??Number(ent?.plan_amount_cents||0),
-    slot_limit:Number(ent?.slot_limit||p?.slots||1),
+    amount_cents:p?.cents??0,
+    slot_limit:p ? Number(p.slots||0)+1 : 1,
+    plan_slot_limit:p?.slots??0,
+    included_free_slot_count:1,
     pending_plan:ent?.pending_plan||null,
     pending_billing_period:ent?.pending_billing_period||null,
     pending_plan_effective_at:ent?.pending_plan_effective_at||null,
     cancel_at_period_end:
-      sub?.cancel_at_period_end===true ||
-      (
-        String(ent?.pending_plan||'').toLowerCase()==='free' &&
-        !!ent?.pending_plan_effective_at
+      !terminal && (
+        sub?.cancel_at_period_end===true ||
+        (
+          String(ent?.pending_plan||'').toLowerCase()==='free' &&
+          !!ent?.pending_plan_effective_at
+        )
       ),
     cancel_effective_at:
-      sub?.cancel_at_period_end===true && sub?.current_period_end
+      !terminal && sub?.cancel_at_period_end===true && sub?.current_period_end
         ? new Date(Number(sub.current_period_end)*1000).toISOString()
         : (
-            String(ent?.pending_plan||'').toLowerCase()==='free'
+            !terminal && String(ent?.pending_plan||'').toLowerCase()==='free'
               ? ent?.pending_plan_effective_at||null
               : null
           ),
@@ -647,28 +592,40 @@ async function scheduleDowngrade({employerId,ent,sub,currentPlan,targetPlan,bill
   });
   return {change:'downgrade_scheduled',effective_at:new Date(end*1000).toISOString(),schedule_id:scheduleId,billing_period:billing};
 }
-async function upgradeNow({employerId,ent,sub,targetPlan,billing}){
+function planLegacyName(plan){
+  return plan==='launch'?'business':'enterprise';
+}
+
+async function applyPaidFixedUpgrade({employerId,sub,targetPlan,billing,targetPrice}){
   const item=sub?.items?.data?.[0];
   if(!item?.id)throw new Error('Stripe subscription item could not be identified.');
 
-  // A previously scheduled downgrade/cancellation must be removed before an immediate upgrade.
-  await releaseSchedule(sub,ent);
-  const targetPrice=await ensureRecurringPrice(targetPlan,billing);
   const updated=await manageStripe('POST','subscriptions/'+encodeURIComponent(sub.id),{
     cancel_at_period_end:'false',
     'items[0][id]':item.id,
     'items[0][price]':targetPrice,
     'items[0][quantity]':1,
-    proration_behavior:'always_invoice',
-    payment_behavior:'pending_if_incomplete',
+    proration_behavior:'none',
     'metadata[employer_id]':employerId,
     'metadata[product]':'job_plan',
     'metadata[plan]':targetPlan,
-    'metadata[billing]':billing,
-    'expand[0]':'latest_invoice.payment_intent'
+    'metadata[billing]':billing
   });
 
+  const catalog=MANAGE_CATALOG[billing]?.[targetPlan];
   await patchEntitlement(employerId,{
+    plan:planLegacyName(targetPlan),
+    test_plan:targetPlan,
+    test_mode:false,
+    subscription_status:String(updated.status||'active').toLowerCase(),
+    current_period_end:updated.current_period_end
+      ? new Date(Number(updated.current_period_end)*1000).toISOString()
+      : null,
+    slot_limit:catalog?.slots||null,
+    billing_period:billing,
+    urgently_hiring:['growth','scale'].includes(targetPlan),
+    alygnn_recommended:['growth','scale'].includes(targetPlan),
+    plan_amount_cents:catalog?.cents||null,
     stripe_plan_subscription_id:updated.id,
     stripe_plan_customer_id:typeof updated.customer==='string'?updated.customer:updated.customer?.id||null,
     stripe_plan_schedule_id:null,
@@ -677,18 +634,105 @@ async function upgradeNow({employerId,ent,sub,targetPlan,billing}){
     pending_plan_effective_at:null
   });
 
-  const invoice=typeof updated.latest_invoice==='object'?updated.latest_invoice:null;
-  const paymentIntent=typeof invoice?.payment_intent==='object'?invoice.payment_intent:null;
+  return updated;
+}
+
+async function upgradeNow({employerId,ent,sub,targetPlan,billing}){
+  const item=sub?.items?.data?.[0];
+  if(!item?.id)throw new Error('Stripe subscription item could not be identified.');
+
+  const currentPlan=subscriptionPlan(ent,sub);
+  const currentCatalog=MANAGE_CATALOG[billing]?.[currentPlan];
+  const targetCatalog=MANAGE_CATALOG[billing]?.[targetPlan];
+  if(!currentCatalog||!targetCatalog)throw new Error('Could not calculate the plan upgrade price.');
+
+  const difference=Math.max(0,Number(targetCatalog.cents)-Number(currentCatalog.cents));
+  if(difference<=0)throw new Error('This plan change is not an upgrade.');
+
+  const customerId=stripeCustomerId(sub,ent);
+  if(!customerId)throw new Error('Stripe customer could not be identified.');
+
+  // Keep the current plan in place until the fixed-difference upgrade invoice is paid.
+  await releaseSchedule(sub,ent);
+  if(sub?.cancel_at_period_end===true){
+    sub=await manageStripe('POST','subscriptions/'+encodeURIComponent(sub.id),{cancel_at_period_end:'false'});
+  }
+
+  const targetPrice=await ensureRecurringPrice(targetPlan,billing);
+
+  // Alygnn uses a SIMPLE FIXED-DIFFERENCE upgrade model, not time-based proration.
+  // Example: Launch $299 -> Growth $449 = $150 charged now, regardless of days left.
+  const invoice=await manageStripe('POST','invoices',{
+    customer:customerId,
+    collection_method:'charge_automatically',
+    auto_advance:'false',
+    'metadata[employer_id]':employerId,
+    'metadata[product]':'plan_upgrade',
+    'metadata[current_plan]':currentPlan,
+    'metadata[target_plan]':targetPlan,
+    'metadata[billing]':billing,
+    'metadata[subscription_id]':sub.id,
+    'metadata[target_price_id]':targetPrice,
+    'metadata[fixed_difference_cents]':difference
+  });
+
+  await manageStripe('POST','invoiceitems',{
+    customer:customerId,
+    invoice:invoice.id,
+    amount:difference,
+    currency:'usd',
+    description:`Alygnn ${currentCatalog.name} -> ${targetCatalog.name} upgrade`,
+    'metadata[employer_id]':employerId,
+    'metadata[product]':'plan_upgrade',
+    'metadata[target_plan]':targetPlan
+  });
+
+  let finalized=await manageStripe('POST','invoices/'+encodeURIComponent(invoice.id)+'/finalize',{
+    auto_advance:'true'
+  });
+
+  try{
+    finalized=await manageStripe('POST','invoices/'+encodeURIComponent(invoice.id)+'/pay',{});
+  }catch(error){
+    try{
+      finalized=await manageStripe('GET','invoices/'+encodeURIComponent(invoice.id),{
+        'expand[]':'payment_intent'
+      });
+    }catch(_){}
+  }
+
+  if(String(finalized?.status||'').toLowerCase()==='paid'){
+    const updated=await applyPaidFixedUpgrade({
+      employerId,sub,targetPlan,billing,targetPrice
+    });
+    return {
+      change:'upgrade_completed',
+      effective:'immediate',
+      fixed_difference_cents:difference,
+      amount_due_cents:finalized.amount_due??difference,
+      amount_paid_cents:finalized.amount_paid??difference,
+      hosted_invoice_url:finalized.hosted_invoice_url||null,
+      payment_status:'paid',
+      billing_period:billing,
+      next_renewal_plan:targetPlan,
+      next_renewal_amount_cents:targetCatalog.cents,
+      subscription_status:String(updated.status||'active').toLowerCase()
+    };
+  }
+
   return {
-    change:'upgrade_requested',
-    effective:'immediate_after_payment',
-    amount_due_cents:invoice?.amount_due??null,
-    amount_paid_cents:invoice?.amount_paid??null,
-    hosted_invoice_url:invoice?.hosted_invoice_url||null,
-    payment_intent_status:paymentIntent?.status||null,
-    payment_status:invoice?.status||updated.status,
-    pending_update:!!updated.pending_update,
-    billing_period:billing
+    change:'upgrade_payment_required',
+    effective:'after_payment',
+    fixed_difference_cents:difference,
+    amount_due_cents:finalized?.amount_due??difference,
+    amount_paid_cents:finalized?.amount_paid??0,
+    hosted_invoice_url:finalized?.hosted_invoice_url||null,
+    payment_intent_status:finalized?.payment_intent?.status||null,
+    payment_status:finalized?.status||'open',
+    billing_period:billing,
+    current_plan:currentPlan,
+    target_plan:targetPlan,
+    next_renewal_amount_cents:targetCatalog.cents
   };
 }
 
@@ -886,6 +930,35 @@ async function runManageAction(res,user,input){
   let sub=shouldResolveSubscription(ent)?await resolveSubscription(user.id,ent):null;
   ent=await getEntitlement(user.id);
 
+  if(action==='billing_portal'){
+    let secondSlot=null;
+    try{ secondSlot=await resolveSecondSlotSubscription(user.id); }catch(error){
+      console.warn('Could not resolve Second Job Slot for billing portal:',error?.message||error);
+    }
+
+    const customerId=
+      stripeCustomerId(sub,ent) ||
+      (typeof secondSlot?.customer==='string' ? secondSlot.customer : secondSlot?.customer?.id) ||
+      null;
+
+    if(!customerId){
+      const error=new Error('No Stripe billing account is connected to this employer yet.');
+      error.status=409;
+      throw error;
+    }
+
+    const returnUrl=allowedReturnUrl(
+      input.return_url,
+      'https://alygnn.com/employer-account.html?billing=return'
+    );
+    const portal=await manageStripe('POST','billing_portal/sessions',{
+      customer:customerId,
+      return_url:returnUrl
+    });
+
+    return send(res,200,{ok:true,url:portal.url});
+  }
+
   if(action==='summary'){
     let secondSlot=null;
 
@@ -1000,6 +1073,13 @@ async function runManageAction(res,user,input){
     });
   }
 
+  if(String(sub?.status||ent?.subscription_status||'').toLowerCase()==='past_due'){
+    return send(res,409,{
+      error:'Resolve the outstanding payment before changing plans. Update your payment method, then try the plan change again.',
+      payment_required:true
+    });
+  }
+
   // Choosing another plan means the employer wants billing to continue,
   // so a previously scheduled cancellation is automatically reversed.
   if(sub?.cancel_at_period_end===true){
@@ -1061,7 +1141,8 @@ module.exports = async function handler(req, res) {
       'cancel_plan',
       'resume_plan',
       'cancel_second_slot',
-      'resume_second_slot'
+      'resume_second_slot',
+      'billing_portal'
     ].includes(billingAction)) {
       return await runManageAction(res, user, input);
     }
@@ -1097,15 +1178,10 @@ module.exports = async function handler(req, res) {
       const access = await getEmployerPostingAccess(token);
 
       if (!additionalSlotEligible(access)) {
-        const paid =
-          access?.active_paid_plan === true ||
-          access?.base_paid_plan === true;
-
-        return send(res, 400, {
-          error: paid
-            ? 'The $150/month Second Job Slot is only available on the Free employer account. Paid plans use the included free slot plus $99 Weekly Job Slots for temporary extra capacity.'
-            : 'Your Second Job Slot is already active.'
-        });
+        const message = access?.active_paid_plan === true
+          ? 'The $150/month Second Job Slot is only for Free employers. Use a $99 Weekly Job Slot or upgrade your plan.'
+          : 'Your Second Job Slot is already active.';
+        return send(res, 400, { error: message });
       }
 
       plan = 'second_job_slot';
@@ -1129,33 +1205,36 @@ module.exports = async function handler(req, res) {
       if (billing === 'weekly' || plan === 'weekly_slot') {
         billing = 'weekly';
         plan = 'weekly_slot';
+
+        const access = await getEmployerPostingAccess(token);
+        if (access?.candidate_access_locked === true) {
+          return send(res, 402, {
+            error: 'Update your payment method before adding another Weekly Job Slot.',
+            payment_issue: true
+          });
+        }
+        if (access?.active_paid_plan !== true) {
+          return send(res, 400, {
+            error: 'The $99 Weekly Job Slot is available only with an active Launch, Growth, or Scale monthly/quarterly plan.'
+          });
+        }
+        if (access?.weekly_purchase_allowed !== true) {
+          const recommended = String(access?.recommended_upgrade_plan || '').toLowerCase();
+          return send(res, 409, {
+            error: recommended
+              ? `You already have one active Weekly Job Slot. Upgrade to ${recommended.charAt(0).toUpperCase()+recommended.slice(1)} for better ongoing value.`
+              : 'Another Weekly Job Slot is not available for this plan right now.',
+            recommended_upgrade_plan: recommended || null,
+            manage_plan: !!recommended
+          });
+        }
       }
       const item = CHECKOUT_CATALOG[billing]?.[plan];
       if (!item) return send(res, 400, { error: 'Unknown Alygnn plan or billing period.' });
 
-      if (billing === 'weekly' && plan === 'weekly_slot') {
-        const access = await getEmployerPostingAccess(token);
-        const decision = weeklyCheckoutDecision(access);
-
-        if (!decision.allowed) {
-          const recommended =
-            decision.recommendedPlan === 'growth'
-              ? 'Growth'
-              : 'Scale';
-
-          return send(res, 409, {
-            error:
-              `You already have one active $99 Weekly Job Slot. Upgrade to ${recommended} for better ongoing value instead of stacking another weekly slot.`,
-            recommend_upgrade: true,
-            recommended_plan: decision.recommendedPlan,
-            billing_period: String(access?.billing_period || 'monthly').toLowerCase()
-          });
-        }
-      }
-
       // Do not create a second paid plan while an employer already has one active.
       // Existing recurring subscribers change plans through Billing & plan so
-      // upgrades can be prorated and downgrades can wait until renewal.
+      // upgrades use Alygnn's fixed-difference charge and downgrades wait until renewal.
       if (billing === 'monthly' || billing === 'quarterly') {
         const access = await getEmployerPostingAccess(token);
         const currentPlan = String(access?.plan || '').toLowerCase();
@@ -1166,7 +1245,7 @@ module.exports = async function handler(req, res) {
           ['launch','growth','scale','business','enterprise'].includes(currentPlan)
         ) {
           return send(res, 409, {
-            error: 'You already have an active paid plan. Change it from Settings → Billing & plan so Alygnn can prorate upgrades or schedule downgrades correctly.',
+            error: 'You already have an active paid plan. Change it from Settings → Billing & plan so Alygnn can charge the fixed plan difference for upgrades or schedule downgrades correctly.',
             manage_plan: true
           });
         }
