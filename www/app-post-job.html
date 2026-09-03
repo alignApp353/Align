@@ -172,39 +172,6 @@ html[data-theme="dark"] .lock{background:#2B2414;border-color:#6D5729;color:#F3D
 html[data-theme="dark"] .loading{background:rgba(7,18,29,.97)}
 html[data-theme="dark"] .progress{background:#263545}
 html[data-theme="dark"] .spinner{border-color:#2B3A4B;border-top-color:#8EB5DF}
-
-
-  .slot-source-notice{
-    margin:0 0 22px;
-    padding:16px 18px;
-    border:1px solid #b9d9c5;
-    border-radius:18px;
-    background:#f1faf4;
-    color:#1a2530;
-  }
-  .slot-source-notice[hidden]{display:none!important}
-  .slot-source-kicker{
-    margin:0 0 4px;
-    font-size:12px;
-    font-weight:800;
-    letter-spacing:.12em;
-    text-transform:uppercase;
-    color:#2f8a5a;
-  }
-  .slot-source-title{
-    margin:0;
-    font-size:16px;
-    font-weight:800;
-    line-height:1.35;
-  }
-  .slot-source-copy{
-    margin:5px 0 0;
-    color:#5f7082;
-    font-size:14px;
-    line-height:1.5;
-  }
-
-
 .skill-suggest-copy{
   margin:6px 0 10px;
   color:var(--muted);
@@ -253,12 +220,6 @@ html[data-theme="dark"] .custom-add-btn{
 </header>
 
 <main class="page">
-  
-    <div class="slot-source-notice" id="slot-source-notice" hidden>
-      <div class="slot-source-kicker">Job slot</div>
-      <p class="slot-source-title" id="slot-source-title"></p>
-      <p class="slot-source-copy" id="slot-source-copy"></p>
-    </div>
 <div class="progress-wrap">
     <div class="progress-top">
       <span class="step-label" id="step-label">Step 1 of 5</span>
@@ -1161,85 +1122,10 @@ function planDisplayName(raw){
   return '';
 }
 
-function showSlotSourceNotice(access){
-  const notice=el('slot-source-notice');
-  const title=el('slot-source-title');
-  const copy=el('slot-source-copy');
-  if(!notice||!title||!copy)return;
-
-  const used=Math.max(0,Number(access?.active_job_count||0));
-  const limit=Math.max(1,Number(access?.slot_limit||1));
-
-  const paidPlan=
-    access?.base_paid_plan===true ||
-    access?.active_paid_plan===true;
-
-  // IMPORTANT: plan_slot_limit does NOT include the always-free slot.
-  const planLimit=Math.max(
-    0,
-    Number(
-      access?.plan_slot_limit ??
-      (
-        paidPlan
-          ? Math.max(0,Number(access?.base_slot_limit||1)-1)
-          : 0
-      )
-    )
-  );
-
-  const freeLimit=1;
-  const planPlusFree=planLimit+freeLimit;
-
-  const secondActive=
-    access?.second_slot_active===true ||
-    Number(access?.second_slot_count||0)>0;
-
-  const weeklyCount=Math.max(
-    0,
-    Number(access?.weekly_slot_count||0)
-  );
-
-  const planName=planDisplayName(
-    access?.test_plan||access?.plan
-  );
-
-  /*
-   * FINAL CONSUMPTION ORDER:
-   *   1. Plan slots
-   *   2. Always-included FREE slot
-   *   3. Standalone $150 Second Job Slot
-   *   4. $99 Weekly Job Slot(s)
-   *
-   * So Growth at 5 used shows FREE for job #6.
-   * If one Weekly slot is active, job #7 then shows WEEKLY.
-   */
-  if(paidPlan && used < planLimit){
-    title.textContent=`You’re using an available ${planName||'plan'} job slot.`;
-    copy.textContent=
-      `Your ${planName||'plan'} includes ${planLimit} plan job slots, plus 1 always-included free slot. After publishing, ${used+1} of ${limit} total slots will be in use.`;
-
-  }else if(used < planPlusFree){
-    title.textContent='You’re using your included free job slot.';
-    copy.textContent=paidPlan
-      ? `You’ve used all ${planLimit} ${planName||'plan'} job slots. This next job uses the 1 free reusable slot included with every Alygnn employer account.`
-      : 'This reusable job slot is included free with every Alygnn employer account.';
-
-  }else if(secondActive && used < planPlusFree+1){
-    title.textContent='You’re using your Second Job Slot.';
-    copy.textContent='This is your $150/month reusable second slot.';
-
-  }else if(weeklyCount>0){
-    title.textContent='You’re using a Weekly Job Slot.';
-    copy.textContent=
-      `Your plan slots and included free slot are already in use. This extra $99 slot is active for 7 days. After publishing, ${used+1} of ${limit} total slots will be in use.`;
-
-  }else{
-    title.textContent='You have an available job slot.';
-    copy.textContent=
-      `After publishing, ${used+1} of ${limit} reusable slots will be in use.`;
-  }
-
-  notice.hidden=false;
+function showSlotSourceNotice(_access){
+  // Capacity is enforced silently. The posting form no longer displays
+  // a slot-source banner.
+  return;
 }
 
 async function enforceJobSlotAccess(userId,companyId){
