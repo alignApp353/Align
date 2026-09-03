@@ -462,6 +462,8 @@ let verificationStatus = 'not_submitted';
 let verificationDocumentSubmitted = false;
 let currentCompanyId = '';
 let currentCompany = null;
+let editingJobId = '';
+let editingOriginalStatus = 'active';
 let slotEntitlement = null;
 let slotUsage = {used:0,limit:1};
 
@@ -1121,6 +1123,246 @@ async function loadJobsForSlotCheck(userId,companyId){
   return collected;
 }
 
+function parseExistingSalaryFallback(job){
+  if(
+    job?.pay_min != null ||
+    job?.pay_max != null
+  ){
+    return{
+      min:job?.pay_min ?? null,
+      max:job?.pay_max ?? null,
+      period:job?.pay_period || 'hour'
+    };
+  }
+
+  const salary=String(job?.salary||'');
+
+  const numbers=[
+    ...salary.matchAll(
+      /\$?\s*([\d,.]+(?:\.\d+)?)/g
+    )
+  ].map(match=>
+    Number(
+      String(match[1]).replace(/,/g,'')
+    )
+  ).filter(Number.isFinite);
+
+  let period='hour';
+
+  if(/year|annual/i.test(salary)){
+    period='year';
+  }else if(/month/i.test(salary)){
+    period='month';
+  }else if(/week/i.test(salary)){
+    period='week';
+  }
+
+  return{
+    min:numbers[0] ?? null,
+    max:numbers[1] ?? numbers[0] ?? null,
+    period
+  };
+}
+
+async function loadExistingJobForEdit(
+  userId,
+  companyId
+){
+  const editId=String(
+    new URLSearchParams(location.search).get('edit') ||
+    sessionStorage.getItem('alygnnEditJobId') ||
+    ''
+  ).trim();
+
+  if(!editId){
+    editingJobId='';
+    return false;
+  }
+
+  const {data:job,error}=await sb
+    .from('jobs')
+    .select('*')
+    .eq('id',editId)
+    .maybeSingle();
+
+  if(error||!job){
+    console.error(
+      'Could not load job for editing:',
+      error
+    );
+
+    sessionStorage.removeItem(
+      'alygnnEditJobId'
+    );
+
+    throw new Error(
+      'Alygnn could not load this job for editing.'
+    );
+  }
+
+  const ownedByUser=
+    String(job.employer_id||'')===
+    String(userId||'');
+
+  const ownedByCompany=
+    companyId &&
+    String(job.company_id||'')===
+    String(companyId||'');
+
+  if(!ownedByUser&&!ownedByCompany){
+    sessionStorage.removeItem(
+      'alygnnEditJobId'
+    );
+
+    throw new Error(
+      'You do not have permission to edit this job.'
+    );
+  }
+
+  editingJobId=String(job.id);
+  editingOriginalStatus=String(
+    job.status||'active'
+  );
+
+  sessionStorage.setItem(
+    'alygnnEditJobId',
+    editingJobId
+  );
+
+  const pay=
+    parseExistingSalaryFallback(job);
+
+  /*
+   * Replace any stale new-job draft with the exact database job.
+   * Edit Job must never open a blank posting form.
+   */
+  const editDraft={
+    edit_job_id:editingJobId,
+    original_status:editingOriginalStatus,
+
+    employer_id:
+      job.employer_id||
+      userId,
+
+    company_id:
+      job.company_id||
+      companyId||
+      null,
+
+    title:
+      job.title||
+      '',
+
+    company:
+      job.company||
+      currentCompany?.company_name||
+      currentCompany?.legal_name||
+      currentCompany?.name||
+      '',
+
+    location:
+      job.location||
+      '',
+
+    job_type:
+      job.job_type||
+      'Full-time',
+
+    work_style:
+      job.work_style||
+      'On-site',
+
+    salary:
+      job.salary||
+      '',
+
+    description:
+      job.description||
+      '',
+
+    requirements:
+      job.requirements||
+      '',
+
+    benefits:
+      job.benefits||
+      '',
+
+    pay_period:
+      job.pay_period||
+      pay.period||
+      'hour',
+
+    pay_min:
+      job.pay_min ??
+      pay.min,
+
+    pay_max:
+      job.pay_max ??
+      pay.max,
+
+    onet_soc_code:
+      job.onet_soc_code||
+      null,
+
+    location_city:
+      job.location_city||
+      null,
+
+    location_state:
+      job.location_state||
+      null,
+
+    location_postal_code:
+      job.location_postal_code||
+      null,
+
+    location_latitude:
+      job.location_latitude ??
+      null,
+
+    location_longitude:
+      job.location_longitude ??
+      null,
+
+    company_logo:
+      job.company_logo||
+      profile?.company_logo||
+      profile?.logo_url||
+      localStorage.getItem('companyLogo')||
+      '',
+
+    company_headline:
+      job.company_headline||
+      profile?.company_headline||
+      '',
+
+    company_website:
+      job.company_website||
+      currentCompany?.website||
+      profile?.company_website||
+      '',
+
+    employer_verified:
+      employerVerified,
+
+    verification_status:
+      verificationStatus,
+
+    created_at:
+      job.created_at||
+      new Date().toISOString()
+  };
+
+  sessionStorage.setItem(
+    'alygnnJobDraft',
+    JSON.stringify(editDraft)
+  );
+
+  return true;
+}
+
+
 async function validEditJob(userId,companyId){
   const editId=
     new URLSearchParams(location.search).get('edit') ||
@@ -1714,7 +1956,22 @@ function showStep(step){
   el('subheading').textContent = copy[2];
   el('progress-bar').style.width = `${step * 20}%`;
   el('previous-btn').textContent = step === 1 ? 'Cancel' : 'Back';
-  el('next-btn').textContent = step === 5 ? 'Preview as Candidate' : 'Continue';
+  el('next-btn').textContent=
+    step===5
+      ? (
+          editingJobId
+            ? 'Review Changes'
+            : 'Preview as Candidate'
+        )
+      : 'Continue';
+
+  if(editingJobId && step===1){
+    el('heading').textContent=
+      'Edit this job';
+
+    el('subheading').textContent=
+      'Update the existing listing. Saving changes will not create another job or use another slot.';
+  }
 
   if(step === 5) updatePreview();
   clearMessage();
@@ -1728,8 +1985,31 @@ function saveCurrentJobDraft(){
   const metadata=session.user.user_metadata||{};
   const aiProfile=metadata.employer_ai_profile||{};
 
+  const previousDraft=(()=>{
+    try{
+      return JSON.parse(
+        sessionStorage.getItem('alygnnJobDraft')||
+        '{}'
+      );
+    }catch(_error){
+      return{};
+    }
+  })();
+
   const draft={
     ...job,
+
+    edit_job_id:
+      editingJobId||
+      new URLSearchParams(location.search).get('edit')||
+      sessionStorage.getItem('alygnnEditJobId')||
+      null,
+
+    original_status:
+      editingOriginalStatus||
+      previousDraft.original_status||
+      null,
+
     employer_id:session.user.id,
     company_id:currentCompanyId||null,
     company_logo:profile?.company_logo||profile?.logo_url||localStorage.getItem('companyLogo')||'',
@@ -1744,7 +2024,13 @@ function saveCurrentJobDraft(){
     pay_max:Number(el('pay-max').value)||null,
     employer_verified:employerVerified,
     verification_status:verificationStatus,
-    created_at:new Date().toISOString()
+    created_at:
+      editingJobId
+        ? (
+            previousDraft.created_at||
+            new Date().toISOString()
+          )
+        : new Date().toISOString()
   };
 
   sessionStorage.setItem('alygnnJobDraft',JSON.stringify(draft));
@@ -2089,6 +2375,15 @@ el('description').addEventListener('input', () => {
         'Your company verification is pending. You can continue building this job while Alygnn reviews it.';
       lock.hidden=false;
     }
+
+    /*
+     * If Edit Job supplied an ID, load the exact existing database row before
+     * restoreDraft(). This prevents a blank/new-job form from appearing.
+     */
+    await loadExistingJobForEdit(
+      userId,
+      currentCompanyId
+    );
 
     setupSuggestions();
     setupSkillBenefitTypeahead();
