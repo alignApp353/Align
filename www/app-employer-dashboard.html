@@ -7395,7 +7395,9 @@
 
     function requestedDashboardJobId(){
       return String(
-        new URLSearchParams(location.search).get('open_job')||''
+        new URLSearchParams(location.search).get('open_job') ||
+        sessionStorage.getItem('alygnnOpenEmployerJobId') ||
+        ''
       ).trim();
     }
 
@@ -7423,6 +7425,10 @@
       setView('jobs');
       renderJobs();
       openJobPreview(id);
+
+      sessionStorage.removeItem(
+        'alygnnOpenEmployerJobId'
+      );
 
       const url=new URL(location.href);
       url.searchParams.delete('open_job');
