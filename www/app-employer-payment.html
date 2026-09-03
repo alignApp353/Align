@@ -662,6 +662,14 @@ function paymentNextUpgrade(){
   return'';
 }
 
+function boostEligible(){
+  return basePaidPlanActive();
+}
+
+function boostIneligibleMessage(){
+  return 'Job Boost is available only with an active monthly or quarterly Launch, Growth, or Scale plan. Free accounts and standalone Second Job Slot accounts cannot boost jobs.';
+}
+
 function weeklyCheckoutAllowed(){
   if(!postingAccess)return true;
 
@@ -780,6 +788,21 @@ async function initialize(){
     showMessage(addonIneligibleMessage());
   }
 
+  if(isBoost()&&!boostEligible()){
+    $('checkout-btn').disabled=true;
+    $('terms').disabled=true;
+
+    $('checkout-heading').textContent=
+      'Job Boost requires an active plan.';
+
+    $('checkout-lede').textContent=
+      'Free employers cannot boost jobs. Choose Launch, Growth, or Scale if you want access to Job Boost.';
+
+    showMessage(
+      boostIneligibleMessage()
+    );
+  }
+
   if(
     (billing==='weekly'||plan==='weekly_slot') &&
     !weeklyCheckoutAllowed()
@@ -825,6 +848,12 @@ async function activateDeveloperTest(){
   const btn=$('checkout-btn');
 
   if(isBoost()){
+    if(!boostEligible()){
+      showMessage(boostIneligibleMessage());
+      updateCheckoutButton();
+      return;
+    }
+
     if(!boostJobId){
       showMessage('A job must be selected before starting a Job Boost.');
       updateCheckoutButton();
@@ -924,6 +953,11 @@ async function startCheckout(){
 
   if(isAddon()&&!addonEligible()){
     showMessage(addonIneligibleMessage());
+    return;
+  }
+
+  if(isBoost()&&!boostEligible()){
+    showMessage(boostIneligibleMessage());
     return;
   }
 
