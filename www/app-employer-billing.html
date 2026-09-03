@@ -938,10 +938,12 @@ button,a{-webkit-tap-highlight-color:transparent}
 
   <div class="note">
     <strong>How Alygnn billing works:</strong>
-    billing is collected at the beginning of each paid period. Upgrades can
-    take effect immediately with a prorated charge. Downgrades and
-    cancellations take effect at renewal, so current paid access is not removed
-    early.
+    billing is collected at the beginning of each paid period. Upgrades charge
+    only the exact price difference between your current plan and the higher
+    plan, unlock immediately after payment, and keep the same renewal date.
+    Downgrades never create a refund or account credit: your current plan stays
+    active through the period already paid for, and the lower plan begins on
+    your next renewal date at its lower price.
   </div>
 
   <div class="message" id="message"></div>
@@ -1512,13 +1514,18 @@ function renderPending(){
   $('pending-title').textContent=
     `Downgrade to ${planName(target)} scheduled`;
 
+  const targetItem=
+    PLAN_CATALOG[pendingBilling]?.[target];
+
   $('pending-copy').textContent=
-    `You keep your current plan and capacity through this billing period. ${planName(target)} begins automatically at the next renewal.`;
+    `You keep your current plan and capacity through this billing period. No refund or account credit is issued for the downgrade. ${planName(target)} begins automatically at the next renewal.`;
 
   $('pending-date').textContent=
-    'Effective '+fmtDate(
-      summary.pending_plan_effective_at
-    );
+    targetItem
+      ? `Effective ${fmtDate(summary.pending_plan_effective_at)} · Next bill ${money(targetItem.cents)} ${suffix(pendingBilling)}`
+      : 'Effective '+fmtDate(
+          summary.pending_plan_effective_at
+        );
 
   $('cancel-pending').textContent='Keep my current plan';
   $('cancel-pending').dataset.pendingAction=
@@ -1553,7 +1560,7 @@ function renderPlans(){
       `Your current prepaid term stays active through ${fmtDate(summary?.current_period_end)}. New recurring subscriptions can be managed automatically from this page.`;
   }else if(currentItem){
     $('change-copy').textContent=
-      'Upgrades take effect immediately with a prorated charge. Downgrades take effect at your next renewal.';
+      'Upgrades charge only the exact plan-price difference and unlock immediately after payment while keeping your same renewal date. Downgrades are $0 today, never create refunds or credits, and begin at your next renewal.';
   }else{
     $('change-copy').textContent=
       'Choose the hiring capacity that fits your team. Your always-free reusable slot remains included.';
@@ -1594,13 +1601,20 @@ function renderPlans(){
         }else if(higher){
           button=
             `<button class="action primary" data-change-plan="${key}">Upgrade to ${p.name}</button>`;
+          const upgradeDifference=
+            Math.max(
+              0,
+              Number(p.cents||0)-
+              Number(currentItem.cents||0)
+            );
+
           hint=
-            'Effective immediately after the prorated payment is confirmed.';
+            `${money(upgradeDifference)} due now. ${p.name} unlocks immediately after payment and your renewal date stays the same.`;
         }else if(lower){
           button=
             `<button class="action secondary" data-change-plan="${key}">Downgrade to ${p.name}</button>`;
           hint=
-            `Your current plan stays active through ${fmtDate(summary?.current_period_end,true)}.`;
+            `No refund or credit. Keep ${planName(current)} through ${fmtDate(summary?.current_period_end,true)}, then your next bill changes to ${money(p.cents)} ${suffix(displayBilling)}.`;
         }else if(currentItem&&entitlement?.test_mode===true){
           const currentRank=currentItem.rank;
           const actionText=p.rank>currentRank
@@ -1666,12 +1680,10 @@ function renderPlans(){
   document
     .querySelectorAll('[data-test-plan]')
     .forEach(button=>{
-      button.onclick=()=>{
-        showMessage(
-          'This account is using Alygnn test billing. Use your existing test-plan controls to simulate the selected plan change.',
-          'info'
-        );
-      };
+      button.onclick=()=>changePlan(
+        button.dataset.testPlan,
+        button
+      );
     });
 
   document
@@ -2014,8 +2026,16 @@ async function changePlan(target,button){
 
   const wording=
     upgrade
-      ?`Upgrade from ${planName(current)} to ${planName(target)} now? Stripe will credit unused time and charge only the prorated difference for the rest of this ${cycle} billing cycle.`
-      :`Schedule a downgrade from ${planName(current)} to ${planName(target)}? You keep ${planName(current)} through ${fmtDate(summary?.current_period_end)}, then ${planName(target)} starts at renewal.`;
+      ?`Upgrade from ${planName(current)} to ${planName(target)} now?
+
+${money(Math.max(0,targetItem.cents-item.cents))} is due today — only the exact plan-price difference.
+
+${planName(target)} activates immediately after payment, and your current renewal date stays the same. Your next renewal will be ${money(targetItem.cents)} ${suffix(billing)}.`
+      :`Schedule a downgrade from ${planName(current)} to ${planName(target)}?
+
+$0 is due today and there is no refund or account credit for the difference.
+
+You keep ${planName(current)} through ${fmtDate(summary?.current_period_end)}. On that renewal date, ${planName(target)} begins and your next bill becomes ${money(targetItem.cents)} ${suffix(billing)}.`;
 
   if(!confirm(wording))return;
 
@@ -2040,23 +2060,36 @@ async function changePlan(target,button){
       data.pending_update
     ){
       showMessage(
-        'Stripe needs payment confirmation before the upgrade can take effect. Opening the secure invoice now.',
+        `Stripe needs payment confirmation for the ${money(data.amount_due_now_cents??data.amount_due_cents??Math.max(0,targetItem.cents-item.cents))} upgrade difference. The higher plan activates as soon as that payment succeeds.`,
         'info'
       );
 
       await openUrl(data.hosted_invoice_url);
 
     }else if(upgrade){
+      const paidDifference=
+        data.amount_due_now_cents ??
+        data.amount_due_cents ??
+        Math.max(
+          0,
+          targetItem.cents-item.cents
+        );
+
       showMessage(
-        data.amount_due_cents!=null
-          ?`Upgrade submitted. The prorated amount is ${money(data.amount_due_cents)}.`
-          :'Upgrade submitted. The higher plan becomes active after Stripe confirms payment.',
+        `Upgrade complete. ${money(paidDifference)} was the exact plan-price difference due today. ${planName(target)} is available immediately, your renewal date stays the same, and your next renewal will be ${money(data.next_renewal_amount_cents??targetItem.cents)} ${suffix(billing)}.`,
         'success'
       );
 
     }else{
+      const nextAmount=
+        data.next_renewal_amount_cents!=null
+          ?money(
+              data.next_renewal_amount_cents
+            )
+          :money(targetItem.cents);
+
       showMessage(
-        `Downgrade scheduled for ${fmtDate(data.effective_at)}. Your current plan stays active until then.`,
+        `Downgrade scheduled for ${fmtDate(data.effective_at)}. $0 is due today, and no refund or account credit is issued. Your current ${planName(current)} plan stays active until then. Your next renewal will be ${nextAmount} ${suffix(billing)} for ${planName(target)}.`,
         'success'
       );
     }
