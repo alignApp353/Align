@@ -255,6 +255,20 @@ const ADDITIONAL_SLOT={
   ]
 };
 
+const JOB_BOOST={
+  name:'Job Boost',
+  price:15,
+  suffix:'/ day',
+  kind:'job_boost',
+  slots:0,
+  features:[
+    'Priority placement in candidate discovery',
+    'Lifts the 25-applicant free-job limit while active',
+    'Choose 1, 3, or 7 days',
+    '$15 per day'
+  ]
+};
+
 const $=id=>document.getElementById(id);
 
 let session=null;
@@ -264,6 +278,8 @@ let product='job_plan';
 let developerTestMode=false;
 let postingAccess=null;
 let returnMode='dashboard';
+let boostJobId='';
+let boostDays=1;
 
 function money(value){
   return '$'+Number(value||0).toLocaleString('en-US',{
@@ -290,8 +306,27 @@ function isAddon(){
   return product==='additional_slot';
 }
 
+function isBoost(){
+  return product==='job_boost';
+}
+
 function item(){
   if(isAddon()) return ADDITIONAL_SLOT;
+
+  if(isBoost()){
+    return {
+      ...JOB_BOOST,
+      price:15*boostDays,
+      suffix:boostDays===1?'/ 1 day':`/ ${boostDays} days`,
+      features:[
+        'Priority placement in candidate discovery',
+        'Lifts the 25-applicant free-job limit while active',
+        `${boostDays} day${boostDays===1?'':'s'} of boost`,
+        '$15 per day'
+      ]
+    };
+  }
+
   return CATALOG[billing]?.[plan]||CATALOG.quarterly.launch;
 }
 
@@ -350,11 +385,12 @@ function returnToPricing(){
 
 function renderTabs(){
   const addon=isAddon();
+  const boost=isBoost();
 
   ['quarterly','monthly','weekly'].forEach(key=>{
     const tab=$('tab-'+key);
-    tab.hidden=addon;
-    tab.classList.toggle('active',!addon&&billing===key);
+    tab.hidden=addon||boost;
+    tab.classList.toggle('active',!addon&&!boost&&billing===key);
   });
 }
 
@@ -367,6 +403,37 @@ function renderOptions(){
         <div class="slots">1 free slot + 1 monthly slot = 2 base slots</div>
       </button>
     `;
+    return;
+  }
+
+  if(isBoost()){
+    $('plan-options').innerHTML=[1,3,7].map(days=>`
+      <button
+        type="button"
+        class="plan-option ${days===boostDays?'active':''}"
+        data-boost-days="${days}">
+        <div class="name">${days}-day Job Boost</div>
+        <div class="price">$${15*days} <span>· $15/day</span></div>
+        <div class="slots">
+          Priority visibility + free-job applicant cap lifted while active
+        </div>
+      </button>
+    `).join('');
+
+    document.querySelectorAll('[data-boost-days]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        boostDays=Math.max(
+          1,
+          Math.min(30,Number(btn.dataset.boostDays)||1)
+        );
+
+        renderAll();
+        updateUrl();
+        $('terms').checked=false;
+        updateCheckoutButton();
+      });
+    });
+
     return;
   }
 
@@ -402,9 +469,11 @@ function renderSummary(){
 
   $('summary-slots').textContent=isAddon()
     ? 'Second reusable job slot · 2 base slots while subscribed'
-    : (billing==='weekly'||plan==='weekly_slot')
-      ? `+1 temporary reusable slot · ${addedSlotTotal()} total after activation`
-      : `${p.slots} plan job slots + 1 included free = ${p.slots+1} total`;
+    : isBoost()
+      ? `${boostDays} day${boostDays===1?'':'s'} · $15/day · applicant cap lifted while active`
+      : (billing==='weekly'||plan==='weekly_slot')
+        ? `+1 temporary reusable slot · ${addedSlotTotal()} total after activation`
+        : `${p.slots} plan job slots + 1 included free = ${p.slots+1} total`;
 
   $('features').innerHTML=p.features.map(x=>`<li>${x}</li>`).join('');
   $('subtotal').textContent=money(p.price);
@@ -415,7 +484,9 @@ function renderSummary(){
 
     $('authorization').textContent=isAddon()
       ?'By continuing, you confirm this is a developer test activation of the standalone $150/month Second Job Slot. No payment will be processed.'
-      :`By continuing, you confirm this is a developer test activation of ${p.name}. No payment will be processed.`;
+      :isBoost()
+        ?`By continuing, you confirm this is a developer test activation of a ${boostDays}-day Job Boost. No payment will be processed.`
+        :`By continuing, you confirm this is a developer test activation of ${p.name}. No payment will be processed.`;
   }else{
     $('tax-row').hidden=false;
     $('due').textContent=money(p.price)+' + tax';
@@ -423,6 +494,9 @@ function renderSummary(){
     if(isAddon()){
       $('authorization').textContent=
         "By continuing, you authorize $150 plus applicable tax each month for the standalone Second Job Slot until canceled according to Alygnn\'s Terms.";
+    }else if(isBoost()){
+      $('authorization').textContent=
+        `By continuing, you authorize ${display(p.price)} plus applicable tax for a ${boostDays}-day Job Boost at $15 per day. This is a one-time payment.`;
     }else if(billing==='monthly'){
       $('authorization').textContent=
         `By continuing, you authorize ${display(p.price)} plus applicable tax each month until canceled according to Alygnn's Terms.`;
@@ -444,6 +518,11 @@ function renderAll(){
     $('checkout-lede').textContent=
       'The standalone Second Job Slot is $150/month for employers who are not on a monthly or quarterly plan. It gives you 2 base reusable slots total.';
     $('plan-panel-title').textContent='1. Confirm your Second Job Slot';
+  }else if(isBoost()){
+    $('checkout-heading').textContent='Boost this job.';
+    $('checkout-lede').textContent=
+      'Job Boost is $15 per day. It gives this job priority visibility and, for a free-slot job that has reached 25 applicants, keeps applications open while the boost is active.';
+    $('plan-panel-title').textContent='1. Choose boost duration';
   }else if(billing==='weekly' || plan==='weekly_slot'){
     $('checkout-heading').textContent='Add a weekly job slot.';
     $('checkout-lede').textContent=
@@ -462,7 +541,7 @@ function renderAll(){
 }
 
 function switchBilling(next){
-  if(isAddon()) return;
+  if(isAddon()||isBoost()) return;
 
   billing=CATALOG[next]?next:'quarterly';
 
@@ -483,6 +562,12 @@ function updateUrl(){
     u.searchParams.set('product','additional_slot');
     u.searchParams.set('billing','monthly');
     u.searchParams.delete('plan');
+  }else if(isBoost()){
+    u.searchParams.set('product','job_boost');
+    u.searchParams.set('job_id',boostJobId);
+    u.searchParams.set('days',String(boostDays));
+    u.searchParams.delete('plan');
+    u.searchParams.delete('billing');
   }else{
     u.searchParams.delete('product');
     u.searchParams.set('plan',plan);
@@ -620,19 +705,58 @@ async function initialize(){
   returnMode=query.get('return')==='preview'?'preview':'dashboard';
 
   product=String(query.get('product')||'job_plan').toLowerCase();
-  if(product==='single_job') product='additional_slot';
-  if(product!=='additional_slot') product='job_plan';
+
+  if(product==='single_job'){
+    product='additional_slot';
+  }
+
+  if(![
+    'additional_slot',
+    'job_boost',
+    'job_plan'
+  ].includes(product)){
+    product='job_plan';
+  }
+
+  boostJobId=String(
+    query.get('job_id')||''
+  ).trim();
+
+  boostDays=Math.max(
+    1,
+    Math.min(
+      30,
+      Number.parseInt(
+        query.get('days')||'1',
+        10
+      )||1
+    )
+  );
 
   billing=isAddon()
     ?'monthly'
-    :String(query.get('billing')||'quarterly').toLowerCase();
+    :isBoost()
+      ?'one_time'
+      :String(query.get('billing')||'quarterly').toLowerCase();
 
-  if(!CATALOG[billing]) billing='quarterly';
+  if(!isBoost()&&!CATALOG[billing]){
+    billing='quarterly';
+  }
 
-  plan=String(query.get('plan')||'launch').toLowerCase();
+  plan=String(
+    query.get('plan')||'launch'
+  ).toLowerCase();
 
-  if(!CATALOG[billing][plan]){
-    plan=billing==='weekly'?'weekly_slot':'launch';
+  if(!isBoost()&&!CATALOG[billing][plan]){
+    plan=billing==='weekly'
+      ?'weekly_slot'
+      :'launch';
+  }
+
+  if(isBoost()&&!boostJobId){
+    showMessage(
+      'A job must be selected before starting a Job Boost.'
+    );
   }
 
   const {data:{session:active},error}=await sb.auth.getSession();
@@ -679,8 +803,9 @@ async function initialize(){
   if(developerTestMode){
     $('payment-title').textContent='4. Test activation';
     $('secure-title').textContent='Activate access for testing';
-    $('secure-copy').textContent=
-      'Stripe is bypassed in this temporary development build. Alygnn will activate the selected package in Supabase so you can test the real plan limits and features.';
+    $('secure-copy').textContent=isBoost()
+      ?'Stripe is bypassed in this temporary development build. Alygnn will activate the Job Boost in Supabase so you can test the applicant-limit behavior.'
+      :'Stripe is bypassed in this temporary development build. Alygnn will activate the selected package in Supabase so you can test the real plan limits and features.';
     const fineprint=$('payment-fineprint');
     if(fineprint) fineprint.textContent='TEST MODE: $0 will be charged. Disable FORCE_DEVELOPER_TEST_MODE before releasing the app.';
   }
@@ -698,6 +823,40 @@ async function initialize(){
 async function activateDeveloperTest(){
   const p=item();
   const btn=$('checkout-btn');
+
+  if(isBoost()){
+    if(!boostJobId){
+      showMessage('A job must be selected before starting a Job Boost.');
+      updateCheckoutButton();
+      return;
+    }
+
+    const {data,error}=await sb.rpc(
+      'activate_employer_test_job_boost',
+      {
+        p_job_id:boostJobId,
+        p_days:boostDays
+      }
+    );
+
+    if(error){
+      console.error(error);
+      showMessage(
+        error.message||
+        'Job Boost test activation is not enabled yet. Run ALYGNN-FREE-JOB-25-APPLICANT-LIMIT.sql in Supabase, then try again.'
+      );
+      updateCheckoutButton();
+      return;
+    }
+
+    btn.textContent='Job Boost activated ✓';
+
+    setTimeout(()=>{
+      location.href='app-employer-dashboard.html?view=jobs';
+    },650);
+
+    return;
+  }
 
   if(isAddon()){
     const {data,error}=await sb.rpc('activate_employer_test_second_slot');
@@ -804,15 +963,28 @@ async function startCheckout(){
 
     if(isAddon()){
       successParams.set('product','additional_slot');
+    }else if(isBoost()){
+      successParams.set('product','job_boost');
+      successParams.set('job_id',boostJobId);
     }else{
       successParams.set('plan',plan);
       successParams.set('billing',billing);
     }
 
     const payload={
-      product:isAddon()?'additional_slot':'job_plan',
-      plan:isAddon()?'':plan,
-      billing:isAddon()?'monthly':billing,
+      product:isAddon()
+        ?'additional_slot'
+        :isBoost()
+          ?'job_boost'
+          :'job_plan',
+      plan:(isAddon()||isBoost())?'':plan,
+      billing:isAddon()
+        ?'monthly'
+        :isBoost()
+          ?'one_time'
+          :billing,
+      job_id:isBoost()?boostJobId:'',
+      days:isBoost()?boostDays:'',
       purchase_type:p.kind,
       terms_accepted:true,
       terms_version:TERMS_VERSION,
