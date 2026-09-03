@@ -1,11 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+  // The @view-transition CSS rule (for cross-page fades) occasionally gets
+  // interrupted by Chrome itself — e.g. if another navigation starts before
+  // the fade finishes — which throws this specific AbortError as an
+  // unhandled rejection. It's harmless (nothing actually breaks), so we
+  // swallow only this exact error to keep the console clean.
+  window.addEventListener('unhandledrejection', (event) => {
+    if (event.reason && event.reason.name === 'AbortError' &&
+        /transition was skipped/i.test(event.reason.message || '')) {
+      event.preventDefault();
+    }
+  });
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Account settings — Alygnn</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-
+<title>Alygnn — Sign in</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,176 +25,669 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --brand: #5D7FA3; --sage: #8CB69B; --bg: #F6F8F7; --card-bg: #FCFCFA;
-    --text: #1A2530; --text-muted: #4A5968; --border: #DDE3E8;
-    --mint: #6FBF8F; --rose: #D79A9A;
+    --text: #1A2530; --border: #DDE3E8; --mint: #6FBF8F; --text-muted: #4A5968;
   }
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-top: 64px; }
+  html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+  body { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
 
-  nav {
-    position: fixed; top: 0; left: 0; right: 0; width: 100%; z-index: 1000;
-    background: rgba(246,248,247,0.95);
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border); padding: 0 5%;
-    display: flex; align-items: center; justify-content: space-between; height: 64px;
+  .left-panel {
+    background: var(--brand);
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 48px; position: relative; overflow: hidden;
   }
-  .logo { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--brand); text-decoration: none; }
-  .logo span { color: var(--sage); }
-  .back-link { font-size: 14px; color: var(--text-muted); text-decoration: none; }
-  .back-link:hover { color: var(--text); }
+  .left-panel::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.05); top: -100px; right: -150px; }
+  .left-panel::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.07); bottom: 60px; left: -80px; }
+  .panel-logo { font-family: 'DM Serif Display', serif; font-size: 26px; color: white; letter-spacing: -0.5px; position: relative; z-index: 1; text-decoration: none; }
+  .panel-logo span { color: rgba(255,255,255,0.5); }
+  .panel-content { position: relative; z-index: 1; }
+  .panel-content h2 { font-family: 'DM Serif Display', serif; font-size: clamp(30px, 3.2vw, 44px); color: white; line-height: 1.1; letter-spacing: -1px; margin-bottom: 16px; }
+  .panel-content h2 em { font-style: italic; color: rgba(255,255,255,0.65); }
+  .panel-content p { font-size: 16px; color: rgba(255,255,255,0.68); line-height: 1.7; font-weight: 300; max-width: 340px; }
+  .mini-cards { margin-top: 44px; }
+  .mini-card { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 18px 20px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; backdrop-filter: blur(4px); animation: fadeUp 0.5s ease both; }
+  .mini-card:nth-child(1) { animation-delay: 0.2s; }
+  .mini-card:nth-child(2) { animation-delay: 0.35s; }
+  .mini-card:nth-child(3) { animation-delay: 0.5s; }
+  .mini-logo { width: 36px; height: 36px; border-radius: 9px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-family: 'DM Serif Display', serif; font-size: 15px; color: white; flex-shrink: 0; }
+  .mini-info { flex: 1; }
+  .mini-title { font-size: 13px; font-weight: 500; color: white; margin-bottom: 2px; }
+  .mini-company { font-size: 11px; color: rgba(255,255,255,0.6); }
+  .mini-match { font-size: 11px; font-weight: 500; color: #a8e6c1; background: rgba(111,191,143,0.2); padding: 3px 10px; border-radius: 100px; white-space: nowrap; }
+  .stat-cards { margin-top: 44px; display: flex; flex-direction: column; gap: 10px; }
+  .stat-card { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 18px 22px; backdrop-filter: blur(4px); animation: fadeUp 0.5s ease both; }
+  .stat-card:nth-child(1) { animation-delay: 0.2s; }
+  .stat-card:nth-child(2) { animation-delay: 0.35s; }
+  .stat-card:nth-child(3) { animation-delay: 0.5s; }
+  .stat-num { font-family: 'DM Serif Display', serif; font-size: 26px; color: white; margin-bottom: 3px; }
+  .stat-desc { font-size: 12px; color: rgba(255,255,255,0.65); }
+  .seeker-content { display: block; }
+  .employer-content { display: none; }
+  .is-employer .seeker-content { display: none; }
+  .is-employer .employer-content { display: block; }
+  .panel-footer { font-size: 12px; color: rgba(255,255,255,0.35); position: relative; z-index: 1; }
 
-  .page { max-width: 640px; margin: 0 auto; padding: 56px 6% 100px; }
-  h1 { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: 36px; }
-
-  .section {
-    background: var(--card-bg); border: 1px solid var(--border);
-    border-radius: 16px; padding: 24px; margin-bottom: 16px;
-  }
-  .section h2 { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
-  .section .desc { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
-
-  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .value { font-size: 14px; color: var(--text); }
-
-  .field { margin-bottom: 10px; }
-  .field input {
-    width: 100%; padding: 11px 14px; border: 1px solid var(--border);
-    border-radius: 10px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none;
-  }
-  .field input:focus { border-color: var(--brand); }
-
-  .password-wrap { position: relative; }
-  .password-wrap input { padding-right: 44px; }
-  .eye-btn {
-    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; cursor: pointer; color: var(--text-muted);
-    padding: 4px; display: flex; transition: color 0.2s;
-  }
-  .eye-btn:hover { color: var(--brand); }
-
-  .btn {
-    border: none; border-radius: 10px; padding: 10px 18px; font-size: 14px;
-    font-family: 'DM Sans', sans-serif; cursor: pointer; font-weight: 500;
-  }
-  .btn-primary { background: var(--brand); color: white; }
-  .btn-primary:hover { opacity: 0.88; }
-  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-  .btn-outline { background: white; border: 1px solid var(--border); color: var(--text); }
-  .btn-outline:hover { border-color: var(--brand); color: var(--brand); }
-  .btn-danger { background: white; border: 1px solid var(--rose); color: #a05858; }
-  .btn-danger:hover { background: rgba(215,154,154,0.1); }
-
-  .pill {
-    font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 100px;
-    background: rgba(111,191,143,0.15); color: #2d8a57;
-  }
-  .pill.off { background: var(--border); color: var(--text-muted); }
-
-  .msg-box {
-    border-radius: 10px; padding: 10px 14px; font-size: 13px;
-    margin-bottom: 14px; display: none;
-  }
+  .right-panel { display: flex; flex-direction: column; justify-content: safe center; align-items: center; padding: 60px 48px; overflow-y: auto; }
+  .form-container { width: 100%; max-width: 400px; }
+  .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); text-decoration: none; margin-bottom: 32px; transition: color 0.2s; animation: fadeUp 0.4s ease both; }
+  .back-link:hover { color: var(--brand); }
+  .role-switcher { display: flex; background: white; border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 28px; animation: fadeUp 0.45s ease both 0.05s; }
+  .role-btn { flex: 1; padding: 9px 12px; border: none; background: transparent; font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; color: var(--text-muted); border-radius: 9px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .role-btn.active { background: var(--brand); color: white; box-shadow: 0 2px 8px rgba(93,127,163,0.25); }
+  .form-header { margin-bottom: 24px; animation: fadeUp 0.5s ease both 0.1s; }
+  .form-header h1 { font-family: 'DM Serif Display', serif; font-size: 30px; letter-spacing: -0.8px; color: var(--text); margin-bottom: 6px; }
+  .form-header p { font-size: 14px; color: var(--text-muted); font-weight: 300; }
+  .form-header p a { color: var(--brand); text-decoration: none; font-weight: 500; }
+  .form-header p a:hover { text-decoration: underline; }
+  .auth-tabs { display: flex; background: white; border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 20px; animation: fadeUp 0.5s ease both 0.15s; }
+  .auth-tab { flex: 1; padding: 9px; border: none; background: transparent; font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif; color: var(--text-muted); border-radius: 9px; cursor: pointer; transition: all 0.2s; }
+  .auth-tab.active { background: var(--brand); color: white; }
+  .google-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 13px 20px; border: 1px solid var(--border); border-radius: 12px; background: white; font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif; color: var(--text); cursor: pointer; transition: all 0.2s; margin-bottom: 16px; animation: fadeUp 0.5s ease both 0.2s; }
+  .google-btn:hover { border-color: var(--brand); background: #f8fafc; }
+  .divider { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; animation: fadeUp 0.5s ease both 0.28s; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .divider span { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+  .msg-box { border-radius: 10px; padding: 11px 15px; font-size: 13px; margin-bottom: 16px; display: none; }
   .msg-box.error { background: rgba(215,154,154,0.15); border: 1px solid rgba(215,154,154,0.4); color: #8a4040; }
   .msg-box.success { background: rgba(111,191,143,0.15); border: 1px solid rgba(111,191,143,0.4); color: #1a5c35; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 7px; }
+  .field input { width: 100%; padding: 13px 16px; border: 1px solid var(--border); border-radius: 12px; font-size: 15px; font-family: 'DM Sans', sans-serif; color: var(--text); background: white; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+  .field input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(93,127,163,0.12); }
+  .field input::placeholder { color: #B0BBC6; }
+  .password-wrap { position: relative; }
+  .password-wrap input { padding-right: 48px; }
+  .eye-btn { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; display: flex; transition: color 0.2s; }
+  .eye-btn:hover { color: var(--brand); }
+  .strength-bar { margin-top: 8px; }
+  .strength-track { height: 4px; background: var(--border); border-radius: 100px; margin-bottom: 5px; display: flex; gap: 3px; }
+  .strength-seg { flex: 1; border-radius: 100px; background: var(--border); transition: background 0.3s; }
+  .strength-label { font-size: 11px; font-weight: 500; margin-bottom: 6px; }
+  .strength-rules { display: flex; flex-wrap: wrap; gap: 5px 12px; }
+  .rule { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; transition: color 0.2s; }
+  .rule.pass { color: #2d8a57; }
+  .rule-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; transition: background 0.2s; }
+  .rule.pass .rule-dot { background: var(--mint); }
+  .forgot { display: block; text-align: right; font-size: 13px; color: var(--brand); text-decoration: none; margin-top: -8px; margin-bottom: 20px; }
+  .forgot:hover { text-decoration: underline; }
+  .btn-submit { width: 100%; background: var(--brand); color: white; border: none; border-radius: 12px; padding: 15px; font-size: 16px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+  .btn-submit:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-submit:active { transform: translateY(0); }
+  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .switch-prompt { text-align: center; margin-top: 22px; font-size: 14px; color: var(--text-muted); }
+  .switch-prompt a { color: var(--brand); text-decoration: none; font-weight: 500; }
+  .switch-prompt a:hover { text-decoration: underline; }
+  .admin-link-row { text-align: center; margin-top: 10px; }
+  .admin-link-row a { font-size: 12px; color: var(--text-muted); text-decoration: none; }
+  .admin-link-row a:hover { color: var(--brand); text-decoration: underline; }
 
-  .danger-section { border-color: rgba(215,154,154,0.4); }
+  .terms-check { display: flex; align-items: flex-start; gap: 9px; margin: 14px 0 18px; cursor: pointer; }
+  .terms-check input { width: 16px; height: 16px; min-width: 16px; margin-top: 2px; accent-color: var(--brand); cursor: pointer; }
+  .terms-check span { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+  .terms-check a { color: var(--brand); text-decoration: none; font-weight: 500; }
+  .terms-check a:hover { text-decoration: underline; }
 
-  .code-step { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
-  .code-step .desc { margin-bottom: 10px; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 
-  .mini-footer{ text-align:center; padding:24px 6% 40px; font-size:12px; color:var(--text-muted); }
-  .mini-footer a{ color:var(--text-muted); text-decoration:none; }
-  .mini-footer a:hover{ color:var(--brand); }
+  @media (max-width: 768px) {
+    body { grid-template-columns: 1fr; }
+    .left-panel { display: none; }
+    .right-panel { padding: 48px 28px; }
+  }
 </style>
 </head>
 <body>
 
-<nav>
-  <a href="index.html" class="logo">Alygnn<span>.</span></a>
-  <a href="account.html" class="back-link" id="back-link">← Back to account</a>
-</nav>
-
-<div class="page">
-  <h1>Account settings</h1>
-
-  <div class="msg-box" id="msg-box"></div>
-
-  <!-- Email -->
-  <div class="section">
-    <h2>Email</h2>
-    <div class="desc">The email associated with your account</div>
-    <div class="row"><span class="value" id="email-display">—</span></div>
-  </div>
-
-  <!-- Password -->
-  <div class="section">
-    <h2>Password</h2>
-    <div class="desc">Change your password for signing in with email. We'll email you a code to confirm it's really you.</div>
-    <div class="field">
-      <div class="password-wrap">
-        <input type="password" id="new-password" placeholder="New password (8+ characters)" />
-        <button type="button" class="eye-btn" onclick="toggleEye('new-password', this)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
+<div class="left-panel" id="left-panel">
+  <a class="panel-logo" href="index.html">Alygnn<span>.</span></a>
+  <div class="panel-content">
+    <div class="seeker-content">
+      <h2>Jobs that fit<br><em>your reality.</em></h2>
+      <p>Stop applying blindly. Alygnn matches you to roles that already meet your salary, location, and benefits criteria.</p>
+      <div class="mini-cards">
+        <div class="mini-card"><div class="mini-logo">G</div><div class="mini-info"><div class="mini-title">UX Research Lead</div><div class="mini-company">Google · Mountain View, CA</div></div><span class="mini-match">97%</span></div>
+        <div class="mini-card"><div class="mini-logo">A</div><div class="mini-info"><div class="mini-title">Data Scientist II</div><div class="mini-company">Airbnb · Remote</div></div><span class="mini-match">91%</span></div>
+        <div class="mini-card"><div class="mini-logo">N</div><div class="mini-info"><div class="mini-title">Sr. Product Manager</div><div class="mini-company">Notion · New York, NY</div></div><span class="mini-match">88%</span></div>
       </div>
     </div>
-    <button class="btn btn-primary" id="send-code-btn" onclick="sendVerificationCode()">Send verification code</button>
-
-    <div class="code-step" id="code-step">
-      <div class="desc" id="code-desc">Enter the 6-digit code we sent to your email.</div>
-      <div class="field">
-        <input type="text" id="verification-code" placeholder="123456" maxlength="6" />
+    <div class="employer-content">
+      <h2>Your next hire<br><em>is already here.</em></h2>
+      <p>Browse pre-matched candidates whose skills and salary expectations align with your role — before they ever apply.</p>
+      <div class="stat-cards">
+        <div class="stat-card"><div class="stat-num">3.2×</div><div class="stat-desc">Faster time-to-hire vs. traditional boards</div></div>
+        <div class="stat-card"><div class="stat-num">91%</div><div class="stat-desc">Candidate-to-interview conversion rate</div></div>
+        <div class="stat-card"><div class="stat-num">2.4M+</div><div class="stat-desc">Active job seekers indexed daily</div></div>
       </div>
-      <button class="btn btn-primary" id="confirm-code-btn" onclick="confirmCodeAndChangePassword()">Confirm and update password</button>
     </div>
   </div>
-
-  <!-- Linked accounts -->
-  <div class="section">
-    <h2>Linked accounts</h2>
-    <div class="desc">Sign-in methods connected to your account</div>
-    <div class="row">
-      <span class="value">Google</span>
-      <span class="pill" id="google-pill">Checking…</span>
-    </div>
-  </div>
-
-  <!-- Sign out -->
-  <div class="section">
-    <h2>Sign out</h2>
-    <div class="desc">Sign out of Alygnn on this device</div>
-    <button class="btn btn-outline" onclick="signOut()">Sign out</button>
-  </div>
-
-  <!-- Delete account -->
-  <div class="section danger-section">
-    <h2>Delete account</h2>
-    <div class="desc">Permanently delete your account and all associated data. This can't be undone.</div>
-    <button class="btn btn-danger" id="delete-account-btn" onclick="confirmDelete()">Delete my account</button>
-  </div>
-
+  <div class="panel-footer">© 2026 Alygnn.</div>
 </div>
 
-<div class="mini-footer">
-  <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>
+<div class="right-panel">
+  <div class="form-container">
+
+    <a href="index.html" class="back-link">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
+      Back to Alygnn
+    </a>
+
+    <div class="role-switcher">
+      <button class="role-btn active" id="role-seeker" onclick="switchRole('seeker')">👤 Job Seeker</button>
+      <button class="role-btn" id="role-employer" onclick="switchRole('employer')">🏢 Employer</button>
+    </div>
+
+    <div class="form-header">
+      <h1 id="form-title">Welcome back</h1>
+      <p id="form-subtitle">New here? <a href="#" onclick="switchTab('signup'); return false;">Create a free account</a></p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Sign in</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Create account</button>
+    </div>
+
+    <button class="google-btn" onclick="handleGoogle()">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+        <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+        <path d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/>
+        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+      </svg>
+      Continue with Google
+    </button>
+
+    <button class="google-btn" onclick="handleApple()" >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="black">
+        <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.39.07 2.36.74 3.18.8 1.21-.24 2.37-.93 3.67-.84 1.58.13 2.77.79 3.53 1.98-3.25 1.94-2.48 6.18.57 7.37-.67 1.63-1.53 3.24-2.95 3.57zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+      </svg>
+      Continue with Apple
+    </button>
+
+    <div class="divider"><span id="divider-text">or sign in with email</span></div>
+    <div class="msg-box" id="msg-box"></div>
+
+    <!-- LOGIN FORM -->
+    <div id="login-form">
+      <div class="field">
+        <label id="login-email-label">Email address</label>
+        <input type="email" id="email" placeholder="you@example.com" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <div class="password-wrap">
+          <input type="password" id="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()" />
+          <button type="button" class="eye-btn" onclick="toggleEye('password',this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <a href="#" class="forgot" onclick="doForgot(); return false;">Forgot password?</a>
+      <button class="btn-submit" id="login-btn" onclick="doLogin()">Sign in to Alygnn</button>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div id="signup-form" style="display:none;">
+      <div class="field">
+        <label>Full name</label>
+        <input type="text" id="signup-name" placeholder="Your name" />
+      </div>
+      <div class="field" id="company-field" style="display:none;">
+        <label>Company name</label>
+        <input type="text" id="signup-company" placeholder="Acme Corp" />
+      </div>
+      <div class="field">
+        <label id="signup-email-label">Email address</label>
+        <input type="email" id="signup-email" placeholder="you@example.com" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <div class="password-wrap">
+          <input type="password" id="signup-password" placeholder="At least 8 characters" oninput="checkStrength(this.value); checkPasswordMatch()" onkeydown="if(event.key==='Enter') doSignup()" />
+          <button type="button" class="eye-btn" onclick="toggleEye('signup-password',this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="strength-bar" id="strength-bar" style="display:none;">
+          <div class="strength-track">
+            <div class="strength-seg" id="seg1"></div><div class="strength-seg" id="seg2"></div>
+            <div class="strength-seg" id="seg3"></div><div class="strength-seg" id="seg4"></div>
+          </div>
+          <div class="strength-label" id="strength-label"></div>
+          <div class="strength-rules">
+            <div class="rule" id="rule-len"><div class="rule-dot"></div>8+ characters</div>
+            <div class="rule" id="rule-upper"><div class="rule-dot"></div>Uppercase</div>
+            <div class="rule" id="rule-num"><div class="rule-dot"></div>Number</div>
+            <div class="rule" id="rule-special"><div class="rule-dot"></div>Symbol</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Confirm password</label>
+        <div class="password-wrap">
+          <input type="password" id="signup-password-confirm" placeholder="Re-enter your password" oninput="checkPasswordMatch()" onkeydown="if(event.key==='Enter') doSignup()" />
+          <button type="button" class="eye-btn" onclick="toggleEye('signup-password-confirm',this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div id="password-match-message" style="display:none;margin-top:7px;font-size:11px;font-weight:500;"></div>
+      </div>
+      <label class="terms-check">
+        <input type="checkbox" id="signup-terms" />
+        <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+      </label>
+      <button class="btn-submit" id="signup-btn" onclick="doSignup()" style="margin-top:6px;">Create account</button>
+    </div>
+
+    <p class="switch-prompt" id="switch-prompt">
+      No account? <a href="#" onclick="switchTab('signup'); return false;">Sign up free</a>
+    </p>
+
+    <p class="admin-link-row">
+      <a href="admin-login.html">Admin login</a>
+    </p>
+
+  </div>
 </div>
 
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-  const { createClient } = supabase;
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  function alygnnAuthStorageKey() {
+  let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
+  if (!tabId) {
+    tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+      ? window.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
+  }
+  return `alygnn-auth-${tabId}`;
+}
 
-  let currentEmail = null;
-  let currentUserId = null;
-  let userHasPassword = false;
-  let pendingPassword = null;
-  let pendingCodeId = null;
+const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      storage: window.sessionStorage,
+      storageKey: alygnnAuthStorageKey(),
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
+
+  let currentRole = 'seeker';
+
+  // Pre-select role from URL param
+  const urlRole = new URLSearchParams(window.location.search).get('role');
+  if (urlRole === 'employer') {
+    currentRole = 'employer';
+    document.addEventListener('DOMContentLoaded', () => switchRole('employer'));
+  }
+
+  const redirectFor = r => window.location.origin + (r === 'employer' ? '/employer-account.html' : '/account.html');
+
+  function normalizeRole(value) {
+    const role = String(value || '').toLowerCase();
+    return role === 'employer' ? 'employer' : 'seeker';
+  }
+
+  function oauthCallbackUrl(role, mode) {
+    const url = new URL('/login.html', window.location.origin);
+    url.searchParams.set('oauth', 'complete');
+    url.searchParams.set('role', normalizeRole(role));
+    url.searchParams.set('mode', mode === 'signup' ? 'signup' : 'login');
+    return url.toString();
+  }
+
+  function saveOAuthContext(role, mode) {
+    sessionStorage.setItem('alygnn_oauth_role', normalizeRole(role));
+    sessionStorage.setItem('alygnn_oauth_mode', mode === 'signup' ? 'signup' : 'login');
+
+    if (mode === 'signup' && normalizeRole(role) === 'employer') {
+      const company = document.getElementById('signup-company')?.value?.trim() || '';
+      if (company) sessionStorage.setItem('alygnn_oauth_company', company);
+      else sessionStorage.removeItem('alygnn_oauth_company');
+    } else {
+      sessionStorage.removeItem('alygnn_oauth_company');
+    }
+  }
+
+  function clearOAuthContext() {
+    sessionStorage.removeItem('alygnn_oauth_role');
+    sessionStorage.removeItem('alygnn_oauth_mode');
+    sessionStorage.removeItem('alygnn_oauth_company');
+  }
+
+  async function finishOAuthReturn() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('oauth') !== 'complete') return;
+
+    const oauthError = params.get('error_description') || params.get('error');
+    if (oauthError) {
+      clearOAuthContext();
+      showMsg(decodeURIComponent(oauthError));
+      history.replaceState({}, '', 'login.html');
+      return;
+    }
+
+    showMsg('Finishing sign in…', 'success');
+
+    const { data: { session }, error: sessionError } = await sb.auth.getSession();
+    if (sessionError || !session?.user) {
+      showMsg('We could not finish your Google or Apple sign in. Please try again.');
+      return;
+    }
+
+    const user = session.user;
+    const storedRole =
+      sessionStorage.getItem('alygnn_oauth_role') ||
+      params.get('role') ||
+      user.user_metadata?.role ||
+      'seeker';
+
+    const storedMode =
+      sessionStorage.getItem('alygnn_oauth_mode') ||
+      params.get('mode') ||
+      'login';
+
+    const storedCompany =
+      sessionStorage.getItem('alygnn_oauth_company') ||
+      '';
+
+    const { data: profile, error: profileError } = await sb
+      .from('profiles')
+      .select('role, full_name, company_name, has_password')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error('Could not read OAuth profile:', profileError);
+    }
+
+    // Existing Alygnn accounts always keep their saved role.
+    // Only a brand-new OAuth account uses the role selected before OAuth.
+    const role = normalizeRole(
+      profile?.role ||
+      storedRole ||
+      user.user_metadata?.role
+    );
+
+    const fullName =
+      profile?.full_name ||
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
+      user.email?.split('@')[0] ||
+      '';
+
+    const profilePatch = { id: user.id };
+
+    if (!profile?.role) {
+      profilePatch.role = role;
+    }
+
+    if (!profile?.full_name && fullName) {
+      profilePatch.full_name = fullName;
+    }
+
+    if (
+      role === 'employer' &&
+      !profile?.company_name &&
+      storedMode === 'signup' &&
+      storedCompany
+    ) {
+      profilePatch.company_name = storedCompany;
+    }
+
+    if (Object.keys(profilePatch).length > 1) {
+      const { error: saveProfileError } = await sb
+        .from('profiles')
+        .upsert(profilePatch, { onConflict: 'id' });
+
+      if (saveProfileError) {
+        console.error('Could not finish OAuth profile setup:', saveProfileError);
+        showMsg('Signed in, but we could not finish setting up your Alygnn profile. Please try again.');
+        return;
+      }
+    }
+
+    // Keep auth metadata consistent for new OAuth accounts without forcing a password.
+    if (!profile?.role && !user.user_metadata?.role) {
+      try {
+        const nextMeta = {
+          ...(user.user_metadata || {}),
+          role
+        };
+
+        if (role === 'employer' && storedCompany) {
+          nextMeta.company = storedCompany;
+        }
+
+        await sb.auth.updateUser({ data: nextMeta });
+      } catch (metadataError) {
+        console.warn('Could not backfill OAuth role metadata:', metadataError);
+      }
+    }
+
+    await savePendingPreferences(user, fullName);
+    clearOAuthContext();
+
+    // Password setup is intentionally optional. Google/Apple users continue
+    // directly into Alygnn and can add a password later in Account settings.
+    window.location.replace(redirectFor(role));
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    finishOAuthReturn().catch(error => {
+      console.error('OAuth completion failed:', error);
+      showMsg('We could not finish your Google or Apple sign in. Please try again.');
+    });
+  });
+
+  function switchRole(role) {
+    currentRole = role;
+    const isEmp = role === 'employer';
+    document.getElementById('left-panel').classList.toggle('is-employer', isEmp);
+    document.getElementById('role-seeker').classList.toggle('active', !isEmp);
+    document.getElementById('role-employer').classList.toggle('active', isEmp);
+    document.getElementById('company-field').style.display = isEmp ? 'block' : 'none';
+    hideMsg();
+    refreshCopy();
+  }
+
+  function refreshCopy() {
+    const isLogin = document.getElementById('login-form').style.display !== 'none';
+    const isEmp = currentRole === 'employer';
+    document.getElementById('form-title').textContent = isLogin
+      ? (isEmp ? 'Employer sign in' : 'Welcome back')
+      : (isEmp ? 'Create employer account' : 'Create your account');
+    document.getElementById('form-subtitle').innerHTML = isLogin
+      ? `New here? <a href="#" onclick="switchTab('signup'); return false;">Create a free account</a>`
+      : `Already have one? <a href="#" onclick="switchTab('login'); return false;">Sign in</a>`;
+    document.getElementById('divider-text').textContent = isLogin ? 'or sign in with email' : 'or sign up with email';
+    document.getElementById('login-btn').textContent = isEmp ? 'Sign in to Dashboard' : 'Sign in to Alygnn';
+    document.getElementById('signup-btn').textContent = isEmp ? 'Create employer account' : 'Create account';
+    document.getElementById('switch-prompt').innerHTML = isLogin
+      ? `No account? <a href="#" onclick="switchTab('signup'); return false;">Sign up free</a>`
+      : `Already have an account? <a href="#" onclick="switchTab('login'); return false;">Sign in</a>`;
+  }
+
+  function switchTab(mode) {
+    hideMsg();
+    const isLogin = mode === 'login';
+    document.getElementById('login-form').style.display = isLogin ? 'block' : 'none';
+    document.getElementById('signup-form').style.display = isLogin ? 'none' : 'block';
+    document.getElementById('tab-login').classList.toggle('active', isLogin);
+    document.getElementById('tab-signup').classList.toggle('active', !isLogin);
+    refreshCopy();
+  }
 
   function showMsg(text, type = 'error') {
     const b = document.getElementById('msg-box');
-    b.textContent = text;
-    b.className = 'msg-box ' + type;
-    b.style.display = 'block';
+    b.textContent = text; b.className = 'msg-box ' + type; b.style.display = 'block';
+  }
+  function hideMsg() { document.getElementById('msg-box').style.display = 'none'; }
+
+  async function savePendingPreferences(user, fallbackName = '') {
+    if (!user?.id) return;
+    const savedPrefs = sessionStorage.getItem('preferences');
+    if (!savedPrefs) return;
+    let parsedPrefs = {};
+    try { parsedPrefs = JSON.parse(savedPrefs); } catch (e) { return; }
+    const { error } = await sb.from('profiles').upsert({
+      id: user.id,
+      full_name: user.user_metadata?.full_name || user.user_metadata?.name || fallbackName || '',
+      preferences: parsedPrefs
+    }, { onConflict: 'id' });
+    if (error) showMsg('Signed in, but preferences did not save: ' + error.message);
+    else sessionStorage.removeItem('preferences');
+  }
+
+  async function doLogin() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    if (!email || !password) { showMsg('Please enter your email and password.'); return; }
+    hideMsg();
+    const btn = document.getElementById('login-btn');
+    const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Signing in…';
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    btn.disabled = false; btn.textContent = orig;
+    if (error) { showMsg(error.message); return; }
+    await savePendingPreferences(data.user);
+    const r = data.user?.user_metadata?.role || 'seeker';
+    window.location.href = redirectFor(r);
+  }
+
+  async function doSignup() {
+    const name = document.getElementById('signup-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    const confirmPassword = document.getElementById('signup-password-confirm').value;
+    const company = document.getElementById('signup-company').value.trim();
+    if (!name || !email || !password || !confirmPassword) { showMsg('Please fill in all fields.'); return; }
+    if (currentRole === 'employer' && !company) { showMsg('Please enter your company name.'); return; }
+    if (password.length < 8) { showMsg('Password must be at least 8 characters.'); return; }
+    if (password !== confirmPassword) { showMsg('Passwords do not match.'); return; }
+    if (!document.getElementById('signup-terms').checked) { showMsg('Please agree to the Terms of Service and Privacy Policy to continue.'); return; }
+    hideMsg();
+    const btn = document.getElementById('signup-btn');
+    const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Creating account…';
+    const meta = { full_name: name, role: currentRole };
+    if (company) meta.company = company;
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: meta } });
+    if (error) {
+      btn.disabled = false; btn.textContent = orig;
+      showMsg(error.message);
+      return;
+    }
+
+    // Supabase's signUp() does NOT return an error for an email that's
+    // already registered — by design, so the API can't be used to probe
+    // which emails exist. Instead, when this happens, it returns a user
+    // object whose `identities` array is empty. (A genuinely brand-new
+    // signup always has at least one identity — the "email" one just
+    // created.) So this is the only reliable way to detect "this email
+    // already has an account" and stop the flow here instead of showing
+    // the false "Account created!" message and re-upserting over the
+    // existing profile row.
+    const isExistingAccount = !!data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0;
+
+    if (isExistingAccount) {
+      btn.disabled = false; btn.textContent = orig;
+      showMsg('An account with this email already exists. Try signing in instead.');
+      switchTab('login');
+      document.getElementById('email').value = email;
+      return;
+    }
+
+    // Save role, name, and company to the profiles table immediately.
+    // This ensures account.html can route correctly without relying
+    // solely on user_metadata — which is what was causing the
+    // "employer lands on candidate hub" bug for previous signups.
+    //
+    // FIX: this write used to be unchecked. If email confirmation is
+    // required, signUp() returns no active session, so this upsert can
+    // fail an RLS check (auth.uid() = id) silently — meaning
+    // has_password never gets set to true even though the user really
+    // did set a password. That left confirmed users stuck being
+    // redirected to set-password.html on every login. We now check
+    // the error and only skip it (rather than blocking signup) when
+    // there's no session yet, since in that case the row will be
+    // written after the confirmed user signs in.
+    if (data.user && data.session) {
+      const { error: profileError } = await sb.from('profiles').upsert({
+        id: data.user.id,
+        has_password: true,
+        role: currentRole,
+        full_name: name,
+        company_name: company || null,
+      }, { onConflict: 'id' });
+
+      if (profileError) {
+        console.error('Failed to save profile after signup:', profileError);
+        btn.disabled = false; btn.textContent = orig;
+        showMsg('Account created, but we could not finish setting it up. Please try signing in — if this keeps happening, contact support.');
+        return;
+      }
+    }
+
+    btn.disabled = false; btn.textContent = orig;
+
+    if (data.session) {
+      await savePendingPreferences(data.user, name);
+      showMsg('Account created! Redirecting…', 'success');
+      setTimeout(() => { window.location.href = redirectFor(currentRole); }, 600);
+      return;
+    }
+
+    showMsg('Account created! Check your email to confirm, then sign in.', 'success');
+    setTimeout(() => switchTab('login'), 3000);
+  }
+
+  async function handleGoogle() {
+    const isSignupTab = document.getElementById('signup-form').style.display !== 'none';
+
+    if (isSignupTab && !document.getElementById('signup-terms').checked) {
+      showMsg('Please agree to the Terms of Service and Privacy Policy to continue.');
+      return;
+    }
+
+    const mode = isSignupTab ? 'signup' : 'login';
+    saveOAuthContext(currentRole, mode);
+
+    await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: oauthCallbackUrl(currentRole, mode)
+      }
+    });
+  }
+
+  async function handleApple() {
+    const isSignupTab = document.getElementById('signup-form').style.display !== 'none';
+
+    if (isSignupTab && !document.getElementById('signup-terms').checked) {
+      showMsg('Please agree to the Terms of Service and Privacy Policy to continue.');
+      return;
+    }
+
+    const mode = isSignupTab ? 'signup' : 'login';
+    saveOAuthContext(currentRole, mode);
+
+    await sb.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo: oauthCallbackUrl(currentRole, mode)
+      }
+    });
+  }
+
+  async function doForgot() {
+    const email = document.getElementById('email').value.trim();
+    if (!email) { showMsg('Enter your email above first.'); return; }
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/reset-password.html'
+    });
+    if (error) { showMsg(error.message); return; }
+    showMsg('Reset email sent — check your inbox.', 'success');
   }
 
   function toggleEye(id, btn) {
@@ -194,272 +699,41 @@
       : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
   }
 
-  async function init() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) {
-      window.location.href = 'login.html';
+  function checkPasswordMatch() {
+    const password = document.getElementById('signup-password');
+    const confirm = document.getElementById('signup-password-confirm');
+    const message = document.getElementById('password-match-message');
+
+    if (!password || !confirm || !message) return;
+
+    if (!confirm.value) {
+      message.style.display = 'none';
+      message.textContent = '';
+      confirm.style.borderColor = '';
       return;
     }
 
-    currentEmail = session.user.email;
-    currentUserId = session.user.id;
-    document.getElementById('email-display').textContent = currentEmail || '—';
-
-    const { data: profile } = await sb
-      .from('profiles')
-      .select('has_password, role')
-      .eq('id', currentUserId)
-      .single();
-    userHasPassword = !!profile?.has_password;
-
-    // Point Back at the right hub directly instead of always going through
-    // account.html (seeker) and relying on it to redirect employers onward —
-    // that round trip is what caused the seeker page to flash first.
-    const role = String(profile?.role || session.user.user_metadata?.role || '').toLowerCase();
-    document.getElementById('back-link').href = role === 'employer' ? 'employer-account.html' : 'account.html';
-
-    const providers = session.user.identities?.map(i => i.provider) || [];
-    const hasGoogle = providers.includes('google');
-    const pill = document.getElementById('google-pill');
-    pill.textContent = hasGoogle ? 'Connected' : 'Not connected';
-    pill.classList.toggle('off', !hasGoogle);
+    const matches = password.value === confirm.value;
+    message.style.display = 'block';
+    message.textContent = matches ? '✓ Passwords match' : 'Passwords do not match';
+    message.style.color = matches ? '#2d8a57' : '#8a4040';
+    confirm.style.borderColor = matches ? 'var(--mint)' : '#D79A9A';
   }
 
-  function generateCode() {
-    return String(Math.floor(100000 + Math.random() * 900000));
+  function checkStrength(val) {
+    const bar = document.getElementById('strength-bar');
+    if (!val) { bar.style.display = 'none'; return; }
+    bar.style.display = 'block';
+    const rules = { len: val.length >= 8, upper: /[A-Z]/.test(val), num: /[0-9]/.test(val), special: /[^A-Za-z0-9]/.test(val) };
+    ['len','upper','num','special'].forEach(r => document.getElementById('rule-' + r).classList.toggle('pass', rules[r]));
+    const score = Object.values(rules).filter(Boolean).length;
+    const colors = ['','#D79A9A','#e8b86d','#5D7FA3','#6FBF8F'];
+    const labels = ['','Weak','Fair','Good','Strong'];
+    const lc = ['','#8a4040','#7a5a1a','#3a5a7a','#2d8a57'];
+    for (let i = 1; i <= 4; i++) document.getElementById('seg'+i).style.background = i <= score ? colors[score] : 'var(--border)';
+    const lbl = document.getElementById('strength-label');
+    lbl.textContent = labels[score]; lbl.style.color = lc[score];
   }
-
-  async function isSameAsCurrentPassword(candidatePassword) {
-    if (!userHasPassword) return false;
-
-    const { data, error } = await sb.auth.signInWithPassword({
-      email: currentEmail,
-      password: candidatePassword,
-    });
-
-    return !error && !!data?.session;
-  }
-
-  async function sendVerificationCode() {
-    const password = document.getElementById('new-password').value;
-    if (!password || password.length < 8) {
-      showMsg('Password must be at least 8 characters.');
-      return;
-    }
-
-    const btn = document.getElementById('send-code-btn');
-    btn.disabled = true;
-    btn.textContent = 'Checking…';
-
-    const sameAsCurrent = await isSameAsCurrentPassword(password);
-    if (sameAsCurrent) {
-      showMsg('That\'s your current password. Please choose a different one.');
-      btn.disabled = false;
-      btn.textContent = 'Send verification code';
-      return;
-    }
-
-    btn.textContent = 'Sending…';
-
-    const code = generateCode();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-
-    const { data: insertData, error: insertError } = await sb
-      .from('password_change_codes')
-      .insert({ user_id: currentUserId, code, expires_at: expiresAt })
-      .select()
-      .single();
-
-    if (insertError) {
-      showMsg('Could not start verification: ' + insertError.message);
-      btn.disabled = false;
-      btn.textContent = 'Send verification code';
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/send-password-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: currentEmail, code }),
-      });
-      const result = await res.json();
-      if (!result.success) throw new Error(result.error || 'Failed to send email');
-    } catch (err) {
-      showMsg('Could not send the code: ' + err.message);
-      btn.disabled = false;
-      btn.textContent = 'Send verification code';
-      return;
-    }
-
-    pendingPassword = password;
-    pendingCodeId = insertData.id;
-
-    document.getElementById('code-step').style.display = 'block';
-    document.getElementById('code-desc').textContent = `Enter the 6-digit code we sent to ${currentEmail}.`;
-    btn.textContent = 'Code sent';
-    showMsg('Check your email for the verification code.', 'success');
-  }
-
-  async function confirmCodeAndChangePassword() {
-    const enteredCode = document.getElementById('verification-code').value.trim();
-    if (!enteredCode) {
-      showMsg('Enter the code from your email.');
-      return;
-    }
-    if (!pendingPassword || !pendingCodeId) {
-      showMsg('Please request a new code.');
-      return;
-    }
-
-    const btn = document.getElementById('confirm-code-btn');
-    btn.disabled = true;
-    btn.textContent = 'Verifying…';
-
-    const { data: codeRow, error: codeError } = await sb
-      .from('password_change_codes')
-      .select('code, expires_at, used')
-      .eq('id', pendingCodeId)
-      .single();
-
-    if (codeError || !codeRow) {
-      showMsg('Could not verify code. Please request a new one.');
-      btn.disabled = false;
-      btn.textContent = 'Confirm and update password';
-      return;
-    }
-
-    if (codeRow.used) {
-      showMsg('This code has already been used. Please request a new one.');
-      btn.disabled = false;
-      btn.textContent = 'Confirm and update password';
-      return;
-    }
-
-    if (new Date(codeRow.expires_at) < new Date()) {
-      showMsg('This code has expired. Please request a new one.');
-      btn.disabled = false;
-      btn.textContent = 'Confirm and update password';
-      return;
-    }
-
-    if (codeRow.code !== enteredCode) {
-      showMsg('Incorrect code. Please try again.');
-      btn.disabled = false;
-      btn.textContent = 'Confirm and update password';
-      return;
-    }
-
-    const { error: updateError } = await sb.auth.updateUser({ password: pendingPassword });
-    if (updateError) {
-      showMsg(updateError.message);
-      btn.disabled = false;
-      btn.textContent = 'Confirm and update password';
-      return;
-    }
-
-    await sb.from('password_change_codes').update({ used: true }).eq('id', pendingCodeId);
-    await sb.from('profiles').upsert({ id: currentUserId, has_password: true });
-    userHasPassword = true;
-
-    sendPasswordChangeEmail(currentEmail);
-
-    document.getElementById('new-password').value = '';
-    document.getElementById('verification-code').value = '';
-    document.getElementById('code-step').style.display = 'none';
-    document.getElementById('send-code-btn').textContent = 'Send verification code';
-    document.getElementById('send-code-btn').disabled = false;
-    pendingPassword = null;
-    pendingCodeId = null;
-
-    showMsg('Password updated successfully.', 'success');
-  }
-
-  async function sendPasswordChangeEmail(email) {
-    try {
-      await fetch('/api/notify-password-change', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-    } catch (err) {
-      console.error('Failed to send password change notification', err);
-    }
-  }
-
-  async function signOut() {
-    await sb.auth.signOut();
-    window.location.href = 'login.html';
-  }
-
-  async function confirmDelete() {
-    const sure = confirm(
-      'This will permanently delete your Alygnn account. Your current login will stop working immediately. This cannot be undone. Are you sure?'
-    );
-    if (!sure) return;
-
-    const btn = document.getElementById('delete-account-btn');
-    const originalText = btn.textContent;
-
-    btn.disabled = true;
-    btn.textContent = 'Deleting account…';
-
-    try {
-      const {
-        data: { session },
-        error: sessionError
-      } = await sb.auth.getSession();
-
-      if (sessionError || !session) {
-        throw new Error('Your session expired. Please sign in again before deleting your account.');
-      }
-
-      const response = await fetch('/api/delete-account', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'We could not delete your account.');
-      }
-
-      // The server has already permanently removed the Supabase Auth user.
-      // Clear any cached browser session/data left on this device.
-      try {
-        await sb.auth.signOut({ scope: 'local' });
-      } catch (_) {}
-
-      Object.keys(localStorage).forEach((key) => {
-        const lower = key.toLowerCase();
-        if (
-          lower.includes('supabase') ||
-          lower.includes('sb-') ||
-          lower.includes('alygnn')
-        ) {
-          localStorage.removeItem(key);
-        }
-      });
-
-      sessionStorage.clear();
-
-      alert('Your Alygnn account has been permanently deleted.');
-      window.location.replace('login.html?account_deleted=1');
-    } catch (error) {
-      console.error('Account deletion failed:', error);
-      showMsg(
-        error?.message || 'We could not delete your account. Please try again.'
-      );
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
-  }
-
-  init();
 </script>
 </body>
 </html>
