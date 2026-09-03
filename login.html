@@ -395,12 +395,19 @@ const { createClient } = supabase;
 
     const { data: profile, error: profileError } = await sb
       .from('profiles')
-      .select('role, full_name, company_name, has_password')
+      .select('role, full_name, company_name, has_password, is_admin')
       .eq('id', user.id)
       .maybeSingle();
 
     if (profileError && profileError.code !== 'PGRST116') {
       console.error('Could not read OAuth profile:', profileError);
+    }
+
+    // Admin accounts must never fall through to candidate/employer customer pages.
+    if (profile?.is_admin === true) {
+      clearOAuthContext();
+      window.location.replace(window.location.origin + '/employer-verification-admin.html');
+      return;
     }
 
     // Existing Alygnn accounts always keep their saved role.
