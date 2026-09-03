@@ -1814,6 +1814,92 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     }
   }
 
+
+  async function renderBillingEntitlementFallback(originalError){
+    const card=document.getElementById('billing-card');
+    if(!card)return false;
+
+    try{
+      const {data:{session}}=await sb.auth.getSession();
+      if(!session?.user?.id)throw originalError || new Error('Your session expired.');
+
+      let result=await sb
+        .from('employer_entitlements')
+        .select('plan, test_plan, test_mode, subscription_status, current_period_end, billing_period, slot_limit, addon_slot_count, candidate_access_locked, candidate_access_lock_reason')
+        .eq('employer_id',session.user.id)
+        .maybeSingle();
+
+      // Backward-compatible fallback if one of the newer columns is not installed.
+      if(result.error && /test_plan|test_mode|slot_limit|addon_slot_count|candidate_access/i.test(String(result.error.message||''))){
+        result=await sb
+          .from('employer_entitlements')
+          .select('plan, subscription_status, current_period_end, billing_period')
+          .eq('employer_id',session.user.id)
+          .maybeSingle();
+      }
+      if(result.error)throw result.error;
+
+      const ent=result.data||{};
+      let planKey=String(ent.test_plan||ent.plan||'free').toLowerCase();
+      if(planKey==='business')planKey='launch';
+      if(planKey==='enterprise')planKey='growth';
+      if(!['launch','growth','scale'].includes(planKey))planKey='free';
+
+      const status=String(ent.subscription_status||'inactive').toLowerCase();
+      const paidPlan=['launch','growth','scale'].includes(planKey) && ['active','trialing','past_due'].includes(status);
+      const secondActive=!paidPlan && Number(ent.addon_slot_count||0)>0;
+      const lock=accountCandidateAccessLocked || ent.candidate_access_locked===true || status==='past_due';
+      const slots=accountPostingAccess?.limit || (paidPlan ? ({launch:4,growth:6,scale:9}[planKey]||1) : secondActive ? 2 : 1);
+      const displayPlan=secondActive ? 'Free + Second Job Slot' : billingPlanName(planKey);
+      const billing=String(ent.billing_period||'').toLowerCase();
+      const periodEnd=ent.current_period_end?billingDate(ent.current_period_end):'';
+      const testMode=ent.test_mode===true;
+
+      const settingsBillingSub=document.getElementById('billing-settings-sub');
+      if(settingsBillingSub){
+        settingsBillingSub.textContent=lock
+          ? 'Payment past due · update billing'
+          : `${displayPlan} · ${slots} total job slot${slots===1?'':'s'}`;
+      }
+
+      const meta=paidPlan
+        ? `${slots} total reusable job slots${billing ? ' · '+billing.charAt(0).toUpperCase()+billing.slice(1) : ''}${periodEnd ? ' · Current period ends '+periodEnd : ''}`
+        : secondActive
+          ? `2 total reusable job slots · Second Job Slot $150/month`
+          : `1 permanent reusable free job slot · up to 25 candidates on the free slot`;
+
+      const statusLabel=lock
+        ? 'Payment past due'
+        : testMode && paidPlan
+          ? 'Test plan active'
+          : paidPlan
+            ? 'Active plan'
+            : secondActive
+              ? 'Second slot active'
+              : 'Free account';
+      const statusClass=lock?'warning':(paidPlan||secondActive)?'':'neutral';
+
+      card.innerHTML=`
+        <div class="billing-top">
+          <div>
+            <div class="billing-eyebrow">Current access</div>
+            <div class="billing-plan">${escapeHtml(displayPlan)}</div>
+            <div class="billing-meta">${escapeHtml(meta)}</div>
+          </div>
+          <span class="billing-status ${statusClass}">${escapeHtml(statusLabel)}</span>
+        </div>
+        ${lock ? `<div class="billing-alert"><strong>Candidate access is paused.</strong> We couldn’t process your latest plan payment. Your jobs, applications, messages, and history are preserved.</div>` : ''}
+        ${testMode ? `<div class="billing-message">Developer test entitlement is active. Alygnn is reading this plan directly from Supabase; no Stripe charge is attached to this test entitlement.</div>` : `<div class="billing-message">Your plan is active. Detailed payment controls could not be loaded right now, but your Alygnn hiring capacity is still recognized.</div>`}
+        <div class="billing-actions">
+          <a class="billing-btn secondary" href="pricing.html">Compare plans</a>
+        </div>`;
+      return true;
+    }catch(fallbackError){
+      console.error('Billing entitlement fallback failed:',fallbackError);
+      return false;
+    }
+  }
+
   async function loadBillingSummary(){
     const card=document.getElementById('billing-card');
     if(!card)return;
@@ -1885,8 +1971,11 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           <a class="billing-btn secondary" href="pricing.html">Compare plans</a>
         </div>`;
     }catch(error){
-      console.error('Failed to load billing summary:',error);
-      card.innerHTML=`<div class="billing-meta">Billing details could not be loaded right now.</div><div class="billing-actions"><a class="billing-btn secondary" href="pricing.html">View plans</a></div>`;
+      console.error('Failed to load Stripe billing summary:',error);
+      const rendered=await renderBillingEntitlementFallback(error);
+      if(!rendered){
+        card.innerHTML=`<div class="billing-meta">Billing details could not be loaded right now.</div><div class="billing-actions"><a class="billing-btn secondary" href="pricing.html">View plans</a></div>`;
+      }
     }
   }
 
