@@ -486,7 +486,14 @@
     font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
     color: var(--text-muted); display: block; margin-bottom: 3px;
   }
-  .info-item span { font-size: 14px; font-weight: 500; color: var(--text); }
+  .info-item span {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    display: block;
+    white-space: pre-line;
+    line-height: 1.4;
+  }
 
   .skills-section { margin-bottom: 20px; }
   .skills-label {
@@ -903,6 +910,7 @@
   });
 
   let currentFile = null;
+  let currentResumeText = '';
 
   // Pre-auth onboarding draft.
   // sessionStorage alone is not enough because email confirmation can
@@ -1105,6 +1113,7 @@
     try {
       setProgress(20, 'Reading your resume...', 'Securely loading your file');
       const fileData = await extractTextFromFile(file);
+      currentResumeText = String(fileData?.content || '').trim();
       setProgress(50, 'AI is analyzing your resume...', 'Extracting skills, experience, and more');
       const response = await fetch('/api/parse-resume', {
         method: 'POST',
@@ -1164,16 +1173,255 @@
     throw new Error('Please upload a PDF or DOCX resume.');
   }
 
-  function formatEducation(edu) {
-    if (!edu) return '—';
-    if (typeof edu === 'string') return edu;
-    if (typeof edu === 'object') {
-      const parts = [];
-      if (edu.degree) parts.push(edu.degree);
-      if (edu.field) parts.push(edu.field);
-      if (edu.school) parts.push(edu.school);
-      return parts.length > 0 ? parts.join(', ') : '—';
+  function cleanSummaryText(value, maxLength = 92) {
+    const text = String(value || '')
+      .replace(/\s+/g, ' ')
+      .replace(/^[•\-–—]\s*/, '')
+      .trim();
+
+    if (!text) return '';
+    return text.length > maxLength
+      ? text.slice(0, maxLength - 1).trimEnd() + '…'
+      : text;
+  }
+
+  function formatExperienceEntry(entry) {
+    if (!entry) return '';
+
+    if (typeof entry === 'string') {
+      return cleanSummaryText(entry);
     }
+
+    if (typeof entry === 'object') {
+      const title =
+        entry.title ||
+        entry.job_title ||
+        entry.position ||
+        entry.role ||
+        '';
+
+      const company =
+        entry.company ||
+        entry.company_name ||
+        entry.employer ||
+        entry.organization ||
+        '';
+
+      const dates =
+        entry.dates ||
+        entry.date_range ||
+        entry.duration ||
+        '';
+
+      const main = [title, company].filter(Boolean).join(' — ');
+      return cleanSummaryText([main, dates].filter(Boolean).join(' · '));
+    }
+
+    return '';
+  }
+
+  function formatEducationEntry(entry) {
+    if (!entry) return '';
+
+    if (typeof entry === 'string') {
+      return cleanSummaryText(entry);
+    }
+
+    if (typeof entry === 'object') {
+      const degree = entry.degree || entry.credential || '';
+      const field = entry.field || entry.field_of_study || entry.major || '';
+      const school =
+        entry.school ||
+        entry.school_name ||
+        entry.institution ||
+        entry.university ||
+        '';
+
+      const dates =
+        entry.dates ||
+        entry.date_range ||
+        entry.graduation_date ||
+        entry.expected_graduation ||
+        '';
+
+      const study = [degree, field].filter(Boolean).join(', ');
+      const main = [study, school].filter(Boolean).join(' — ');
+      return cleanSummaryText([main, dates].filter(Boolean).join(' · '));
+    }
+
+    return '';
+  }
+
+  const RESUME_SECTION_HEADERS = [
+    'summary',
+    'professional summary',
+    'profile',
+    'objective',
+    'education',
+    'academic background',
+    'academic experience',
+    'experience',
+    'work experience',
+    'professional experience',
+    'employment',
+    'employment history',
+    'internships',
+    'skills',
+    'technical skills',
+    'core competencies',
+    'certifications',
+    'licenses',
+    'awards',
+    'honors',
+    'projects',
+    'leadership',
+    'activities',
+    'volunteer experience',
+    'references'
+  ];
+
+  function normalizedSectionHeader(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/[:|]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function extractResumeSectionLines(headers) {
+    if (!currentResumeText) return [];
+
+    const lines = currentResumeText
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    const wanted = headers.map(normalizedSectionHeader);
+    const knownHeaders = new Set(RESUME_SECTION_HEADERS.map(normalizedSectionHeader));
+
+    const start = lines.findIndex(line =>
+      wanted.includes(normalizedSectionHeader(line))
+    );
+
+    if (start < 0) return [];
+
+    const sectionLines = [];
+
+    for (let i = start + 1; i < lines.length; i++) {
+      const normalized = normalizedSectionHeader(lines[i]);
+
+      if (knownHeaders.has(normalized)) break;
+      sectionLines.push(lines[i]);
+    }
+
+    return sectionLines;
+  }
+
+  function compactSectionEntries(lines) {
+    const useful = lines
+      .map(line => cleanSummaryText(line))
+      .filter(Boolean)
+      .filter(line => line.length > 2);
+
+    // Keep visually meaningful entries instead of dumping the whole resume.
+    // Prefer heading-like lines, then fall back to the first available lines.
+    const headingLike = useful.filter(line =>
+      /(?:\b20\d{2}\b|\b19\d{2}\b|\bpresent\b|\bcurrent\b|\bassistant\b|\bmanager\b|\bcoordinator\b|\banalyst\b|\bspecialist\b|\bintern\b|\buniversity\b|\bcollege\b|\bschool\b|\bdegree\b|\bb\.?s\.?\b|\bm\.?s\.?\b|\bba\b|\bma\b|\bph\.?d\b)/i.test(line)
+    );
+
+    const source = headingLike.length ? headingLike : useful;
+    const deduped = [...new Set(source)];
+
+    return deduped;
+  }
+
+  function renderCompactList(entries, totalCount = entries.length) {
+    const cleaned = entries
+      .map(item => cleanSummaryText(item))
+      .filter(Boolean);
+
+    if (!cleaned.length) return '—';
+
+    const visible = cleaned.slice(0, 2);
+    const hasMore = totalCount > 2 || cleaned.length > 2;
+
+    return visible.join('\n') + (hasMore ? '\n…' : '');
+  }
+
+  function getExperienceSummary(data) {
+    const structured =
+      Array.isArray(data?.experience) ? data.experience :
+      Array.isArray(data?.experiences) ? data.experiences :
+      Array.isArray(data?.work_experience) ? data.work_experience :
+      [];
+
+    if (structured.length) {
+      return renderCompactList(
+        structured.map(formatExperienceEntry),
+        structured.length
+      );
+    }
+
+    const rawEntries = compactSectionEntries(
+      extractResumeSectionLines([
+        'experience',
+        'work experience',
+        'professional experience',
+        'employment',
+        'employment history',
+        'internships'
+      ])
+    );
+
+    if (rawEntries.length) {
+      return renderCompactList(rawEntries, rawEntries.length);
+    }
+
+    if (data?.experience_years) {
+      const yrs = Math.floor(data.experience_years);
+      const mos = Math.round((data.experience_years - yrs) * 12);
+
+      if (yrs === 0) return mos + ' months';
+      if (mos === 0) return yrs + (yrs === 1 ? ' year' : ' years');
+
+      return yrs + (yrs === 1 ? ' year' : ' years') +
+        ', ' + mos + ' months';
+    }
+
+    return '—';
+  }
+
+  function getEducationSummary(data) {
+    const education = data?.education;
+
+    if (Array.isArray(education) && education.length) {
+      return renderCompactList(
+        education.map(formatEducationEntry),
+        education.length
+      );
+    }
+
+    if (education && typeof education === 'object') {
+      const formatted = formatEducationEntry(education);
+      if (formatted) return formatted;
+    }
+
+    if (typeof education === 'string' && education.trim()) {
+      return cleanSummaryText(education);
+    }
+
+    const rawEntries = compactSectionEntries(
+      extractResumeSectionLines([
+        'education',
+        'academic background',
+        'academic experience'
+      ])
+    );
+
+    if (rawEntries.length) {
+      return renderCompactList(rawEntries, rawEntries.length);
+    }
+
     return '—';
   }
 
@@ -1192,18 +1440,15 @@
       document.getElementById('extracted-role').textContent = data.title || 'Professional';
 
       const infoItems = document.querySelectorAll('.info-item span');
+
       if (infoItems[0]) {
-  if (data.experience_years) {
-    const yrs = Math.floor(data.experience_years);
-    const mos = Math.round((data.experience_years - yrs) * 12);
-    if (yrs === 0) infoItems[0].textContent = mos + ' months';
-    else if (mos === 0) infoItems[0].textContent = yrs + (yrs === 1 ? ' year' : ' years');
-    else infoItems[0].textContent = yrs + (yrs === 1 ? ' year' : ' years') + ', ' + mos + ' months';
-  } else {
-    infoItems[0].textContent = '—';
-  }
-}
-      if (infoItems[1]) infoItems[1].textContent = formatEducation(data.education);
+        infoItems[0].textContent = getExperienceSummary(data);
+      }
+
+      if (infoItems[1]) {
+        infoItems[1].textContent = getEducationSummary(data);
+      }
+
       if (infoItems[2]) infoItems[2].textContent = data.location || '—';
       if (infoItems[3]) infoItems[3].textContent = data.email || '—';
 
