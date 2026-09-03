@@ -3,2873 +3,463 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Account settings — Alygnn</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<title>Account — Alygnn</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
-:root{
-  --brand:#5D7FA3;
-  --sage:#8CB69B;
-  --bg:#F6F8F7;
-  --card-bg:#FCFCFA;
-  --text:#1A2530;
-  --text-muted:#4A5968;
-  --border:#DDE3E8;
-}
-
-*,
-*::before,
-*::after{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
-  font-family:'DM Sans', Arial, sans-serif !important;
-}
-
-html,
-body{
-  min-height:100%;
-  background:var(--bg);
-  color:var(--text);
-}
-
-body{
-  min-height:100vh;
-  padding-top:64px;
-}
-
-nav{
-  position:fixed;
-  top:0;
-  left:0;
-  right:0;
-  width:100%;
-  z-index:1000;
-  height:64px;
-  padding:0 5%;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  background:rgba(246,248,247,.92);
-  backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--border);
-}
-
-.logo{
-  font-family:'DM Serif Display', serif !important;
-  font-size:22px;
-  color:var(--brand);
-  letter-spacing:-.5px;
-  text-decoration:none;
-}
-
-.logo span{
-  font-family:'DM Serif Display', serif !important;
-  color:var(--sage);
-}
-
-.nav-links{
-  display:flex;
-  align-items:center;
-  gap:28px;
-}
-
-.nav-links.nav-readiness-pending{ visibility:hidden; }
-
-.nav-links a{
-  color:var(--text-muted);
-  text-decoration:none;
-  font-size:14px;
-  padding:6px 0;
-  border-bottom:2px solid transparent;
-}
-
-.nav-links a.active{
-  color:var(--text);
-  border-bottom-color:var(--brand);
-}
-
-.nav-signout{
-  font-size:13px;
-  color:var(--text-muted);
-  background:none;
-  border:1px solid var(--border);
-  border-radius:100px;
-  padding:6px 14px;
-  cursor:pointer;
-  font-family:'DM Sans', sans-serif;
-  transition:all .2s;
-}
-
-.nav-signout:hover{
-  border-color:var(--brand);
-  color:var(--brand);
-}
-
-
-.nav-actions{
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-
-.notification-btn{
-  position:relative;
-  width:40px;
-  height:40px;
-  display:grid;
-  place-items:center;
-  border:1px solid var(--border);
-  border-radius:50%;
-  background:#fff;
-  color:var(--text-muted);
-  cursor:pointer;
-  transition:border-color .2s,color .2s,transform .2s;
-}
-.notification-btn:hover{
-  border-color:var(--brand);
-  color:var(--brand);
-  transform:translateY(-1px);
-}
-.notification-btn svg{
-  width:19px;
-  height:19px;
-  stroke:currentColor;
-}
-.notification-badge{
-  position:absolute;
-  top:-4px;
-  right:-3px;
-  min-width:18px;
-  height:18px;
-  padding:0 5px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border:2px solid var(--bg);
-  border-radius:999px;
-  background:#D85A5A;
-  color:#fff;
-  font-size:10px;
-  line-height:1;
-  font-weight:700;
-}
-.notification-badge[hidden]{display:none}
-
-.notification-overlay{
-  position:fixed;
-  inset:0;
-  z-index:500;
-  display:none;
-  align-items:flex-start;
-  justify-content:flex-end;
-  padding:78px 5% 24px;
-  background:rgba(26,37,48,.18);
-  backdrop-filter:blur(2px);
-  -webkit-backdrop-filter:blur(2px);
-}
-.notification-overlay.open{display:flex}
-
-.notification-panel{
-  width:min(430px,100%);
-  max-height:min(70vh,620px);
-  overflow:auto;
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:20px;
-  box-shadow:0 20px 70px rgba(26,37,48,.16);
-}
-
-.notification-head{
-  position:sticky;
-  top:0;
-  z-index:2;
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:18px;
-  padding:20px 20px 16px;
-  background:#fff;
-  border-bottom:1px solid var(--border);
-}
-.notification-head h3{
-  font-family:'DM Serif Display',serif;
-  font-size:22px;
-  margin-bottom:3px;
-}
-.notification-head p{
-  color:var(--text-muted);
-  font-size:12px;
-}
-.notification-head-actions{
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-.mark-read-btn{
-  border:0;
-  background:transparent;
-  color:var(--brand);
-  font-family:'DM Sans',sans-serif;
-  font-size:11px;
-  cursor:pointer;
-  white-space:nowrap;
-}
-.notification-close{
-  width:30px;
-  height:30px;
-  border:1px solid var(--border);
-  border-radius:50%;
-  background:#fff;
-  color:var(--text-muted);
-  font-size:19px;
-  line-height:1;
-  cursor:pointer;
-}
-
-.notification-list{padding:6px 0}
-
-.notification-item{
-  width:100%;
-  display:grid;
-  grid-template-columns:38px 1fr auto;
-  gap:12px;
-  align-items:start;
-  padding:15px 18px;
-  border:0;
-  border-bottom:1px solid rgba(221,227,232,.72);
-  background:#fff;
-  text-align:left;
-  cursor:pointer;
-  font-family:'DM Sans',sans-serif;
-}
-.notification-item:hover{background:rgba(93,127,163,.055)}
-.notification-item.unread{background:rgba(93,127,163,.075)}
-
-.notification-icon{
-  width:36px;
-  height:36px;
-  border-radius:11px;
-  display:grid;
-  place-items:center;
-  background:rgba(93,127,163,.10);
-  color:var(--brand);
-  font-size:16px;
-  font-weight:700;
-}
-.notification-icon.green{
-  background:rgba(111,191,143,.12);
-  color:#438661;
-}
-.notification-icon.amber{
-  background:rgba(212,165,90,.13);
-  color:#9B6B24;
-}
-.notification-icon.rose{
-  background:rgba(215,154,154,.15);
-  color:#A85E5E;
-}
-.notification-copy strong{
-  display:block;
-  color:var(--text);
-  font-size:13px;
-  font-weight:600;
-  margin-bottom:3px;
-}
-.notification-copy span{
-  display:block;
-  color:var(--text-muted);
-  font-size:12px;
-  line-height:1.45;
-}
-.notification-time{
-  padding-top:2px;
-  color:var(--text-muted);
-  font-size:10px;
-  white-space:nowrap;
-}
-.notification-empty{
-  padding:34px 22px;
-  text-align:center;
-  color:var(--text-muted);
-}
-.notification-empty-icon{
-  width:44px;
-  height:44px;
-  margin:0 auto 12px;
-  display:grid;
-  place-items:center;
-  border-radius:50%;
-  background:rgba(111,191,143,.12);
-  color:#438661;
-  font-size:20px;
-}
-.notification-empty strong{
-  display:block;
-  color:var(--text);
-  margin-bottom:5px;
-  font-size:14px;
-}
-
-.nav-links a:hover{
-  color:var(--text);
-}
-
-.page{
-  max-width:880px;
-  margin:0 auto;
-  padding:56px 6% 100px;
-  opacity:0;
-  transform:translateY(8px);
-  transition:opacity .25s ease, transform .25s ease;
-}
-
-.page.ready{
-  opacity:1;
-  transform:translateY(0);
-}
-
-.loading{
-  max-width:880px;
-  margin:0 auto;
-  padding:56px 6%;
-  color:var(--text-muted);
-  font-size:14px;
-}
-
-.loading.hide{
-  display:none;
-}
-
-.setup-banner{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:20px;
-  background:rgba(231,184,109,0.12);
-  border:1px solid rgba(231,184,109,0.4);
-  border-radius:16px;
-  padding:20px 24px;
-  margin-bottom:24px;
-}
-
-.setup-title{
-  font-size:15px;
-  font-weight:500;
-  color:#7a5a1a;
-  margin-bottom:3px;
-}
-
-.setup-sub{
-  font-size:13px;
-  color:var(--text-muted);
-}
-
-.setup-cta{
-  flex-shrink:0;
-  background:var(--brand);
-  color:white;
-  text-decoration:none;
-  border-radius:100px;
-  padding:11px 22px;
-  font-size:14px;
-  font-weight:500;
-  white-space:nowrap;
-  transition:opacity .2s;
-}
-.setup-cta:hover{ opacity:0.88; }
-
-.profile-card{
-  position:relative;
-  display:block;
-  background:
-    radial-gradient(circle at 92% 4%, rgba(140,182,155,.14), transparent 28%),
-    linear-gradient(180deg,#FEFEFC 0%,var(--card-bg) 100%);
-  border:1px solid rgba(93,127,163,.18);
-  border-radius:26px;
-  padding:0;
-  margin-bottom:38px;
-  min-width:0;
-  overflow:hidden;
-  box-shadow:0 18px 50px rgba(38,54,70,.06);
-}
-
-.profile-card::before{
-  content:'';
-  display:block;
-  height:5px;
-  background:linear-gradient(90deg,var(--brand),var(--sage));
-}
-
-.candidate-profile-top{
-  display:flex;
-  align-items:center;
-  gap:22px;
-  padding:28px 30px 24px;
-}
-
-.avatar{
-  width:86px;
-  height:86px;
-  border-radius:50%;
-  background:
-    linear-gradient(145deg,rgba(255,255,255,.12),transparent),
-    var(--brand);
-  color:white;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  flex-shrink:0;
-  font-family:'DM Serif Display',serif !important;
-  font-size:1.9rem;
-  box-shadow:0 12px 28px rgba(93,127,163,.22);
-  position:relative;
-  z-index:1;
-}
-
-.avatar span{font-family:'DM Serif Display',serif !important}
-
-.profile-info{
-  flex:1;
-  min-width:0;
-  position:relative;
-  z-index:1;
-}
-
-.candidate-eyebrow{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:8px;
-}
-
-.candidate-eyebrow>span{
-  font-size:10px;
-  font-weight:600;
-  letter-spacing:1.7px;
-  text-transform:uppercase;
-  color:var(--brand);
-}
-
-.candidate-profile-edit{
-  display:inline-flex;
-  align-items:center;
-  padding:7px 11px;
-  border:1px solid var(--border);
-  border-radius:999px;
-  color:var(--text-muted);
-  text-decoration:none;
-  font-size:11px;
-  background:rgba(255,255,255,.72);
-  transition:.2s ease;
-  white-space:nowrap;
-}
-.candidate-profile-edit:hover{
-  color:var(--brand);
-  border-color:rgba(93,127,163,.42);
-  background:#fff;
-}
-
-.profile-info h1{
-  font-family:'DM Serif Display',serif !important;
-  font-size:2rem;
-  line-height:1.08;
-  letter-spacing:-.7px;
-  margin:0 0 5px;
-  color:var(--text);
-  word-break:break-word;
-}
-
-.profile-info p{
-  color:var(--text-muted);
-  font-size:14px;
-  font-weight:300;
-  word-break:break-word;
-}
-
-.name-lock-note{
-  font-size:12px !important;
-  color:var(--text-muted);
-  margin-top:0;
-}
-.name-lock-note a{color:var(--brand);text-decoration:none}
-.name-lock-note a:hover{text-decoration:underline}
-
-.candidate-details-zone{
-  border-top:1px solid rgba(221,227,232,.9);
-  padding:22px 30px 24px;
-  background:rgba(246,248,247,.56);
-}
-
-.candidate-details-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:16px;
-  margin-bottom:14px;
-}
-
-.candidate-details-title{
-  font-size:12px;
-  font-weight:600;
-  color:var(--text);
-}
-
-.candidate-details-note{
-  font-size:11px;
-  color:#7F8B97;
-}
-
-.candidate-fields{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:10px;
-}
-
-.candidate-field-row{
-  min-width:0;
-  display:grid;
-  grid-template-columns:38px minmax(0,1fr) auto;
-  align-items:center;
-  gap:11px;
-  padding:13px 14px;
-  background:rgba(255,255,255,.82);
-  border:1px solid rgba(221,227,232,.95);
-  border-radius:14px;
-  color:inherit;
-  text-decoration:none;
-  transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease;
-}
-.candidate-field-row:hover{
-  border-color:rgba(93,127,163,.34);
-  transform:translateY(-1px);
-  box-shadow:0 8px 18px rgba(38,54,70,.04);
-}
-
-.candidate-field-icon{
-  width:36px;
-  height:36px;
-  border-radius:10px;
-  display:grid;
-  place-items:center;
-  background:rgba(93,127,163,.09);
-  color:var(--brand);
-}
-.candidate-field-icon svg{width:19px;height:19px}
-
-.candidate-field-copy{
-  min-width:0;
-  display:flex;
-  flex-direction:column;
-  gap:3px;
-}
-
-.candidate-field-label{
-  font-size:10px;
-  letter-spacing:.8px;
-  text-transform:uppercase;
-  color:#7F8B97;
-  font-weight:600;
-}
-
-.profile-status-value{
-  font-family:'DM Sans',Arial,sans-serif !important;
-  font-size:14px !important;
-  font-weight:600;
-  letter-spacing:0;
-  color:var(--text);
-}
-.profile-status-value.is-ready{color:#2d8a57 !important}
-.profile-status-value.is-missing{color:var(--text-muted) !important}
-
-.candidate-field-arrow{
-  color:#9AA6B1;
-  font-size:20px;
-  line-height:1;
-}
-
-.candidate-matching-row{
-  margin-top:10px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:18px;
-  padding:14px 15px;
-  border:1px solid rgba(111,191,143,.25);
-  border-radius:14px;
-  background:rgba(111,191,143,.055);
-  text-decoration:none;
-  color:inherit;
-  transition:.2s ease;
-}
-.candidate-matching-row:hover{
-  border-color:rgba(93,127,163,.34);
-  background:rgba(93,127,163,.05);
-}
-
-.candidate-matching-left{
-  display:flex;
-  align-items:center;
-  gap:11px;
-  min-width:0;
-}
-
-.candidate-status-dot{
-  width:9px;
-  height:9px;
-  border-radius:50%;
-  background:var(--mint);
-  box-shadow:0 0 0 4px rgba(111,191,143,.12);
-  flex-shrink:0;
-}
-
-.candidate-matching-label{
-  display:block;
-  font-size:12px;
-  font-weight:600;
-  color:var(--text);
-  margin-bottom:2px;
-}
-
-.candidate-matching-copy{
-  display:block;
-  font-size:11px;
-  line-height:1.45;
-  color:var(--text-muted);
-}
-
-.candidate-matching-right{
-  display:flex;
-  align-items:center;
-  gap:16px;
-  flex-shrink:0;
-}
-
-.candidate-matching-arrow{
-  font-size:11px;
-  font-weight:600;
-  color:var(--brand);
-  white-space:nowrap;
-}
-
-.section-eyebrow{
-  font-size:11px;
-  font-weight:700;
-  letter-spacing:1px;
-  text-transform:uppercase;
-  color:var(--brand);
-  margin-bottom:6px;
-}
-
-.name-change-form{
-  margin-top:12px;
-  display:flex;
-  flex-wrap:wrap;
-  align-items:center;
-  gap:8px;
-}
-
-.name-change-form input{
-  flex:1;
-  min-width:160px;
-  padding:9px 12px;
-  border:1px solid var(--border);
-  border-radius:10px;
-  font-size:14px;
-  font-family:'DM Sans', sans-serif;
-  outline:none;
-}
-
-.name-change-form input:focus{
-  border-color:var(--brand);
-}
-
-.name-change-submit{
-  background:var(--brand);
-  color:white;
-  border:none;
-  border-radius:100px;
-  padding:9px 18px;
-  font-size:13px;
-  font-weight:500;
-  font-family:'DM Sans', sans-serif;
-  cursor:pointer;
-  transition:opacity .2s;
-  white-space:nowrap;
-}
-
-.name-change-submit:hover{ opacity:0.88; }
-.name-change-submit:disabled{ opacity:0.6; cursor:not-allowed; }
-
-.name-change-status{
-  width:100%;
-  font-size:12px;
-  color:var(--text-muted);
-  margin-top:2px;
-}
-
-[contenteditable="true"]{
-  outline:none;
-  border-radius:6px;
-}
-
-[contenteditable="true"]:hover{
-  background:rgba(93,127,163,.06);
-}
-
-[contenteditable="true"]:focus{
-  background:rgba(93,127,163,.08);
-}
-
-[contenteditable="true"]:empty::before{
-  content:attr(data-placeholder);
-  color:#9BA8B3;
-  font-style:italic;
-}
-
-#profile-name:empty::before{
-  font-family:'DM Serif Display', serif !important;
-  font-style:normal;
-}
-
-.section{
-  margin-bottom:40px;
-}
-
-.section-header{
-  display:flex;
-  align-items:baseline;
-  justify-content:space-between;
-  margin-bottom:16px;
-}
-
-.section-header h2{
-  font-family:'DM Serif Display', serif !important;
-  font-size:1.15rem;
-  letter-spacing:-.3px;
-}
-
-.empty-state{
-  background:var(--card-bg);
-  border:1px dashed var(--border);
-  border-radius:14px;
-  padding:28px;
-  text-align:center;
-  color:var(--text-muted);
-  font-size:14px;
-}
-
-.form-input{
-  background:white;
-  border:1.5px solid var(--border);
-  border-radius:12px;
-  padding:12px 16px;
-  font-size:14px;
-  font-family:'DM Sans', Arial, sans-serif;
-  color:var(--text);
-  outline:none;
-  transition:border-color .2s;
-  width:100%;
-}
-.form-input:focus{ border-color:var(--brand); }
-.form-input::placeholder{ color:#9BA8B3; }
-
-.links-row{
-  display:flex;
-  gap:14px;
-  flex-wrap:wrap;
-}
-
-.detail-card{
-  background:var(--card-bg);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:24px;
-}
-
-.detail-field{
-  margin-bottom:20px;
-}
-.detail-field:last-child{ margin-bottom:0; }
-
-.detail-label{
-  font-size:12px;
-  font-weight:500;
-  color:var(--text-muted);
-  display:block;
-  margin-bottom:8px;
-}
-
-textarea.form-input{
-  resize:vertical;
-  min-height:70px;
-}
-
-.skills-chip-wrap{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  margin-bottom:10px;
-}
-
-.skill-chip{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  font-size:13px;
-  color:white;
-  background:var(--brand);
-  border-radius:100px;
-  padding:6px 8px 6px 14px;
-}
-.skill-chip button{
-  background:rgba(255,255,255,.25);
-  border:none;
-  color:white;
-  border-radius:50%;
-  width:18px;
-  height:18px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  font-size:11px;
-  line-height:1;
-}
-.skill-chip button:hover{ background:rgba(255,255,255,.4); }
-
-.entry-row-wrap{
-  margin-bottom:10px;
-}
-.entry-row-wrap .entry-row{
-  margin-bottom:6px;
-}
-
-.entry-row{
-  display:grid;
-  grid-template-columns:1.4fr 1.4fr .8fr .8fr auto;
-  gap:10px;
-  margin-bottom:10px;
-  align-items:center;
-}
-
-select.form-input{
-  cursor:pointer;
-}
-
-.btn-remove-entry{
-  background:rgba(215,154,154,.15);
-  color:#a05858;
-  border:none;
-  border-radius:8px;
-  padding:10px 12px;
-  cursor:pointer;
-  font-size:13px;
-  font-family:'DM Sans', Arial, sans-serif;
-}
-.btn-remove-entry:hover{ opacity:.8; }
-
-.btn-add-entry{
-  background:rgba(93,127,163,.08);
-  color:var(--brand);
-  border:1px solid rgba(93,127,163,.25);
-  border-radius:100px;
-  padding:8px 16px;
-  font-size:13px;
-  font-weight:500;
-  cursor:pointer;
-  font-family:'DM Sans', Arial, sans-serif;
-}
-.btn-add-entry:hover{ opacity:.85; }
-
-.btn-save-profile{
-  background:var(--brand);
-  color:white;
-  border:none;
-  border-radius:12px;
-  padding:12px 24px;
-  font-size:14px;
-  font-weight:500;
-  font-family:'DM Sans', Arial, sans-serif;
-  cursor:pointer;
-  margin-top:4px;
-}
-.btn-save-profile:hover{ opacity:.88; }
-.btn-save-profile:disabled{ opacity:.6; cursor:not-allowed; }
-
-.detail-empty-note{
-  font-size:12px;
-  color:var(--text-muted);
-  font-style:italic;
-  margin-bottom:10px;
-}
-
-@media(max-width:640px){
-
-  .candidate-profile-top{
-    align-items:flex-start;
-    padding:24px 20px 20px;
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --brand: #5D7FA3; --sage: #8CB69B; --bg: #F6F8F7; --card-bg: #FCFCFA;
+    --text: #1A2530; --text-muted: #4A5968; --border: #DDE3E8;
+    --mint: #6FBF8F; --rose: #D79A9A;
   }
-  .candidate-eyebrow{
-    align-items:flex-start;
-    flex-direction:column;
-    gap:8px;
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-top: 64px; }
+
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; width: 100%; z-index: 1000;
+    background: rgba(246,248,247,0.95);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border); padding: 0 5%;
+    display: flex; align-items: center; justify-content: space-between; height: 64px;
   }
-  .candidate-details-zone{
-    padding:20px;
+  .logo { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--brand); text-decoration: none; }
+  .logo span { color: var(--sage); }
+  .back-link { font-size: 14px; color: var(--text-muted); text-decoration: none; }
+  .back-link:hover { color: var(--text); }
+
+  .page { max-width: 640px; margin: 0 auto; padding: 56px 6% 100px; }
+  h1 { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: 36px; }
+
+  .section {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px; margin-bottom: 16px;
   }
-  .candidate-details-head{
-    align-items:flex-start;
-    flex-direction:column;
-    gap:3px;
+  .section h2 { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .section .desc { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .value { font-size: 14px; color: var(--text); }
+
+  .field { margin-bottom: 10px; }
+  .field input {
+    width: 100%; padding: 11px 14px; border: 1px solid var(--border);
+    border-radius: 10px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none;
   }
-  .candidate-fields{
-    grid-template-columns:1fr;
+  .field input:focus { border-color: var(--brand); }
+
+  .password-wrap { position: relative; }
+  .password-wrap input { padding-right: 44px; }
+  .eye-btn {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; color: var(--text-muted);
+    padding: 4px; display: flex; transition: color 0.2s;
   }
-  .candidate-matching-row{
-    align-items:flex-start;
-    flex-direction:column;
+  .eye-btn:hover { color: var(--brand); }
+
+  .btn {
+    border: none; border-radius: 10px; padding: 10px 18px; font-size: 14px;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; font-weight: 500;
   }
-  .candidate-matching-right{
-    width:100%;
-    justify-content:space-between;
+  .btn-primary { background: var(--brand); color: white; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-outline { background: white; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--brand); color: var(--brand); }
+  .btn-danger { background: white; border: 1px solid var(--rose); color: #a05858; }
+  .btn-danger:hover { background: rgba(215,154,154,0.1); }
+
+  .pill {
+    font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 100px;
+    background: rgba(111,191,143,0.15); color: #2d8a57;
   }
+  .pill.off { background: var(--border); color: var(--text-muted); }
 
-  .entry-row{ grid-template-columns:1fr; }
-}
-
-.job-row-item{
-  background:var(--card-bg);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:16px 20px;
-  margin-bottom:10px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:14px;
-  cursor:pointer;
-  transition:border-color .2s, transform .2s, box-shadow .2s;
-}
-.job-row-item:hover{
-  border-color:var(--brand);
-  transform:translateY(-1px);
-  box-shadow:0 8px 20px rgba(93,127,163,.10);
-}
-.job-row-main{ display:flex; align-items:center; gap:14px; flex:1; min-width:0; }
-.job-row-avatar{
-  width:38px; height:38px; border-radius:11px; flex-shrink:0;
-  background:rgba(93,127,163,.12); color:var(--brand);
-  display:flex; align-items:center; justify-content:center;
-  font-family:'DM Serif Display', serif !important; font-size:.95rem;
-}
-.job-row-title{ font-size:14px; font-weight:500; color:var(--text); margin-bottom:3px; }
-.job-row-meta{ font-size:12px; color:var(--text-muted); }
-.job-row-status{
-  font-size:11px;
-  font-weight:500;
-  padding:4px 12px;
-  border-radius:100px;
-  border:1px solid var(--border);
-  color:var(--text-muted);
-  white-space:nowrap;
-  flex-shrink:0;
-}
-.job-row-status.status-accepted{ border-color:var(--sage); color:#2d8a57; background:rgba(140,182,155,.12); }
-.job-row-status.status-rejected{ border-color:#D79A9A; color:#a05858; background:rgba(215,154,154,.12); }
-
-.job-list-view-all{
-  display:block;
-  text-align:center;
-  font-size:13px;
-  font-weight:500;
-  color:var(--brand);
-  text-decoration:none;
-  padding:12px;
-}
-.job-list-view-all:hover{ text-decoration:underline; }
-
-.job-row-actions{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-end;
-  gap:8px;
-  flex-shrink:0;
-}
-.job-row-buttons{
-  display:flex;
-  gap:6px;
-}
-.job-row-actions.job-row-actions-inline{
-  flex-direction:row;
-  align-items:center;
-  gap:8px;
-}
-.job-action-btn{
-  font-size:11px;
-  font-weight:500;
-  padding:5px 12px;
-  border-radius:100px;
-  border:1px solid var(--border);
-  background:white;
-  cursor:pointer;
-  font-family:'DM Sans', Arial, sans-serif;
-  transition:all .2s;
-  white-space:nowrap;
-}
-.job-action-btn:hover{ border-color:var(--brand); color:var(--brand); }
-.job-action-btn.apply{ color:#2d8a57; border-color:var(--sage); background:rgba(140,182,155,.08); }
-.job-action-btn.apply:hover{ background:rgba(140,182,155,.18); border-color:var(--sage); color:#2d8a57; }
-.job-action-btn.restore{ color:var(--text-muted); }
-
-.field-error{
-  font-size:11px;
-  color:#a05858;
-  margin-top:-4px;
-  margin-bottom:8px;
-}
-
-.toast{
-  position:fixed;
-  bottom:32px;
-  left:50%;
-  transform:translateX(-50%) translateY(80px);
-  background:var(--text);
-  color:white;
-  padding:10px 20px;
-  border-radius:100px;
-  font-size:13px;
-  font-weight:500;
-  transition:transform .3s ease;
-  z-index:200;
-  white-space:nowrap;
-}
-.toast.show{ transform:translateX(-50%) translateY(0); }
-
-.link-card{
-  flex:1;
-  min-width:200px;
-  display:block;
-  background:var(--card-bg);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:20px;
-  text-decoration:none;
-  color:var(--text);
-  transition:border-color .2s, transform .2s, box-shadow .2s;
-}
-
-.link-card:hover{
-  border-color:var(--brand);
-  transform:translateY(-2px);
-  box-shadow:0 10px 24px rgba(93,127,163,.10);
-}
-
-.settings-card-icon{
-  width:24px;
-  height:24px;
-  margin-bottom:8px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:var(--brand);
-}
-.settings-card-icon svg{
-  width:21px;
-  height:21px;
-  fill:none;
-  stroke:currentColor;
-  stroke-width:1.8;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-}
-
-.link-card .label{
-  font-weight:500;
-  font-size:15px;
-}
-
-.link-card .sub{
-  font-size:13px;
-  color:var(--text-muted);
-  margin-top:2px;
-  font-weight:300;
-}
-
-.link-card .sub a{
-  color:var(--brand);
-  text-decoration:underline;
-}
-
-.resume-card-wrap{
-  flex:1;
-  min-width:200px;
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
-.resume-card-wrap .link-card{
-  flex:1;
-  min-width:0;
-}
-.resume-actions{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:12px;
-  flex-wrap:wrap;
-  padding-top:2px;
-}
-.resume-actions a{
-  font-size:12px;
-  color:var(--text-muted);
-  text-decoration:underline;
-  text-underline-offset:2px;
-}
-.resume-actions a:hover{ color:var(--brand); }
-
-@media(max-width:640px){
-  nav{
-    padding:0 18px;
+  .msg-box {
+    border-radius: 10px; padding: 10px 14px; font-size: 13px;
+    margin-bottom: 14px; display: none;
   }
+  .msg-box.error { background: rgba(215,154,154,0.15); border: 1px solid rgba(215,154,154,0.4); color: #8a4040; }
+  .msg-box.success { background: rgba(111,191,143,0.15); border: 1px solid rgba(111,191,143,0.4); color: #1a5c35; }
 
-  .nav-links{
-    gap:14px;
-  }
+  .danger-section { border-color: rgba(215,154,154,0.4); }
 
-  .nav-links a{
-    font-size:13px;
-  }
+  .code-step { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .code-step .desc { margin-bottom: 10px; }
 
-  .profile-card{
-    padding:24px;
-    align-items:flex-start;
-  }
-
-  .setup-banner{
-    flex-direction:column;
-    align-items:flex-start;
-  }
-
-  .setup-cta{
-    width:100%;
-    text-align:center;
-  }
-
-  .avatar{
-    width:60px;
-    height:60px;
-    font-size:1.35rem;
-  }
-
-  .page{
-    padding-top:36px;
-  }
-
-  .nav-actions{gap:8px}
-  .notification-btn{
-    width:36px;
-    height:36px;
-  }
-  .notification-overlay{
-    padding:68px 12px 12px;
-  }
-}
-
-.mini-footer{ text-align:center; padding:24px 6% 40px; font-size:12px; color:var(--text-muted); }
-.mini-footer a{ color:var(--text-muted); text-decoration:none; }
-.mini-footer a:hover{ color:var(--brand); }
+  .mini-footer{ text-align:center; padding:24px 6% 40px; font-size:12px; color:var(--text-muted); }
+  .mini-footer a{ color:var(--text-muted); text-decoration:none; }
+  .mini-footer a:hover{ color:var(--brand); }
 </style>
 </head>
-
 <body>
 
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
-  <div class="nav-links nav-readiness-pending" id="candidate-nav-links">
-    <a href="account.html" class="active">Account</a>
-    <a href="my-jobs.html">My jobs</a>
-    <a href="messages.html">Messages</a>
-    <a href="swipe.html" id="nav-swipe-link" style="display:none;">Swipe</a>
-  </div>
-  <div class="nav-actions">
-    <button
-      class="notification-btn"
-      id="candidate-notification-btn"
-      type="button"
-      aria-label="Open notifications"
-      title="Notifications"
-      onclick="openCandidateNotifications()"
-    >
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-        <path d="M10 21h4" stroke-width="1.8" stroke-linecap="round"></path>
-      </svg>
-      <span class="notification-badge" id="candidate-notification-badge" hidden>0</span>
-    </button>
-
-    <button class="nav-signout" onclick="signOutFromNav()">Sign out</button>
-  </div>
+  <a href="account.html" class="back-link" id="back-link">← Back to account</a>
 </nav>
-<script>
-(function(){
-  const nav = document.getElementById('candidate-nav-links');
-  const swipe = document.getElementById('candidate-swipe-link') || document.getElementById('nav-swipe-link');
-  if(!nav || !swipe) return;
 
-  let cached = null;
-  try { cached = window.sessionStorage.getItem('alygnn_matching_ready_v1'); } catch (_) {}
+<div class="page">
+  <h1>Account settings</h1>
 
-  if(cached === '1'){
-    swipe.style.display = '';
-    nav.classList.remove('nav-readiness-pending');
-  }else if(cached === '0'){
-    swipe.style.display = 'none';
-    nav.classList.remove('nav-readiness-pending');
-  }
-})();
-</script>
+  <div class="msg-box" id="msg-box"></div>
 
-
-<div class="loading" id="loading">Loading your account...</div>
-
-<div class="page" id="page">
-
-  <div class="setup-banner" id="setup-banner" style="display:none;">
-    <div class="setup-text">
-      <div class="setup-title" id="setup-title"></div>
-      <div class="setup-sub" id="setup-sub"></div>
-    </div>
-    <a class="setup-cta" id="setup-cta" href="#"></a>
-  </div>
-
-  <div class="profile-card candidate-profile-card">
-    <div class="candidate-profile-top">
-      <div class="avatar">
-        <span id="avatar-initials">?</span>
-      </div>
-
-      <div class="profile-info">
-        <div class="candidate-eyebrow">
-          <span>Candidate profile</span>
-          <a href="profile-details.html" class="candidate-profile-edit">Edit profile →</a>
-        </div>
-
-        <h1 id="profile-name" data-placeholder="Your name"></h1>
-        <p class="name-lock-note">
-          <a href="#" id="name-change-toggle" onclick="toggleNameChangeForm(); return false;">Change your name</a>
-        </p>
-
-        <div class="name-change-form" id="name-change-form" style="display:none;">
-          <input type="text" id="name-change-input" placeholder="New name" maxlength="60" />
-          <button type="button" class="name-change-submit" id="name-change-submit" onclick="submitNameChange()">Send confirmation email</button>
-          <p class="name-change-status" id="name-change-status"></p>
-        </div>
-      </div>
-    </div>
-
-    <div class="candidate-details-zone">
-      <div class="candidate-details-head">
-        <div class="candidate-details-title">Your job search setup</div>
-        <div class="candidate-details-note">Used to personalize your matches</div>
-      </div>
-
-      <div class="candidate-fields">
-        <a class="candidate-field-row" href="align-upload.html" id="resume-status-link">
-          <span class="candidate-field-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M7 3.5h7l3 3V20.5H7z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-              <path d="M14 3.5v3h3M9.5 11h5M9.5 14.5h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <span class="candidate-field-copy">
-            <span class="candidate-field-label">Resume</span>
-            <strong class="profile-status-value" id="stat-resume-status">—</strong>
-          </span>
-          <span class="candidate-field-arrow">›</span>
-        </a>
-
-        <a class="candidate-field-row" href="preferences.html">
-          <span class="candidate-field-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M4 7h10M18 7h2M4 17h3M11 17h9M14 4v6M7 14v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <span class="candidate-field-copy">
-            <span class="candidate-field-label">Job preferences</span>
-            <strong class="profile-status-value" id="stat-preferences-status">—</strong>
-          </span>
-          <span class="candidate-field-arrow">›</span>
-        </a>
-      </div>
-
-      <a class="candidate-matching-row" href="swipe.html" id="matching-status-link">
-        <span class="candidate-matching-left">
-          <span class="candidate-status-dot"></span>
-          <span>
-            <span class="candidate-matching-label">Job matching</span>
-            <span class="candidate-matching-copy">Alygnn uses your resume and preferences to find relevant jobs.</span>
-          </span>
-        </span>
-        <span class="candidate-matching-right">
-          <strong class="profile-status-value" id="stat-matching-status">—</strong>
-          <span class="candidate-matching-arrow">Browse matches →</span>
-        </span>
-      </a>
-    </div>
-  </div>
-
+  <!-- Email -->
   <div class="section">
-    <div class="section-header">
-      <div>
-        <div class="section-eyebrow">Your applications</div>
-        <h2>Applied jobs</h2>
+    <h2>Email</h2>
+    <div class="desc">The email associated with your account</div>
+    <div class="row"><span class="value" id="email-display">—</span></div>
+  </div>
+
+  <!-- Password -->
+  <div class="section">
+    <h2>Password</h2>
+    <div class="desc">Change your password for signing in with email. We'll email you a code to confirm it's really you.</div>
+    <div class="field">
+      <div class="password-wrap">
+        <input type="password" id="new-password" placeholder="New password (8+ characters)" />
+        <button type="button" class="eye-btn" onclick="toggleEye('new-password', this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
       </div>
     </div>
-    <!-- Search filters any element with class "job-row-item" inside #applied-jobs-list
-         by its text content. Works today with zero applied jobs; once real applied-job
-         cards are rendered here, give each card class="job-row-item" and search
-         will filter them automatically with no further changes. -->
-    <input type="text" class="form-input" id="applied-search-input" placeholder="Search applied jobs by title or company…" autocomplete="off" oninput="filterJobList('applied')" style="margin-bottom: 12px;">
-    <div id="applied-jobs-list">
-      <div class="empty-state" id="applied-empty-state">No applied jobs yet. Once you swipe right on a job, you'll see it here.</div>
+    <button class="btn btn-primary" id="send-code-btn" onclick="sendVerificationCode()">Send verification code</button>
+
+    <div class="code-step" id="code-step">
+      <div class="desc" id="code-desc">Enter the 6-digit code we sent to your email.</div>
+      <div class="field">
+        <input type="text" id="verification-code" placeholder="123456" maxlength="6" />
+      </div>
+      <button class="btn btn-primary" id="confirm-code-btn" onclick="confirmCodeAndChangePassword()">Confirm and update password</button>
     </div>
   </div>
 
+  <!-- Linked accounts -->
   <div class="section">
-    <div class="section-header">
-      <div>
-        <div class="section-eyebrow">Passed on</div>
-        <h2>Skipped jobs</h2>
-      </div>
-    </div>
-    <input type="text" class="form-input" id="skipped-search-input" placeholder="Search skipped jobs by title or company…" autocomplete="off" oninput="filterJobList('skipped')" style="margin-bottom: 12px;">
-    <div id="skipped-jobs-list">
-      <div class="empty-state" id="skipped-empty-state">No skipped jobs yet. Once you swipe left on a job, you'll see it here.</div>
+    <h2>Linked accounts</h2>
+    <div class="desc">Sign-in methods connected to your account</div>
+    <div class="row">
+      <span class="value">Google</span>
+      <span class="pill" id="google-pill">Checking…</span>
     </div>
   </div>
 
+  <!-- Sign out -->
   <div class="section">
-    <div class="section-header">
-      <div>
-        <div class="section-eyebrow">Manage</div>
-        <h2>Settings</h2>
-      </div>
-    </div>
+    <h2>Sign out</h2>
+    <div class="desc">Sign out of Alygnn on this device</div>
+    <button class="btn btn-outline" onclick="signOut()">Sign out</button>
+  </div>
 
-    <div class="links-row">
-      <a href="profile-details.html" class="link-card">
-        <span class="settings-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
-        </span>
-        <div class="label">Profile details</div>
-        <div class="sub">Summary, skills, experience, education</div>
-      </a>
-
-      <a href="preferences.html" class="link-card">
-        <span class="settings-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h3M11 17h9"/><path d="M14 4v6M7 14v6"/></svg>
-        </span>
-        <div class="label">Edit preferences</div>
-        <div class="sub">Update salary, location, work style</div>
-      </a>
-
-      <div class="resume-card-wrap">
-        <a href="align-upload.html" class="link-card" id="resume-card">
-          <span class="settings-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
-        </span>
-          <div class="label" id="resume-card-label">Upload resume</div>
-          <div class="sub" id="resume-card-sub">Add your resume so employers can see your background</div>
-        </a>
-        <div class="resume-actions">
-          <a href="align-upload.html" id="resume-replace-link" style="display:none;">Upload a different resume</a>
-          <a href="resume-builder.html?from=account" id="resume-build-link">Build resume with Alygnn</a>
-        </div>
-      </div>
-
-      <a href="account-settings.html#password-section" class="link-card" id="add-password-card" style="display:none;">
-        <span class="settings-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l8-8M15 8l2 2M17 6l2 2"/></svg>
-        </span>
-        <div class="label">Add a password</div>
-        <div class="sub">Optional — lets you sign in with email too, not just Google/Apple</div>
-      </a>
-
-      <a href="account-settings.html" class="link-card">
-        <span class="settings-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-        </span>
-        <div class="label">Account settings</div>
-        <div class="sub">Password, linked accounts, sign out</div>
-      </a>
-    </div>
+  <!-- Delete account -->
+  <div class="section danger-section">
+    <h2>Delete account</h2>
+    <div class="desc">Permanently delete your account and all associated data. This can't be undone.</div>
+    <button class="btn btn-danger" id="delete-account-btn" onclick="confirmDelete()">Delete my account</button>
   </div>
 
 </div>
-
-<div class="toast" id="toast"></div>
-
-<div
-  class="notification-overlay"
-  id="candidate-notification-overlay"
-  aria-hidden="true"
-  onclick="candidateNotificationBackdrop(event)"
->
-  <section class="notification-panel" role="dialog" aria-modal="true" aria-labelledby="candidate-notification-title">
-    <div class="notification-head">
-      <div>
-        <h3 id="candidate-notification-title">Notifications</h3>
-        <p id="candidate-notification-count-label">You’re all caught up</p>
-      </div>
-
-      <div class="notification-head-actions">
-        <button
-          class="mark-read-btn"
-          id="candidate-mark-read-btn"
-          type="button"
-          onclick="markAllCandidateNotificationsRead()"
-          hidden
-        >Mark all read</button>
-
-        <button
-          class="notification-close"
-          type="button"
-          aria-label="Close notifications"
-          onclick="closeCandidateNotifications()"
-        >×</button>
-      </div>
-    </div>
-
-    <div class="notification-list" id="candidate-notification-list">
-      <div class="notification-empty">
-        <div class="notification-empty-icon">✓</div>
-        <strong>You’re all caught up</strong>
-        <span>No new notifications right now.</span>
-      </div>
-    </div>
-  </section>
-</div>
-
-<script>
-const SUPABASE_URL = 'https://auth.alygnn.com';
-const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-
-
-function alygnnAuthStorageKey() {
-  let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
-  if (!tabId) {
-    tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
-      ? window.crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-    window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
-  }
-  return `alygnn-auth-${tabId}`;
-}
-
-const { createClient } = supabase;
-const sb = // Keep Alygnn authentication isolated to this browser tab.
-// This lets a candidate account stay open in one tab while a different
-// employer account is signed in in another tab.
-createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      storage: window.sessionStorage,
-      storageKey: alygnnAuthStorageKey(),
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
-    }
-  });
-
-const PENDING_RESUME_DB = 'alygnn-pending-onboarding-v1';
-const PENDING_RESUME_STORE = 'files';
-const PENDING_RESUME_ID = 'candidate-resume';
-const PENDING_RESUME_DATA_KEY = 'alygnn_pending_resume_data_v1';
-const PENDING_PREFS_KEY = 'alygnn_pending_preferences_v1';
-
-const CANDIDATE_NOTIFICATION_READ_KEY = 'alygnn_candidate_notification_reads_v1';
-let candidateNotifications = [];
-
-function getCandidateNotificationReads(){
-  try{
-    const parsed = JSON.parse(
-      localStorage.getItem(CANDIDATE_NOTIFICATION_READ_KEY) || '[]'
-    );
-    return new Set(Array.isArray(parsed) ? parsed : []);
-  }catch(_){
-    return new Set();
-  }
-}
-
-function saveCandidateNotificationReads(reads){
-  localStorage.setItem(
-    CANDIDATE_NOTIFICATION_READ_KEY,
-    JSON.stringify([...reads])
-  );
-}
-
-function candidateNotificationEscape(value){
-  return String(value ?? '').replace(/[&<>"']/g, char => ({
-    '&':'&amp;',
-    '<':'&lt;',
-    '>':'&gt;',
-    '"':'&quot;',
-    "'":'&#039;'
-  })[char]);
-}
-
-function candidateStatusNotification(app, job){
-  const raw = String(app?.status || 'applied').trim().toLowerCase();
-  const title = job?.title || 'your application';
-  const company = job?.company || 'the employer';
-  const detailsUrl =
-    `job-details.html?job=${encodeURIComponent(app.job_id)}&app=${encodeURIComponent(app.id)}`;
-
-  if(raw === 'reviewed' || raw === 'under_review' || raw === 'under review'){
-    return {
-      id:`application-${app.id}-reviewed`,
-      icon:'✓',
-      iconClass:'',
-      title:'Your application was reviewed',
-      copy:`${company} reviewed your application for ${title}.`,
-      time:'Update',
-      action:detailsUrl
-    };
-  }
-
-  if(raw === 'hired' || raw === 'hire' || raw === 'accepted'){
-    return {
-      id:`application-${app.id}-${raw}`,
-      icon:'✓',
-      iconClass:'green',
-      title:raw === 'accepted' ? 'Application accepted' : 'You were marked hired',
-      copy:`There’s a new positive update from ${company} for ${title}.`,
-      time:'New',
-      action:detailsUrl
-    };
-  }
-
-  if(raw === 'rejected' || raw === 'declined' || raw === 'not_selected'){
-    return {
-      id:`application-${app.id}-rejected`,
-      icon:'–',
-      iconClass:'rose',
-      title:'Application update',
-      copy:`${company} updated your ${title} application to “Not selected.”`,
-      time:'Update',
-      action:detailsUrl
-    };
-  }
-
-  return null;
-}
-
-
-let candidateMessageNotificationChannel = null;
-let candidateNotificationProfileCache = null;
-let candidateMessageNotificationPollTimer = null;
-let candidateMessageNotificationRefreshBusy = false;
-
-async function loadCandidateMessageNotificationItems(){
-  if(!currentUserId)return [];
-
-  try{
-    const {data:threads,error:threadsError}=await sb
-      .from('message_threads')
-      .select('id,job_id,employer_id,candidate_id')
-      .eq('candidate_id',currentUserId);
-
-    if(threadsError)throw threadsError;
-
-    const candidateThreads=threads||[];
-    if(!candidateThreads.length)return [];
-
-    const threadIds=candidateThreads.map(t=>t.id).filter(Boolean);
-    if(!threadIds.length)return [];
-
-    const {data:messageRows,error:messagesError}=await sb
-      .from('messages')
-      .select('id,thread_id,sender_id,body,created_at,read_at')
-      .in('thread_id',threadIds)
-      .neq('sender_id',currentUserId)
-      .is('read_at',null)
-      .order('created_at',{ascending:false})
-      .limit(20);
-
-    if(messagesError)throw messagesError;
-
-    const unreadMessages=messageRows||[];
-    if(!unreadMessages.length)return [];
-
-    const threadMap=new Map(
-      candidateThreads.map(thread=>[String(thread.id),thread])
-    );
-
-    const jobIds=[...new Set(
-      candidateThreads.map(thread=>thread.job_id).filter(Boolean)
-    )];
-
-    let jobs=[];
-    if(jobIds.length){
-      const {data:jobRows,error:jobsError}=await sb
-        .from('jobs')
-        .select('id,title,company')
-        .in('id',jobIds);
-
-      if(jobsError)throw jobsError;
-      jobs=jobRows||[];
-    }
-
-    const jobMap=new Map(
-      jobs.map(job=>[String(job.id),job])
-    );
-
-    return unreadMessages.map(message=>{
-      const thread=threadMap.get(String(message.thread_id))||{};
-      const job=jobMap.get(String(thread.job_id))||{};
-      const company=String(job.company||'Employer').trim();
-      const jobTitle=String(job.title||'your application').trim();
-      const preview=String(message.body||'').trim().replace(/\s+/g,' ');
-      const shortPreview=preview.length>90?preview.slice(0,87)+'…':preview;
-
-      return {
-        id:`message-${message.id}`,
-        icon:'✉',
-        iconClass:'',
-        title:`New message from ${company}`,
-        copy:shortPreview
-          ? `${jobTitle}: ${shortPreview}`
-          : `You received a new message about ${jobTitle}.`,
-        time:'New',
-        action:`messages.html?thread=${encodeURIComponent(message.thread_id)}`
-      };
-    });
-  }catch(error){
-    console.warn('Could not load message notifications:',error);
-    return [];
-  }
-}
-
-async function refreshCandidateMessageNotifications(){
-  if(candidateMessageNotificationRefreshBusy || !currentUserId)return;
-
-  candidateMessageNotificationRefreshBusy = true;
-  try{
-    await loadCandidateNotifications(candidateNotificationProfileCache);
-  }finally{
-    candidateMessageNotificationRefreshBusy = false;
-  }
-}
-
-function ensureCandidateMessageNotificationPolling(){
-  if(candidateMessageNotificationPollTimer || !currentUserId)return;
-
-  // Realtime is the primary path. This lightweight fallback makes the bell
-  // reliable even if a browser/network temporarily misses a websocket event.
-  candidateMessageNotificationPollTimer = window.setInterval(()=>{
-    if(document.visibilityState === 'visible'){
-      refreshCandidateMessageNotifications();
-    }
-  },5000);
-}
-
-function ensureCandidateMessageNotificationRealtime(){
-  if(candidateMessageNotificationChannel||!currentUserId){
-    ensureCandidateMessageNotificationPolling();
-    return;
-  }
-
-  candidateMessageNotificationChannel=sb
-    .channel('candidate-message-notifications-'+currentUserId)
-    .on('postgres_changes',{
-      event:'INSERT',
-      schema:'public',
-      table:'messages'
-    },async payload=>{
-      if(payload?.new?.sender_id===currentUserId)return;
-      await refreshCandidateMessageNotifications();
-    })
-    .subscribe(status=>{
-      if(status === 'SUBSCRIBED'){
-        // Re-check immediately in case a message arrived while the channel
-        // was connecting.
-        refreshCandidateMessageNotifications();
-      }
-
-      if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
-        console.warn('Candidate message notification realtime status:',status);
-      }
-    });
-
-  ensureCandidateMessageNotificationPolling();
-}
-
-document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState === 'visible' && currentUserId){
-    refreshCandidateMessageNotifications();
-  }
-});
-
-window.addEventListener('focus',()=>{
-  if(currentUserId){
-    refreshCandidateMessageNotifications();
-  }
-});
-
-async function loadCandidateNotifications(profile){
-  if(!currentUserId) return;
-
-  candidateNotificationProfileCache = profile || null;
-
-  const items = [];
-  const hasResume = !!(profile?.resume_file_path || profile?.resume_data);
-  const hasPreferences = !!profile?.preferences;
-
-  const messageItems = await loadCandidateMessageNotificationItems();
-  items.push(...messageItems);
-
-  try{
-    const { data: apps, error: appsError } = await sb
-      .from('applications')
-      .select('id, job_id, status, applied_at')
-      .eq('candidate_id', currentUserId)
-      .order('applied_at', { ascending:false });
-
-    if(appsError) throw appsError;
-
-    const jobIds = [...new Set(
-      (apps || []).map(app => app.job_id).filter(Boolean)
-    )];
-
-    let jobs = [];
-
-    if(jobIds.length){
-      const { data: jobsData, error: jobsError } = await sb
-        .from('jobs')
-        .select('id,title,company')
-        .in('id', jobIds);
-
-      if(jobsError) throw jobsError;
-      jobs = jobsData || [];
-    }
-
-    const jobMap = new Map(
-      jobs.map(job => [String(job.id), job])
-    );
-
-    (apps || []).forEach(app => {
-      const item = candidateStatusNotification(
-        app,
-        jobMap.get(String(app.job_id)) || null
-      );
-      if(item) items.push(item);
-    });
-  }catch(error){
-    console.warn('Could not load application notifications:', error);
-  }
-
-  if(!hasResume){
-    items.push({
-      id:'profile-resume-missing',
-      icon:'▤',
-      iconClass:'',
-      title:'Add your resume',
-      copy:'Upload a resume or build one with Alygnn to complete your candidate profile.',
-      time:'Profile',
-      action:'align-upload.html'
-    });
-  }
-
-  if(!hasPreferences){
-    items.push({
-      id:'profile-preferences-missing',
-      icon:'◎',
-      iconClass:'amber',
-      title:'Complete your job preferences',
-      copy:'Add your target role, salary, location, and work style so Alygnn can match you better.',
-      time:'Profile',
-      action:'preferences.html'
-    });
-  }
-
-  candidateNotifications = items;
-  renderCandidateNotifications();
-  ensureCandidateMessageNotificationRealtime();
-}
-
-function renderCandidateNotifications(){
-  const list = document.getElementById('candidate-notification-list');
-  const badge = document.getElementById('candidate-notification-badge');
-  const countLabel = document.getElementById('candidate-notification-count-label');
-  const markRead = document.getElementById('candidate-mark-read-btn');
-
-  if(!list || !badge || !countLabel || !markRead) return;
-
-  const reads = getCandidateNotificationReads();
-  const unread = candidateNotifications.filter(item => !reads.has(item.id));
-
-  badge.textContent = String(unread.length);
-  badge.hidden = unread.length === 0;
-
-  countLabel.textContent = unread.length
-    ? `${unread.length} unread notification${unread.length === 1 ? '' : 's'}`
-    : 'You’re all caught up';
-
-  markRead.hidden = unread.length === 0;
-
-  if(!candidateNotifications.length){
-    list.innerHTML = `
-      <div class="notification-empty">
-        <div class="notification-empty-icon">✓</div>
-        <strong>You’re all caught up</strong>
-        <span>No new messages, application updates, or profile notifications right now.</span>
-      </div>
-    `;
-    return;
-  }
-
-  list.innerHTML = candidateNotifications.map(item => {
-    const isUnread = !reads.has(item.id);
-
-    return `
-      <button
-        type="button"
-        class="notification-item ${isUnread ? 'unread' : ''}"
-        onclick="openCandidateNotificationItem(
-          '${candidateNotificationEscape(item.id)}',
-          '${candidateNotificationEscape(item.action)}'
-        )"
-      >
-        <span class="notification-icon ${candidateNotificationEscape(item.iconClass)}">
-          ${candidateNotificationEscape(item.icon)}
-        </span>
-
-        <span class="notification-copy">
-          <strong>${candidateNotificationEscape(item.title)}</strong>
-          <span>${candidateNotificationEscape(item.copy)}</span>
-        </span>
-
-        <span class="notification-time">
-          ${candidateNotificationEscape(item.time)}
-        </span>
-      </button>
-    `;
-  }).join('');
-}
-
-function openCandidateNotifications(){
-  const overlay = document.getElementById('candidate-notification-overlay');
-  if(!overlay) return;
-
-  renderCandidateNotifications();
-  overlay.classList.add('open');
-  overlay.setAttribute('aria-hidden','false');
-}
-
-function closeCandidateNotifications(){
-  const overlay = document.getElementById('candidate-notification-overlay');
-  if(!overlay) return;
-
-  overlay.classList.remove('open');
-  overlay.setAttribute('aria-hidden','true');
-}
-
-function candidateNotificationBackdrop(event){
-  if(event.target === event.currentTarget){
-    closeCandidateNotifications();
-  }
-}
-
-function markAllCandidateNotificationsRead(){
-  const reads = getCandidateNotificationReads();
-  candidateNotifications.forEach(item => reads.add(item.id));
-  saveCandidateNotificationReads(reads);
-  renderCandidateNotifications();
-}
-
-function openCandidateNotificationItem(id, action){
-  const reads = getCandidateNotificationReads();
-  reads.add(id);
-  saveCandidateNotificationReads(reads);
-  renderCandidateNotifications();
-
-  if(action){
-    window.location.href = action;
-  }
-}
-
-document.addEventListener('keydown', event => {
-  if(event.key === 'Escape'){
-    closeCandidateNotifications();
-  }
-});
-
-function parsePendingJson(...values) {
-  for (const value of values) {
-    if (!value) continue;
-    try {
-      const parsed = JSON.parse(value);
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        return parsed;
-      }
-    } catch (_) {}
-  }
-  return null;
-}
-
-function openPendingResumeDb() {
-  return new Promise((resolve, reject) => {
-    if (!window.indexedDB) {
-      resolve(null);
-      return;
-    }
-
-    const request = indexedDB.open(PENDING_RESUME_DB, 1);
-
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(PENDING_RESUME_STORE)) {
-        db.createObjectStore(PENDING_RESUME_STORE, { keyPath: 'id' });
-      }
-    };
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error || new Error('Unable to open pending resume storage.'));
-  });
-}
-
-async function getPendingResumeFile() {
-  const db = await openPendingResumeDb();
-  if (!db) return null;
-
-  const record = await new Promise((resolve, reject) => {
-    const tx = db.transaction(PENDING_RESUME_STORE, 'readonly');
-    const request = tx.objectStore(PENDING_RESUME_STORE).get(PENDING_RESUME_ID);
-    request.onsuccess = () => resolve(request.result || null);
-    request.onerror = () => reject(request.error);
-  });
-
-  db.close();
-  return record;
-}
-
-async function clearPendingResumeFile() {
-  try {
-    const db = await openPendingResumeDb();
-    if (!db) return;
-
-    await new Promise((resolve, reject) => {
-      const tx = db.transaction(PENDING_RESUME_STORE, 'readwrite');
-      tx.objectStore(PENDING_RESUME_STORE).delete(PENDING_RESUME_ID);
-      tx.oncomplete = resolve;
-      tx.onerror = () => reject(tx.error);
-    });
-
-    db.close();
-  } catch (error) {
-    console.warn('Could not clear pending resume file:', error);
-  }
-}
-
-function safeResumeExtension(name, type) {
-  const fromName = String(name || '').split('.').pop().toLowerCase();
-  if (/^[a-z0-9]{1,8}$/.test(fromName)) return fromName;
-  if (type === 'application/pdf') return 'pdf';
-  if (type === 'application/msword') return 'doc';
-  if (type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'docx';
-  return 'pdf';
-}
-
-async function claimPendingCandidateOnboarding(user) {
-  if (!user?.id) return false;
-
-  const role = String(
-    user.user_metadata?.role ||
-    user.user_metadata?.account_type ||
-    'seeker'
-  ).toLowerCase();
-
-  if (role === 'employer') return false;
-
-  const pendingResumeData = parsePendingJson(
-    localStorage.getItem(PENDING_RESUME_DATA_KEY),
-    sessionStorage.getItem('resumeData')
-  );
-
-  const pendingPreferences = parsePendingJson(
-    localStorage.getItem(PENDING_PREFS_KEY),
-    sessionStorage.getItem('preferences')
-  );
-
-  let pendingFile = null;
-  try {
-    pendingFile = await getPendingResumeFile();
-  } catch (error) {
-    console.warn('Pending resume file could not be read:', error);
-  }
-
-  if (!pendingResumeData && !pendingPreferences && !pendingFile?.blob) {
-    return false;
-  }
-
-  const { data: existingProfile, error: existingError } = await sb
-    .from('profiles')
-    .select('resume_data,resume_file_path,preferences,full_name')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (existingError && existingError.code !== 'PGRST116') {
-    throw existingError;
-  }
-
-  const payload = {
-    id: user.id,
-    full_name:
-      existingProfile?.full_name ||
-      user.user_metadata?.full_name ||
-      user.user_metadata?.name ||
-      ''
-  };
-
-  if (pendingPreferences) {
-    payload.preferences = {
-      ...pendingPreferences,
-      preferences_complete: true
-    };
-  }
-
-  if (pendingResumeData || pendingFile?.blob) {
-    const existingResumeData =
-      existingProfile?.resume_data &&
-      typeof existingProfile.resume_data === 'object'
-        ? existingProfile.resume_data
-        : {};
-
-    const importedResumeData = {
-      ...existingResumeData,
-      ...(pendingResumeData || {})
-    };
-
-    const onboarding =
-      importedResumeData._alygnn_onboarding &&
-      typeof importedResumeData._alygnn_onboarding === 'object'
-        ? importedResumeData._alygnn_onboarding
-        : {};
-
-    importedResumeData._alygnn_onboarding = {
-      ...onboarding,
-      preview_reviewed: true,
-      preview_reviewed_at:
-        onboarding.preview_reviewed_at ||
-        new Date().toISOString()
-    };
-
-    payload.resume_data = importedResumeData;
-    payload.resume_source = 'upload';
-  }
-
-  if (pendingFile?.blob) {
-    const ext = safeResumeExtension(pendingFile.name, pendingFile.type);
-    const filePath = `${user.id}/preauth-resume.${ext}`;
-
-    const { error: uploadError } = await sb.storage
-      .from('resumes')
-      .upload(filePath, pendingFile.blob, {
-        upsert: true,
-        contentType: pendingFile.type || undefined,
-        cacheControl: '3600'
-      });
-
-    if (uploadError) throw uploadError;
-
-    payload.resume_file_path = filePath;
-  }
-
-  payload.updated_at = new Date().toISOString();
-
-  const { error: saveError } = await sb
-    .from('profiles')
-    .upsert(payload, { onConflict: 'id' });
-
-  if (saveError) throw saveError;
-
-  localStorage.removeItem(PENDING_RESUME_DATA_KEY);
-  localStorage.removeItem(PENDING_PREFS_KEY);
-  sessionStorage.removeItem('resumeData');
-  sessionStorage.removeItem('preferences');
-  await clearPendingResumeFile();
-
-  return true;
-}
-
-async function signOutFromNav() {
-  await sb.auth.signOut({ scope: 'local' });
-  window.location.href = 'index.html';
-}
-
-
-function syncCandidateSwipeNav(matchingReady) {
-  const ready = matchingReady === true;
-  const nav = document.getElementById('candidate-nav-links');
-  const swipe = document.getElementById('candidate-swipe-link') || document.getElementById('nav-swipe-link');
-
-  try {
-    window.sessionStorage.setItem('alygnn_matching_ready_v1', ready ? '1' : '0');
-  } catch (_) {}
-
-  if (swipe) swipe.style.display = ready ? '' : 'none';
-  if (nav) nav.classList.remove('nav-readiness-pending');
-}
-
-let currentUserId = null;
-
-const pageEl = document.getElementById('page');
-const loadingEl = document.getElementById('loading');
-const nameEl = document.getElementById('profile-name');
-const initialsEl = document.getElementById('avatar-initials');
-const resumeCard = document.getElementById('resume-card');
-const resumeLabel = document.getElementById('resume-card-label');
-const resumeSub = document.getElementById('resume-card-sub');
-const resumeReplaceLink = document.getElementById('resume-replace-link');
-const resumeBuildLink = document.getElementById('resume-build-link');
-let currentResumeFilePath = null;
-
-function toggleNameChangeForm() {
-  const form = document.getElementById('name-change-form');
-  const isOpen = form.style.display !== 'none';
-  form.style.display = isOpen ? 'none' : 'flex';
-  if (!isOpen) document.getElementById('name-change-input').focus();
-}
-
-async function submitNameChange() {
-  const input = document.getElementById('name-change-input');
-  const status = document.getElementById('name-change-status');
-  const btn = document.getElementById('name-change-submit');
-  const newName = input.value.trim();
-
-  if (newName.length < 2) {
-    status.textContent = 'Enter a name with at least 2 characters.';
-    status.style.color = '#a05858';
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = 'Sending…';
-  status.textContent = '';
-
-  try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) {
-      status.textContent = 'Please sign in again and retry.';
-      status.style.color = '#a05858';
-      return;
-    }
-
-    const res = await fetch(SUPABASE_URL + '/functions/v1/request-name-change', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + session.access_token,
-      },
-      body: JSON.stringify({ newName }),
-    });
-
-    const result = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      status.textContent = result.error || 'Could not send confirmation email. Please try again.';
-      status.style.color = '#a05858';
-      return;
-    }
-
-    status.textContent = 'Check your email — click the link there to confirm the change.';
-    status.style.color = '#2d8a57';
-    input.value = '';
-  } catch (err) {
-    console.error('submitNameChange error:', err);
-    status.textContent = 'Something went wrong. Please try again.';
-    status.style.color = '#a05858';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Send confirmation email';
-  }
-}
-
-function showPage(){
-  loadingEl.classList.add('hide');
-  pageEl.classList.add('ready');
-}
-
-const JOB_LIST_PREVIEW_LIMIT = 3;
-
-// Shows only the first N rows in a job list, with a "view all" link
-// appended if there are more. Called after every render (loadAppliedJobs /
-// loadSkippedJobs) and again whenever the search box is cleared.
-function applyJobListPreview(kind){
-  const list = document.getElementById(kind + '-jobs-list');
-  if(!list) return;
-
-  const existingLink = document.getElementById(kind + '-view-all-link');
-  if(existingLink) existingLink.remove();
-
-  const rows = [...list.querySelectorAll('.job-row-item')];
-  rows.forEach((row, i) => {
-    row.style.display = i < JOB_LIST_PREVIEW_LIMIT ? '' : 'none';
-  });
-
-  if(rows.length > JOB_LIST_PREVIEW_LIMIT){
-    const link = document.createElement('a');
-    link.id = kind + '-view-all-link';
-    link.href = 'my-jobs.html';
-    link.className = 'job-list-view-all';
-    link.textContent = `… view all ${rows.length} ${kind === 'applied' ? 'applied' : 'skipped'} jobs →`;
-    list.appendChild(link);
-  }
-}
-
-// Filters any element with class "job-row-item" inside the given list
-// (#applied-jobs-list or #skipped-jobs-list) by its text content. Safe to
-// call with zero jobs — future code that renders real applied/skipped job
-// cards just needs to give each card class="job-row-item" and this will
-// work automatically with no further changes.
-//
-// While a search query is present, this searches every row regardless of
-// the 3-row preview collapse (so a match that's currently hidden by
-// "view all" still surfaces). Clearing the search restores the collapse.
-function filterJobList(kind){
-  const input = document.getElementById(kind + '-search-input');
-  const list = document.getElementById(kind + '-jobs-list');
-  const emptyState = document.getElementById(kind + '-empty-state');
-  if(!input || !list) return;
-
-  const query = input.value.trim().toLowerCase();
-
-  if(!query){
-    applyJobListPreview(kind);
-    const cards = list.querySelectorAll('.job-row-item');
-    if(emptyState && cards.length > 0) emptyState.style.display = 'none';
-    return;
-  }
-
-  const link = document.getElementById(kind + '-view-all-link');
-  if(link) link.style.display = 'none';
-
-  const cards = list.querySelectorAll('.job-row-item');
-  let visibleCount = 0;
-
-  cards.forEach(card => {
-    const matches = card.textContent.toLowerCase().includes(query);
-    card.style.display = matches ? '' : 'none';
-    if(matches) visibleCount++;
-  });
-
-  if(emptyState && cards.length > 0){
-    emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
-  }
-}
-
-let toastTimer;
-function showToast(msg, actionFn){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  t.style.cursor = actionFn ? 'pointer' : 'default';
-  t.onclick = actionFn ? () => { actionFn(); t.classList.remove('show'); } : null;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), actionFn ? 6000 : 2600);
-}
-
-// Advisory only — never blocks saving. Reuses the same AI-backed check
-// the requirements/benefits picker uses, but purely to offer a "did you
-// mean X?" suggestion the person can tap to accept. Because it can't
-// block anything, a case it judges wrong (like it once did with "fl
-// consulting") just means no suggestion shows up — not a locked-out save.
-// NOTE: this pair (checkRealisticText/checkFieldSpelling) now also lives
-// on profile-details.html, which is where they're actually used — kept
-// here too only if other code on this page still calls them.
-
-// Loads this candidate's own applications (RLS already lets a candidate
-// read their own rows) and joins in the job's title/company/location so
-// the "Applied jobs" list actually shows something, instead of the
-// static empty state it always displayed before. Each row is clickable
-// and takes the person to job-details.html for the full listing plus
-// their application status.
-async function loadAppliedJobs(){
-  if(!currentUserId) return;
-
-  const listEl = document.getElementById('applied-jobs-list');
-  const emptyState = document.getElementById('applied-empty-state');
-
-  const { data: apps, error: appsError } = await sb
-    .from('applications')
-    .select('id, job_id, status, applied_at')
-    .eq('candidate_id', currentUserId)
-    .order('applied_at', { ascending: false });
-
-  if(appsError){
-    console.error('Failed to load applied jobs:', appsError);
-    return;
-  }
-
-  const appliedTotal = (apps || []).length;
-  const acceptedTotal = (apps || []).filter(a => a.status === 'accepted').length;
-  const appliedCountEl = document.getElementById('stat-applied-count');
-  const acceptedCountEl = document.getElementById('stat-accepted-count');
-  if(appliedCountEl) appliedCountEl.textContent = String(appliedTotal);
-  if(acceptedCountEl) acceptedCountEl.textContent = String(acceptedTotal);
-
-  if(!apps || apps.length === 0){
-    return; // static empty state in the HTML already covers this
-  }
-
-  const jobIds = [...new Set(apps.map(a => a.job_id))];
-
-  const { data: jobsData, error: jobsError } = await sb
-    .from('jobs')
-    .select('id, title, company, location, job_type')
-    .in('id', jobIds);
-
-  if(jobsError){
-    console.error('Failed to load job details for applied jobs:', jobsError);
-  }
-
-  const jobMap = {};
-  (jobsData || []).forEach(j => { jobMap[j.id] = j; });
-
-  const rows = apps
-    .map(app => ({ app, job: jobMap[app.job_id] }))
-    .filter(r => r.job);
-
-  if(rows.length === 0) return;
-
-  listEl.innerHTML = rows.map(({ app, job }) => {
-    const statusClass = app.status === 'accepted' ? 'status-accepted'
-      : app.status === 'rejected' ? 'status-rejected' : '';
-    const statusLabel = app.status === 'accepted' ? 'Accepted'
-      : app.status === 'rejected' ? 'Not selected' : 'Applied';
-
-    const metaParts = [job.company, job.job_type, job.location].filter(Boolean).join(' · ');
-    const detailsUrl = `job-details.html?job=${encodeURIComponent(job.id)}&app=${encodeURIComponent(app.id)}`;
-    const jobIdAttr = escapeHtml(job.id);
-
-    // Only offer "Skip" (withdraw) while the application is still pending —
-    // once an employer has accepted or rejected it, there's a real decision
-    // on record and this shouldn't let the person quietly erase that.
-    const skipButtonHtml = app.status === 'applied' || !app.status
-      ? `<div class="job-row-buttons">
-          <button type="button" class="job-action-btn restore" onclick="event.stopPropagation(); withdrawApplication('${jobIdAttr}')">Skip</button>
-        </div>`
-      : '';
-
-    return `
-      <div class="job-row-item" role="button" tabindex="0"
-        onclick="window.location.href='${detailsUrl}'"
-        onkeydown="if(event.key==='Enter'){ window.location.href='${detailsUrl}'; }">
-        <div class="job-row-main">
-          <div class="job-row-avatar">${escapeHtml(getInitials(job.company))}</div>
-          <div style="flex:1; min-width:0;">
-            <div class="job-row-title">${escapeHtml(job.title || 'Untitled role')}</div>
-            <div class="job-row-meta">${escapeHtml(metaParts)}</div>
-          </div>
-        </div>
-        <div class="job-row-actions job-row-actions-inline">
-          <span class="job-row-status ${statusClass}">${statusLabel}</span>
-          ${skipButtonHtml}
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  if(emptyState) emptyState.style.display = 'none';
-  applyJobListPreview('applied');
-}
-
-// Mirrors applyFromSkipped() in the other direction — removes the
-// application (so it no longer shows on the employer's Candidates page)
-// and records it as a skip instead, in case someone applied by mistake.
-async function withdrawApplication(jobId){
-  if(!currentUserId || !jobId) return;
-
-  const { error: deleteError } = await sb
-    .from('applications')
-    .delete()
-    .eq('candidate_id', currentUserId)
-    .eq('job_id', jobId);
-
-  if(deleteError){
-    console.error('Failed to withdraw application:', deleteError);
-    showToast('Could not skip — try again.');
-    return;
-  }
-
-  const { error: insertError } = await sb
-    .from('skipped_jobs')
-    .insert({ candidate_id: currentUserId, job_id: jobId });
-
-  if(insertError && insertError.code !== '23505'){
-    console.error('Failed to record skip after withdrawing:', insertError);
-  }
-
-  showToast('Moved to skipped.');
-  await loadAppliedJobs();
-  await loadSkippedJobs();
-}
-
-// Mirrors loadAppliedJobs() for the "Skipped jobs" list — reads this
-// candidate's own skipped_jobs rows (RLS: auth.uid() = candidate_id) and
-// joins in the job's title/company/location. Each row links to
-// job-details.html with just a job id (no app id, since a skip never
-// creates an application row) — job-details.html already handles that
-// case gracefully by simply not showing an application-status badge.
-async function loadSkippedJobs(){
-  if(!currentUserId) return;
-
-  const listEl = document.getElementById('skipped-jobs-list');
-  const emptyState = document.getElementById('skipped-empty-state');
-
-  const { data: skips, error: skipsError } = await sb
-    .from('skipped_jobs')
-    .select('id, job_id, skipped_at')
-    .eq('candidate_id', currentUserId)
-    .order('skipped_at', { ascending: false });
-
-  if(skipsError){
-    console.error('Failed to load skipped jobs:', skipsError);
-    return;
-  }
-
-  const skippedCountEl = document.getElementById('stat-skipped-count');
-  if(skippedCountEl) skippedCountEl.textContent = String((skips || []).length);
-
-  if(!skips || skips.length === 0){
-    return; // static empty state in the HTML already covers this
-  }
-
-  const jobIds = [...new Set(skips.map(s => s.job_id))];
-
-  const { data: jobsData, error: jobsError } = await sb
-    .from('jobs')
-    .select('id, title, company, location, job_type')
-    .in('id', jobIds);
-
-  if(jobsError){
-    console.error('Failed to load job details for skipped jobs:', jobsError);
-  }
-
-  const jobMap = {};
-  (jobsData || []).forEach(j => { jobMap[j.id] = j; });
-
-  const rows = skips
-    .map(skip => ({ skip, job: jobMap[skip.job_id] }))
-    .filter(r => r.job);
-
-  if(rows.length === 0) return;
-
-  listEl.innerHTML = rows.map(({ job }) => {
-    const metaParts = [job.company, job.job_type, job.location].filter(Boolean).join(' · ');
-    const detailsUrl = `job-details.html?job=${encodeURIComponent(job.id)}`;
-    const jobIdAttr = escapeHtml(job.id);
-
-    return `
-      <div class="job-row-item" role="button" tabindex="0"
-        onclick="window.location.href='${detailsUrl}'"
-        onkeydown="if(event.key==='Enter'){ window.location.href='${detailsUrl}'; }">
-        <div class="job-row-main">
-          <div class="job-row-avatar">${escapeHtml(getInitials(job.company))}</div>
-          <div>
-            <div class="job-row-title">${escapeHtml(job.title || 'Untitled role')}</div>
-            <div class="job-row-meta">${escapeHtml(metaParts)}</div>
-          </div>
-        </div>
-        <div class="job-row-actions">
-          <div class="job-row-buttons">
-            <button type="button" class="job-action-btn apply" onclick="event.stopPropagation(); applyFromSkipped('${jobIdAttr}')">Apply</button>
-            <button type="button" class="job-action-btn restore" onclick="event.stopPropagation(); restoreSkippedJob('${jobIdAttr}')">Undo skip</button>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  if(emptyState) emptyState.style.display = 'none';
-  applyJobListPreview('skipped');
-}
-
-// Lets someone fix an accidental skip directly from the account page —
-// "Apply" records a real application (same insert loadAppliedJobs already
-// reads) and removes the skipped_jobs row so the job doesn't show up in
-// both lists at once. "Undo skip" just removes the skipped_jobs row,
-// which puts the job back into rotation in the swipe deck (loadJobs()
-// there excludes anything still in skipped_jobs).
-async function applyFromSkipped(jobId){
-  if(!currentUserId || !jobId) return;
-
-  const { error: insertError } = await sb
-    .from('applications')
-    .insert({ candidate_id: currentUserId, job_id: jobId, status: 'applied' });
-
-  if(insertError && insertError.code !== '23505'){
-    console.error('Failed to apply from skipped list:', insertError);
-    showToast('Could not apply — try again.');
-    return;
-  }
-
-  const { error: deleteError } = await sb
-    .from('skipped_jobs')
-    .delete()
-    .eq('candidate_id', currentUserId)
-    .eq('job_id', jobId);
-
-  if(deleteError){
-    console.error('Failed to clear skipped row after applying:', deleteError);
-  }
-
-  showToast('✓ Added to applications!');
-  await loadAppliedJobs();
-  await loadSkippedJobs();
-}
-
-async function restoreSkippedJob(jobId){
-  if(!currentUserId || !jobId) return;
-
-  const { error } = await sb
-    .from('skipped_jobs')
-    .delete()
-    .eq('candidate_id', currentUserId)
-    .eq('job_id', jobId);
-
-  if(error){
-    console.error('Failed to undo skip:', error);
-    showToast('Could not undo — try again.');
-    return;
-  }
-
-  showToast('Undone — you\'ll see this job again in your swipe deck.');
-  await loadSkippedJobs();
-}
-
-function getInitials(name){
-  if(!name) return '?';
-
-  return name
-    .trim()
-    .split(/\s+/)
-    .map(part => part[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase();
-}
-
-function limitLength(el, max){
-  el.addEventListener('input', () => {
-    if(el.textContent.length > max){
-      el.textContent = el.textContent.slice(0, max);
-
-      const range = document.createRange();
-      const sel = window.getSelection();
-
-      range.selectNodeContents(el);
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    }
-  });
-}
-
-async function saveProfileField(column, value){
-  if(!currentUserId) return;
-
-  const { error } = await sb
-    .from('profiles')
-    .upsert({
-      id: currentUserId,
-      [column]: value
-    });
-
-  if(error){
-    console.error('Failed to save profile field:', error);
-    return;
-  }
-
-  if(column === 'full_name'){
-    initialsEl.textContent = getInitials(value);
-  }
-}
-
-function renderResumeCardFast(resumeFilePath, resumeData){
-  currentResumeFilePath = resumeFilePath || null;
-
-  if(!resumeFilePath && !resumeData){
-    resumeLabel.textContent = 'Upload resume';
-    resumeSub.textContent = 'Add your resume so employers can see your background';
-    resumeCard.href = 'align-upload.html';
-    resumeCard.removeAttribute('target');
-    resumeCard.onclick = null;
-    resumeReplaceLink.style.display = 'none';
-    resumeBuildLink.textContent = 'Build resume with Alygnn';
-    resumeBuildLink.href = 'resume-builder.html?from=account';
-    return;
-  }
-
-  if(!resumeFilePath && resumeData){
-    // Resume was built with the Alygnn resume builder (resume_data saved to
-    // the profile) but no file exists in Storage yet — most often because
-    // the generated-file upload silently failed. There's nothing in
-    // Storage to open with a signed URL, so send them back to the builder,
-    // which is where resume_data actually lives and can be edited.
-    resumeLabel.textContent = 'View resume';
-    resumeSub.textContent = 'Open the resume you built on Alygnn';
-    resumeCard.href = 'resume-builder.html?view=1&from=account';
-    resumeCard.removeAttribute('target');
-    resumeCard.onclick = null;
-    resumeReplaceLink.style.display = 'block';
-    resumeReplaceLink.textContent = 'Upload a different resume';
-    resumeBuildLink.textContent = 'Edit in Alygnn builder';
-    resumeBuildLink.href = 'resume-builder.html?from=account';
-    return;
-  }
-
-  // FIX: this previously just relabeled the card to say "View resume" but
-  // left its href pointing at align-upload.html — the upload flow — so
-  // clicking it always sent the person back to "drop your resume here"
-  // instead of actually opening the file they'd already uploaded. Now it
-  // fetches a short-lived signed URL for the real file in storage and
-  // opens that. Replacing the file still needs align-upload.html, so
-  // that's kept as its own small link beneath the card.
-  resumeLabel.textContent = 'View resume';
-  resumeSub.textContent = 'Open your uploaded resume';
-  resumeCard.href = '#';
-  resumeCard.onclick = openResumeFile;
-  resumeReplaceLink.style.display = 'block';
-  resumeReplaceLink.textContent = 'Upload a different resume';
-  resumeBuildLink.textContent = 'Build resume with Alygnn';
-  resumeBuildLink.href = 'resume-builder.html?from=account';
-}
-
-async function openResumeFile(e){
-  e.preventDefault();
-  if(!currentResumeFilePath) return;
-
-  const orig = resumeLabel.textContent;
-  resumeLabel.textContent = 'Opening…';
-
-  const { data, error } = await sb.storage
-    .from('resumes')
-    .createSignedUrl(currentResumeFilePath, 60);
-
-  resumeLabel.textContent = orig;
-
-  if(error || !data?.signedUrl){
-    console.error('Failed to get resume URL:', error);
-    showToast('Could not open resume — try again.');
-    return;
-  }
-
-  window.open(data.signedUrl, '_blank');
-}
-
-function escapeHtml(value){
-  return String(value || '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
-
-
-async function initAccountPage(){
-  const {
-    data: { session }
-  } = await sb.auth.getSession();
-
-  if(!session){
-    window.location.href = 'login.html';
-    return;
-  }
-
-  currentUserId = session.user.id;
-
-  // A visitor may have uploaded a resume and chosen preferences before
-  // creating an account. Claim that browser draft now that we know their user id.
-  try {
-    await claimPendingCandidateOnboarding(session.user);
-  } catch (error) {
-    console.error('Could not attach pre-signup resume/preferences:', error);
-    showToast('Your account is ready, but we could not attach the resume you uploaded before signup. Please try again.');
-  }
-
-  const { data: profile, error } = await sb
-    .from('profiles')
-    .select('has_password, role, full_name, resume_file_path, resume_data, preferences, is_admin')
-    .eq('id', currentUserId)
-    .maybeSingle();
-
-  if(error && error.code !== 'PGRST116'){
-    console.error('Failed to load profile:', error);
-  }
-
-  // An admin account has no real job-seeker profile — send it back to the
-  // admin console instead of falling through to the default 'seeker' view
-  // below, which would otherwise render this page with placeholder data.
-  if(profile?.is_admin === true){
-    window.location.href = 'employer-verification-admin.html';
-    return;
-  }
-
-  // Supabase already knows how someone authenticated via user.identities —
-  // if they have an 'email' identity, they set a password at signup, full
-  // stop. Only OAuth-only users (Google/Apple) genuinely might not have a
-  // password yet.
-  //
-  // CHANGE: this used to force a redirect to set-password.html before
-  // letting a Google/Apple user do anything else on their account. That's
-  // unnecessary friction right after the exact signup flow someone chose
-  // specifically to avoid typing a password — so now it's an optional
-  // "Add password" card in Settings instead of a mandatory gate.
-  const identities = session.user.identities || [];
-  const hasEmailIdentity = identities.some(i => i.provider === 'email');
-  const needsPassword = !hasEmailIdentity && !profile?.has_password;
-
-  // Backfill: only for genuine email/password signups whose signup-time
-  // upsert silently failed (e.g. RLS blocked the write because no session
-  // existed yet during email confirmation). OAuth users who haven't set a
-  // password yet must NOT be backfilled here — that would incorrectly mark
-  // them as having one when they don't.
-  if(hasEmailIdentity && !profile?.has_password){
-    const { error: backfillError } = await sb
-      .from('profiles')
-      .upsert({ id: currentUserId, has_password: true }, { onConflict: 'id' });
-    if(backfillError){
-      console.error('Failed to backfill has_password:', backfillError);
-    }
-  }
-
-  const role =
-    profile?.role ||
-    session.user.user_metadata?.role ||
-    'seeker';
-
-  if(role === 'employer'){
-    window.location.href = 'employer-account.html';
-    return;
-  }
-
-  const fullName =
-    profile?.full_name ||
-    session.user.user_metadata?.full_name ||
-    session.user.user_metadata?.name ||
-    session.user.email?.split('@')[0] ||
-    '';
-
-  nameEl.textContent = fullName;
-  initialsEl.textContent = getInitials(fullName);
-
-  if(needsPassword){
-    const addPasswordCard = document.getElementById('add-password-card');
-    if(addPasswordCard) addPasswordCard.style.display = '';
-  }
-
-  renderResumeCardFast(profile?.resume_file_path, profile?.resume_data);
-
-  // The Swipe nav link only shows once there's actually something to
-  // swipe with — otherwise it's a link to a page that will immediately
-  // redirect the person right back to upload/preferences anyway. The
-  // setup banner tells them exactly what's still missing and gives them
-  // a direct way to finish it, instead of the link just silently vanishing.
-  const swipeLink = document.getElementById('nav-swipe-link');
-  const setupBanner = document.getElementById('setup-banner');
-  const setupTitle = document.getElementById('setup-title');
-  const setupSub = document.getElementById('setup-sub');
-  const setupCta = document.getElementById('setup-cta');
-
-  const hasResume = !!(profile?.resume_file_path || profile?.resume_data);
-  const hasPreferences = !!profile?.preferences;
-  const matchingReady = hasResume && hasPreferences;
-
-  const resumeStatusEl = document.getElementById('stat-resume-status');
-  const resumeStatusLink = document.getElementById('resume-status-link');
-  const preferencesStatusEl = document.getElementById('stat-preferences-status');
-  const matchingStatusEl = document.getElementById('stat-matching-status');
-  const matchingStatusLink = document.getElementById('matching-status-link');
-
-  if(resumeStatusEl){
-    resumeStatusEl.textContent = hasResume ? 'Ready' : 'Add';
-    resumeStatusEl.classList.toggle('is-ready', hasResume);
-    resumeStatusEl.classList.toggle('is-missing', !hasResume);
-  }
-
-  if(resumeStatusLink){
-    if(profile?.resume_file_path){
-      // The resume already exists: open the saved file directly rather than
-      // sending the user through the upload screen and waiting for it to redirect.
-      resumeStatusLink.href = '#';
-      resumeStatusLink.onclick = openResumeFile;
-    }else if(profile?.resume_data){
-      resumeStatusLink.href = 'resume-builder.html?view=1&from=account';
-      resumeStatusLink.onclick = null;
-    }else{
-      resumeStatusLink.href = 'align-upload.html';
-      resumeStatusLink.onclick = null;
-    }
-  }
-
-  if(preferencesStatusEl){
-    preferencesStatusEl.textContent = hasPreferences ? 'Set' : 'Add';
-    preferencesStatusEl.classList.toggle('is-ready', hasPreferences);
-    preferencesStatusEl.classList.toggle('is-missing', !hasPreferences);
-  }
-
-  if(matchingStatusEl){
-    matchingStatusEl.textContent = matchingReady ? 'Active' : 'Finish';
-    matchingStatusEl.classList.toggle('is-ready', matchingReady);
-    matchingStatusEl.classList.toggle('is-missing', !matchingReady);
-  }
-
-  if(matchingStatusLink){
-    matchingStatusLink.href = matchingReady
-      ? 'swipe.html'
-      : (!hasResume ? 'align-upload.html' : 'preferences.html');
-  }
-
-  syncCandidateSwipeNav(matchingReady);
-
-  if (matchingReady) {
-    // Candidate setup is complete.
-  } else if (!hasResume) {
-    setupBanner.style.display = 'flex';
-    setupTitle.textContent = 'Upload your resume to start swiping';
-    setupSub.textContent = 'We need your resume before we can match you to jobs.';
-    setupCta.textContent = 'Upload resume';
-    setupCta.href = 'align-upload.html';
-  } else {
-    setupBanner.style.display = 'flex';
-    setupTitle.textContent = 'Set your preferences to start swiping';
-    setupSub.textContent = 'Tell us your salary, location, and work style so we can match you to the right jobs.';
-    setupCta.textContent = 'Set preferences';
-    setupCta.href = 'preferences.html';
-  }
-
-  await loadAppliedJobs();
-  await loadSkippedJobs();
-  await loadCandidateNotifications(profile);
-
-  showPage();
-}
-
-initAccountPage();
-</script>
 
 <div class="mini-footer">
   <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>
 </div>
 
+<script>
+  const SUPABASE_URL = 'https://auth.alygnn.com';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let currentEmail = null;
+  let currentUserId = null;
+  let userHasPassword = false;
+  let pendingPassword = null;
+  let pendingCodeId = null;
+
+  function showMsg(text, type = 'error') {
+    const b = document.getElementById('msg-box');
+    b.textContent = text;
+    b.className = 'msg-box ' + type;
+    b.style.display = 'block';
+  }
+
+  function toggleEye(id, btn) {
+    const input = document.getElementById(id);
+    const hide = input.type === 'password';
+    input.type = hide ? 'text' : 'password';
+    btn.querySelector('svg').innerHTML = hide
+      ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+      : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    currentEmail = session.user.email;
+    currentUserId = session.user.id;
+    document.getElementById('email-display').textContent = currentEmail || '—';
+
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('has_password, role')
+      .eq('id', currentUserId)
+      .single();
+    userHasPassword = !!profile?.has_password;
+
+    // Point Back at the right hub directly instead of always going through
+    // account.html (seeker) and relying on it to redirect employers onward —
+    // that round trip is what caused the seeker page to flash first.
+    const role = String(profile?.role || session.user.user_metadata?.role || '').toLowerCase();
+    document.getElementById('back-link').href = role === 'employer' ? 'employer-account.html' : 'account.html';
+
+    const providers = session.user.identities?.map(i => i.provider) || [];
+    const hasGoogle = providers.includes('google');
+    const pill = document.getElementById('google-pill');
+    pill.textContent = hasGoogle ? 'Connected' : 'Not connected';
+    pill.classList.toggle('off', !hasGoogle);
+  }
+
+  function generateCode() {
+    return String(Math.floor(100000 + Math.random() * 900000));
+  }
+
+  async function isSameAsCurrentPassword(candidatePassword) {
+    if (!userHasPassword) return false;
+
+    const { data, error } = await sb.auth.signInWithPassword({
+      email: currentEmail,
+      password: candidatePassword,
+    });
+
+    return !error && !!data?.session;
+  }
+
+  async function sendVerificationCode() {
+    const password = document.getElementById('new-password').value;
+    if (!password || password.length < 8) {
+      showMsg('Password must be at least 8 characters.');
+      return;
+    }
+
+    const btn = document.getElementById('send-code-btn');
+    btn.disabled = true;
+    btn.textContent = 'Checking…';
+
+    const sameAsCurrent = await isSameAsCurrentPassword(password);
+    if (sameAsCurrent) {
+      showMsg('That\'s your current password. Please choose a different one.');
+      btn.disabled = false;
+      btn.textContent = 'Send verification code';
+      return;
+    }
+
+    btn.textContent = 'Sending…';
+
+    const code = generateCode();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    const { data: insertData, error: insertError } = await sb
+      .from('password_change_codes')
+      .insert({ user_id: currentUserId, code, expires_at: expiresAt })
+      .select()
+      .single();
+
+    if (insertError) {
+      showMsg('Could not start verification: ' + insertError.message);
+      btn.disabled = false;
+      btn.textContent = 'Send verification code';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/send-password-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentEmail, code }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error || 'Failed to send email');
+    } catch (err) {
+      showMsg('Could not send the code: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = 'Send verification code';
+      return;
+    }
+
+    pendingPassword = password;
+    pendingCodeId = insertData.id;
+
+    document.getElementById('code-step').style.display = 'block';
+    document.getElementById('code-desc').textContent = `Enter the 6-digit code we sent to ${currentEmail}.`;
+    btn.textContent = 'Code sent';
+    showMsg('Check your email for the verification code.', 'success');
+  }
+
+  async function confirmCodeAndChangePassword() {
+    const enteredCode = document.getElementById('verification-code').value.trim();
+    if (!enteredCode) {
+      showMsg('Enter the code from your email.');
+      return;
+    }
+    if (!pendingPassword || !pendingCodeId) {
+      showMsg('Please request a new code.');
+      return;
+    }
+
+    const btn = document.getElementById('confirm-code-btn');
+    btn.disabled = true;
+    btn.textContent = 'Verifying…';
+
+    const { data: codeRow, error: codeError } = await sb
+      .from('password_change_codes')
+      .select('code, expires_at, used')
+      .eq('id', pendingCodeId)
+      .single();
+
+    if (codeError || !codeRow) {
+      showMsg('Could not verify code. Please request a new one.');
+      btn.disabled = false;
+      btn.textContent = 'Confirm and update password';
+      return;
+    }
+
+    if (codeRow.used) {
+      showMsg('This code has already been used. Please request a new one.');
+      btn.disabled = false;
+      btn.textContent = 'Confirm and update password';
+      return;
+    }
+
+    if (new Date(codeRow.expires_at) < new Date()) {
+      showMsg('This code has expired. Please request a new one.');
+      btn.disabled = false;
+      btn.textContent = 'Confirm and update password';
+      return;
+    }
+
+    if (codeRow.code !== enteredCode) {
+      showMsg('Incorrect code. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Confirm and update password';
+      return;
+    }
+
+    const { error: updateError } = await sb.auth.updateUser({ password: pendingPassword });
+    if (updateError) {
+      showMsg(updateError.message);
+      btn.disabled = false;
+      btn.textContent = 'Confirm and update password';
+      return;
+    }
+
+    await sb.from('password_change_codes').update({ used: true }).eq('id', pendingCodeId);
+    await sb.from('profiles').upsert({ id: currentUserId, has_password: true });
+    userHasPassword = true;
+
+    sendPasswordChangeEmail(currentEmail);
+
+    document.getElementById('new-password').value = '';
+    document.getElementById('verification-code').value = '';
+    document.getElementById('code-step').style.display = 'none';
+    document.getElementById('send-code-btn').textContent = 'Send verification code';
+    document.getElementById('send-code-btn').disabled = false;
+    pendingPassword = null;
+    pendingCodeId = null;
+
+    showMsg('Password updated successfully.', 'success');
+  }
+
+  async function sendPasswordChangeEmail(email) {
+    try {
+      await fetch('/api/notify-password-change', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+    } catch (err) {
+      console.error('Failed to send password change notification', err);
+    }
+  }
+
+  async function signOut() {
+    await sb.auth.signOut();
+    window.location.href = 'login.html';
+  }
+
+  async function confirmDelete() {
+    const sure = confirm(
+      'This will permanently delete your Alygnn account. Your current login will stop working immediately. This cannot be undone. Are you sure?'
+    );
+    if (!sure) return;
+
+    const btn = document.getElementById('delete-account-btn');
+    const originalText = btn.textContent;
+
+    btn.disabled = true;
+    btn.textContent = 'Deleting account…';
+
+    try {
+      const {
+        data: { session },
+        error: sessionError
+      } = await sb.auth.getSession();
+
+      if (sessionError || !session) {
+        throw new Error('Your session expired. Please sign in again before deleting your account.');
+      }
+
+      const response = await fetch('/api/delete-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'We could not delete your account.');
+      }
+
+      // The server has already permanently removed the Supabase Auth user.
+      // Clear any cached browser session/data left on this device.
+      try {
+        await sb.auth.signOut({ scope: 'local' });
+      } catch (_) {}
+
+      Object.keys(localStorage).forEach((key) => {
+        const lower = key.toLowerCase();
+        if (
+          lower.includes('supabase') ||
+          lower.includes('sb-') ||
+          lower.includes('alygnn')
+        ) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      sessionStorage.clear();
+
+      alert('Your Alygnn account has been permanently deleted.');
+      window.location.replace('login.html?account_deleted=1');
+    } catch (error) {
+      console.error('Account deletion failed:', error);
+      showMsg(
+        error?.message || 'We could not delete your account. Please try again.'
+      );
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  init();
+</script>
 </body>
 </html>
