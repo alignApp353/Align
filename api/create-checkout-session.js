@@ -21,6 +21,8 @@ const CHECKOUT_CATALOG = {
 };
 
 function cors(res) {
+  // Authorization is Bearer-token based, not cookie based, so wildcard origin is
+  // appropriate for the local Capacitor WebView + alygnn.com.
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Authorization,Content-Type');
@@ -36,7 +38,6 @@ function send(res, status, payload) {
 function parseBody(req) {
   if (!req.body) return {};
   if (typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
-
   try {
     return JSON.parse(
       Buffer.isBuffer(req.body)
@@ -50,7 +51,6 @@ function parseBody(req) {
 
 function bearer(req) {
   const value = String(req.headers.authorization || '');
-
   return value.toLowerCase().startsWith('bearer ')
     ? value.slice(7).trim()
     : '';
@@ -215,13 +215,17 @@ async function getEmployerPostingAccess(
       '/rest/v1/rpc/get_employer_posting_access',
       {
         method: 'POST',
+
         headers: {
           apikey: anon,
+
           Authorization:
             'Bearer ' + token,
+
           'Content-Type':
             'application/json'
         },
+
         body: '{}'
       }
     );
@@ -250,8 +254,9 @@ async function getEmployerPostingAccess(
 function additionalSlotEligible(
   access
 ) {
-  // $150/month Second Job Slot
-  // is FREE-account-only.
+  // The $150/month Second Job Slot is FREE-ACCOUNT ONLY and can exist only once.
+  // The database RPC is the source of truth so direct checkout URLs cannot bypass it.
+
   return (
     access?.second_slot_eligible === true &&
     access?.active_paid_plan !== true &&
@@ -300,12 +305,15 @@ async function stripeCreateCheckout(
       '/checkout/sessions',
       {
         method: 'POST',
+
         headers: {
           Authorization:
             'Bearer ' + secret,
+
           'Content-Type':
             'application/x-www-form-urlencoded'
         },
+
         body
       }
     );
@@ -394,6 +402,80 @@ const MANAGE_CATALOG = {
   }
 };
 
+function manageCors(res) {
+  res.setHeader(
+    'Access-Control-Allow-Origin',
+    '*'
+  );
+
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'POST,OPTIONS'
+  );
+
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Authorization,Content-Type'
+  );
+}
+
+function manageSend(
+  res,
+  status,
+  payload
+) {
+  manageCors(res);
+
+  res.statusCode =
+    status;
+
+  res.setHeader(
+    'Content-Type',
+    'application/json; charset=utf-8'
+  );
+
+  res.end(
+    JSON.stringify(payload)
+  );
+}
+
+function manageBody(req) {
+  if (!req.body) {
+    return {};
+  }
+
+  if (
+    typeof req.body === 'object' &&
+    !Buffer.isBuffer(req.body)
+  ) {
+    return req.body;
+  }
+
+  try {
+    return JSON.parse(
+      Buffer.isBuffer(req.body)
+        ? req.body.toString('utf8')
+        : String(req.body)
+    );
+  } catch (_) {
+    return {};
+  }
+}
+
+function manageBearer(req) {
+  const value =
+    String(
+      req.headers.authorization ||
+      ''
+    );
+
+  return value
+    .toLowerCase()
+    .startsWith('bearer ')
+      ? value.slice(7).trim()
+      : '';
+}
+
 function manageBase() {
   return (
     process.env.SUPABASE_URL ||
@@ -416,12 +498,63 @@ function manageServiceHeaders(
 
   return {
     apikey: key,
+
     Authorization:
       'Bearer ' + key,
+
     'Content-Type':
       'application/json',
+
     ...extra
   };
+}
+
+async function manageCurrentUser(
+  token
+) {
+  const anon =
+    process.env.SUPABASE_ANON_KEY;
+
+  if (!anon) {
+    throw new Error(
+      'SUPABASE_ANON_KEY is not configured.'
+    );
+  }
+
+  const response =
+    await fetch(
+      manageBase() +
+      '/auth/v1/user',
+      {
+        headers: {
+          apikey: anon,
+
+          Authorization:
+            'Bearer ' + token
+        }
+      }
+    );
+
+  const data =
+    await response
+      .json()
+      .catch(() => ({}));
+
+  if (
+    !response.ok ||
+    !data?.id
+  ) {
+    const error =
+      new Error(
+        'Invalid employer session.'
+      );
+
+    error.status = 401;
+
+    throw error;
+  }
+
+  return data;
 }
 
 async function getEntitlement(
@@ -543,11 +676,15 @@ function exactPlan(ent) {
       ent?.plan || ''
     ).toLowerCase();
 
-  if (legacy === 'business') {
+  if (
+    legacy === 'business'
+  ) {
     return 'launch';
   }
 
-  if (legacy === 'enterprise') {
+  if (
+    legacy === 'enterprise'
+  ) {
     return Number(
       ent?.slot_limit || 0
     ) >= 8
@@ -606,7 +743,9 @@ function entitlementLooksActive(
         ).getTime()
       : Infinity;
 
-  if (status === 'past_due') {
+  if (
+    status === 'past_due'
+  ) {
     return !!recurringPlan(ent);
   }
 
@@ -633,11 +772,12 @@ function shouldResolveSubscription(
     return true;
   }
 
-  // IMPORTANT:
-  // Developer test plans are valid
-  // Supabase entitlements but have no
-  // Stripe subscription.
-  if (ent?.test_mode === true) {
+  // Developer test plans are real Supabase entitlements but intentionally have
+  // no Stripe subscription. Do not make a Stripe request just to display them.
+
+  if (
+    ent?.test_mode === true
+  ) {
     return false;
   }
 
@@ -675,7 +815,9 @@ function subscriptionIsActive(
         ) * 1000
       : Infinity;
 
-  if (status === 'past_due') {
+  if (
+    status === 'past_due'
+  ) {
     return true;
   }
 
@@ -745,13 +887,16 @@ async function manageStripe(
 
   const options = {
     method,
+
     headers: {
       Authorization:
         'Bearer ' + secret
     }
   };
 
-  if (method === 'GET') {
+  if (
+    method === 'GET'
+  ) {
     const parsed =
       new URL(url);
 
@@ -772,7 +917,9 @@ async function manageStripe(
       }
     );
 
-    url = parsed.toString();
+    url =
+      parsed.toString();
+
   } else {
     const form =
       new URLSearchParams();
@@ -799,7 +946,8 @@ async function manageStripe(
     ] =
       'application/x-www-form-urlencoded';
 
-    options.body = form;
+    options.body =
+      form;
   }
 
   const response =
@@ -837,7 +985,9 @@ async function ensureRecurringPrice(
   billing
 ) {
   const config =
-    MANAGE_CATALOG[billing]?.[plan];
+    MANAGE_CATALOG[
+      billing
+    ]?.[plan];
 
   if (!config) {
     throw new Error(
@@ -862,9 +1012,11 @@ async function ensureRecurringPrice(
         'lookup_keys[]':
           config.lookup,
 
-        active: 'true',
+        active:
+          'true',
 
-        limit: 1
+        limit:
+          1
       }
     );
 
@@ -879,7 +1031,8 @@ async function ensureRecurringPrice(
       'POST',
       'prices',
       {
-        currency: 'usd',
+        currency:
+          'usd',
 
         unit_amount:
           config.cents,
@@ -1050,7 +1203,9 @@ function subscriptionSummary(
     terminal
       ? null
       : (
-          MANAGE_CATALOG[billing]?.[plan] ||
+          MANAGE_CATALOG[
+            billing
+          ]?.[plan] ||
           null
         );
 
@@ -1225,7 +1380,9 @@ async function resolveSecondSlotSubscription(
   return sub;
 }
 
-function secondSlotSummary(sub) {
+function secondSlotSummary(
+  sub
+) {
   if (!sub) {
     return {
       managed_subscription:
@@ -1308,6 +1465,8 @@ async function cancelPlanAtRenewal({
     sub &&
     subscriptionIsActive(sub)
   ) {
+    // A scheduled downgrade and a scheduled cancellation should never coexist.
+
     await releaseSchedule(
       sub,
       ent
@@ -1366,7 +1525,9 @@ async function cancelPlanAtRenewal({
     };
   }
 
-  // Test plans have no Stripe subscription.
+  // Developer test plans are prepaid test terms rather than Stripe subscriptions.
+  // Scheduling "free" lets the app demonstrate the same cancel-at-renewal UX.
+
   if (
     ent?.test_mode === true &&
     recurringPlan(ent) &&
@@ -1415,7 +1576,8 @@ async function cancelPlanAtRenewal({
       'This plan is already prepaid without automatic renewal, so there is no future charge to cancel.'
     );
 
-  error.status = 409;
+  error.status =
+    409;
 
   throw error;
 }
@@ -1478,7 +1640,8 @@ async function cancelSecondSlotAtRenewal({
         'The Second Job Slot does not have an active recurring subscription to cancel.'
       );
 
-    error.status = 409;
+    error.status =
+      409;
 
     throw error;
   }
@@ -1523,7 +1686,8 @@ async function resumeSecondSlotRenewal({
         'Second Job Slot subscription could not be found.'
       );
 
-    error.status = 409;
+    error.status =
+      409;
 
     throw error;
   }
@@ -1593,7 +1757,8 @@ async function scheduleDowngrade({
   sub,
   currentPlan,
   targetPlan,
-  billing
+  billing,
+  currentBilling = billing
 }) {
   if (
     sub?.cancel_at_period_end ===
@@ -1647,7 +1812,8 @@ async function scheduleDowngrade({
     ent?.stripe_plan_schedule_id ||
     null;
 
-  let schedule = null;
+  let schedule =
+    null;
 
   if (scheduleId) {
     schedule =
@@ -1658,6 +1824,7 @@ async function scheduleDowngrade({
           scheduleId
         )
       );
+
   } else {
     schedule =
       await manageStripe(
@@ -1708,26 +1875,32 @@ async function scheduleDowngrade({
   }
 
   const phasePrice =
-    typeof phase?.items?.[0]?.price ===
+    typeof phase
+      ?.items?.[0]?.price ===
     'string'
 
       ? phase.items[0].price
 
-      : phase?.items?.[0]?.price?.id;
+      : phase
+          ?.items?.[0]
+          ?.price?.id;
 
   const currentPrice =
     phasePrice ||
     currentPriceId;
 
   const currentQty =
-    phase?.items?.[0]?.quantity ||
+    phase
+      ?.items?.[0]
+      ?.quantity ||
     item.quantity ||
     1;
 
   const intervalCount =
-    MANAGE_CATALOG[billing][
-      targetPlan
-    ].intervalCount;
+    MANAGE_CATALOG[
+      billing
+    ][targetPlan]
+      .intervalCount;
 
   await manageStripe(
     'POST',
@@ -1764,7 +1937,7 @@ async function scheduleDowngrade({
         currentPlan,
 
       'phases[0][metadata][billing]':
-        billing,
+        currentBilling,
 
       'phases[1][start_date]':
         end,
@@ -1894,9 +2067,9 @@ async function applyPaidFixedUpgrade({
     );
 
   const catalog =
-    MANAGE_CATALOG[billing]?.[
-      targetPlan
-    ];
+    MANAGE_CATALOG[
+      billing
+    ]?.[targetPlan];
 
   await patchEntitlement(
     employerId,
@@ -2008,14 +2181,14 @@ async function upgradeNow({
     );
 
   const currentCatalog =
-    MANAGE_CATALOG[billing]?.[
-      currentPlan
-    ];
+    MANAGE_CATALOG[
+      billing
+    ]?.[currentPlan];
 
   const targetCatalog =
-    MANAGE_CATALOG[billing]?.[
-      targetPlan
-    ];
+    MANAGE_CATALOG[
+      billing
+    ]?.[targetPlan];
 
   if (
     !currentCatalog ||
@@ -2029,6 +2202,7 @@ async function upgradeNow({
   const difference =
     Math.max(
       0,
+
       Number(
         targetCatalog.cents
       ) -
@@ -2037,7 +2211,9 @@ async function upgradeNow({
       )
     );
 
-  if (difference <= 0) {
+  if (
+    difference <= 0
+  ) {
     throw new Error(
       'This plan change is not an upgrade.'
     );
@@ -2054,6 +2230,8 @@ async function upgradeNow({
       'Stripe customer could not be identified.'
     );
   }
+
+  // Keep the current plan in place until the fixed-difference upgrade invoice is paid.
 
   await releaseSchedule(
     sub,
@@ -2084,9 +2262,9 @@ async function upgradeNow({
       billing
     );
 
-  // SIMPLE FIXED-DIFFERENCE MODEL:
-  // Launch $299 -> Growth $449 =
-  // $150 charged immediately.
+  // Alygnn uses a SIMPLE FIXED-DIFFERENCE upgrade model, not time-based proration.
+  // Example: Launch $299 -> Growth $449 = $150 charged now, regardless of days left.
+
   const invoice =
     await manageStripe(
       'POST',
@@ -2182,6 +2360,7 @@ async function upgradeNow({
         '/pay',
         {}
       );
+
   } catch (error) {
     try {
       finalized =
@@ -2201,7 +2380,8 @@ async function upgradeNow({
 
   if (
     String(
-      finalized?.status || ''
+      finalized?.status ||
+      ''
     ).toLowerCase() ===
     'paid'
   ) {
@@ -2233,7 +2413,8 @@ async function upgradeNow({
         difference,
 
       hosted_invoice_url:
-        finalized.hosted_invoice_url ||
+        finalized
+          .hosted_invoice_url ||
         null,
 
       payment_status:
@@ -2311,9 +2492,7 @@ function stripeCustomerId(
     (
       typeof sub?.customer ===
       'string'
-
         ? sub.customer
-
         : sub?.customer?.id
     ) ||
 
@@ -2415,7 +2594,8 @@ async function customerSnapshot(
     };
   }
 
-  let customer = null;
+  let customer =
+    null;
 
   try {
     customer =
@@ -2430,10 +2610,12 @@ async function customerSnapshot(
             'invoice_settings.default_payment_method'
         }
       );
+
   } catch (error) {
     console.warn(
       'Could not load Stripe customer:',
-      error?.message || error
+      error?.message ||
+      error
     );
   }
 
@@ -2459,6 +2641,7 @@ async function customerSnapshot(
             paymentMethod
           )
         );
+
     } catch (error) {
       console.warn(
         'Could not load Stripe payment method:',
@@ -2466,11 +2649,13 @@ async function customerSnapshot(
         error
       );
 
-      paymentMethod = null;
+      paymentMethod =
+        null;
     }
   }
 
-  let invoices = [];
+  let invoices =
+    [];
 
   try {
     const result =
@@ -2551,6 +2736,7 @@ async function customerSnapshot(
             null
         })
       );
+
   } catch (error) {
     console.warn(
       'Could not load Stripe invoice history:',
@@ -2664,6 +2850,7 @@ async function billingAccountSummary(
       : secondSub
           ?.customer
           ?.id
+
   ].filter(Boolean);
 
   const uniqueIds =
@@ -2671,7 +2858,8 @@ async function billingAccountSummary(
       ...new Set(ids)
     ];
 
-  const snapshots = [];
+  const snapshots =
+    [];
 
   for (
     const customerId
@@ -2713,7 +2901,8 @@ async function billingAccountSummary(
       .find(Boolean) ||
     null;
 
-  const invoices = [];
+  const invoices =
+    [];
 
   const seen =
     new Set();
@@ -2805,7 +2994,8 @@ async function runManageAction(
       user.id
     );
 
-  let sub = null;
+  let sub =
+    null;
 
   if (
     shouldResolveSubscription(
@@ -2818,14 +3008,12 @@ async function runManageAction(
           user.id,
           ent
         );
+
     } catch (error) {
-      // IMPORTANT:
-      // The account page still needs to
-      // show the Supabase entitlement
-      // if Stripe is unavailable.
-      //
-      // Actual billing changes still
-      // require Stripe.
+      // The account page should still be able to display the employer's
+      // Supabase entitlement if Stripe is temporarily unavailable. Actions
+      // that actually change billing still require Stripe and must fail.
+
       if (
         action !== 'summary'
       ) {
@@ -2849,13 +3037,15 @@ async function runManageAction(
     action ===
     'billing_portal'
   ) {
-    let secondSlot = null;
+    let secondSlot =
+      null;
 
     try {
       secondSlot =
         await resolveSecondSlotSubscription(
           user.id
         );
+
     } catch (error) {
       console.warn(
         'Could not resolve Second Job Slot for billing portal:',
@@ -2889,7 +3079,8 @@ async function runManageAction(
           'No Stripe billing account is connected to this employer yet.'
         );
 
-      error.status = 409;
+      error.status =
+        409;
 
       throw error;
     }
@@ -2918,23 +3109,27 @@ async function runManageAction(
       res,
       200,
       {
-        ok: true,
-        url: portal.url
+        ok:
+          true,
+
+        url:
+          portal.url
       }
     );
   }
 
   if (
-    action ===
-    'summary'
+    action === 'summary'
   ) {
-    let secondSlot = null;
+    let secondSlot =
+      null;
 
     try {
       secondSlot =
         await resolveSecondSlotSubscription(
           user.id
         );
+
     } catch (error) {
       console.warn(
         'Could not resolve Second Job Slot subscription:',
@@ -2972,6 +3167,7 @@ async function runManageAction(
           sub,
           secondSlot
         );
+
     } catch (error) {
       console.warn(
         'Could not load billing account summary:',
@@ -2984,7 +3180,8 @@ async function runManageAction(
       res,
       200,
       {
-        ok: true,
+        ok:
+          true,
 
         summary: {
           ...subscriptionSummary(
@@ -3036,7 +3233,9 @@ async function runManageAction(
       res,
       200,
       {
-        ok: true,
+        ok:
+          true,
+
         change:
           'scheduled_change_canceled'
       }
@@ -3044,8 +3243,7 @@ async function runManageAction(
   }
 
   if (
-    action ===
-    'cancel_plan'
+    action === 'cancel_plan'
   ) {
     const result =
       await cancelPlanAtRenewal({
@@ -3060,15 +3258,16 @@ async function runManageAction(
       res,
       200,
       {
-        ok: true,
+        ok:
+          true,
+
         ...result
       }
     );
   }
 
   if (
-    action ===
-    'resume_plan'
+    action === 'resume_plan'
   ) {
     const result =
       await resumePlanRenewal({
@@ -3083,7 +3282,9 @@ async function runManageAction(
       res,
       200,
       {
-        ok: true,
+        ok:
+          true,
+
         ...result
       }
     );
@@ -3100,14 +3301,17 @@ async function runManageAction(
 
     const result =
       await cancelSecondSlotAtRenewal({
-        sub: secondSlot
+        sub:
+          secondSlot
       });
 
     return send(
       res,
       200,
       {
-        ok: true,
+        ok:
+          true,
+
         ...result
       }
     );
@@ -3124,22 +3328,24 @@ async function runManageAction(
 
     const result =
       await resumeSecondSlotRenewal({
-        sub: secondSlot
+        sub:
+          secondSlot
       });
 
     return send(
       res,
       200,
       {
-        ok: true,
+        ok:
+          true,
+
         ...result
       }
     );
   }
 
   if (
-    action !==
-    'change_plan'
+    action !== 'change_plan'
   ) {
     return send(
       res,
@@ -3163,26 +3369,48 @@ async function runManageAction(
       sub
     );
 
-  const billing =
+  const currentBilling =
     subscriptionBilling(
       ent,
       sub
     );
 
-  const catalog =
+  const requestedBilling =
+    String(
+      input.billing ||
+      input.target_billing ||
+      currentBilling
+    ).toLowerCase();
+
+  const targetBilling =
+    [
+      'monthly',
+      'quarterly'
+    ].includes(
+      requestedBilling
+    )
+      ? requestedBilling
+      : currentBilling;
+
+  const currentCatalog =
     MANAGE_CATALOG[
-      billing
+      currentBilling
+    ];
+
+  const targetCatalog =
+    MANAGE_CATALOG[
+      targetBilling
     ];
 
   if (
-    !catalog?.[target]
+    !targetCatalog?.[target]
   ) {
     return send(
       res,
       400,
       {
         error:
-          'Choose Launch, Growth, or Scale.'
+          'Choose Launch, Growth, or Scale with Monthly or Quarterly billing.'
       }
     );
   }
@@ -3191,7 +3419,7 @@ async function runManageAction(
     !subscriptionIsActive(
       sub
     ) ||
-    !catalog?.[current]
+    !currentCatalog?.[current]
   ) {
     return send(
       res,
@@ -3204,25 +3432,27 @@ async function runManageAction(
           true,
 
         billing_period:
-          billing
+          currentBilling
       }
     );
   }
 
   if (
-    current === target
+    current === target &&
+    currentBilling === targetBilling
   ) {
     return send(
       res,
       200,
       {
-        ok: true,
+        ok:
+          true,
 
         change:
           'none',
 
         message:
-          'You are already on this plan.'
+          'You are already on this plan and billing cadence.'
       }
     );
   }
@@ -3248,6 +3478,9 @@ async function runManageAction(
     );
   }
 
+  // Choosing another plan/cadence means the employer wants billing to continue,
+  // so a previously scheduled cancellation is automatically reversed.
+
   if (
     sub?.cancel_at_period_end ===
     true
@@ -3268,8 +3501,7 @@ async function runManageAction(
 
   if (
     String(
-      ent?.pending_plan ||
-      ''
+      ent?.pending_plan || ''
     ).toLowerCase() ===
     'free'
   ) {
@@ -3293,44 +3525,97 @@ async function runManageAction(
       );
   }
 
-  const result =
-    catalog[target].rank >
-    catalog[current].rank
+  const billingChanged =
+    currentBilling !==
+    targetBilling;
 
-      ? await upgradeNow({
-          employerId:
-            user.id,
+  let result;
 
-          ent,
-          sub,
+  if (billingChanged) {
+    // Monthly <-> Quarterly changes always take effect at renewal.
+    // This avoids charging a full new cadence while time remains on the current paid term.
 
-          targetPlan:
-            target,
+    result =
+      await scheduleDowngrade({
+        employerId:
+          user.id,
 
-          billing
-        })
+        ent,
+        sub,
 
-      : await scheduleDowngrade({
-          employerId:
-            user.id,
+        currentPlan:
+          current,
 
-          ent,
-          sub,
+        targetPlan:
+          target,
 
-          currentPlan:
-            current,
+        billing:
+          targetBilling,
 
-          targetPlan:
-            target,
+        currentBilling
+      });
 
-          billing
-        });
+    result = {
+      ...result,
+
+      change:
+        'billing_change_scheduled',
+
+      current_billing_period:
+        currentBilling,
+
+      target_billing_period:
+        targetBilling
+    };
+
+  } else if (
+    targetCatalog[target].rank >
+    currentCatalog[current].rank
+  ) {
+    result =
+      await upgradeNow({
+        employerId:
+          user.id,
+
+        ent,
+        sub,
+
+        targetPlan:
+          target,
+
+        billing:
+          targetBilling
+      });
+
+  } else {
+    result =
+      await scheduleDowngrade({
+        employerId:
+          user.id,
+
+        ent,
+        sub,
+
+        currentPlan:
+          current,
+
+        targetPlan:
+          target,
+
+        billing:
+          targetBilling,
+
+        currentBilling
+      });
+  }
 
   return send(
     res,
     200,
     {
-      ok: true,
+      ok:
+        true,
+
       ...result
     }
   );
@@ -3344,8 +3629,7 @@ async function handler(
   cors(res);
 
   if (
-    req.method ===
-    'OPTIONS'
+    req.method === 'OPTIONS'
   ) {
     return send(
       res,
@@ -3355,8 +3639,7 @@ async function handler(
   }
 
   if (
-    req.method !==
-    'POST'
+    req.method !== 'POST'
   ) {
     return send(
       res,
@@ -3390,6 +3673,9 @@ async function handler(
 
     const input =
       parseBody(req);
+
+    // Billing & plan management shares this existing Vercel function so the
+    // Hobby deployment stays below the Serverless Function limit.
 
     const billingAction =
       String(
@@ -3471,6 +3757,9 @@ async function handler(
     let days = 0;
     let jobId = '';
 
+    // Backward compatibility: the former $150 "single_job" product is now
+    // the standalone $150/month Second Job Slot.
+
     if (
       !product &&
       plan &&
@@ -3546,8 +3835,7 @@ async function handler(
         'subscription';
 
     } else if (
-      product ===
-      'job_boost'
+      product === 'job_boost'
     ) {
       jobId =
         String(
@@ -3611,10 +3899,8 @@ async function handler(
         'job_plan';
 
       if (
-        billing ===
-          'weekly' ||
-        plan ===
-          'weekly_slot'
+        billing === 'weekly' ||
+        plan === 'weekly_slot'
       ) {
         billing =
           'weekly';
@@ -3706,11 +3992,13 @@ async function handler(
         );
       }
 
+      // Do not create a second paid plan while an employer already has one active.
+      // Existing recurring subscribers change plans through Billing & plan so
+      // upgrades use Alygnn's fixed-difference charge and downgrades wait until renewal.
+
       if (
-        billing ===
-          'monthly' ||
-        billing ===
-          'quarterly'
+        billing === 'monthly' ||
+        billing === 'quarterly'
       ) {
         const access =
           await getEmployerPostingAccess(
@@ -3849,8 +4137,7 @@ async function handler(
     };
 
     if (
-      mode ===
-      'subscription'
+      mode === 'subscription'
     ) {
       params[
         'line_items[0][price_data][recurring][interval]'
@@ -3887,6 +4174,7 @@ async function handler(
             `subscription_data[metadata][${key}]`
           ] =
             value;
+
         } else {
           params[
             `payment_intent_data[metadata][${key}]`
