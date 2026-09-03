@@ -821,14 +821,18 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         return;
       }
 
-      // The tier is the current plan. Mark it clearly everywhere; only the
-      // matching billing-cycle card is the exact active subscription.
-      if(plan===currentPlan){
+      // Only the exact plan + billing cadence is the current subscription.
+      // If the employer is looking at the same tier on another cadence, let
+      // them switch billing instead of disabling the card.
+      if(plan===currentPlan && billing===currentBilling){
         card.classList.add('current-plan');
         button.disabled=true;
-        button.textContent=billing===currentBilling
-          ? 'Current plan'
-          : `Current plan · ${titleCasePlan(currentBilling)}`;
+        button.textContent='Current plan';
+        return;
+      }
+
+      if(plan===currentPlan && billing!==currentBilling){
+        button.textContent=`Switch to ${titleCasePlan(billing)}`;
         return;
       }
 
@@ -858,28 +862,27 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if(planChangeBusy) return;
 
     const currentPlan=normalizedCurrentPlan();
-    const billing=currentPlanBilling();
+    const currentBilling=currentPlanBilling();
     const target=String(targetPlan||'').toLowerCase();
+    const targetBilling=['monthly','quarterly'].includes(String(clickedBilling||'').toLowerCase())
+      ? String(clickedBilling).toLowerCase()
+      : currentBilling;
 
-    if(target===currentPlan){
-      showPlanChangeMessage(`${planDisplayName(currentPlan)} is already your current plan.`);
+    if(target===currentPlan && targetBilling===currentBilling){
+      showPlanChangeMessage(`${planDisplayName(currentPlan)} ${titleCasePlan(currentBilling)} is already your current plan.`);
       return;
     }
 
-    // Existing customers review every plan change on a dedicated checkout-style
-    // screen. No browser confirm() dialogs and no silent redirect to Account.
+    // Keep exactly what the employer selected. Current billing and target
+    // billing are intentionally separate so Quarterly → Monthly changes are
+    // reviewed accurately instead of being silently forced back to Quarterly.
     const params=new URLSearchParams({
       action:'change_plan',
       target_plan:target,
-      billing:billing,
+      billing:targetBilling,
+      current_billing:currentBilling,
       from:'pricing'
     });
-
-    if(clickedBilling && clickedBilling!==billing){
-      // Keep the employer's existing billing cadence for plan changes. The
-      // review page explains that clearly instead of showing a misleading price.
-      params.set('viewed_billing',clickedBilling);
-    }
 
     window.location.href='payment.html?'+params.toString();
   }
