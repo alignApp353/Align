@@ -146,6 +146,16 @@
   .plan-cta:hover { border-color: var(--brand); color: var(--brand); }
   .plan-card.popular .plan-cta { background: var(--brand); color: white; border-color: var(--brand); }
   .plan-card.popular .plan-cta:hover { opacity: 0.88; }
+  .plan-card.current-plan { border-color: var(--sage); box-shadow: 0 8px 28px rgba(140,182,155,.16); }
+  .plan-card.current-plan::after {
+    content:'Current plan'; position:absolute; top:-12px; right:22px; background:var(--sage); color:white;
+    font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; border-radius:100px; padding:4px 11px;
+  }
+  .plan-card.current-plan.popular .plan-tag { left:22px; }
+  .plan-cta:disabled { cursor:default; opacity:1; background:rgba(140,182,155,.12)!important; color:#4f7860!important; border-color:rgba(140,182,155,.55)!important; }
+  .plan-change-message { max-width:780px; margin:0 auto 18px; border:1px solid var(--border); background:var(--card-bg); border-radius:14px; padding:13px 16px; font-size:12px; line-height:1.55; color:var(--text-muted); }
+  .plan-change-message.success { border-color:rgba(111,191,143,.45); background:rgba(111,191,143,.10); color:#3c7955; }
+  .plan-change-message.error { border-color:rgba(215,154,154,.45); background:rgba(215,154,154,.10); color:#914848; }
 
   /* ---- Pay per job ---- */
   .payg-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; max-width:900px; margin:0 auto; }
@@ -370,6 +380,8 @@
   </div>
 </div>
 
+<div id="plan-change-message" class="plan-change-message" hidden></div>
+
 <div class="toggle-wrap">
   <div class="toggle" role="tablist" aria-label="Billing period">
     <button id="tab-quarterly" class="active" type="button" onclick="switchView('quarterly')">Quarterly</button>
@@ -381,7 +393,7 @@
 <!-- QUARTERLY PLANS -->
 <section class="view active" id="view-quarterly">
   <div class="plans-grid">
-    <div class="plan-card">
+    <div class="plan-card" data-plan-card="launch" data-plan-billing="quarterly">
       <div class="plan-name">Launch</div>
       <div class="plan-price">$750 <span>/ 3 months</span></div>
       <div class="plan-postings">4 total job slots · 3 plan + 1 free</div>
@@ -391,9 +403,9 @@
         <li>Applicant management</li>
         <li>Resume access and downloads</li>
       </ul>
-      <button class="plan-cta" onclick="choosePlan('launch','quarterly')">Choose Launch</button>
+      <button class="plan-cta" data-plan-button="launch" data-plan-billing="quarterly" onclick="choosePlan('launch','quarterly')">Choose Launch</button>
     </div>
-    <div class="plan-card popular">
+    <div class="plan-card popular" data-plan-card="growth" data-plan-billing="quarterly">
       <div class="plan-tag">Most popular</div>
       <div class="plan-name">Growth</div>
       <div class="plan-price">$1,140 <span>/ 3 months</span></div>
@@ -405,9 +417,9 @@
         <li>Alygnn Recommended</li>
         <li>Advanced hiring analytics</li>
       </ul>
-      <button class="plan-cta" onclick="choosePlan('growth','quarterly')">Choose Growth</button>
+      <button class="plan-cta" data-plan-button="growth" data-plan-billing="quarterly" onclick="choosePlan('growth','quarterly')">Choose Growth</button>
     </div>
-    <div class="plan-card">
+    <div class="plan-card" data-plan-card="scale" data-plan-billing="quarterly">
       <div class="plan-name">Scale</div>
       <div class="plan-price">$1,700 <span>/ 3 months</span></div>
       <div class="plan-postings">9 total job slots · 8 plan + 1 free</div>
@@ -419,7 +431,7 @@
         <li>Advanced candidate tools</li>
         <li>Team access and priority support</li>
       </ul>
-      <button class="plan-cta" onclick="choosePlan('scale','quarterly')">Choose Scale</button>
+      <button class="plan-cta" data-plan-button="scale" data-plan-billing="quarterly" onclick="choosePlan('scale','quarterly')">Choose Scale</button>
     </div>
     <div class="plan-card">
       <div class="plan-name">Enterprise</div>
@@ -440,7 +452,7 @@
 <!-- MONTHLY PLANS -->
 <section class="view" id="view-monthly">
   <div class="plans-grid">
-    <div class="plan-card">
+    <div class="plan-card" data-plan-card="launch" data-plan-billing="monthly">
       <div class="plan-name">Launch</div>
       <div class="plan-price">$299 <span>/ month</span></div>
       <div class="plan-postings">4 total job slots · 3 plan + 1 free</div>
@@ -450,9 +462,9 @@
         <li>Applicant management</li>
         <li>Resume access and downloads</li>
       </ul>
-      <button class="plan-cta" onclick="choosePlan('launch','monthly')">Choose Launch</button>
+      <button class="plan-cta" data-plan-button="launch" data-plan-billing="monthly" onclick="choosePlan('launch','monthly')">Choose Launch</button>
     </div>
-    <div class="plan-card popular">
+    <div class="plan-card popular" data-plan-card="growth" data-plan-billing="monthly">
       <div class="plan-tag">Most popular</div>
       <div class="plan-name">Growth</div>
       <div class="plan-price">$449 <span>/ month</span></div>
@@ -464,9 +476,9 @@
         <li>Alygnn Recommended</li>
         <li>Advanced hiring analytics</li>
       </ul>
-      <button class="plan-cta" onclick="choosePlan('growth','monthly')">Choose Growth</button>
+      <button class="plan-cta" data-plan-button="growth" data-plan-billing="monthly" onclick="choosePlan('growth','monthly')">Choose Growth</button>
     </div>
-    <div class="plan-card">
+    <div class="plan-card" data-plan-card="scale" data-plan-billing="monthly">
       <div class="plan-name">Scale</div>
       <div class="plan-price">$649 <span>/ month</span></div>
       <div class="plan-postings">9 total job slots · 8 plan + 1 free</div>
@@ -478,7 +490,7 @@
         <li>Advanced candidate tools</li>
         <li>Team access and priority support</li>
       </ul>
-      <button class="plan-cta" onclick="choosePlan('scale','monthly')">Choose Scale</button>
+      <button class="plan-cta" data-plan-button="scale" data-plan-billing="monthly" onclick="choosePlan('scale','monthly')">Choose Scale</button>
     </div>
     <div class="plan-card">
       <div class="plan-name">Enterprise</div>
@@ -647,6 +659,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   let currentRole = '';
   let freeJobUsed = false;
   let currentAccess = null;
+  let currentEntitlement = null;
+  let planChangeBusy = false;
 
   async function initPricingAuth(){
     try{
@@ -689,11 +703,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       try{
         const [{data: entitlement},{data: access,error:accessError}] = await Promise.all([
           sb.from('employer_entitlements')
-            .select('free_job_used')
+            .select('free_job_used,test_mode,test_plan,plan,billing_period,subscription_status,current_period_end,pending_plan,pending_plan_effective_at,slot_limit')
             .eq('employer_id', currentSession.user.id)
             .maybeSingle(),
           sb.rpc('get_employer_posting_access')
         ]);
+        currentEntitlement = entitlement || null;
         freeJobUsed = entitlement?.free_job_used === true;
         if(accessError) throw accessError;
         currentAccess = access || null;
@@ -702,6 +717,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       }
 
       applyAccountPricingRules();
+      updatePaidPlanCardState();
 
       const freeBtn = document.getElementById('free-plan-btn');
       if(freeBtn && freeJobUsed){
@@ -735,6 +751,213 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     return text ? text.charAt(0).toUpperCase()+text.slice(1) : '';
   }
 
+  function normalizedCurrentPlan(){
+    const raw=String(
+      currentAccess?.test_plan ||
+      currentEntitlement?.test_plan ||
+      currentAccess?.plan ||
+      currentEntitlement?.plan ||
+      'free'
+    ).toLowerCase();
+
+    if(raw==='business') return 'launch';
+    if(raw==='enterprise'){
+      const planSlots=Number(currentAccess?.plan_slot_limit ?? currentEntitlement?.slot_limit ?? 0);
+      return planSlots>=8 ? 'scale' : 'growth';
+    }
+    return ['launch','growth','scale'].includes(raw) ? raw : 'free';
+  }
+
+  function currentPlanBilling(){
+    const value=String(
+      currentAccess?.billing_period ||
+      currentEntitlement?.billing_period ||
+      'monthly'
+    ).toLowerCase();
+    return ['monthly','quarterly'].includes(value) ? value : 'monthly';
+  }
+
+  function developerTestPlanActive(){
+    return currentEntitlement?.test_mode===true || currentAccess?.test_mode===true;
+  }
+
+  function planDisplayName(plan){
+    return ({launch:'Launch',growth:'Growth',scale:'Scale'})[String(plan||'').toLowerCase()] || titleCasePlan(plan);
+  }
+
+  function showPlanChangeMessage(text,type=''){
+    const box=document.getElementById('plan-change-message');
+    if(!box) return;
+    box.textContent=text;
+    box.className='plan-change-message'+(type?' '+type:'');
+    box.hidden=false;
+    box.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+
+  function clearPlanChangeMessage(){
+    const box=document.getElementById('plan-change-message');
+    if(!box) return;
+    box.hidden=true;
+    box.textContent='';
+    box.className='plan-change-message';
+  }
+
+  function updatePaidPlanCardState(){
+    const paid=currentAccess?.active_paid_plan===true;
+    const currentPlan=normalizedCurrentPlan();
+    const currentBilling=currentPlanBilling();
+
+    document.querySelectorAll('[data-plan-card]').forEach(card=>{
+      const plan=String(card.dataset.planCard||'').toLowerCase();
+      const billing=String(card.dataset.planBilling||'').toLowerCase();
+      const button=card.querySelector('[data-plan-button]');
+      if(!button) return;
+
+      card.classList.remove('current-plan');
+      button.disabled=false;
+
+      if(!paid){
+        button.textContent='Choose '+planDisplayName(plan);
+        return;
+      }
+
+      // The tier is the current plan. Mark it clearly everywhere; only the
+      // matching billing-cycle card is the exact active subscription.
+      if(plan===currentPlan){
+        card.classList.add('current-plan');
+        button.disabled=true;
+        button.textContent=billing===currentBilling
+          ? 'Current plan'
+          : `Current plan · ${titleCasePlan(currentBilling)}`;
+        return;
+      }
+
+      button.textContent='Change to '+planDisplayName(plan);
+    });
+  }
+
+  async function refreshPricingAccess(){
+    try{
+      const [{data: entitlement},{data: access,error:accessError}] = await Promise.all([
+        sb.from('employer_entitlements')
+          .select('free_job_used,test_mode,test_plan,plan,billing_period,subscription_status,current_period_end,pending_plan,pending_plan_effective_at,slot_limit')
+          .eq('employer_id', currentSession.user.id)
+          .maybeSingle(),
+        sb.rpc('get_employer_posting_access')
+      ]);
+      currentEntitlement=entitlement||currentEntitlement;
+      if(!accessError) currentAccess=access||currentAccess;
+      applyAccountPricingRules();
+      updatePaidPlanCardState();
+    }catch(error){
+      console.warn('Could not refresh pricing access:',error);
+    }
+  }
+
+  async function changeExistingPaidPlan(targetPlan,clickedBilling){
+    if(planChangeBusy) return;
+
+    const currentPlan=normalizedCurrentPlan();
+    const billing=currentPlanBilling();
+    const target=String(targetPlan||'').toLowerCase();
+
+    if(target===currentPlan){
+      showPlanChangeMessage(`${planDisplayName(currentPlan)} is already your current plan.`);
+      return;
+    }
+
+    // Alygnn's plan-change rules preserve the employer's current billing cycle.
+    // If they are looking at another pricing tab, bring them back to the cycle
+    // that the change will actually use before asking them to confirm.
+    if(clickedBilling && clickedBilling!==billing){
+      switchView(billing);
+      updatePaidPlanCardState();
+      showPlanChangeMessage(`Your current ${planDisplayName(currentPlan)} plan is billed ${billing}. Plan changes keep that billing cycle. Review the ${titleCasePlan(billing)} prices below, then choose the new plan.`);
+      return;
+    }
+
+    const prices={
+      monthly:{launch:299,growth:449,scale:649},
+      quarterly:{launch:750,growth:1140,scale:1700}
+    };
+    const ranks={launch:1,growth:2,scale:3};
+    const currentPrice=prices[billing]?.[currentPlan]||0;
+    const targetPrice=prices[billing]?.[target]||0;
+    const upgrading=(ranks[target]||0)>(ranks[currentPlan]||0);
+    const difference=Math.max(0,targetPrice-currentPrice);
+
+    const confirmation=upgrading
+      ? `Change from ${planDisplayName(currentPlan)} to ${planDisplayName(target)}? Alygnn will charge the fixed $${difference.toLocaleString()} plan difference now. The extra capacity starts after payment succeeds, and your next ${billing==='quarterly'?'3-month':'monthly'} renewal will be $${targetPrice.toLocaleString()}.`
+      : `Change from ${planDisplayName(currentPlan)} to ${planDisplayName(target)}? You keep ${planDisplayName(currentPlan)} capacity through the current paid period. ${planDisplayName(target)} and the $${targetPrice.toLocaleString()} ${billing==='quarterly'?'3-month':'monthly'} renewal start at your next renewal.`;
+
+    if(!window.confirm(confirmation)) return;
+    clearPlanChangeMessage();
+    planChangeBusy=true;
+
+    try{
+      // Developer test entitlements intentionally have no Stripe subscription.
+      // Change the test plan directly so the pricing page behaves like the live
+      // product without creating a fake Stripe subscription.
+      if(developerTestPlanActive()){
+        const {error}=await sb.rpc('activate_employer_test_plan',{
+          p_plan:target,
+          p_billing:billing
+        });
+        if(error) throw error;
+        await refreshPricingAccess();
+        showPlanChangeMessage(`Developer test mode: ${planDisplayName(target)} is now your active test plan. No payment was processed.`,'success');
+        return;
+      }
+
+      const response=await fetch('/api/create-checkout-session',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':'Bearer '+currentSession.access_token
+        },
+        body:JSON.stringify({action:'change_plan',target_plan:target})
+      });
+      const data=await response.json().catch(()=>({}));
+
+      if(!response.ok){
+        if(data?.payment_required){
+          showPlanChangeMessage(data.error||'Update your payment method before changing plans.','error');
+          return;
+        }
+        if(data?.requires_checkout){
+          window.location.href='payment.html?plan='+encodeURIComponent(target)+'&billing='+encodeURIComponent(billing);
+          return;
+        }
+        throw new Error(data.error||'The plan change could not be completed.');
+      }
+
+      if(data.hosted_invoice_url && data.change==='upgrade_payment_required'){
+        window.location.href=data.hosted_invoice_url;
+        return;
+      }
+
+      if(data.change==='downgrade_scheduled'){
+        showPlanChangeMessage(`${planDisplayName(target)} is scheduled for your next renewal. You keep your current ${planDisplayName(currentPlan)} capacity until then.`,'success');
+        await refreshPricingAccess();
+        return;
+      }
+
+      if(data.change==='upgrade_completed'){
+        await refreshPricingAccess();
+        showPlanChangeMessage(`${planDisplayName(target)} is now active. Your updated hiring capacity is ready.`,'success');
+        return;
+      }
+
+      await refreshPricingAccess();
+      showPlanChangeMessage(data.message||`${planDisplayName(target)} plan change saved.`,'success');
+    }catch(error){
+      console.error('Plan change failed:',error);
+      showPlanChangeMessage(error?.message||'The plan change could not be completed.','error');
+    }finally{
+      planChangeBusy=false;
+    }
+  }
+
   function applyAccountPricingRules(){
     if(!currentAccess) return;
 
@@ -761,7 +984,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const recommended=String(currentAccess.recommended_upgrade_plan||'');
 
     guidanceWrap.style.display='';
-    guidanceTitle.textContent=`Current capacity: ${used}/${limit} slots in use`;
+    const activePlanName=paid ? planDisplayName(normalizedCurrentPlan()) : 'Free';
+    guidanceTitle.textContent=paid
+      ? `${activePlanName} is your current plan · ${used}/${limit} slots in use`
+      : `Current capacity: ${used}/${limit} slots in use`;
 
     if(currentAccess.candidate_access_locked===true){
       guidanceCopy.textContent='Your latest plan payment needs attention. Your jobs and data are preserved, but candidate access is paused until payment succeeds.';
@@ -821,12 +1047,11 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     }
 
     if(currentSession && currentRole === 'employer'){
-      // Existing monthly/quarterly subscribers change plans through Alygnn's
-      // billing controls so upgrades use the fixed plan difference and
-      // downgrades wait until renewal. Do not open a second Stripe subscription.
+      // Existing monthly/quarterly subscribers change plans directly from
+      // this page. Upgrades use Alygnn's fixed-difference charge; downgrades
+      // are scheduled for renewal. Never create a second Stripe subscription.
       if(plan!=='weekly_slot' && currentAccess?.active_paid_plan===true){
-        const params=new URLSearchParams({target_plan:plan});
-        window.location.href='employer-account.html?'+params.toString()+'#billing-section';
+        changeExistingPaidPlan(plan,billing);
         return;
       }
 
@@ -870,6 +1095,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if(activeView === 'quarterly') url.searchParams.delete('mode');
     else url.searchParams.set('mode', activeView);
     history.replaceState({},'',url);
+    updatePaidPlanCardState();
   }
 
   function handleSingleJobSlot(){
