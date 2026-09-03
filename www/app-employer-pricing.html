@@ -301,12 +301,48 @@ const CATALOG={
 };
 
 const PAGE_PARAMS=new URLSearchParams(location.search);
-const SLOT_GATE_REASON=PAGE_PARAMS.get('reason')==='slot_limit';
-const SLOT_GATE_USED=Math.max(0,Number(PAGE_PARAMS.get('used')||0)||0);
-const SLOT_GATE_LIMIT=Math.max(1,Number(PAGE_PARAMS.get('limit')||1)||1);
+
+const SLOT_GATE_REASON=
+  PAGE_PARAMS.get('reason')==='slot_limit';
+
+const FREE_REPOST_REASON=
+  PAGE_PARAMS.get('reason')==='free_repost_rotation';
+
+const FREE_LIMIT_REASON=
+  PAGE_PARAMS.get('reason')==='free_applicant_limit';
+
+const SAME_ROLE_PAID_ACCESS_REASON=
+  FREE_REPOST_REASON||
+  FREE_LIMIT_REASON;
+
+const REPOST_TITLE=
+  String(PAGE_PARAMS.get('title')||'').trim();
+
+const DIFFERENT_JOBS_NEEDED=Math.max(
+  1,
+  Number(
+    PAGE_PARAMS.get('different_jobs_needed')||5
+  )||5
+);
+
+const SLOT_GATE_USED=Math.max(
+  0,
+  Number(PAGE_PARAMS.get('used')||0)||0
+);
+
+const SLOT_GATE_LIMIT=Math.max(
+  1,
+  Number(PAGE_PARAMS.get('limit')||1)||1
+);
 
 let session=null;
-let billing=SLOT_GATE_REASON?'weekly':'quarterly';
+
+let billing=
+  SAME_ROLE_PAID_ACCESS_REASON
+    ?'monthly'
+    :SLOT_GATE_REASON
+      ?'weekly'
+      :'quarterly';
 let entitlement=null;
 let postingAccess=null;
 let jobs=[];
@@ -550,6 +586,32 @@ function renderSlotGateNotice(){
   const notice=$('slot-gate-notice');
   if(!notice)return;
 
+  if(FREE_REPOST_REASON){
+    $('slot-gate-title').textContent=
+      'Reposting this role requires paid hiring access.';
+
+    $('slot-gate-copy').textContent=
+      `Free accounts cannot repost a job title that appears in their previous 5 job ads. ${
+        REPOST_TITLE
+          ? `"${REPOST_TITLE}" is still inside that 5-job history. `
+          : ''
+      }Post ${DIFFERENT_JOBS_NEEDED} more different job${DIFFERENT_JOBS_NEEDED===1?'':'s'} to keep using the free slot, or add the $150/month Second Job Slot or choose a monthly/quarterly plan to repost this role now. A $99 Weekly Slot does not bypass this rule.`;
+
+    notice.hidden=false;
+    return;
+  }
+
+  if(FREE_LIMIT_REASON){
+    $('slot-gate-title').textContent=
+      'Your free job reached its 25-applicant limit.';
+
+    $('slot-gate-copy').textContent=
+      'Free accounts cannot boost jobs. Close the job and use your free slot for a different role, or add the $150/month Second Job Slot or choose a monthly/quarterly plan if you need to continue hiring for the same role.';
+
+    notice.hidden=false;
+    return;
+  }
+
   if(!SLOT_GATE_REASON){
     notice.hidden=true;
     return;
@@ -604,6 +666,11 @@ function renderCurrent(){
 
   const paidPlanActive=basePaidPlanActive();
   const hasAvailableSlot=used<limit;
+
+  if(SAME_ROLE_PAID_ACCESS_REASON){
+    $('free-btn').textContent=
+      'Post a different role instead';
+  }
 
   /*
    * This button is the "use capacity" action, not literally only the free slot.
@@ -779,10 +846,31 @@ function renderPlans(){
   }
 }
 function switchBilling(next){
-  billing=CATALOG[next]?next:'quarterly';
+  if(
+    SAME_ROLE_PAID_ACCESS_REASON &&
+    next==='weekly'
+  ){
+    next='monthly';
+  }
+
+  billing=CATALOG[next]
+    ?next
+    :'quarterly';
+
   document.querySelectorAll('[data-billing]').forEach(btn=>{
-    btn.classList.toggle('active',btn.dataset.billing===billing);
+    const isWeekly=
+      btn.dataset.billing==='weekly';
+
+    btn.hidden=
+      SAME_ROLE_PAID_ACCESS_REASON &&
+      isWeekly;
+
+    btn.classList.toggle(
+      'active',
+      btn.dataset.billing===billing
+    );
   });
+
   renderPlans();
 }
 
@@ -907,9 +995,14 @@ async function loadAccount(){
 }
 
 $('back-btn').addEventListener('click',()=>{
+  if(SAME_ROLE_PAID_ACCESS_REASON){
+    location.href='app-post-job.html?return=free-role-rule';
+    return;
+  }
+
   location.href=SLOT_GATE_REASON
-    ? 'app-employer-dashboard.html?view=jobs'
-    : 'app-employer-dashboard.html#settings';
+    ?'app-employer-dashboard.html?view=jobs'
+    :'app-employer-dashboard.html#settings';
 });
 
 document.querySelectorAll('[data-billing]').forEach(btn=>{
@@ -919,13 +1012,28 @@ document.querySelectorAll('[data-billing]').forEach(btn=>{
 $('free-btn').addEventListener('click',()=>{
   if($('free-btn').disabled)return;
 
-  // A previous full-capacity redirect may still be sitting in sessionStorage.
-  // Once live capacity says a slot is available, clear that stale gate.
-  sessionStorage.removeItem('alygnn_job_slot_gate');
-  sessionStorage.removeItem('alygnnEditJobId');
-  sessionStorage.removeItem('alygnnJobReturnStep');
+  sessionStorage.removeItem(
+    'alygnn_job_slot_gate'
+  );
 
-  location.replace('app-post-job.html?from=pricing&capacity=available');
+  sessionStorage.removeItem(
+    'alygnnEditJobId'
+  );
+
+  sessionStorage.removeItem(
+    'alygnnJobReturnStep'
+  );
+
+  if(SAME_ROLE_PAID_ACCESS_REASON){
+    location.replace(
+      'app-post-job.html?from=pricing&choose=different-role'
+    );
+    return;
+  }
+
+  location.replace(
+    'app-post-job.html?from=pricing&capacity=available'
+  );
 });
 
 $('additional-slot-btn').addEventListener('click',()=>{
