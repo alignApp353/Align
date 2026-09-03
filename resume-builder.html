@@ -2030,8 +2030,43 @@
     Build resume
   </div>
 
-  <a href="align-upload.html" class="nav-back">← Back</a>
+  <a href="align-upload.html" class="nav-back" id="resume-builder-back">← Back</a>
 </nav>
+
+<script>
+(function configureResumeBuilderBackLink(){
+  const backLink = document.getElementById('resume-builder-back');
+  if (!backLink) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const from = String(params.get('from') || '').toLowerCase();
+
+  if (from === 'account') {
+    backLink.href = 'account.html';
+    return;
+  }
+
+  if (from === 'align-upload' || from === 'upload' || from === 'onboarding') {
+    backLink.href = 'align-upload.html';
+    return;
+  }
+
+  // Backward-compatible fallback for an older Account page that did not yet
+  // append ?from=account to the Resume Builder URL.
+  try {
+    const referrer = document.referrer ? new URL(document.referrer) : null;
+    if (referrer && referrer.origin === window.location.origin) {
+      const path = referrer.pathname.toLowerCase();
+      if (path.endsWith('/account.html')) {
+        backLink.href = 'account.html';
+      } else if (path.endsWith('/align-upload.html')) {
+        backLink.href = 'align-upload.html';
+      }
+    }
+  } catch (_) {}
+})();
+</script>
+
 
 <main>
   <div class="page-heading">
@@ -2140,9 +2175,9 @@
               <input id="skillInput" type="text" placeholder="Search skills — e.g. Customer service" autocomplete="off" aria-autocomplete="list" aria-controls="skillSuggestions">
               <div class="skill-suggestions" id="skillSuggestions" role="listbox"></div>
             </div>
-            <div class="helper">Select at least 1 skill from Alygnn's skill library. You can add up to 12 skills.</div>
+            <div class="helper">Search and select 6–12 skills from Alygnn's skill library. Skills must be picked from the list.</div>
             <div class="field-error" id="skillError"></div>
-            <div class="skills-count" id="skillsCount">0 selected · choose 1 to continue</div>
+            <div class="skills-count" id="skillsCount">0 of 6 minimum skills selected</div>
           </div>
 
           <div class="skills-list" id="skillsList"></div>
@@ -2383,31 +2418,8 @@
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-  
-function alygnnAuthStorageKey() {
-  let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
-  if (!tabId) {
-    tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
-      ? window.crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-    window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
-  }
-  return `alygnn-auth-${tabId}`;
-}
-
-const { createClient } = supabase;
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      storage: window.sessionStorage,
-      storageKey: alygnnAuthStorageKey(),
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
-    }
-  });
-
-  const PROFILE_EDIT_MODE =
-    new URLSearchParams(window.location.search).get('from') === 'account';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let STORAGE_KEY = null;
 
@@ -3642,7 +3654,7 @@ const { createClient } = supabase;
     if (validExperience.length >= 1) score += 20; else tips.push('Add work experience (+20%)');
     if (validExperience.length >= 2) score += 5; else tips.push('Add another job experience (+5%)');
     if (validEducation.length >= 1) score += 10; else tips.push('Add education (+10%)');
-    if (data.skills.length >= 1) score += 15; else tips.push('Add at least 1 skill (+15%)');
+    if (data.skills.length >= 6) score += 15; else tips.push('Add at least 6 skills (+15%)');
 
     score = Math.min(score, 100);
 
@@ -3652,7 +3664,7 @@ const { createClient } = supabase;
     const completed = [];
     if (data.summary && data.summary.length >= 80) completed.push('Professional summary added');
     if (validExperience.length >= 1) completed.push('Work experience added');
-    if (data.skills.length >= 1) completed.push('Skills section added');
+    if (data.skills.length >= 6) completed.push('Strong skills section');
 
     const rows = [
       ...completed.slice(0, 2).map(text => `<div class="score-tip done">✓ ${escapeHtml(text)}</div>`),
@@ -3685,9 +3697,9 @@ const { createClient } = supabase;
     });
 
     if (count) {
-      const remaining = Math.max(0, 1 - state.skills.length);
+      const remaining = Math.max(0, 6 - state.skills.length);
       count.textContent = remaining
-        ? `${state.skills.length} selected · choose 1 to continue`
+        ? `${state.skills.length} selected · choose ${remaining} more to continue`
         : `${state.skills.length} selected · skills requirement complete`;
       count.classList.toggle('ready', remaining === 0);
     }
@@ -3806,157 +3818,6 @@ const { createClient } = supabase;
       console.error(error);
       setSaveStatus('Unable to save draft on this device.', 'error');
     }
-  }
-
-  function applyProfileEditModeUI() {
-    if (!PROFILE_EDIT_MODE) return;
-
-    document.title = 'Alygnn — Profile details';
-
-    const navStep = document.querySelector('.nav-step');
-    if (navStep) {
-      navStep.innerHTML = '<span class="step-pill">Candidate profile</span>Profile details';
-    }
-
-    const back = document.querySelector('.nav-back');
-    if (back) {
-      back.href = 'account.html';
-      back.textContent = '← Back to account';
-    }
-
-    const eyebrow = document.querySelector('.eyebrow-text');
-    if (eyebrow) eyebrow.textContent = 'Profile details';
-
-    const heading = document.querySelector('.page-heading h1');
-    if (heading) heading.innerHTML = 'Edit your profile <em>details.</em>';
-
-    const copy = document.querySelector('.page-heading p');
-    if (copy) {
-      copy.textContent =
-        'Update the resume details Alygnn uses for your candidate profile and employer matches.';
-    }
-  }
-
-  function normalizeSavedResumeForBuilder(raw, user) {
-    let data = raw;
-
-    if (typeof data === 'string') {
-      try { data = JSON.parse(data); }
-      catch (_) { data = {}; }
-    }
-
-    data = (data && typeof data === 'object') ? data : {};
-    const personal = (data.personal && typeof data.personal === 'object')
-      ? data.personal
-      : {};
-
-    const name =
-      data.name ||
-      data.full_name ||
-      [personal.first_name, personal.last_name].filter(Boolean).join(' ') ||
-      user?.user_metadata?.full_name ||
-      user?.user_metadata?.name ||
-      '';
-
-    const location =
-      data.location ||
-      personal.location ||
-      [personal.city, personal.state].filter(Boolean).join(', ');
-
-    const experience = Array.isArray(data.experience)
-      ? data.experience.map(item => {
-          if (typeof item === 'string') {
-            return {
-              title: '',
-              company: '',
-              start: '',
-              end: '',
-              location: '',
-              description: item
-            };
-          }
-
-          item = (item && typeof item === 'object') ? item : {};
-          return {
-            title: item.title || item.role || item.position || '',
-            company: item.company || item.company_name || item.employer || '',
-            start: item.start || item.start_date || '',
-            end: item.end || item.end_date || '',
-            location: item.location || '',
-            description:
-              item.description ||
-              item.details ||
-              (Array.isArray(item.bullets) ? item.bullets.join('\n') : '')
-          };
-        })
-      : [];
-
-    const education = Array.isArray(data.education)
-      ? data.education.map(item => {
-          if (typeof item === 'string') {
-            return { school: '', degree: item, date: '', location: '' };
-          }
-
-          item = (item && typeof item === 'object') ? item : {};
-          return {
-            school: item.school || item.institution || item.university || '',
-            degree: item.degree || item.program || item.field || '',
-            date: item.date || item.dates || item.graduation_date || '',
-            location: item.location || ''
-          };
-        })
-      : [];
-
-    const awards = Array.isArray(data.awards)
-      ? data.awards.map(item => {
-          if (typeof item === 'string') {
-            return { title: item, issuer: '', date: '' };
-          }
-
-          item = (item && typeof item === 'object') ? item : {};
-          return {
-            title: item.title || item.name || '',
-            issuer: item.issuer || item.organization || '',
-            date: item.date || ''
-          };
-        })
-      : [];
-
-    return {
-      name,
-      title:
-        data.title ||
-        data.job_title ||
-        data.headline ||
-        personal.title ||
-        '',
-      email:
-        data.email ||
-        personal.email ||
-        user?.email ||
-        '',
-      phone:
-        data.phone ||
-        personal.phone ||
-        '',
-      location,
-      summary:
-        typeof data.summary === 'string'
-          ? data.summary
-          : (typeof data.professional_summary === 'string'
-              ? data.professional_summary
-              : ''),
-      skills: Array.isArray(data.skills)
-        ? data.skills
-            .map(skill => typeof skill === 'string' ? skill : (skill?.name || ''))
-            .filter(Boolean)
-        : [],
-      experience,
-      education,
-      awards,
-      template: data.template || 'classic',
-      source: data.source || 'resume-builder'
-    };
   }
 
   function loadDraft() {
@@ -4097,7 +3958,7 @@ const { createClient } = supabase;
       }
     });
 
-    if (state.skills.length < 1) add('Select at least 1 skill from the skill library.', document.getElementById('skillInput'));
+    if (state.skills.length < 6) add('Select at least 6 skills from the skill library.', document.getElementById('skillInput'));
     if (state.skills.length > 12) add('Keep your skills list to 12 or fewer.', document.getElementById('skillInput'));
     const invalidSkill = state.skills.find(skill => !SKILL_LIBRARY_SET.has(skill.toLowerCase()));
     if (invalidSkill) add(`Replace “${invalidSkill}” with a skill from the Alygnn list.`, document.getElementById('skillInput'));
@@ -4113,11 +3974,9 @@ const { createClient } = supabase;
     const issues = getCompletionIssues();
     const complete = issues.length === 0;
     button.disabled = !complete;
-    button.textContent = complete
-      ? (PROFILE_EDIT_MODE ? 'Save changes' : 'Save & continue →')
-      : (PROFILE_EDIT_MODE ? 'Complete profile to save' : 'Complete resume to continue');
+    button.textContent = complete ? 'Save & continue →' : 'Complete resume to continue';
     completionStatus.textContent = complete
-      ? (PROFILE_EDIT_MODE ? 'Profile details are ready to save.' : 'Resume complete — you can continue.')
+      ? 'Resume complete — you can continue.'
       : `${issues.length} required item${issues.length === 1 ? '' : 's'} left. Next: ${issues[0].message}`;
     completionStatus.classList.toggle('ready', complete);
   }
@@ -4472,8 +4331,8 @@ const { createClient } = supabase;
 
     const button = document.getElementById('continueBtn');
     button.disabled = true;
-    button.textContent = PROFILE_EDIT_MODE ? 'Saving changes...' : 'Saving...';
-    setSaveStatus(PROFILE_EDIT_MODE ? 'Saving your profile details...' : 'Saving your resume...');
+    button.textContent = 'Saving...';
+    setSaveStatus('Saving your resume...');
 
     const data = getFormData();
 
@@ -4485,21 +4344,20 @@ const { createClient } = supabase;
 
       setSaveStatus(
         result.loggedIn
-          ? (PROFILE_EDIT_MODE
-              ? 'Profile details saved to your Alygnn account.'
-              : 'Resume saved to your Alygnn account. Continuing…')
+          ? 'Resume saved to your Alygnn account. Continuing…'
           : 'Resume saved for this session. Continuing…',
         'success'
       );
 
-      // Editing from Account returns to Account. Onboarding still continues
-      // to Preferences exactly as before.
-      window.location.href = PROFILE_EDIT_MODE ? 'account.html' : 'preferences.html';
+      // Keep the structured resume available to the next page immediately.
+      // The Account page should use resume_data as a valid resume source even
+      // when no uploaded file path exists.
+      window.location.href = 'preferences.html';
     } catch (error) {
       console.error('Resume save failed:', error);
       setSaveStatus('Your resume was saved locally, but account sync failed.', 'error');
       button.disabled = false;
-      button.textContent = PROFILE_EDIT_MODE ? 'Save changes' : 'Save & continue →';
+      button.textContent = 'Save & continue →';
     }
   }
 
@@ -4663,40 +4521,9 @@ const { createClient } = supabase;
     try { localStorage.removeItem('alygnn_resume_builder_draft'); } catch {}
 
     const { data: { session } } = await sb.auth.getSession();
-
-    // Profile details is an authenticated Account action. Because this page
-    // uses the same tab-scoped Supabase storage key as account.html, the user
-    // stays signed in while navigating here.
-    if (PROFILE_EDIT_MODE && !session) {
-      window.location.replace('login.html');
-      return;
-    }
-
     STORAGE_KEY = session?.user?.id
       ? 'alygnn_resume_builder_draft:' + session.user.id
       : 'alygnn_resume_builder_draft_anon';
-
-    applyProfileEditModeUI();
-
-    if (PROFILE_EDIT_MODE && session?.user?.id) {
-      const { data: profile, error: profileError } = await sb
-        .from('profiles')
-        .select('resume_data')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      if (profileError) {
-        console.error('Could not load saved profile details:', profileError);
-        setSaveStatus('We could not load your saved profile details. Please refresh and try again.', 'error');
-      } else if (profile?.resume_data) {
-        try {
-          const saved = normalizeSavedResumeForBuilder(profile.resume_data, session.user);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-        } catch (error) {
-          console.error('Could not prepare saved profile details:', error);
-        }
-      }
-    }
 
     loadDraft();
     applyResumeTemplate(state.template || 'classic', false);
