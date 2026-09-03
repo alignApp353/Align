@@ -255,6 +255,35 @@ const ADDITIONAL_SLOT={
   ]
 };
 
+const URGENTLY_HIRING_ADDON={
+  monthly:{
+    name:'Urgently Hiring',
+    price:49,
+    suffix:'/ month',
+    kind:'urgently_hiring_addon',
+    slots:0,
+    features:[
+      'Urgently Hiring label on active job listings',
+      'Designed for Launch employers',
+      'Growth and Scale include this feature',
+      'Renews monthly until canceled'
+    ]
+  },
+  quarterly:{
+    name:'Urgently Hiring',
+    price:129,
+    suffix:'/ 3 months',
+    kind:'urgently_hiring_addon',
+    slots:0,
+    features:[
+      'Urgently Hiring label on active job listings',
+      'Designed for Launch employers',
+      'Growth and Scale include this feature',
+      'Renews every three months until canceled'
+    ]
+  }
+};
+
 const JOB_BOOST={
   name:'Job Boost',
   price:15,
@@ -310,8 +339,20 @@ function isBoost(){
   return product==='job_boost';
 }
 
+function isUrgentAddon(){
+  return product==='urgently_hiring_addon';
+}
+
 function item(){
   if(isAddon()) return ADDITIONAL_SLOT;
+
+  if(isUrgentAddon()){
+    return URGENTLY_HIRING_ADDON[
+      billing==='quarterly'
+        ?'quarterly'
+        :'monthly'
+    ];
+  }
 
   if(isBoost()){
     return {
@@ -386,15 +427,32 @@ function returnToPricing(){
 function renderTabs(){
   const addon=isAddon();
   const boost=isBoost();
+  const urgent=isUrgentAddon();
 
   ['quarterly','monthly','weekly'].forEach(key=>{
     const tab=$('tab-'+key);
-    tab.hidden=addon||boost;
-    tab.classList.toggle('active',!addon&&!boost&&billing===key);
+    tab.hidden=addon||boost||urgent;
+    tab.classList.toggle(
+      'active',
+      !addon&&!boost&&!urgent&&billing===key
+    );
   });
 }
 
 function renderOptions(){
+  if(isUrgentAddon()){
+    const urgent=item();
+
+    $('plan-options').innerHTML=`
+      <button type="button" class="plan-option active" disabled>
+        <div class="name">Urgently Hiring</div>
+        <div class="price">${display(urgent.price)} <span>${urgent.suffix}</span></div>
+        <div class="slots">Adds the Urgently Hiring label to eligible Launch listings</div>
+      </button>
+    `;
+    return;
+  }
+
   if(isAddon()){
     $('plan-options').innerHTML=`
       <button type="button" class="plan-option active" disabled>
@@ -469,7 +527,9 @@ function renderSummary(){
 
   $('summary-slots').textContent=isAddon()
     ? 'Second reusable job slot · 2 base slots while subscribed'
-    : isBoost()
+    : isUrgentAddon()
+      ? 'Urgently Hiring label add-on · no additional job slots'
+      : isBoost()
       ? `${boostDays} day${boostDays===1?'':'s'} · $15/day · applicant cap lifted while active`
       : (billing==='weekly'||plan==='weekly_slot')
         ? `+1 temporary reusable slot · ${addedSlotTotal()} total after activation`
@@ -484,7 +544,9 @@ function renderSummary(){
 
     $('authorization').textContent=isAddon()
       ?'By continuing, you confirm this is a developer test activation of the standalone $150/month Second Job Slot. No payment will be processed.'
-      :isBoost()
+      :isUrgentAddon()
+        ?'By continuing, you confirm this is a developer test activation of the Urgently Hiring add-on. No payment will be processed.'
+        :isBoost()
         ?`By continuing, you confirm this is a developer test activation of a ${boostDays}-day Job Boost. No payment will be processed.`
         :`By continuing, you confirm this is a developer test activation of ${p.name}. No payment will be processed.`;
   }else{
@@ -513,7 +575,12 @@ function renderSummary(){
 }
 
 function renderAll(){
-  if(isAddon()){
+  if(isUrgentAddon()){
+    $('checkout-heading').textContent='Add Urgently Hiring.';
+    $('checkout-lede').textContent=
+      'Add an Urgently Hiring label to your active Launch listings. Growth and Scale already include this feature.';
+    $('plan-panel-title').textContent='1. Confirm your add-on';
+  }else if(isAddon()){
     $('checkout-heading').textContent='Add your second job slot.';
     $('checkout-lede').textContent=
       'The standalone Second Job Slot is $150/month for employers who are not on a monthly or quarterly plan. It gives you 2 base reusable slots total.';
@@ -541,7 +608,7 @@ function renderAll(){
 }
 
 function switchBilling(next){
-  if(isAddon()||isBoost()) return;
+  if(isAddon()||isBoost()||isUrgentAddon()) return;
 
   billing=CATALOG[next]?next:'quarterly';
 
@@ -561,6 +628,10 @@ function updateUrl(){
   if(isAddon()){
     u.searchParams.set('product','additional_slot');
     u.searchParams.set('billing','monthly');
+    u.searchParams.delete('plan');
+  }else if(isUrgentAddon()){
+    u.searchParams.set('product','urgently_hiring_addon');
+    u.searchParams.set('billing',billing==='quarterly'?'quarterly':'monthly');
     u.searchParams.delete('plan');
   }else if(isBoost()){
     u.searchParams.set('product','job_boost');
@@ -662,6 +733,33 @@ function paymentNextUpgrade(){
   return'';
 }
 
+function urgentAddonEligible(){
+  if(!basePaidPlanActive())return false;
+
+  const current=paymentPlanCode();
+
+  if(['growth','scale'].includes(current)){
+    return false;
+  }
+
+  return current==='launch' &&
+    postingAccess?.urgently_hiring!==true;
+}
+
+function urgentAddonMessage(){
+  const current=paymentPlanCode();
+
+  if(['growth','scale'].includes(current)){
+    return 'Urgently Hiring is already included with your current plan.';
+  }
+
+  if(!basePaidPlanActive()){
+    return 'Urgently Hiring is available as a Launch add-on. Growth and Scale include it automatically.';
+  }
+
+  return 'The Urgently Hiring add-on is not available for this account right now.';
+}
+
 function boostEligible(){
   return basePaidPlanActive();
 }
@@ -721,6 +819,7 @@ async function initialize(){
   if(![
     'additional_slot',
     'job_boost',
+    'urgently_hiring_addon',
     'job_plan'
   ].includes(product)){
     product='job_plan';
@@ -745,9 +844,15 @@ async function initialize(){
     ?'monthly'
     :isBoost()
       ?'one_time'
-      :String(query.get('billing')||'quarterly').toLowerCase();
+      :isUrgentAddon()
+        ?(
+            String(query.get('billing')||'monthly').toLowerCase()==='quarterly'
+              ?'quarterly'
+              :'monthly'
+          )
+        :String(query.get('billing')||'quarterly').toLowerCase();
 
-  if(!isBoost()&&!CATALOG[billing]){
+  if(!isBoost()&&!isUrgentAddon()&&!CATALOG[billing]){
     billing='quarterly';
   }
 
@@ -755,7 +860,7 @@ async function initialize(){
     query.get('plan')||'launch'
   ).toLowerCase();
 
-  if(!isBoost()&&!CATALOG[billing][plan]){
+  if(!isBoost()&&!isUrgentAddon()&&!CATALOG[billing][plan]){
     plan=billing==='weekly'
       ?'weekly_slot'
       :'launch';
@@ -786,6 +891,17 @@ async function initialize(){
     $('checkout-btn').disabled=true;
     $('terms').disabled=true;
     showMessage(addonIneligibleMessage());
+  }
+
+  if(isUrgentAddon()&&!urgentAddonEligible()){
+    showMessage(urgentAddonMessage());
+    return;
+  }
+
+  if(isUrgentAddon()&&!urgentAddonEligible()){
+    $('checkout-btn').disabled=true;
+    $('terms').disabled=true;
+    showMessage(urgentAddonMessage());
   }
 
   if(isBoost()&&!boostEligible()){
@@ -828,7 +944,9 @@ async function initialize(){
     $('secure-title').textContent='Activate access for testing';
     $('secure-copy').textContent=isBoost()
       ?'Stripe is bypassed in this temporary development build. Alygnn will activate the Job Boost in Supabase so you can test the applicant-limit behavior.'
-      :'Stripe is bypassed in this temporary development build. Alygnn will activate the selected package in Supabase so you can test the real plan limits and features.';
+      :isUrgentAddon()
+        ?'Stripe is bypassed in this temporary development build. Alygnn will activate the Urgently Hiring add-on in Supabase for testing.'
+        :'Stripe is bypassed in this temporary development build. Alygnn will activate the selected package in Supabase so you can test the real plan limits and features.';
     const fineprint=$('payment-fineprint');
     if(fineprint) fineprint.textContent='TEST MODE: $0 will be charged. Disable FORCE_DEVELOPER_TEST_MODE before releasing the app.';
   }
@@ -905,6 +1023,62 @@ async function activateDeveloperTest(){
       location.href=returnMode==='preview'
         ?'app-job-preview.html'
         :'app-employer-dashboard.html#jobs';
+    },650);
+
+    return;
+  }
+
+  if(isUrgentAddon()){
+    const {data,error}=await sb.rpc(
+      'activate_employer_test_urgently_hiring_addon',
+      {
+        p_billing:
+          billing==='quarterly'
+            ?'quarterly'
+            :'monthly'
+      }
+    );
+
+    if(error){
+      console.error(error);
+      showMessage(
+        error.message||
+        'Urgently Hiring test activation is not installed yet. Run ALYGNN-WEEKLY-TEST-AND-URGENTLY-HIRING.sql in Supabase.'
+      );
+      updateCheckoutButton();
+      return;
+    }
+
+    btn.textContent='Urgently Hiring activated ✓';
+
+    setTimeout(()=>{
+      location.href='app-employer-pricing.html';
+    },650);
+
+    return;
+  }
+
+  if(billing==='weekly'||plan==='weekly_slot'){
+    const {data,error}=await sb.rpc(
+      'activate_employer_test_weekly_slot'
+    );
+
+    if(error){
+      console.error(error);
+      showMessage(
+        error.message||
+        'Weekly Job Slot test activation is not installed yet. Run ALYGNN-WEEKLY-TEST-AND-URGENTLY-HIRING.sql in Supabase.'
+      );
+      updateCheckoutButton();
+      return;
+    }
+
+    btn.textContent='Weekly Job Slot activated ✓';
+
+    setTimeout(()=>{
+      location.href=returnMode==='preview'
+        ?'app-job-preview.html'
+        :'app-employer-dashboard.html?view=jobs';
     },650);
 
     return;
