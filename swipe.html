@@ -338,8 +338,30 @@
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+  function alygnnAuthStorageKey() {
+    let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
+
+    if (!tabId) {
+      tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+        ? window.crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+
+      window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
+    }
+
+    return `alygnn-auth-${tabId}`;
+  }
+
   const { createClient } = supabase;
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      storage: window.sessionStorage,
+      storageKey: alygnnAuthStorageKey(),
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
 
   let jobs = [];
   let currentIndex = 0;
@@ -489,10 +511,8 @@
         );
       }
 
-      // Location matching supports BOTH:
-      //   • City + state: "Raleigh, NC"
-      //   • Statewide: "North Carolina" / "NC"
-      // Remote jobs remain eligible unless the rest of the user's criteria removes them.
+      // Location matching. Keep the existing city behavior, but also
+      // allow a candidate to intentionally choose an entire state.
       const STATE_ABBR_TO_NAME = {
         AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas', CA:'California',
         CO:'Colorado', CT:'Connecticut', DE:'Delaware', DC:'District of Columbia',
@@ -511,69 +531,49 @@
         Object.entries(STATE_ABBR_TO_NAME).map(([abbr, name]) => [name.toLowerCase(), abbr.toLowerCase()])
       );
 
-      function preferredStateAbbr(pref) {
-        const directAbbr = String(pref.state_abbr || '').trim().toLowerCase();
-        if (/^[a-z]{2}$/.test(directAbbr)) return directAbbr;
+      const rawState = String(pref.state_abbr || pref.state || '').trim();
+      let preferredState = '';
 
-        const stateText = String(pref.state || '').trim();
-        if (stateText) {
-          if (/^[a-z]{2}$/i.test(stateText)) return stateText.toLowerCase();
-          const fromName = STATE_NAME_TO_ABBR[stateText.toLowerCase()];
-          if (fromName) return fromName;
-        }
-
-        const locationText = String(pref.location || '').trim();
-        if (/^[a-z]{2}$/i.test(locationText)) return locationText.toLowerCase();
-
-        const fullState = STATE_NAME_TO_ABBR[locationText.toLowerCase()];
-        if (fullState) return fullState;
-
-        const commaMatch = locationText.match(/,\s*([a-z]{2})\s*$/i);
-        return commaMatch ? commaMatch[1].toLowerCase() : '';
+      if (/^[A-Za-z]{2}$/.test(rawState)) {
+        preferredState = rawState.toLowerCase();
+      } else if (rawState) {
+        preferredState = STATE_NAME_TO_ABBR[rawState.toLowerCase()] || '';
       }
 
-      function jobMatchesState(job, stateAbbr) {
-        if (!stateAbbr) return false;
-        if (job.work_style === 'Remote') return true;
-
-        const jobLocation = String(job.location || '').trim().toLowerCase();
-        const stateName = (STATE_ABBR_TO_NAME[stateAbbr.toUpperCase()] || '').toLowerCase();
-
-        return new RegExp(`,\\s*${stateAbbr}(?:\\s|$)`, 'i').test(jobLocation) ||
-          (stateName && jobLocation.includes(stateName));
+      const rawLocation = String(pref.location || '').trim();
+      if (!preferredState && rawLocation) {
+        if (/^[A-Za-z]{2}$/.test(rawLocation)) {
+          preferredState = rawLocation.toLowerCase();
+        } else if (STATE_NAME_TO_ABBR[rawLocation.toLowerCase()]) {
+          preferredState = STATE_NAME_TO_ABBR[rawLocation.toLowerCase()];
+        } else {
+          const stateMatch = rawLocation.match(/,\s*([A-Za-z]{2})\s*$/);
+          if (stateMatch) preferredState = stateMatch[1].toLowerCase();
+        }
       }
 
       const preferredCity = String(pref.city || '').trim().toLowerCase();
-      const preferredState = preferredStateAbbr(pref);
-      const rawLocation = String(pref.location || '').trim().toLowerCase();
-      const stateOnly = !preferredCity && !!preferredState;
+      const isStateOnly = !preferredCity && !!preferredState;
 
-      if (stateOnly) {
-        // State-only means exactly what it says: any city in that state.
-        results = results.filter(job => jobMatchesState(job, preferredState));
-
-      } else if (preferredCity || rawLocation) {
-        const beforeLocationFilter = [...results];
-
-        const citySearch = preferredCity ||
-          rawLocation.replace(/,\s*[a-z]{2}\s*$/i, '').trim();
-
-        const exactCityMatches = beforeLocationFilter.filter(job => {
+      if (isStateOnly) {
+        results = results.filter(job => {
           if (job.work_style === 'Remote') return true;
 
-          const jobLocation = String(job.location || '').trim().toLowerCase();
-          return citySearch &&
-            (jobLocation.includes(citySearch) || citySearch.includes(jobLocation));
-        });
+          const jobLocation = String(job.location || '').toLowerCase();
+          const stateName = String(STATE_ABBR_TO_NAME[preferredState.toUpperCase()] || '').toLowerCase();
 
-        if (exactCityMatches.length) {
-          results = exactCityMatches;
-        } else if (preferredState) {
-          // City choice can still gracefully widen to the same state if
-          // Alygnn does not have inventory in that exact city yet.
-          results = beforeLocationFilter.filter(job => jobMatchesState(job, preferredState));
-        } else {
-          results = exactCityMatches;
+          return new RegExp(`,\\s*${preferredState}(?:\\s|$)`, 'i').test(jobLocation) ||
+            (stateName && jobLocation.includes(stateName));
+        });
+      } else {
+        const locationPref = (pref.city || pref.location || '').trim().toLowerCase();
+
+        if (locationPref) {
+          results = results.filter(job =>
+            job.work_style === 'Remote' ||
+            (job.location || '').toLowerCase().includes(locationPref) ||
+            locationPref.includes((job.location || '').toLowerCase())
+          );
         }
       }
 
@@ -592,9 +592,7 @@
       }
 
       if (!results.length) {
-        const noMatchError = new Error('No jobs match your preferences right now. Try widening your criteria in Preferences, or check back soon.');
-        noMatchError.code = 'NO_MATCHES';
-        throw noMatchError;
+        throw new Error('No jobs match your preferences right now. Try widening your criteria in Preferences, or check back soon.');
       }
 
       jobs = results;
@@ -607,21 +605,7 @@
       showScreen('swipe');
     } catch (err) {
       console.error('loadJobs error:', err);
-
-      const errorTitle = document.querySelector('#error-screen .error-title');
-      const errorIcon = document.querySelector('#error-screen .error-icon');
-      const errorMsg = document.getElementById('error-msg');
-
-      if (err?.code === 'NO_MATCHES') {
-        if (errorTitle) errorTitle.textContent = 'No matching jobs yet';
-        if (errorIcon) errorIcon.textContent = '⌕';
-        errorMsg.textContent = err.message;
-      } else {
-        if (errorTitle) errorTitle.textContent = "Couldn't load jobs";
-        if (errorIcon) errorIcon.textContent = '!';
-        errorMsg.textContent = err.message || 'Failed to load jobs.';
-      }
-
+      document.getElementById('error-msg').textContent = err.message || 'Failed to load jobs.';
       showScreen('error');
     }
   }
