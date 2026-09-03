@@ -12,6 +12,8 @@
 //   customer.subscription.updated
 //   customer.subscription.deleted
 //   invoice.paid
+//   invoice.payment_failed
+//   invoice.payment_action_required
 //
 // If you ALREADY have a Stripe webhook, merge the fulfillment branches below into
 // your existing verified webhook instead of running two handlers for the same event.
@@ -58,13 +60,45 @@ function verifyStripeSignature(buffer, header, secret) {
   if (!valid) throw new Error('Invalid Stripe webhook signature.');
 }
 
-async function stripeGet(path) {
-  const response = await fetch('https://api.stripe.com/v1/' + path.replace(/^\//, ''), {
-    headers: { Authorization: 'Bearer ' + process.env.STRIPE_SECRET_KEY }
-  });
+async function stripeRequest(method, path, params = {}) {
+  const secret = process.env.STRIPE_SECRET_KEY;
+  if (!secret) throw new Error('STRIPE_SECRET_KEY is not configured.');
+
+  let url = 'https://api.stripe.com/v1/' + String(path || '').replace(/^\//, '');
+  const options = { method, headers: { Authorization: 'Bearer ' + secret } };
+
+  if (method === 'GET') {
+    const u = new URL(url);
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') u.searchParams.append(key, String(value));
+    });
+    url = u.toString();
+  } else {
+    const form = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') form.append(key, String(value));
+    });
+    options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    options.body = form;
+  }
+
+  const response = await fetch(url, options);
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data?.error?.message || 'Stripe lookup failed.');
+  if (!response.ok) {
+    const error = new Error(data?.error?.message || 'Stripe request failed.');
+    error.status = response.status;
+    error.stripe = data?.error || null;
+    throw error;
+  }
   return data;
+}
+
+function stripeGet(path, params) {
+  return stripeRequest('GET', path, params);
+}
+
+function stripePost(path, params) {
+  return stripeRequest('POST', path, params);
 }
 
 function serviceHeaders(extra = {}) {
@@ -116,7 +150,19 @@ function planAmountCents(plan, billing) {
   return null;
 }
 
-async function upsertPlan({ employerId, plan, billing, status, periodEnd, subscriptionId, customerId, scheduleId }) {
+async function upsertPlan({
+  employerId,
+  plan,
+  billing,
+  status,
+  periodEnd,
+  subscriptionId,
+  customerId,
+  scheduleId,
+  candidateAccessLocked,
+  candidateAccessLockReason,
+  paymentFailedAt
+}) {
   const info = planInfo(plan);
   if (!employerId || !info) return;
 
@@ -132,12 +178,22 @@ async function upsertPlan({ employerId, plan, billing, status, periodEnd, subscr
     test_mode: false,
     test_plan: plan,
     urgently_hiring: info.urgent,
+    alygnn_recommended: info.urgent,
     plan_amount_cents: planAmountCents(plan, billing),
     stripe_plan_subscription_id: subscriptionId || null,
     stripe_plan_customer_id: customerId || null,
     stripe_plan_schedule_id: scheduleId || null,
     updated_at: new Date().toISOString()
   };
+
+  if (typeof candidateAccessLocked === 'boolean') {
+    row.candidate_access_locked = candidateAccessLocked;
+    row.candidate_access_lock_reason = candidateAccessLocked
+      ? (candidateAccessLockReason || 'payment_failed')
+      : null;
+    row.candidate_access_locked_at = candidateAccessLocked ? new Date().toISOString() : null;
+  }
+  if (paymentFailedAt) row.last_payment_failed_at = paymentFailedAt;
 
   const response = await fetch(`${supabaseBase()}/rest/v1/employer_entitlements?on_conflict=employer_id`, {
     method: 'POST',
@@ -153,7 +209,7 @@ async function upsertPlan({ employerId, plan, billing, status, periodEnd, subscr
   await fetch(`${supabaseBase()}/rest/v1/jobs?employer_id=eq.${encodeURIComponent(employerId)}&status=eq.active&posting_access_type=eq.plan`, {
     method: 'PATCH',
     headers: serviceHeaders({ Prefer: 'return=minimal' }),
-    body: JSON.stringify({ urgently_hiring: info.urgent })
+    body: JSON.stringify({ urgently_hiring: info.urgent, alygnn_recommended: info.urgent })
   });
 }
 
@@ -186,6 +242,134 @@ async function clearPendingIfApplied(employerId, activePlan) {
   });
 }
 
+async function findSecondSlotSubscriptions(employerId) {
+  const found = [];
+  for (const product of ['additional_slot', 'single_job']) {
+    try {
+      const query = `metadata["employer_id"]:"${employerId}" AND metadata["product"]:"${product}"`;
+      const result = await stripeGet('subscriptions/search', { query, limit: 20 });
+      for (const sub of result?.data || []) {
+        if (!['canceled', 'incomplete_expired'].includes(String(sub.status || '').toLowerCase())) {
+          found.push(sub);
+        }
+      }
+    } catch (error) {
+      console.warn('Could not search Second Job Slot subscriptions:', error?.message || error);
+    }
+  }
+  const unique = new Map(found.map(sub => [sub.id, sub]));
+  return [...unique.values()];
+}
+
+async function stopSecondSlotRenewalForPaidPlan(employerId) {
+  const subscriptions = await findSecondSlotSubscriptions(employerId);
+  for (const sub of subscriptions) {
+    if (sub.cancel_at_period_end === true) continue;
+    try {
+      await stripePost(`subscriptions/${encodeURIComponent(sub.id)}`, {
+        cancel_at_period_end: 'true'
+      });
+    } catch (error) {
+      console.warn('Could not stop Second Job Slot renewal after paid plan activation:', error?.message || error);
+    }
+  }
+}
+
+async function syncSecondSlotSubscription(subscription, forceStatus) {
+  const meta = subscription?.metadata || {};
+  if (!meta.employer_id) return;
+  const status = forceStatus || String(subscription.status || 'inactive').toLowerCase();
+  await rpc('sync_additional_job_slot_subscription', {
+    p_employer_id: meta.employer_id,
+    p_subscription_id: subscription.id,
+    p_status: status,
+    p_expires_at: subscription.current_period_end
+      ? new Date(Number(subscription.current_period_end) * 1000).toISOString()
+      : null,
+    p_checkout_session_id: null,
+    p_amount_cents: 15000
+  });
+  if (['canceled','unpaid','incomplete_expired'].includes(String(status).toLowerCase())) {
+    await rpc('alygnn_apply_second_slot_end', { p_employer_id: meta.employer_id });
+  }
+}
+
+async function ensureWebhookRecurringPrice(plan, billing) {
+  const lookup = `alygnn_${plan}_${billing}`;
+  const envKey = `STRIPE_PRICE_${String(plan).toUpperCase()}_${String(billing).toUpperCase()}`;
+  if (process.env[envKey]) return process.env[envKey];
+
+  const listed = await stripeGet('prices', {
+    'lookup_keys[]': lookup,
+    active: 'true',
+    limit: 1
+  });
+  if (listed?.data?.[0]?.id) return listed.data[0].id;
+
+  const cents = planAmountCents(plan, billing);
+  if (!cents) throw new Error('Unknown Alygnn upgrade price.');
+  const intervalCount = billing === 'quarterly' ? 3 : 1;
+  const name = `Alygnn ${String(plan).charAt(0).toUpperCase() + String(plan).slice(1)}${billing === 'quarterly' ? ' — 3 months' : ''}`;
+
+  const created = await stripePost('prices', {
+    currency: 'usd',
+    unit_amount: cents,
+    lookup_key: lookup,
+    'recurring[interval]': 'month',
+    'recurring[interval_count]': intervalCount,
+    'product_data[name]': name,
+    'metadata[alygnn_plan]': plan,
+    'metadata[billing]': billing
+  });
+  return created.id;
+}
+
+async function applyPaidUpgradeInvoice(invoice) {
+  const meta = invoice?.metadata || {};
+  if (String(meta.product || '').toLowerCase() !== 'plan_upgrade') return false;
+
+  const employerId = meta.employer_id;
+  const targetPlan = String(meta.target_plan || '').toLowerCase();
+  const billing = String(meta.billing || '').toLowerCase();
+  const subscriptionId = meta.subscription_id;
+  if (!employerId || !['launch','growth','scale'].includes(targetPlan) ||
+      !['monthly','quarterly'].includes(billing) || !subscriptionId) {
+    throw new Error('Paid upgrade invoice is missing required Alygnn metadata.');
+  }
+
+  let subscription = await stripeGet(`subscriptions/${encodeURIComponent(subscriptionId)}`);
+  const item = subscription?.items?.data?.[0];
+  if (!item?.id) throw new Error('Upgrade subscription item could not be identified.');
+
+  const targetPrice = meta.target_price_id || await ensureWebhookRecurringPrice(targetPlan, billing);
+  subscription = await stripePost(`subscriptions/${encodeURIComponent(subscriptionId)}`, {
+    cancel_at_period_end: 'false',
+    'items[0][id]': item.id,
+    'items[0][price]': targetPrice,
+    'items[0][quantity]': 1,
+    proration_behavior: 'none',
+    'metadata[employer_id]': employerId,
+    'metadata[product]': 'job_plan',
+    'metadata[plan]': targetPlan,
+    'metadata[billing]': billing
+  });
+
+  await upsertPlan({
+    employerId,
+    plan: targetPlan,
+    billing,
+    status: String(subscription.status || 'active').toLowerCase(),
+    periodEnd: subscription.current_period_end,
+    subscriptionId: subscription.id,
+    customerId: typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id,
+    scheduleId: typeof subscription.schedule === 'string' ? subscription.schedule : subscription.schedule?.id,
+    candidateAccessLocked: false
+  });
+  await clearPendingIfApplied(employerId, targetPlan);
+  await stopSecondSlotRenewalForPaidPlan(employerId);
+  return true;
+}
+
 function plusDaysUnix(days) {
   return Math.floor(Date.now() / 1000) + days * 86400;
 }
@@ -203,15 +387,17 @@ async function fulfillCheckout(session) {
   if (!employerId || !product) return;
 
   if (product === 'additional_slot' || product === 'single_job') {
-    // Standalone $150/month Second Job Slot. The included free slot remains,
-    // so this subscription gives the employer 2 total reusable active slots.
+    // Free-account-only $150/month Second Job Slot.
     if (session.mode === 'subscription' && session.subscription) {
       const subscription = await stripeGet(`subscriptions/${encodeURIComponent(session.subscription)}`);
-      await rpc('sync_second_job_slot_subscription', {
+      await rpc('sync_additional_job_slot_subscription', {
         p_employer_id: employerId,
-        p_status: subscription.status === 'trialing' ? 'trialing' : 'active',
-        p_expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-        p_payment_reference: session.id,
+        p_subscription_id: subscription.id,
+        p_status: subscription.status === 'trialing' ? 'trialing' : String(subscription.status || 'active').toLowerCase(),
+        p_expires_at: subscription.current_period_end
+          ? new Date(Number(subscription.current_period_end) * 1000).toISOString()
+          : null,
+        p_checkout_session_id: session.id,
         p_amount_cents: session.amount_total || 15000
       });
       return;
@@ -239,8 +425,20 @@ async function fulfillCheckout(session) {
   }
 
   if (product === 'job_plan') {
-    const plan = meta.plan;
-    const billing = meta.billing;
+    const plan = String(meta.plan || '').toLowerCase();
+    const billing = String(meta.billing || '').toLowerCase();
+
+    // $99 Weekly is a TEMPORARY ADD-ON ROW. It must never replace the employer's
+    // Launch/Growth/Scale entitlement.
+    if (plan === 'weekly_slot' || billing === 'weekly') {
+      await rpc('grant_weekly_job_slot', {
+        p_employer_id: employerId,
+        p_payment_reference: session.id,
+        p_amount_cents: session.amount_total || 9900,
+        p_days: 7
+      });
+      return;
+    }
 
     if (session.mode === 'subscription' && session.subscription) {
       const subscription = await stripeGet(`subscriptions/${encodeURIComponent(session.subscription)}`);
@@ -248,52 +446,93 @@ async function fulfillCheckout(session) {
         employerId,
         plan,
         billing,
-        status: subscription.status === 'trialing' ? 'trialing' : 'active',
+        status: subscription.status === 'trialing' ? 'trialing' : String(subscription.status || 'active').toLowerCase(),
         periodEnd: subscription.current_period_end,
         subscriptionId: subscription.id,
         customerId: typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id,
-        scheduleId: typeof subscription.schedule === 'string' ? subscription.schedule : subscription.schedule?.id
+        scheduleId: typeof subscription.schedule === 'string' ? subscription.schedule : subscription.schedule?.id,
+        candidateAccessLocked: false
       });
       await clearPendingIfApplied(employerId, plan);
+      await stopSecondSlotRenewalForPaidPlan(employerId);
       return;
     }
 
-    const expires = billing === 'weekly' ? plusDaysUnix(7) : plusMonthsUnix(3);
-    await upsertPlan({ employerId, plan, billing, status: 'active', periodEnd: expires });
+    // Legacy quarterly one-time checkout compatibility.
+    const expires = plusMonthsUnix(3);
+    await upsertPlan({
+      employerId, plan, billing, status: 'active', periodEnd: expires,
+      candidateAccessLocked: false
+    });
+    await stopSecondSlotRenewalForPaidPlan(employerId);
   }
 }
 
-async function fulfillSubscription(subscription, forceStatus) {
+async function fulfillSubscription(subscription, forceStatus, options = {}) {
   const meta = subscription.metadata || {};
   const product = String(meta.product || '').toLowerCase();
   if (!meta.employer_id) return;
 
+  const actualStatus = forceStatus ||
+    (subscription.status === 'trialing' ? 'trialing' : String(subscription.status || 'active').toLowerCase());
+
   if (product === 'additional_slot' || product === 'single_job') {
-    const status = forceStatus || (subscription.status === 'trialing' ? 'trialing' : subscription.status);
-    await rpc('sync_second_job_slot_subscription', {
-      p_employer_id: meta.employer_id,
-      p_status: status,
-      p_expires_at: subscription.current_period_end
-        ? new Date(subscription.current_period_end * 1000).toISOString()
-        : null,
-      p_payment_reference: null,
-      p_amount_cents: 15000
-    });
+    await syncSecondSlotSubscription(subscription, actualStatus);
     return;
   }
 
   if (product !== 'job_plan') return;
+
+  let candidateLock;
+  let lockReason;
+  let failedAt;
+
+  if (options.clearCandidateLock === true ||
+      ['canceled','unpaid','incomplete_expired'].includes(actualStatus)) {
+    candidateLock = false;
+  } else if (options.lockCandidateAccess === true || actualStatus === 'past_due') {
+    candidateLock = true;
+    lockReason = options.lockReason || 'payment_failed';
+    failedAt = options.paymentFailedAt || new Date().toISOString();
+  }
+
   await upsertPlan({
     employerId: meta.employer_id,
     plan: meta.plan,
     billing: meta.billing || 'monthly',
-    status: forceStatus || (subscription.status === 'trialing' ? 'trialing' : 'active'),
+    status: actualStatus,
     periodEnd: subscription.current_period_end,
     subscriptionId: subscription.id,
     customerId: typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id,
-    scheduleId: typeof subscription.schedule === 'string' ? subscription.schedule : subscription.schedule?.id
+    scheduleId: typeof subscription.schedule === 'string' ? subscription.schedule : subscription.schedule?.id,
+    candidateAccessLocked: candidateLock,
+    candidateAccessLockReason: lockReason,
+    paymentFailedAt: failedAt
   });
+
   await clearPendingIfApplied(meta.employer_id, meta.plan);
+
+  if (['canceled','unpaid','incomplete_expired'].includes(actualStatus)) {
+    await rpc('alygnn_apply_free_fallback_after_plan_end', {
+      p_employer_id: meta.employer_id
+    });
+  }
+}
+
+function invoiceSubscriptionId(invoice) {
+  const direct = typeof invoice?.subscription === 'string'
+    ? invoice.subscription
+    : invoice?.subscription?.id;
+  if (direct) return direct;
+
+  const parent = invoice?.parent?.subscription_details?.subscription;
+  if (typeof parent === 'string') return parent;
+  if (parent?.id) return parent.id;
+
+  const legacyDetails = invoice?.subscription_details?.subscription;
+  if (typeof legacyDetails === 'string') return legacyDetails;
+  if (legacyDetails?.id) return legacyDetails.id;
+  return null;
 }
 
 module.exports = async function handler(req, res) {
@@ -318,19 +557,62 @@ module.exports = async function handler(req, res) {
         }
         break;
 
-      case 'customer.subscription.updated':
-        await fulfillSubscription(event.data.object);
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object;
+        const status = String(subscription.status || '').toLowerCase();
+        await fulfillSubscription(subscription, null, {
+          lockCandidateAccess: status === 'past_due',
+          lockReason: status === 'past_due' ? 'payment_failed' : undefined,
+          clearCandidateLock: ['canceled','unpaid','incomplete_expired'].includes(status)
+        });
         break;
+      }
 
       case 'customer.subscription.deleted':
-        await fulfillSubscription(event.data.object, 'canceled');
+        await fulfillSubscription(event.data.object, 'canceled', { clearCandidateLock: true });
         break;
 
       case 'invoice.paid': {
-        const subscriptionId = event.data.object.subscription;
+        const invoice = event.data.object;
+
+        // Fixed-difference plan upgrade invoice: payment first, capacity upgrade second.
+        if (String(invoice?.metadata?.product || '').toLowerCase() === 'plan_upgrade') {
+          await applyPaidUpgradeInvoice(invoice);
+          break;
+        }
+
+        const subscriptionId = invoiceSubscriptionId(invoice);
         if (subscriptionId) {
           const subscription = await stripeGet(`subscriptions/${encodeURIComponent(subscriptionId)}`);
-          await fulfillSubscription(subscription);
+          await fulfillSubscription(subscription, null, { clearCandidateLock: true });
+        }
+        break;
+      }
+
+      case 'invoice.payment_failed':
+      case 'invoice.payment_action_required': {
+        const invoice = event.data.object;
+
+        // A failed one-time fixed-difference upgrade does NOT lock the existing plan;
+        // the employer simply remains on the plan they already paid for.
+        if (String(invoice?.metadata?.product || '').toLowerCase() === 'plan_upgrade') break;
+
+        const subscriptionId = invoiceSubscriptionId(invoice);
+        if (subscriptionId) {
+          const subscription = await stripeGet(`subscriptions/${encodeURIComponent(subscriptionId)}`);
+          const product = String(subscription?.metadata?.product || '').toLowerCase();
+
+          if (product === 'job_plan') {
+            await fulfillSubscription(subscription, 'past_due', {
+              lockCandidateAccess: true,
+              lockReason: event.type === 'invoice.payment_action_required'
+                ? 'payment_action_required'
+                : 'payment_failed',
+              paymentFailedAt: new Date().toISOString()
+            });
+          } else if (product === 'additional_slot' || product === 'single_job') {
+            await syncSecondSlotSubscription(subscription, 'past_due');
+          }
         }
         break;
       }
