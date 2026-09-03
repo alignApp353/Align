@@ -571,6 +571,13 @@
 
     .status-badge.active{background:var(--green-bg);color:var(--green)}
     .status-badge.paused{background:var(--amber-bg);color:#A46908}
+
+    .status-badge.limit-reached{
+      background:#FFF1F0;
+      color:#C44743;
+      border:1px solid #F0C1BE;
+    }
+
     .status-badge.draft{background:#EEF1F4;color:#66717D}
     .status-badge.closed{background:var(--danger-bg);color:var(--danger)}
 
@@ -4325,7 +4332,8 @@
       currentView:'dashboard',
       selectedApplicantJobId:null,
       aiProfileComplete:false,
-      verificationStatus:'pending_review'
+      verificationStatus:'pending_review',
+      entitlement:null
     };
 
     const THEME_STORAGE_KEY = 'alygnnEmployerTheme';
@@ -5952,6 +5960,8 @@
         Math.min(100,(capped/limit)*100)
       );
 
+      const paidPlan=dashboardBasePaidPlanActive();
+
       if(jobBoostIsActive(job)){
         const until=new Date(job.boosted_until);
 
@@ -5988,9 +5998,17 @@
           </div>
 
           <div class="free-slot-limit-box">
-            Applicant limit reached. This free job has reached its
-            25-applicant limit. Boost this job for $15/day to keep
-            receiving applications.
+            ${
+              paidPlan
+                ? `Applicant limit reached. Alygnn automatically paused this
+                   free-slot job at 25 applicants. Because your account has an
+                   active plan, you can boost this job for $15/day to reopen it.`
+                : `Applicant limit reached. Alygnn automatically paused this
+                   free job at 25 applicants. Free accounts cannot boost jobs.
+                   Close this job and post a different role. To keep hiring for
+                   this same role now, add the $150/month Second Job Slot or
+                   choose a monthly or quarterly plan.`
+            }
           </div>
         `;
       }
@@ -6065,12 +6083,19 @@
       return '';
     }
 
-    function freeJobNeedsBoost(job){
+    function freeJobAtApplicantLimit(job){
       return (
         postingAccessType(job)==='free' &&
         String(job?.id)===canonicalFreeJobId() &&
         freeApplicantCount(job)>=25 &&
         !jobBoostIsActive(job)
+      );
+    }
+
+    function freeJobCanBoost(job){
+      return (
+        freeJobAtApplicantLimit(job) &&
+        dashboardBasePaidPlanActive()
       );
     }
 
@@ -6110,9 +6135,11 @@
               <button class="mini-btn" data-job-action="view" data-job-id="${job.id}">View Job</button>
               <button class="mini-btn primary" data-job-action="applicants" data-job-id="${job.id}">View Applicants</button>
               <button class="mini-btn" data-job-action="edit" data-job-id="${job.id}">Edit</button>
-              ${freeJobNeedsBoost(job)
+              ${freeJobCanBoost(job)
                 ? `<button class="mini-btn boost" data-job-action="boost" data-job-id="${job.id}">Boost · $15/day</button>`
-                : ''
+                : freeJobAtApplicantLimit(job) && !dashboardBasePaidPlanActive()
+                  ? `<button class="mini-btn primary" data-job-action="free-limit-options" data-job-id="${job.id}">View hiring options</button>`
+                  : ''
               }
               <button class="mini-btn" data-job-action="duplicate" data-job-id="${job.id}">Duplicate</button>
               <button class="mini-btn" data-job-action="${status === 'paused' ? 'activate' : 'pause'}" data-job-id="${job.id}">${status === 'paused' ? 'Activate' : 'Pause'}</button>
@@ -6131,7 +6158,17 @@
         const location = escapeHtml(job?.location || job?.city || 'Location not listed');
         const jobType = escapeHtml(job?.job_type || job?.employment_type || 'Job type not listed');
         const statusRaw = String(job?.status || 'active').toLowerCase();
-        const status = escapeHtml(statusRaw);
+        const applicantLimitReached = freeJobAtApplicantLimit(job);
+        const status = escapeHtml(
+          applicantLimitReached
+            ? 'LIMIT REACHED'
+            : statusRaw
+        );
+        const statusBadgeClass =
+          applicantLimitReached
+            ? 'limit-reached'
+            : statusClass(statusRaw);
+
         const apps = Array.isArray(state.applications)
           ? state.applications.filter(application =>
               String(application?.job_id) === String(id)
@@ -6152,16 +6189,21 @@
             <button class="mini-btn" data-job-action="view" data-job-id="${escapeHtml(id)}">View Job</button>
             <button class="mini-btn primary" data-job-action="applicants" data-job-id="${escapeHtml(id)}">View Applicants</button>
             <button class="mini-btn" data-job-action="edit" data-job-id="${escapeHtml(id)}">Edit</button>
-            ${freeJobNeedsBoost(job)
+            ${freeJobCanBoost(job)
               ? `<button class="mini-btn boost" data-job-action="boost" data-job-id="${escapeHtml(id)}">Boost · $15/day</button>`
-              : ''
+              : freeJobAtApplicantLimit(job) && !dashboardBasePaidPlanActive()
+                ? `<button class="mini-btn primary" data-job-action="free-limit-options" data-job-id="${escapeHtml(id)}">View hiring options</button>`
+                : ''
             }
             ${statusRaw === 'closed'
               ? `<button class="mini-btn" data-job-action="reopen" data-job-id="${escapeHtml(id)}">Reopen</button>`
               : statusRaw === 'archived'
                 ? ''
                 : `
-                  <button class="mini-btn" data-job-action="${statusRaw === 'paused' ? 'activate' : 'pause'}" data-job-id="${escapeHtml(id)}">${statusRaw === 'paused' ? 'Activate' : 'Pause'}</button>
+                  ${statusRaw === 'paused' && applicantLimitReached
+                    ? ''
+                    : `<button class="mini-btn" data-job-action="${statusRaw === 'paused' ? 'activate' : 'pause'}" data-job-id="${escapeHtml(id)}">${statusRaw === 'paused' ? 'Activate' : 'Pause'}</button>`
+                  }
                   <button class="mini-btn" data-job-action="close" data-job-id="${escapeHtml(id)}">Close Job</button>
                 `
             }
@@ -6181,7 +6223,7 @@
                 <div class="job-meta" style="margin-top:7px">${location} · ${jobType}</div>
                 ${jobAccessBadge(job)}
               </div>
-              <span class="status-badge ${statusClass(statusRaw)}">${status}</span>
+              <span class="status-badge ${statusBadgeClass}">${status}</span>
             </div>
 
             <div class="job-stats">
@@ -7139,6 +7181,12 @@
     }
 
     function notificationItems(){
+      const limitJob=(state.jobs||[]).find(job=>
+        postingAccessType(job)==='free' &&
+        freeApplicantCount(job)>=25 &&
+        !jobBoostIsActive(job)
+      );
+
       const freshApps = state.applications.filter(application =>
         ['new','applied','pending'].includes(String(application.status || 'new').toLowerCase())
       );
@@ -7152,6 +7200,17 @@
           time:timeAgo(application.applied_at || application.created_at)
         };
       });
+
+      if(limitJob){
+        items.unshift({
+          icon:'!',
+          title:'Free job applicant limit reached',
+          body:dashboardBasePaidPlanActive()
+            ? `${limitJob.title || 'Your free-slot job'} reached 25 applicants and was automatically paused. Use Job Boost to reopen it.`
+            : `${limitJob.title || 'Your free job'} reached 25 applicants and was automatically paused. Free accounts cannot boost jobs. Close it and post a different role, or choose paid hiring access.`,
+          time:'Now'
+        });
+      }
 
       const highScore = state.applications
         .map(application => ({application,score:provisionalScore(application).score}))
@@ -7785,10 +7844,31 @@
       }
 
       if(action === 'boost'){
+        if(!dashboardBasePaidPlanActive()){
+          toast(
+            'Job Boost is available only with an active monthly or quarterly plan.'
+          );
+          return;
+        }
+
         location.href=
           'app-employer-payment.html?product=job_boost&job_id='+
           encodeURIComponent(String(id))+
           '&days=1&return=jobs';
+
+        return;
+      }
+
+      if(action === 'free-limit-options'){
+        const params=new URLSearchParams({
+          reason:'free_applicant_limit',
+          job_id:String(id)
+        });
+
+        location.href=
+          'app-employer-pricing.html?'+
+          params.toString();
+
         return;
       }
 
@@ -7928,21 +8008,57 @@
       }
 
       if(['pause','activate'].includes(action)){
-        const status = action === 'pause' ? 'paused' : 'active';
+        if(
+          action==='activate' &&
+          freeJobAtApplicantLimit(job)
+        ){
+          toast(
+            dashboardBasePaidPlanActive()
+              ? 'This free-slot job reached its 25-applicant limit. Use Job Boost to reopen it.'
+              : 'This free job reached its 25-applicant limit. Free accounts cannot reactivate or boost it. Close it and post a different role, or choose paid hiring access.'
+          );
+          return;
+        }
+
+        const status =
+          action === 'pause'
+            ? 'paused'
+            : 'active';
+
+        const pauseReason =
+          action === 'pause'
+            ? 'manual'
+            : null;
+
         const { error } = await sb
           .from('jobs')
-          .update({status,updated_at:new Date().toISOString()})
+          .update({
+            status,
+            pause_reason:pauseReason,
+            updated_at:new Date().toISOString()
+          })
           .eq('id',id);
 
         if(error){
           console.error(error);
-          toast('Could not update job.');
+
+          toast(
+            error.message ||
+            'Could not update job.'
+          );
           return;
         }
 
-        job.status = status;
+        job.status=status;
+        job.pause_reason=pauseReason;
+
         renderAll();
-        toast(status === 'paused' ? 'Job paused.' : 'Job activated.');
+
+        toast(
+          status === 'paused'
+            ? 'Job paused.'
+            : 'Job activated.'
+        );
       }
     }
 
@@ -8888,6 +9004,17 @@
         state.session = data.session;
         await refreshCurrentUser();
         await loadEmployerCompanyData();
+
+        try{
+          state.entitlement=await loadDashboardEntitlement();
+        }catch(entitlementError){
+          console.warn(
+            'Could not load billing entitlement during dashboard initialization:',
+            entitlementError
+          );
+          state.entitlement=null;
+        }
+
         const initialJobs = await queryJobsReliably(state.session.user.id);
         state.jobs = Array.isArray(initialJobs) ? initialJobs : [];
 
@@ -8994,6 +9121,43 @@
       if(!end) return true;
 
       const time=new Date(end).getTime();
+      return Number.isNaN(time)||time>Date.now();
+    }
+
+    function dashboardBasePaidPlanActive(){
+      const entitlement=state.entitlement;
+      if(!entitlement)return false;
+
+      const effectivePlan=String(
+        entitlement.test_plan||
+        entitlement.plan||
+        'free'
+      ).toLowerCase();
+
+      if(![
+        'launch',
+        'growth',
+        'scale',
+        'business',
+        'enterprise'
+      ].includes(effectivePlan)){
+        return false;
+      }
+
+      const status=String(
+        entitlement.subscription_status||''
+      ).toLowerCase();
+
+      if(!['active','trialing'].includes(status)){
+        return false;
+      }
+
+      const end=entitlement.current_period_end;
+
+      if(!end)return true;
+
+      const time=new Date(end).getTime();
+
       return Number.isNaN(time)||time>Date.now();
     }
 
