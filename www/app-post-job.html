@@ -202,6 +202,39 @@ html[data-theme="dark"] .custom-add-btn{
 @media(max-width:390px){
   .custom-add-row{grid-template-columns:minmax(0,1fr) 78px}
 }
+
+.free-slot-notice{
+  margin:0 0 18px;
+  padding:16px 18px;
+  border:1px solid rgba(64,156,103,.34);
+  border-radius:20px;
+  background:#EFF9F3;
+}
+.free-slot-kicker{
+  color:#268A58;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1.25px;
+  text-transform:uppercase;
+}
+.free-slot-title{
+  margin-top:5px;
+  color:var(--text);
+  font-size:14px;
+  line-height:1.35;
+  font-weight:900;
+}
+.free-slot-copy{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.55;
+}
+html[data-theme="dark"] .free-slot-notice{
+  background:#10291F;
+  border-color:#285A43;
+}
+
 </style>
 </head>
 <body>
@@ -220,6 +253,11 @@ html[data-theme="dark"] .custom-add-btn{
 </header>
 
 <main class="page">
+  <div class="free-slot-notice" id="free-slot-notice" hidden>
+    <div class="free-slot-kicker">Included free job slot</div>
+    <div class="free-slot-title">This job will use your free job slot.</div>
+    <div class="free-slot-copy" id="free-slot-copy"></div>
+  </div>
 <div class="progress-wrap">
     <div class="progress-top">
       <span class="step-label" id="step-label">Step 1 of 5</span>
@@ -1122,10 +1160,79 @@ function planDisplayName(raw){
   return '';
 }
 
-function showSlotSourceNotice(_access){
-  // Capacity is enforced silently. The posting form no longer displays
-  // a slot-source banner.
-  return;
+function paidPlanSlotCount(access){
+  const explicit=Number(access?.plan_slot_limit);
+
+  if(Number.isFinite(explicit)&&explicit>=0){
+    return Math.floor(explicit);
+  }
+
+  const plan=String(
+    access?.test_plan||
+    access?.plan||
+    slotEntitlement?.test_plan||
+    slotEntitlement?.plan||
+    'free'
+  ).toLowerCase();
+
+  if(plan==='launch'||plan==='business')return 3;
+  if(plan==='growth')return 5;
+  if(plan==='scale'||plan==='enterprise')return 8;
+
+  return 0;
+}
+
+function showSlotSourceNotice(access){
+  const box=el('free-slot-notice');
+  if(!box)return;
+
+  box.hidden=true;
+
+  const used=Math.max(
+    0,
+    Number(access?.active_job_count||0)
+  );
+
+  const paidPlanActive=
+    access?.active_paid_plan===true ||
+    access?.base_paid_plan===true;
+
+  const planSlots=paidPlanSlotCount(access);
+
+  /*
+   * Paid plan order:
+   * plan slots -> always-included free slot -> Weekly slot.
+   *
+   * Therefore:
+   * Launch: used=3 means the 4th job uses Free.
+   * Growth: used=5 means the 6th job uses Free.
+   * Scale:  used=8 means the 9th job uses Free.
+   */
+  if(paidPlanActive && used===planSlots){
+    const planName=
+      planDisplayName(
+        access?.test_plan||
+        access?.plan
+      )||'your plan';
+
+    el('free-slot-copy').textContent=
+      `You've used all ${planSlots} ${planName} job slots. This job uses the 1 free reusable job slot included with every Alygnn employer account.`;
+
+    box.hidden=false;
+    return;
+  }
+
+  /*
+   * Free employer: the very first active job is the included free slot.
+   * Keep the same message logic, but do not show it for the $150 Second
+   * Job Slot or a Weekly Job Slot.
+   */
+  if(!paidPlanActive && used===0){
+    el('free-slot-copy').textContent=
+      'This is the 1 free reusable job slot included with every Alygnn employer account.';
+
+    box.hidden=false;
+  }
 }
 
 async function enforceJobSlotAccess(userId,companyId){
