@@ -480,6 +480,13 @@
     font-size:10px; font-weight:700; color:#755b18; background:rgba(231,184,109,.15);
     border:1px solid rgba(231,184,109,.35); vertical-align:middle;
   }
+  .urgent-pill{
+    display:inline-flex; align-items:center; margin-left:7px; padding:2px 8px; border-radius:999px;
+    font-size:10px; font-weight:700; color:#914848; background:rgba(215,154,154,.15);
+    border:1px solid rgba(215,154,154,.4); vertical-align:middle;
+  }
+  .btn-view.urgent-on{ border-color:rgba(215,154,154,.6); color:#914848; }
+  .btn-view.urgent-on:hover{ border-color:#914848; }
   .modal-close { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 18px; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 4px; }
   .modal-close:hover { color: var(--text); }
   .modal-top { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; padding-right: 30px; }
@@ -2272,6 +2279,43 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     window.location.href = 'pricing.html?' + q.toString();
   }
 
+  // Urgently Hiring is a per-job on/off toggle the employer controls freely —
+  // it is never applied automatically. Only plans that include the perk
+  // (Growth, Scale, Enterprise) are allowed to turn it on.
+  function canUseUrgentBadge() {
+    const plan = String(billingEntitlement.test_plan || billingEntitlement.plan || '').toLowerCase();
+    return ['growth', 'scale', 'enterprise'].includes(plan);
+  }
+
+  async function toggleUrgent(jobId) {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+
+    if (!canUseUrgentBadge()) {
+      showToast('Urgently Hiring is available on Growth, Scale, and Enterprise plans.');
+      setTimeout(() => redirectToPricing('urgent-badge'), 700);
+      return;
+    }
+
+    const next = !(job.urgently_hiring === true);
+
+    const { error } = await sb
+      .from('jobs')
+      .update({ urgently_hiring: next, updated_at: new Date().toISOString() })
+      .eq('id', jobId)
+      .eq('employer_id', currentUser.id);
+
+    if (error) {
+      console.error('Failed to toggle Urgently Hiring:', error);
+      showToast('Could not update Urgently Hiring.');
+      return;
+    }
+
+    job.urgently_hiring = next;
+    renderJobs();
+    showToast(next ? 'Urgently Hiring badge added.' : 'Urgently Hiring badge removed.');
+  }
+
   function updatePostingAccessUI() {
     const topButton = document.getElementById('post-new-job-btn');
     const sidebarButton = document.getElementById('sidebar-post-job-btn');
@@ -3699,7 +3743,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       <div class="job-row">
         <div class="job-status ${statusClass}"></div>
         <div class="job-info">
-          <div class="job-title-text">${escapeHtml(job.title)}<span class="job-status-badge ${statusClass}">${escapeHtml(statusLabel)}</span>${jobBoostIsActive(job) ? `<span class="boosted-pill">Boosted</span><span class="boost-until">until ${escapeHtml(formatBoostUntil(job.boosted_until))}</span>` : ''}</div>
+          <div class="job-title-text">${escapeHtml(job.title)}<span class="job-status-badge ${statusClass}">${escapeHtml(statusLabel)}</span>${jobBoostIsActive(job) ? `<span class="boosted-pill">Boosted</span><span class="boost-until">until ${escapeHtml(formatBoostUntil(job.boosted_until))}</span>` : ''}${job.urgently_hiring === true ? `<span class="urgent-pill">Urgently Hiring</span>` : ''}</div>
           <div class="job-meta">${escapeHtml(job.job_type || '')} · ${escapeHtml(formatWorkStyleLabel(job.work_style))}${job.salary ? ' · ' + escapeHtml(job.salary) : ''}${job.location ? ' · ' + escapeHtml(job.location) : ''}</div>
         </div>
         <div class="job-stats">
@@ -3720,6 +3764,9 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             : pending
               ? '<button class="btn-view" disabled style="opacity:.45; cursor:not-allowed;" title="Only active jobs can be boosted.">Boost</button>'
               : `<button class="btn-view" onclick="window.location.href='boost-checkout.html?job=${encodeURIComponent(job.id)}'">${jobBoostIsActive(job) ? 'Boost again' : 'Boost'}</button>`}
+          ${!isClosed && canUseUrgentBadge()
+            ? `<button class="btn-view ${job.urgently_hiring === true ? 'urgent-on' : ''}" onclick="toggleUrgent('${job.id}')">${job.urgently_hiring === true ? 'Remove Urgent' : 'Mark Urgent'}</button>`
+            : ''}
           <button class="btn-view" onclick="editJob('${job.id}')">Edit</button>
           <button class="btn-danger" onclick="deleteJob('${job.id}')">Delete</button>
         </div>
