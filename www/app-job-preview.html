@@ -3421,6 +3421,23 @@ async function resolvePublishedJobIdBestEffort(maxAttempts=5){
   return '';
 }
 
+function isFreeRepostRotationError(error){
+  return /FREE_REPOST_ROTATION/i.test(
+    String(error?.message||'')
+  );
+}
+
+function goToFreeRepostOptions(){
+  const params=new URLSearchParams({
+    reason:'free_repost_rotation',
+    title:String(draft?.title||'')
+  });
+
+  location.href=
+    'app-employer-pricing.html?'+
+    params.toString();
+}
+
 async function publishJob(){
   clearMessage();
 
@@ -3517,6 +3534,18 @@ async function publishJob(){
     );
 
     const errorText=String(error?.message||'');
+
+    if(isFreeRepostRotationError(error)){
+      showMessage(
+        'This role matches one of your previous 5 job ads. Free accounts must post 5 different jobs before reposting the same role. To post this role again now, add the $150/month Second Job Slot or choose a monthly or quarterly plan.'
+      );
+
+      button.disabled=false;
+      button.textContent='View hiring options';
+      button.onclick=goToFreeRepostOptions;
+
+      return;
+    }
 
     if(isPostingCapacityError(error)){
       showMessage(
