@@ -2566,6 +2566,18 @@ let draft=null;
 let liveCompany=null;
 let publishedJobId=null;
 
+function editJobId(){
+  return String(
+    draft?.edit_job_id ||
+    sessionStorage.getItem('alygnnEditJobId') ||
+    ''
+  ).trim();
+}
+
+function isEditMode(){
+  return Boolean(editJobId());
+}
+
 function initials(name){
   const parts=String(name||'Company')
     .trim()
@@ -2714,6 +2726,13 @@ async function loadJobsForFinalSlotCheck(userId){
 }
 
 async function enforceFinalJobSlotAccess(){
+  /*
+   * Editing an existing listing does not consume additional capacity.
+   */
+  if(isEditMode()){
+    return true;
+  }
+
   const userId=session?.user?.id;
 
   if(!userId){
@@ -3252,8 +3271,14 @@ function editJob(){
     '5'
   );
 
+  const id=editJobId();
+
   location.replace(
-    'app-post-job.html?return=review'
+    id
+      ? 'app-post-job.html?edit='+
+        encodeURIComponent(id)+
+        '&return=review'
+      : 'app-post-job.html?return=review'
   );
 }
 
@@ -3271,6 +3296,68 @@ function baseJobPayload(){
     benefits:draft.benefits,
     status:'active',
     created_at:new Date().toISOString()
+  };
+}
+
+function baseJobUpdatePayload(){
+  return{
+    title:draft.title,
+    company:draft.company,
+    location:draft.location,
+    job_type:draft.job_type,
+    work_style:draft.work_style,
+    salary:draft.salary,
+    description:draft.description,
+    requirements:draft.requirements,
+    benefits:draft.benefits,
+    updated_at:new Date().toISOString()
+  };
+}
+
+function extendedJobUpdatePayload(){
+  return{
+    ...baseJobUpdatePayload(),
+
+    company_id:
+      draft.company_id||
+      liveCompany?.id||
+      null,
+
+    pay_period:
+      draft.pay_period||
+      null,
+
+    pay_min:
+      draft.pay_min??
+      null,
+
+    pay_max:
+      draft.pay_max??
+      null,
+
+    onet_soc_code:
+      draft.onet_soc_code||
+      null,
+
+    location_city:
+      draft.location_city||
+      null,
+
+    location_state:
+      draft.location_state||
+      null,
+
+    location_postal_code:
+      draft.location_postal_code||
+      null,
+
+    location_latitude:
+      draft.location_latitude??
+      null,
+
+    location_longitude:
+      draft.location_longitude??
+      null
   };
 }
 
@@ -3334,29 +3421,77 @@ function missingColumn(error){
   );
 }
 
-async function insertJob(){
+async function saveJob(){
+  const id=editJobId();
+
+  if(id){
+    /*
+     * EDIT MODE:
+     * update the same database record.
+     */
+    let result=await promiseTimeout(
+      sb
+        .from('jobs')
+        .update(
+          extendedJobUpdatePayload()
+        )
+        .eq('id',id),
+      12000,
+      'Saving changes is taking too long. Check My Jobs before trying again.'
+    );
+
+    if(
+      result.error &&
+      missingColumn(result.error)
+    ){
+      result=await promiseTimeout(
+        sb
+          .from('jobs')
+          .update(
+            baseJobUpdatePayload()
+          )
+          .eq('id',id),
+        12000,
+        'Saving changes is taking too long. Check My Jobs before trying again.'
+      );
+    }
+
+    if(!result.error){
+      publishedJobId=id;
+
+      sessionStorage.setItem(
+        'alygnnLastPublishedJobId',
+        id
+      );
+    }
+
+    return result;
+  }
+
   /*
-   * Do not request the inserted row back here. In WebView builds an INSERT
-   * followed by .select().single() can leave the Publish button waiting for a
-   * representation even though the write itself is the only thing we need.
-   * Supabase's normal INSERT response is enough to confirm success.
+   * NEW JOB MODE:
+   * normal insert behavior.
    */
   let result=await promiseTimeout(
     sb
       .from('jobs')
-      .insert(extendedJobPayload()),
+      .insert(
+        extendedJobPayload()
+      ),
     12000,
     'Publishing is taking too long. Check My Jobs before trying again.'
   );
 
   if(
-    result.error&&
+    result.error &&
     missingColumn(result.error)
   ){
     result=await promiseTimeout(
       sb
         .from('jobs')
-        .insert(baseJobPayload()),
+        .insert(
+          baseJobPayload()
+        ),
       12000,
       'Publishing is taking too long. Check My Jobs before trying again.'
     );
@@ -3474,7 +3609,10 @@ async function publishJob(){
   const button=$('publish-btn');
 
   button.disabled=true;
-  button.textContent='Checking access…';
+  button.textContent=
+    isEditMode()
+      ? 'Saving changes…'
+      : 'Checking access…';
 
   try{
     // Final payment/slot check happens immediately before the database insert.
@@ -3486,11 +3624,14 @@ async function publishJob(){
       return;
     }
 
-    button.textContent='Publishing…';
+    button.textContent=
+      isEditMode()
+        ? 'Saving changes…'
+        : 'Publishing…';
 
     const{
       error
-    }=await insertJob();
+    }=await saveJob();
 
     if(error){
       throw error;
@@ -3500,12 +3641,25 @@ async function publishJob(){
      * The insert is complete. Resolve the exact new job ID before showing
      * the success screen so View Job always knows which posting to open.
      */
-    publishedJobId='';
-    sessionStorage.removeItem(
-      'alygnnLastPublishedJobId'
-    );
+    if(isEditMode()){
+      publishedJobId=editJobId();
 
-    await resolvePublishedJobIdBestEffort();
+      sessionStorage.setItem(
+        'alygnnLastPublishedJobId',
+        publishedJobId
+      );
+    }else{
+      publishedJobId='';
+
+      sessionStorage.removeItem(
+        'alygnnLastPublishedJobId'
+      );
+
+      await resolvePublishedJobIdBestEffort();
+    }
+
+    const updatedExistingJob=
+      isEditMode();
 
     sessionStorage.removeItem(
       'alygnnJobDraft'
@@ -3514,6 +3668,34 @@ async function publishJob(){
     sessionStorage.removeItem(
       'alygnnEditJobId'
     );
+
+    const successTitle=
+      $('success').querySelector('h2');
+
+    const successCopy=
+      $('success').querySelector('p');
+
+    if(updatedExistingJob){
+      if(successTitle){
+        successTitle.textContent=
+          'Job updated';
+      }
+
+      if(successCopy){
+        successCopy.textContent=
+          'Your changes were saved to this existing job listing.';
+      }
+    }else{
+      if(successTitle){
+        successTitle.textContent=
+          'Job published';
+      }
+
+      if(successCopy){
+        successCopy.textContent=
+          'Your job was saved to Alygnn and is now available to candidates.';
+      }
+    }
 
     $('success-job').textContent=
       (draft.title||'Job')+
@@ -3567,7 +3749,10 @@ async function publishJob(){
     );
 
     button.disabled=false;
-    button.textContent='Publish Job';
+    button.textContent=
+      isEditMode()
+        ? 'Save Changes'
+        : 'Publish Job';
   }
 }
 
@@ -3707,6 +3892,11 @@ function wire(){
     }
 
     draft=JSON.parse(raw);
+
+    if(isEditMode()){
+      $('publish-btn').textContent=
+        'Save Changes';
+    }
 
     const{
       data,
