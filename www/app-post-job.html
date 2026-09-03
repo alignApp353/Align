@@ -1430,11 +1430,6 @@ function showSlotSourceNotice(access){
 
   box.hidden=true;
 
-  const used=Math.max(
-    0,
-    Number(access?.active_job_count||0)
-  );
-
   const paidPlanActive=
     access?.active_paid_plan===true ||
     access?.base_paid_plan===true;
@@ -1442,15 +1437,49 @@ function showSlotSourceNotice(access){
   const planSlots=paidPlanSlotCount(access);
 
   /*
-   * Paid plan order:
-   * plan slots -> always-included free slot -> Weekly slot.
+   * IMPORTANT:
+   * Never infer the free slot from "active job count === plan slots".
    *
-   * Therefore:
-   * Launch: used=3 means the 4th job uses Free.
-   * Growth: used=5 means the 6th job uses Free.
-   * Scale:  used=8 means the 9th job uses Free.
+   * An employer can already have the free slot occupied while one of the
+   * paid-plan slots is available. In that case the NEXT job must use the
+   * available plan slot, not a second free slot.
    */
-  if(paidPlanActive && used===planSlots){
+  const nextSlotType=String(
+    access?.next_slot_type||
+    ''
+  ).toLowerCase();
+
+  const freeSlotInUse=
+    access?.free_slot_in_use===true ||
+    Number(access?.free_slots_in_use||0)>=1;
+
+  const planSlotsInUse=Math.max(
+    0,
+    Number(access?.plan_slots_in_use||0)
+  );
+
+  let usesFreeSlot=false;
+
+  if(nextSlotType){
+    usesFreeSlot=nextSlotType==='free';
+  }else if(paidPlanActive){
+    /*
+     * Compatibility behavior for an older RPC:
+     * the free slot can be next ONLY if it is not already occupied and all
+     * paid plan slots are occupied.
+     */
+    usesFreeSlot=
+      !freeSlotInUse &&
+      planSlotsInUse>=planSlots;
+  }else{
+    usesFreeSlot=!freeSlotInUse;
+  }
+
+  if(!usesFreeSlot){
+    return;
+  }
+
+  if(paidPlanActive){
     const planName=
       planDisplayName(
         access?.test_plan||
@@ -1459,23 +1488,118 @@ function showSlotSourceNotice(access){
 
     el('free-slot-copy').textContent=
       `You've used all ${planSlots} ${planName} job slots. This job uses the 1 free reusable job slot included with every Alygnn employer account.`;
-
-    box.hidden=false;
-    return;
-  }
-
-  /*
-   * Free employer: the very first active job is the included free slot.
-   * Keep the same message logic, but do not show it for the $150 Second
-   * Job Slot or a Weekly Job Slot.
-   */
-  if(!paidPlanActive && used===0){
+  }else{
     el('free-slot-copy').textContent=
       'This is the 1 free reusable job slot included with every Alygnn employer account.';
+  }
 
-    box.hidden=false;
+  box.hidden=false;
+}
+
+async function augmentPostingAccessWithActualSlotUsage(
+  access,
+  userId,
+  companyId
+){
+  if(
+    access &&
+    typeof access==='object' &&
+    access.next_slot_type
+  ){
+    return access;
+  }
+
+  try{
+    const ownedJobs=await loadJobsForSlotCheck(
+      userId,
+      companyId
+    );
+
+    const active=ownedJobs.filter(
+      jobConsumesSlot
+    );
+
+    const typeOf=job=>
+      String(
+        job?.posting_access_type||
+        ''
+      ).toLowerCase();
+
+    const freeSlotsInUse=
+      active.filter(job=>typeOf(job)==='free').length;
+
+    const planSlotsInUse=
+      active.filter(job=>typeOf(job)==='plan').length;
+
+    const secondSlotsInUse=
+      active.filter(job=>
+        ['second_slot','additional_slot'].includes(
+          typeOf(job)
+        )
+      ).length;
+
+    const weeklySlotsInUse=
+      active.filter(job=>typeOf(job)==='weekly').length;
+
+    const paidPlanActive=
+      access?.active_paid_plan===true ||
+      access?.base_paid_plan===true;
+
+    const planSlots=
+      paidPlanSlotCount(access);
+
+    const weeklySlots=Math.max(
+      0,
+      Number(access?.weekly_slot_count||0)
+    );
+
+    const secondSlotActive=
+      access?.second_slot_active===true ||
+      Number(access?.second_slot_count||0)>0;
+
+    let next='';
+
+    if(paidPlanActive){
+      if(planSlotsInUse<planSlots){
+        next='plan';
+      }else if(freeSlotsInUse<1){
+        next='free';
+      }else if(weeklySlotsInUse<weeklySlots){
+        next='weekly';
+      }
+    }else{
+      if(freeSlotsInUse<1){
+        next='free';
+      }else if(
+        secondSlotActive &&
+        secondSlotsInUse<1
+      ){
+        next='second_slot';
+      }else if(weeklySlotsInUse<weeklySlots){
+        next='weekly';
+      }
+    }
+
+    return{
+      ...(access||{}),
+      free_slot_in_use:freeSlotsInUse>=1,
+      free_slots_in_use:freeSlotsInUse,
+      plan_slots_in_use:planSlotsInUse,
+      second_slots_in_use:secondSlotsInUse,
+      weekly_slots_in_use:weeklySlotsInUse,
+      next_slot_type:next
+    };
+
+  }catch(error){
+    console.warn(
+      'Could not augment posting access with actual slot usage:',
+      error
+    );
+
+    return access;
   }
 }
+
 
 async function enforceJobSlotAccess(userId,companyId){
   // Editing an existing job does not create another occupied slot.
@@ -1502,6 +1626,13 @@ async function enforceJobSlotAccess(userId,companyId){
     if(accessError)throw accessError;
 
     if(access&&typeof access==='object'){
+      access=
+        await augmentPostingAccessWithActualSlotUsage(
+          access,
+          userId,
+          companyId
+        );
+
       const used=Math.max(
         0,
         Number(access.active_job_count||0)
