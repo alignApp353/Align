@@ -428,13 +428,18 @@ function renderTabs(){
   const addon=isAddon();
   const boost=isBoost();
   const urgent=isUrgentAddon();
+  const change=existingPlanChange();
 
   ['quarterly','monthly','weekly'].forEach(key=>{
     const tab=$('tab-'+key);
-    tab.hidden=addon||boost||urgent;
+    tab.hidden=
+      addon||
+      boost||
+      urgent||
+      Boolean(change);
     tab.classList.toggle(
       'active',
-      !addon&&!boost&&!urgent&&billing===key
+      !addon&&!boost&&!urgent&&!change&&billing===key
     );
   });
 }
@@ -495,9 +500,21 @@ function renderOptions(){
     return;
   }
 
+  const change=existingPlanChange();
+
   $('plan-options').innerHTML=Object.entries(CATALOG[billing]).map(([key,p])=>`
-    <button type="button" class="plan-option ${key===plan?'active':''}" data-plan="${key}">
-      ${p.popular?'<span class="popular">Most popular</span>':''}
+    <button
+      type="button"
+      class="plan-option ${key===plan?'active':''}"
+      data-plan="${key}">
+      ${
+        basePaidPlanActive() &&
+        key===paymentPlanCode()
+          ?'<span class="popular">Current plan</span>'
+          :p.popular
+            ?'<span class="popular">Most popular</span>'
+            :''
+      }
       <div class="name">${p.name}</div>
       <div class="price">${display(p.price)} <span>${p.suffix}</span></div>
       <div class="slots">${
@@ -521,6 +538,65 @@ function renderOptions(){
 
 function renderSummary(){
   const p=item();
+  const change=existingPlanChange();
+
+  if(change){
+    const target=change.targetItem;
+
+    if(change.upgrade){
+      $('summary-price').innerHTML=
+        `${display(change.difference)} <small>upgrade difference</small>`;
+
+      $('summary-slots').textContent=
+        `${target.slots} plan job slots + 1 included free = ${target.slots+1} total immediately after upgrade`;
+
+      $('features').innerHTML=
+        target.features
+          .map(x=>`<li>${x}</li>`)
+          .join('');
+
+      $('subtotal').textContent=
+        money(change.difference);
+
+      $('tax-row').hidden=
+        developerTestMode;
+
+      $('due').textContent=
+        developerTestMode
+          ?'$0.00'
+          :money(change.difference)+
+            ' + tax';
+
+      $('authorization').textContent=
+        developerTestMode
+          ?`By continuing, you confirm this is a developer test upgrade from ${planNameFromCode(change.current)} to ${planNameFromCode(change.target)}. Alygnn will simulate the ${display(change.difference)} plan-price difference, activate ${planNameFromCode(change.target)} immediately, keep the same renewal date, and charge $0.`
+          :`By continuing, you authorize the ${display(change.difference)} plan-price difference plus applicable tax. ${planNameFromCode(change.target)} activates immediately after payment and your current renewal date stays the same.`;
+
+      updateCheckoutButton();
+      return;
+    }
+
+    $('summary-price').innerHTML=
+      '$0 <small>due today</small>';
+
+    $('summary-slots').textContent=
+      `${target.slots} plan job slots + 1 included free = ${target.slots+1} total beginning at renewal`;
+
+    $('features').innerHTML=
+      target.features
+        .map(x=>`<li>${x}</li>`)
+        .join('');
+
+    $('subtotal').textContent='$0.00';
+    $('tax-row').hidden=true;
+    $('due').textContent='$0.00';
+
+    $('authorization').textContent=
+      `By continuing, you schedule ${planNameFromCode(change.target)} for your next renewal. There is no refund or account credit. ${planNameFromCode(change.current)} remains active through the period already paid for.`;
+
+    updateCheckoutButton();
+    return;
+  }
 
   $('summary-price').innerHTML=
     `${display(p.price)} <small>${p.suffix}</small>`;
@@ -535,7 +611,9 @@ function renderSummary(){
         ? `+1 temporary reusable slot · ${addedSlotTotal()} total after activation`
         : `${p.slots} plan job slots + 1 included free = ${p.slots+1} total`;
 
-  $('features').innerHTML=p.features.map(x=>`<li>${x}</li>`).join('');
+  $('features').innerHTML=
+    p.features.map(x=>`<li>${x}</li>`).join('');
+
   $('subtotal').textContent=money(p.price);
 
   if(developerTestMode){
@@ -549,13 +627,18 @@ function renderSummary(){
         :isBoost()
         ?`By continuing, you confirm this is a developer test activation of a ${boostDays}-day Job Boost. No payment will be processed.`
         :`By continuing, you confirm this is a developer test activation of ${p.name}. No payment will be processed.`;
+
   }else{
     $('tax-row').hidden=false;
-    $('due').textContent=money(p.price)+' + tax';
+    $('due').textContent=
+      money(p.price)+' + tax';
 
     if(isAddon()){
       $('authorization').textContent=
-        "By continuing, you authorize $150 plus applicable tax each month for the standalone Second Job Slot until canceled according to Alygnn\'s Terms.";
+        "By continuing, you authorize $150 plus applicable tax each month for the standalone Second Job Slot until canceled according to Alygnn's Terms.";
+    }else if(isUrgentAddon()){
+      $('authorization').textContent=
+        `By continuing, you authorize ${display(p.price)} plus applicable tax ${billing==='quarterly'?'every three months':'each month'} for the Urgently Hiring add-on until canceled according to Alygnn's Terms.`;
     }else if(isBoost()){
       $('authorization').textContent=
         `By continuing, you authorize ${display(p.price)} plus applicable tax for a ${boostDays}-day Job Boost at $15 per day. This is a one-time payment.`;
@@ -575,7 +658,29 @@ function renderSummary(){
 }
 
 function renderAll(){
-  if(isUrgentAddon()){
+  const change=existingPlanChange();
+
+  if(change?.upgrade){
+    $('checkout-heading').textContent=
+      `Upgrade to ${planNameFromCode(change.target)}.`;
+
+    $('checkout-lede').textContent=
+      `You're currently on ${planNameFromCode(change.current)}. Pay only the ${display(change.difference)} plan-price difference and get ${planNameFromCode(change.target)} immediately while keeping your current renewal date.`;
+
+    $('plan-panel-title').textContent=
+      '1. Confirm your upgrade';
+
+  }else if(change?.downgrade){
+    $('checkout-heading').textContent=
+      `Schedule ${planNameFromCode(change.target)}.`;
+
+    $('checkout-lede').textContent=
+      `Your ${planNameFromCode(change.current)} plan stays active through the period already paid for. There is no refund or credit; ${planNameFromCode(change.target)} begins at your next renewal.`;
+
+    $('plan-panel-title').textContent=
+      '1. Confirm your scheduled change';
+
+  }else if(isUrgentAddon()){
     $('checkout-heading').textContent='Add Urgently Hiring.';
     $('checkout-lede').textContent=
       'Add an Urgently Hiring label to your active Launch listings. Growth and Scale already include this feature.';
@@ -608,7 +713,12 @@ function renderAll(){
 }
 
 function switchBilling(next){
-  if(isAddon()||isBoost()||isUrgentAddon()) return;
+  if(
+    isAddon()||
+    isBoost()||
+    isUrgentAddon()||
+    existingPlanChange()
+  ) return;
 
   billing=CATALOG[next]?next:'quarterly';
 
@@ -655,16 +765,35 @@ function updateUrl(){
 function updateCheckoutButton(){
   const accepted=$('terms').checked;
   const p=item();
+  const change=existingPlanChange();
 
   $('checkout-btn').disabled=!accepted;
 
-  $('checkout-btn').textContent=accepted
-    ?(
+  if(!accepted){
+    $('checkout-btn').textContent=
+      'Accept terms to continue';
+    return;
+  }
+
+  if(change?.upgrade){
+    $('checkout-btn').textContent=
       developerTestMode
-        ?`Activate ${p.name} test access — $0`
-        :`Continue to secure payment — ${display(p.price)}`
-    )
-    :'Accept terms to continue';
+        ?`Upgrade to ${planNameFromCode(change.target)} test access — $0`
+        :`Pay ${display(change.difference)} difference & upgrade`;
+
+    return;
+  }
+
+  if(change?.downgrade){
+    $('checkout-btn').textContent=
+      `Schedule ${planNameFromCode(change.target)} — $0 today`;
+    return;
+  }
+
+  $('checkout-btn').textContent=
+    developerTestMode
+      ?`Activate ${p.name} test access — $0`
+      :`Continue to secure payment — ${display(p.price)}`;
 }
 
 function slotLimitFor(){
@@ -706,6 +835,240 @@ function addonEligible(){
   // If a monthly/quarterly plan is active, extra capacity is $99/week instead.
   return !basePaidPlanActive() && !secondSlotActive();
 }
+
+const PLAN_RANK={
+  launch:1,
+  growth:2,
+  scale:3
+};
+
+function paymentBillingPeriod(){
+  const raw=String(
+    postingAccess?.billing_period||
+    postingAccess?.billing||
+    ''
+  ).toLowerCase();
+
+  if(['monthly','quarterly'].includes(raw)){
+    return raw;
+  }
+
+  return billing;
+}
+
+function existingPlanChange(){
+  if(
+    product!=='job_plan' ||
+    !basePaidPlanActive()
+  ){
+    return null;
+  }
+
+  const current=paymentPlanCode();
+  const target=String(plan||'').toLowerCase();
+
+  if(
+    !PLAN_RANK[current] ||
+    !PLAN_RANK[target] ||
+    current===target
+  ){
+    return null;
+  }
+
+  const period=paymentBillingPeriod();
+
+  if(!CATALOG[period]?.[current]||
+     !CATALOG[period]?.[target]){
+    return null;
+  }
+
+  const currentItem=CATALOG[period][current];
+  const targetItem=CATALOG[period][target];
+
+  const upgrade=
+    PLAN_RANK[target]>
+    PLAN_RANK[current];
+
+  return{
+    current,
+    target,
+    period,
+    upgrade,
+    downgrade:!upgrade,
+    currentItem,
+    targetItem,
+    difference:
+      Math.max(
+        0,
+        Number(targetItem.price||0)-
+        Number(currentItem.price||0)
+      )
+  };
+}
+
+function planNameFromCode(code){
+  return String(code||'')
+    .replace(/^./,m=>m.toUpperCase());
+}
+
+async function executeExistingPlanChange(){
+  const change=existingPlanChange();
+
+  if(!change){
+    return false;
+  }
+
+  const btn=$('checkout-btn');
+
+  btn.disabled=true;
+  btn.textContent=
+    change.upgrade
+      ?'Applying upgrade…'
+      :'Scheduling downgrade…';
+
+  clearMessage();
+
+  try{
+    const response=await fetch(
+      CHECKOUT_ENDPOINT,
+      {
+        method:'POST',
+        headers:{
+          'Content-Type':
+            'application/json',
+
+          'Authorization':
+            'Bearer '+
+            session.access_token
+        },
+        body:JSON.stringify({
+          action:'change_plan',
+          target_plan:change.target,
+          source:'capacitor_app'
+        })
+      }
+    );
+
+    let data={};
+
+    try{
+      data=await response.json();
+    }catch(_error){}
+
+    if(!response.ok){
+      throw new Error(
+        data.error||
+        'Alygnn could not update this plan.'
+      );
+    }
+
+    if(
+      data.change===
+        'upgrade_payment_required'
+    ){
+      const amount=
+        Number(
+          data.amount_due_now_cents ??
+          data.amount_due_cents ??
+          change.difference*100
+        )/100;
+
+      showMessage(
+        `${display(amount)} is the upgrade difference. Complete the secure payment to unlock ${planNameFromCode(change.target)} immediately.`
+      );
+
+      if(data.hosted_invoice_url){
+        setTimeout(()=>{
+          location.href=
+            data.hosted_invoice_url;
+        },350);
+        return true;
+      }
+
+      btn.disabled=false;
+      btn.textContent=
+        `Pay ${display(amount)} difference & upgrade`;
+
+      return true;
+    }
+
+    if(
+      data.change==='upgrade_applied'
+    ){
+      const amount=
+        Number(
+          data.amount_due_now_cents ??
+          data.amount_due_cents ??
+          change.difference*100
+        )/100;
+
+      btn.textContent=
+        `${planNameFromCode(change.target)} activated ✓`;
+
+      showMessage(
+        developerTestMode
+          ? `${planNameFromCode(change.target)} is active now. This test simulated the ${display(amount)} plan-price difference; $0 was charged. Your renewal date stays the same.`
+          : `${planNameFromCode(change.target)} is active now. ${display(amount)} was the plan-price difference due today, and your renewal date stays the same.`
+      );
+
+      setTimeout(()=>{
+        location.replace(
+          'app-employer-billing.html'
+        );
+      },850);
+
+      return true;
+    }
+
+    if(
+      data.change==='downgrade_scheduled'
+    ){
+      btn.textContent=
+        'Downgrade scheduled ✓';
+
+      showMessage(
+        `${planNameFromCode(change.current)} stays active until ${data.effective_at?new Date(data.effective_at).toLocaleDateString():'your renewal date'}. $0 is due today, and no refund or account credit is issued. ${planNameFromCode(change.target)} begins at renewal.`
+      );
+
+      setTimeout(()=>{
+        location.replace(
+          'app-employer-billing.html'
+        );
+      },1100);
+
+      return true;
+    }
+
+    if(data.change==='none'){
+      btn.disabled=false;
+      btn.textContent='Current plan';
+      showMessage(
+        'This is already your current plan.'
+      );
+      return true;
+    }
+
+    throw new Error(
+      'Alygnn returned an unknown plan-change response.'
+    );
+
+  }catch(error){
+    console.error(
+      'Plan change failed:',
+      error
+    );
+
+    showMessage(
+      error.message||
+      'Alygnn could not update this plan.'
+    );
+
+    btn.disabled=false;
+    updateCheckoutButton();
+    return true;
+  }
+}
+
 
 function paymentPlanCode(){
   const raw=String(
@@ -887,6 +1250,27 @@ async function initialize(){
 
   await loadPostingAccess();
 
+  /*
+   * Plan upgrades/downgrades keep the employer's existing monthly or
+   * quarterly billing cadence. This makes the amount due the exact
+   * difference between the two plan prices for the same billing period.
+   */
+  if(
+    product==='job_plan' &&
+    basePaidPlanActive()
+  ){
+    const currentPeriod=
+      paymentBillingPeriod();
+
+    if(
+      ['monthly','quarterly'].includes(
+        currentPeriod
+      )
+    ){
+      billing=currentPeriod;
+    }
+  }
+
   if(isAddon()&&!addonEligible()){
     $('checkout-btn').disabled=true;
     $('terms').disabled=true;
@@ -942,11 +1326,18 @@ async function initialize(){
   if(developerTestMode){
     $('payment-title').textContent='4. Test activation';
     $('secure-title').textContent='Activate access for testing';
-    $('secure-copy').textContent=isBoost()
-      ?'Stripe is bypassed in this temporary development build. Alygnn will activate the Job Boost in Supabase so you can test the applicant-limit behavior.'
-      :isUrgentAddon()
-        ?'Stripe is bypassed in this temporary development build. Alygnn will activate the Urgently Hiring add-on in Supabase for testing.'
-        :'Stripe is bypassed in this temporary development build. Alygnn will activate the selected package in Supabase so you can test the real plan limits and features.';
+    const change=existingPlanChange();
+
+    $('secure-copy').textContent=
+      change?.upgrade
+        ?`Stripe is bypassed in this development build. Alygnn will simulate the ${display(change.difference)} upgrade difference and activate ${planNameFromCode(change.target)} immediately so you can test the real upgraded capacity and features.`
+        :change?.downgrade
+          ?`Stripe is bypassed in this development build. Alygnn will schedule ${planNameFromCode(change.target)} for your current renewal date with no refund or credit.`
+          :isBoost()
+            ?'Stripe is bypassed in this temporary development build. Alygnn will activate the Job Boost in Supabase so you can test the applicant-limit behavior.'
+            :isUrgentAddon()
+              ?'Stripe is bypassed in this temporary development build. Alygnn will activate the Urgently Hiring add-on in Supabase for testing.'
+              :'Stripe is bypassed in this temporary development build. Alygnn will activate the selected package in Supabase so you can test the real plan limits and features.';
     const fineprint=$('payment-fineprint');
     if(fineprint) fineprint.textContent='TEST MODE: $0 will be charged. Disable FORCE_DEVELOPER_TEST_MODE before releasing the app.';
   }
@@ -964,6 +1355,11 @@ async function initialize(){
 async function activateDeveloperTest(){
   const p=item();
   const btn=$('checkout-btn');
+
+  if(existingPlanChange()){
+    await executeExistingPlanChange();
+    return;
+  }
 
   if(isBoost()){
     if(!boostEligible()){
@@ -1148,6 +1544,17 @@ async function startCheckout(){
   const p=item();
   const btn=$('checkout-btn');
   btn.disabled=true;
+
+  /*
+   * Existing Launch/Growth/Scale customers do not buy another full
+   * subscription. Use the billing plan-change API:
+   * upgrade = exact difference + instant access;
+   * downgrade = $0 today + change at renewal.
+   */
+  if(existingPlanChange()){
+    await executeExistingPlanChange();
+    return;
+  }
 
   if(developerTestMode){
     btn.textContent='Activating test access…';
