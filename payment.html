@@ -186,54 +186,54 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   const CATALOG = {
     quarterly: {
       launch: {
-        name:'Launch', price:750, suffix:'/ 3 months', billing:'Quarterly', kind:'fixed_term', slots:'3 active reusable job slots',
+        name:'Launch', price:750, suffix:'/ 3 months', billing:'Quarterly', kind:'fixed_term', slots:'4 total job slots · 3 plan + 1 permanent free',
         features:['AI candidate matching','Candidate filtering','Applicant management','Resume access and downloads','Hiring analytics','Optional Job Boost · $15/day']
       },
       growth: {
-        name:'Growth', price:1140, suffix:'/ 3 months', billing:'Quarterly', kind:'fixed_term', slots:'5 active reusable job slots', popular:true,
-        features:['Everything in Launch','Urgently Hiring badge on jobs','Advanced candidate filtering','Featured listings','Advanced hiring analytics','Optional Job Boost · $15/day']
+        name:'Growth', price:1140, suffix:'/ 3 months', billing:'Quarterly', kind:'fixed_term', slots:'6 total job slots · 5 plan + 1 permanent free', popular:true,
+        features:['Everything in Launch','Urgently Hiring badge on jobs','Alygnn Recommended','Advanced candidate filtering','Advanced hiring analytics','Optional Job Boost · $15/day']
       },
       scale: {
-        name:'Scale', price:1700, suffix:'/ 3 months', billing:'Quarterly', kind:'fixed_term', slots:'8 active reusable job slots',
-        features:['Everything in Growth','Urgently Hiring badge on jobs','High-volume hiring capacity','Advanced candidate tools','Team access and priority support','Optional Job Boost · $15/day']
+        name:'Scale', price:1700, suffix:'/ 3 months', billing:'Quarterly', kind:'fixed_term', slots:'9 total job slots · 8 plan + 1 permanent free',
+        features:['Everything in Growth','Urgently Hiring badge on jobs','Alygnn Recommended','High-volume hiring capacity','Advanced candidate tools','Team access and priority support','Optional Job Boost · $15/day']
       }
     },
     monthly: {
       launch: {
-        name:'Launch', price:299, suffix:'/ month', billing:'Monthly', kind:'subscription', slots:'3 active reusable job slots',
+        name:'Launch', price:299, suffix:'/ month', billing:'Monthly', kind:'subscription', slots:'4 total job slots · 3 plan + 1 permanent free',
         features:['AI candidate matching','Candidate filtering','Applicant management','Resume access and downloads','Hiring analytics','Optional Job Boost · $15/day']
       },
       growth: {
-        name:'Growth', price:449, suffix:'/ month', billing:'Monthly', kind:'subscription', slots:'5 active reusable job slots', popular:true,
-        features:['Everything in Launch','Urgently Hiring badge on jobs','Advanced candidate filtering','Featured listings','Advanced hiring analytics','Optional Job Boost · $15/day']
+        name:'Growth', price:449, suffix:'/ month', billing:'Monthly', kind:'subscription', slots:'6 total job slots · 5 plan + 1 permanent free', popular:true,
+        features:['Everything in Launch','Urgently Hiring badge on jobs','Alygnn Recommended','Advanced candidate filtering','Advanced hiring analytics','Optional Job Boost · $15/day']
       },
       scale: {
-        name:'Scale', price:649, suffix:'/ month', billing:'Monthly', kind:'subscription', slots:'8 active reusable job slots',
-        features:['Everything in Growth','Urgently Hiring badge on jobs','High-volume hiring capacity','Advanced candidate tools','Team access and priority support','Optional Job Boost · $15/day']
+        name:'Scale', price:649, suffix:'/ month', billing:'Monthly', kind:'subscription', slots:'9 total job slots · 8 plan + 1 permanent free',
+        features:['Everything in Growth','Urgently Hiring badge on jobs','Alygnn Recommended','High-volume hiring capacity','Advanced candidate tools','Team access and priority support','Optional Job Boost · $15/day']
       }
     },
     weekly: {
       weekly_slot: {
-        name:'Weekly Job Slot', price:99, suffix:'/ 7 days', billing:'Weekly', kind:'fixed_term', slots:'1 active reusable job slot',
-        features:['Starts immediately after purchase','Expires 7 days after purchase','AI candidate matching and applicant management','No monthly subscription required','Optional Job Boost · $15/day']
+        name:'Weekly Job Slot', price:99, suffix:'/ 7 days', billing:'Weekly', kind:'fixed_term', slots:'+1 temporary job slot on top of your paid plan',
+        features:['Requires an active Launch, Growth, or Scale plan','Starts immediately after purchase','Expires 7 days after purchase','AI candidate matching and applicant management','Launch/Growth: upgrade is recommended after the first Weekly slot','Optional Job Boost · $15/day']
       }
     }
   };
 
   const ADDITIONAL_SLOT = {
-    name:'1 Job Slot',
+    name:'Second Job Slot',
     price:150,
     suffix:'/ month',
     billing:'Monthly',
     kind:'additional_slot_subscription',
-    slots:'1 additional active reusable job slot',
+    slots:'2 total job slots · 1 permanent free + 1 paid',
     features:[
       'No 25-candidate cap on the paid slot',
       'No 7-day job-slot limit',
       'AI candidate matching and candidate management',
       'Messaging and resume access',
       'Close or pause a job and reuse the slot',
-      'Buy another $150/month slot whenever you need more capacity'
+      'Available only while your account is on the Free plan'
     ]
   };
 
@@ -247,6 +247,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   let selectedPlan = 'launch';
   let selectedProduct = 'job_plan';
   let session = null;
+  let postingAccess = null;
 
   function money(n){
     return '$' + Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -305,9 +306,9 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       options.classList.add('weekly');
       options.innerHTML=`
         <button type="button" class="plan-option active" disabled>
-          <div class="name">1 Job Slot</div>
+          <div class="name">Second Job Slot</div>
           <div class="price">$150 <span>/ month</span></div>
-          <div class="slots">1 additional active reusable job slot</div>
+          <div class="slots">Free account only · 2 total slots</div>
         </button>
       `;
       document.getElementById('enterprise-note').style.display='none';
@@ -331,9 +332,9 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
   function slotLimitFor(plan,billing){
     if(billing==='weekly') return 1;
-    if(plan==='growth') return 5;
-    if(plan==='scale') return 8;
-    return 3;
+    if(plan==='growth') return 6;
+    if(plan==='scale') return 9;
+    return 4;
   }
 
   function testExpiresAt(billing){
@@ -364,9 +365,9 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const headingCopy=document.querySelector('.heading p');
     const panelTitle=document.querySelector('.panel-title');
     if(isAddon()){
-      if(heading) heading.textContent='Add 1 reusable job slot.';
-      if(headingCopy) headingCopy.textContent='Add one full paid job slot for $150 per month. Each purchase adds +1 reusable slot to your current hiring capacity.';
-      if(panelTitle) panelTitle.textContent='1. Confirm your job slot';
+      if(heading) heading.textContent='Add your Second Job Slot.';
+      if(headingCopy) headingCopy.textContent='Free employers can add one reusable paid slot for $150 per month, bringing total capacity from 1 to 2 jobs.';
+      if(panelTitle) panelTitle.textContent='1. Confirm your Second Job Slot';
     }else{
       if(heading) heading.textContent='Confirm your job-slot plan.';
       if(headingCopy) headingCopy.textContent='Choose your billing period and job-slot capacity. Your access is activated only after secure payment is confirmed.';
@@ -383,19 +384,19 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       document.getElementById('tax-row').style.display='none';
       document.getElementById('due-total').textContent='$0.00';
       document.getElementById('trust-copy').textContent='Developer test mode · No charge';
-      document.getElementById('authorization-copy').textContent=isAddon() ? 'By continuing, you confirm this is a developer test activation of the $150/month single job slot. No payment will be processed.' : `By continuing, you confirm this is a test activation of the ${p.name} ${p.billing.toLowerCase()} package. No payment will be processed.`;
+      document.getElementById('authorization-copy').textContent=isAddon() ? 'By continuing, you confirm this is a developer test activation of the Free-account-only $150/month Second Job Slot. No payment will be processed.' : `By continuing, you confirm this is a test activation of the ${p.name} ${p.billing.toLowerCase()} package. No payment will be processed.`;
     }else{
       document.getElementById('tax-row').style.display='flex';
       document.getElementById('due-total').textContent=money(p.price)+' + tax';
       if(isAddon()){
-        document.getElementById('trust-copy').textContent='🔒 Secure checkout · 1 job slot billed monthly';
-        document.getElementById('authorization-copy').textContent='By continuing, you authorize $150 plus applicable tax each month for this reusable job slot until canceled according to the Terms.';
+        document.getElementById('trust-copy').textContent='🔒 Secure checkout · Second Job Slot billed monthly';
+        document.getElementById('authorization-copy').textContent='By continuing, you authorize $150 plus applicable tax each month for the Free-account-only Second Job Slot until canceled according to the Terms.';
       }else if(selectedBilling==='monthly'){
         document.getElementById('trust-copy').textContent='🔒 Secure checkout · Subscription billed monthly';
         document.getElementById('authorization-copy').textContent=`By continuing, you authorize ${displayPrice(p.price)} plus applicable tax each month until canceled according to the Terms.`;
       }else if(selectedBilling==='quarterly'){
         document.getElementById('trust-copy').textContent='🔒 Secure checkout · 3 months paid upfront';
-        document.getElementById('authorization-copy').textContent=`By continuing, you authorize a ${displayPrice(p.price)} plus applicable tax upfront payment for the three-month ${p.name} term.`;
+        document.getElementById('authorization-copy').textContent=`By continuing, you authorize ${displayPrice(p.price)} plus applicable tax every 3 months for the ${p.name} plan until canceled according to the Terms.`;
       }else{
         document.getElementById('trust-copy').textContent='🔒 Secure checkout · 7-day job slot';
         document.getElementById('authorization-copy').textContent=`By continuing, you authorize a ${displayPrice(p.price)} plus applicable tax payment for one 7-day weekly job slot.`;
@@ -447,10 +448,11 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const accepted=document.getElementById('terms-accept').checked;
     const button=document.getElementById('checkout-btn');
     const p=activeProduct();
-    button.disabled=!accepted;
-    button.textContent=accepted
-      ? (developerTestMode ? (isAddon() ? 'Activate 1 Job Slot test — $0' : `Activate ${p.name} test package — $0`) : `Continue to secure payment — ${displayPrice(p.price)}`)
-      : 'Accept terms to continue';
+    const eligible=enforceSelectedPurchaseEligibility();
+    button.disabled=!accepted || !eligible;
+    button.textContent=accepted && eligible
+      ? (developerTestMode ? (isAddon() ? 'Activate Second Job Slot test — $0' : `Activate ${p.name} test package — $0`) : `Continue to secure payment — ${displayPrice(p.price)}`)
+      : (!eligible ? 'This purchase is not available for your account' : 'Accept terms to continue');
   }
 
   function normalizeRequestedPlan(plan,billing){
@@ -459,6 +461,72 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if(billing==='weekly') return 'weekly_slot';
     if(normalized==='weekly_slot') return billing==='weekly'?'weekly_slot':'launch';
     return CATALOG[billing]?.[normalized] ? normalized : (billing==='weekly'?'weekly_slot':'launch');
+  }
+
+  function titleCasePlan(value){
+    const text=String(value||'');
+    return text ? text.charAt(0).toUpperCase()+text.slice(1) : '';
+  }
+
+  async function loadPostingAccess(){
+    try{
+      const result=await sb.rpc('get_employer_posting_access');
+      if(result.error) throw result.error;
+      postingAccess=result.data||{};
+      return postingAccess;
+    }catch(error){
+      console.warn('Could not verify current job-slot access:',error);
+      postingAccess=null;
+      return null;
+    }
+  }
+
+  function enforceSelectedPurchaseEligibility(){
+    if(!postingAccess) return true;
+
+    if(isAddon()){
+      if(postingAccess.second_slot_eligible!==true || postingAccess.active_paid_plan===true){
+        showMessage(
+          postingAccess.active_paid_plan===true
+            ? 'The $150/month Second Job Slot is only available on the Free plan. Paid plans use the $99 Weekly Job Slot or a plan upgrade.'
+            : 'Your Second Job Slot is already active.',
+          'info'
+        );
+        document.getElementById('checkout-btn').disabled=true;
+        return false;
+      }
+    }
+
+    if(!isAddon() && ['monthly','quarterly'].includes(selectedBilling) && postingAccess.active_paid_plan===true){
+      showMessage('You already have an active paid plan. Change plans from My account → Billing & plan so upgrades use the fixed plan difference and downgrades wait until renewal.','info');
+      document.getElementById('checkout-btn').disabled=true;
+      return false;
+    }
+
+    if(selectedBilling==='weekly'){
+      if(postingAccess.candidate_access_locked===true){
+        showMessage('Candidate access is paused because of a payment issue. Update billing before adding a Weekly Job Slot.','info');
+        document.getElementById('checkout-btn').disabled=true;
+        return false;
+      }
+      if(postingAccess.active_paid_plan!==true){
+        showMessage('The $99 Weekly Job Slot is available only with an active Launch, Growth, or Scale monthly/quarterly plan.','info');
+        document.getElementById('checkout-btn').disabled=true;
+        return false;
+      }
+      if(postingAccess.weekly_purchase_allowed!==true){
+        const recommended=postingAccess.recommended_upgrade_plan;
+        showMessage(
+          recommended
+            ? `You already have one Weekly Job Slot. Upgrade to ${titleCasePlan(recommended)} for better ongoing value.`
+            : 'Another Weekly Job Slot is not available right now.',
+          'info'
+        );
+        document.getElementById('checkout-btn').disabled=true;
+        return false;
+      }
+    }
+    return true;
   }
 
   async function init(){
@@ -502,11 +570,14 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       return;
     }
 
+    await loadPostingAccess();
+
     const email=session.user.email||'Employer account';
     document.getElementById('account-email').textContent=email;
     document.getElementById('account-avatar').textContent=(email[0]||'A').toUpperCase();
     applyDeveloperTestMode();
     document.body.classList.add('ready');
+    enforceSelectedPurchaseEligibility();
   }
 
   async function startCheckout(){
@@ -579,7 +650,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       button.textContent=isAddon()?'1 Job Slot test activated ✓':(selectedBilling==='weekly'?'Weekly test slot added ✓':'Test package activated ✓');
       showMessage(
         isAddon()
-          ? `1 reusable paid job slot activated for testing. Your total capacity is now ${testEntitlement.slot_limit} job slots. You can activate another $150 slot again if needed. No payment was processed.`
+          ? `Second Job Slot activated for testing. Your total capacity is now ${testEntitlement.slot_limit} job slots. This $150 option is only available on the Free plan. No payment was processed.`
           : selectedBilling==='weekly'
             ? `Weekly Job Slot added. Your total temporary/base capacity is now ${testEntitlement.slot_limit} job slot${testEntitlement.slot_limit===1?'':'s'}. No payment was processed.`
             : `${p.name} test package activated with ${testEntitlement.slot_limit} total job slot${testEntitlement.slot_limit===1?'':'s'}. No payment was processed.`,
