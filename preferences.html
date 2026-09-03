@@ -763,8 +763,30 @@
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+  function alygnnAuthStorageKey() {
+    let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
+
+    if (!tabId) {
+      tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+        ? window.crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+
+      window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
+    }
+
+    return `alygnn-auth-${tabId}`;
+  }
+
   const { createClient } = supabase;
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      storage: window.sessionStorage,
+      storageKey: alygnnAuthStorageKey(),
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
 
   const TOTAL = 300000;
   const FLOOR = 10000;
@@ -834,7 +856,7 @@
     'Systems Administrator','Network Administrator','Data Analyst','Data Scientist',
     'Registered Nurse','Licensed Practical Nurse','Certified Nursing Assistant',
     'Medical Assistant','Home Health Aide','Therapist','Physical Therapist','Occupational Therapist',
-    'Respiratory Therapist','Speech Therapist','Behavioral Therapist','Marriage and Family Therapist',
+    'Respiratory Therapist','Massage Therapist','Mental Health Therapist',
     'Pharmacy Technician','Dental Assistant','Dental Hygienist','Veterinary Technician',
     'Teacher','Substitute Teacher','Teaching Assistant','Tutor','School Counselor',
     'Daycare Worker','Preschool Teacher','Warehouse Associate','Forklift Operator',
@@ -933,7 +955,7 @@
     Object.entries(STATE_ABBR_TO_NAME).map(([abbr, name]) => [name.toLowerCase(), abbr])
   );
 
-  function normalizeStateValue(value) {
+  function normalizeStateChoice(value) {
     const raw = String(value || '').trim();
     if (!raw) return { name: '', abbr: '' };
 
@@ -958,22 +980,15 @@
     const trimmed = String(value || '').trim();
     if (!trimmed) return { city: '', state: '', state_abbr: '', location_scope: '' };
 
-    // Remote remains a location choice rather than a state.
     if (/^remote(?:\s*-\s*united states)?$/i.test(trimmed)) {
-      return {
-        city: 'Remote',
-        state: '',
-        state_abbr: '',
-        location_scope: 'remote'
-      };
+      return { city: 'Remote', state: '', state_abbr: '', location_scope: 'remote' };
     }
 
     const parts = trimmed.split(',').map(p => p.trim()).filter(Boolean);
 
-    // A state by itself is a valid statewide preference:
-    // "NC" and "North Carolina" both become state=North Carolina, city="".
     if (parts.length === 1) {
-      const stateOnly = normalizeStateValue(parts[0]);
+      const stateOnly = normalizeStateChoice(parts[0]);
+
       if (stateOnly.abbr) {
         return {
           city: '',
@@ -983,7 +998,6 @@
         };
       }
 
-      // Free-text city still works for towns not in our suggestion list.
       return {
         city: trimmed,
         state: '',
@@ -993,7 +1007,7 @@
     }
 
     const city = parts[0];
-    const stateInfo = normalizeStateValue(parts[1]);
+    const stateInfo = normalizeStateChoice(parts[1]);
 
     return {
       city,
@@ -1223,27 +1237,24 @@
       return;
     }
 
-    // Statewide options are first-class choices. Typing "NC", "North",
-    // or "North Carolina" can select the whole state instead of a city.
-    const stateSuggestions = Object.entries(STATE_ABBR_TO_NAME)
+    const stateMatches = Object.entries(STATE_ABBR_TO_NAME)
       .map(([abbr, name]) => {
-        const normalizedName = normalize(name);
-        const normalizedAbbr = normalize(abbr);
+        const nameNorm = normalize(name);
+        const abbrNorm = normalize(abbr);
 
         let score = 99;
-        if (normalizedAbbr === value || normalizedName === value) score = -2;
-        else if (normalizedAbbr.startsWith(value) || normalizedName.startsWith(value)) score = -1;
-        else if (normalizedName.includes(value)) score = 0;
+        if (abbrNorm === value || nameNorm === value) score = -2;
+        else if (abbrNorm.startsWith(value) || nameNorm.startsWith(value)) score = -1;
+        else if (nameNorm.includes(value)) score = 0;
 
-        return { abbr, name, score };
+        return { name, score };
       })
       .filter(item => item.score < 99)
       .sort((a, b) => a.score - b.score || a.name.localeCompare(b.name))
-      .slice(0, 3);
+      .slice(0, 2);
 
-    // City matches remain available under the statewide option.
     const uniqueCities = [...new Set(KNOWN_CITIES)];
-    const citySuggestions = uniqueCities
+    const cityMatches = uniqueCities
       .map(city => {
         const normalized = normalize(city);
         const cityName = normalized.split(',')[0].trim();
@@ -1258,22 +1269,19 @@
       })
       .filter(item => item.score < 99)
       .sort((a, b) => a.score - b.score || a.city.localeCompare(b.city))
-      .slice(0, Math.max(0, 7 - stateSuggestions.length));
+      .slice(0, Math.max(0, 7 - stateMatches.length));
 
-    if (!stateSuggestions.length && !citySuggestions.length) {
+    if (!stateMatches.length && !cityMatches.length) {
       box.style.display = 'none';
       box.innerHTML = '';
       return;
     }
 
-    const stateHtml = stateSuggestions.map(({ name }) =>
-      `<div class="city-suggestion-item" role="option" onclick="selectCitySuggestion('${name.replace(/'/g, "\\'")}')">
-        <span>${name}</span>
-        <span style="margin-left:auto;font-size:11px;color:var(--brand);font-weight:600;">STATEWIDE</span>
-      </div>`
+    const stateHtml = stateMatches.map(({ name }) =>
+      `<div class="city-suggestion-item" role="option" onclick="selectCitySuggestion('${name.replace(/'/g, "\\'")}')">${name} <span style="margin-left:auto;font-size:11px;color:var(--brand);font-weight:600;">STATEWIDE</span></div>`
     ).join('');
 
-    const cityHtml = citySuggestions.map(({ city }) =>
+    const cityHtml = cityMatches.map(({ city }) =>
       `<div class="city-suggestion-item" role="option" onclick="selectCitySuggestion('${city.replace(/'/g, "\\'")}')">${city}</div>`
     ).join('');
 
@@ -1311,7 +1319,6 @@
         ? `${saved.city}, ${saved.state}`
         : saved.city;
     } else if (saved.state) {
-      // State-only preference such as "North Carolina".
       document.getElementById('city-input').value = saved.state;
     }
 
@@ -1547,11 +1554,11 @@
     const matches = JOB_TITLES
       .filter(title => normalize(title).includes(value))
       .sort((a, b) => {
-        // For an umbrella search like "therapist", put the broad title first
-        // so candidates can intentionally search every therapist specialty.
-        const aExact = normalize(a) === value ? -2 : normalize(a).startsWith(value) ? -1 : 0;
-        const bExact = normalize(b) === value ? -2 : normalize(b).startsWith(value) ? -1 : 0;
-        return aExact - bExact || a.localeCompare(b);
+        const aNorm = normalize(a);
+        const bNorm = normalize(b);
+        const aRank = aNorm === value ? -2 : aNorm.startsWith(value) ? -1 : 0;
+        const bRank = bNorm === value ? -2 : bNorm.startsWith(value) ? -1 : 0;
+        return aRank - bRank || a.localeCompare(b);
       })
       .slice(0, 8);
 
@@ -1561,17 +1568,9 @@
       return;
     }
 
-    box.innerHTML = matches.map(name => {
-      const broadTherapist = normalize(name) === 'therapist';
-      const detail = broadTherapist
-        ? '<span style="margin-left:auto;font-size:11px;color:var(--brand);font-weight:600;">ANY SPECIALTY</span>'
-        : '';
-
-      return `<div class="city-suggestion-item" onclick="selectRoleSuggestion('${name.replace(/'/g, "\\'")}')">
-        <span>${name}</span>${detail}
-      </div>`;
-    }).join('');
-
+    box.innerHTML = matches.map(name =>
+      `<div class="city-suggestion-item" onclick="selectRoleSuggestion('${name.replace(/'/g, "\\'")}')">${name}</div>`
+    ).join('');
     box.style.display = 'block';
   }
 
