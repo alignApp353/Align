@@ -290,6 +290,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   let planChangeTarget = null;
   let planChangeCurrent = null;
   let planChangeBilling = null;
+  let planChangeCurrentBilling = null;
   let planChangeBusy = false;
 
   const PLAN_TOTAL_SLOTS={launch:4,growth:6,scale:9};
@@ -328,11 +329,27 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     return (PLAN_RANK[planChangeTarget]||0)>(PLAN_RANK[planChangeCurrent]||0);
   }
 
+  function planChangeBillingChanged(){
+    return (planChangeCurrentBilling||existingBillingPeriod()) !== planChangeBilling;
+  }
+
+  // Alygnn's fixed-difference charge applies only when upgrading within the
+  // same billing cadence. If Monthly/Quarterly also changes, the whole change
+  // is scheduled for renewal so the employer is never double-billed.
+  function planChangeIsImmediateUpgrade(){
+    return planChangeIsUpgrade() && !planChangeBillingChanged();
+  }
+
   function planChangePrices(){
-    const billing=planChangeBilling||existingBillingPeriod();
-    const currentPrice=CATALOG[billing]?.[planChangeCurrent]?.price||0;
-    const targetPrice=CATALOG[billing]?.[planChangeTarget]?.price||0;
-    return {currentPrice,targetPrice,difference:Math.max(0,targetPrice-currentPrice)};
+    const currentBilling=planChangeCurrentBilling||existingBillingPeriod();
+    const targetBilling=planChangeBilling||currentBilling;
+    const currentPrice=CATALOG[currentBilling]?.[planChangeCurrent]?.price||0;
+    const targetPrice=CATALOG[targetBilling]?.[planChangeTarget]?.price||0;
+    return {
+      currentPrice,
+      targetPrice,
+      difference:planChangeIsImmediateUpgrade()?Math.max(0,targetPrice-currentPrice):0
+    };
   }
 
   function renderPlanChangeReview(){
@@ -340,31 +357,46 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     const current=planChangeCurrent;
     const target=planChangeTarget;
-    const billing=planChangeBilling;
-    const currentProduct=CATALOG[billing]?.[current];
-    const targetProduct=CATALOG[billing]?.[target];
+    const currentBilling=planChangeCurrentBilling||existingBillingPeriod();
+    const targetBilling=planChangeBilling||currentBilling;
+    const currentProduct=CATALOG[currentBilling]?.[current];
+    const targetProduct=CATALOG[targetBilling]?.[target];
     if(!currentProduct||!targetProduct) return;
 
-    const upgrade=planChangeIsUpgrade();
+    const tierUpgrade=planChangeIsUpgrade();
+    const billingChanged=currentBilling!==targetBilling;
+    const immediateUpgrade=planChangeIsImmediateUpgrade();
     const {currentPrice,targetPrice,difference}=planChangePrices();
     const periodEnd=formattedDate(currentEntitlement?.current_period_end || postingAccess?.current_period_end);
-    const effectiveText=upgrade?'Immediately after payment succeeds':(periodEnd?periodEnd:'At your next renewal');
+    const effectiveText=developerTestMode
+      ? 'Immediately in developer test mode'
+      : immediateUpgrade
+        ? 'Immediately after payment succeeds'
+        : (periodEnd?periodEnd:'At your next renewal');
     const currentSlots=PLAN_TOTAL_SLOTS[current]||1;
     const targetSlots=PLAN_TOTAL_SLOTS[target]||1;
     const weeklyCount=Math.max(0,Number(postingAccess?.weekly_slot_count||0));
+    const currentBillingLabel=currentBilling==='quarterly'?'Quarterly':'Monthly';
+    const targetBillingLabel=targetBilling==='quarterly'?'Quarterly':'Monthly';
 
     document.body.classList.add('plan-change-mode');
     selectedPlan=target;
-    selectedBilling=billing;
+    selectedBilling=targetBilling;
 
     const heading=document.querySelector('.heading h1');
     const headingCopy=document.querySelector('.heading p');
     const eyebrow=document.querySelector('.heading .eyebrow');
     if(eyebrow) eyebrow.textContent='Plan change review';
     if(heading) heading.textContent='Review your plan change.';
-    if(headingCopy) headingCopy.textContent=upgrade
-      ? 'Review the price difference, new capacity, and next renewal before confirming your upgrade.'
-      : 'Nothing changes today. Review when your lower plan begins and what your capacity will become.';
+    if(headingCopy){
+      headingCopy.textContent=developerTestMode
+        ? 'Review the plan, billing cadence, capacity, and renewal price before changing your developer test entitlement.'
+        : immediateUpgrade
+          ? 'Review the fixed price difference, new capacity, and next renewal before confirming your upgrade.'
+          : billingChanged
+            ? 'Your billing cadence is changing, so this change is scheduled for renewal. Nothing is charged today.'
+            : 'Nothing changes today. Review when your lower plan begins and what your capacity will become.';
+    }
 
     const firstTitle=document.querySelector('.panel-title');
     if(firstTitle) firstTitle.textContent='1. Review your change';
@@ -376,68 +408,87 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           <div class="change-plan-box">
             <div class="change-label">Current plan</div>
             <div class="change-name">${currentProduct.name}</div>
-            <div class="change-price">${displayPrice(currentPrice)} ${currentProduct.suffix} · ${currentSlots} total slots</div>
+            <div class="change-price">${currentBillingLabel} · ${displayPrice(currentPrice)} ${currentProduct.suffix} · ${currentSlots} total slots</div>
           </div>
           <div class="change-arrow">→</div>
           <div class="change-plan-box target">
             <div class="change-label">New plan</div>
             <div class="change-name">${targetProduct.name}</div>
-            <div class="change-price">${displayPrice(targetPrice)} ${targetProduct.suffix} · ${targetSlots} total slots</div>
+            <div class="change-price">${targetBillingLabel} · ${displayPrice(targetPrice)} ${targetProduct.suffix} · ${targetSlots} total slots</div>
           </div>
         </div>
         <div class="change-details">
+          <div class="change-detail"><span class="label">Billing change</span><span class="value">${currentBillingLabel} → ${targetBillingLabel}</span></div>
           <div class="change-detail"><span class="label">Effective</span><span class="value">${effectiveText}</span></div>
-          <div class="change-detail"><span class="label">Due today</span><span class="value">${developerTestMode?'$0.00 test mode':upgrade?money(difference)+' + applicable tax':'$0.00'}</span></div>
-          <div class="change-detail"><span class="label">Next renewal</span><span class="value">${displayPrice(targetPrice)} ${billingCadenceLabel(billing)}</span></div>
+          <div class="change-detail"><span class="label">Due today</span><span class="value">${developerTestMode?'$0.00 test mode':immediateUpgrade?money(difference)+' + applicable tax':'$0.00'}</span></div>
+          <div class="change-detail"><span class="label">Next renewal</span><span class="value">${displayPrice(targetPrice)} ${billingCadenceLabel(targetBilling)}</span></div>
           <div class="change-detail"><span class="label">Job-slot capacity</span><span class="value">${currentSlots} → ${targetSlots} total slots</span></div>
         </div>
-        <div class="change-notice ${upgrade?'':'downgrade'}">
-          <strong>${upgrade?'Your upgrade starts after payment.':'You keep your current plan through the paid period.'}</strong>
-          ${upgrade
-            ? `Alygnn will charge only the fixed ${money(difference)} plan difference today. ${targetProduct.name} capacity becomes available after that payment succeeds. Your next renewal will be the full ${displayPrice(targetPrice)} ${billing==='quarterly'?'3-month':'monthly'} price.`
-            : `${currentProduct.name} stays active${periodEnd?' through '+periodEnd:' until your current billing period ends'}. Then ${targetProduct.name} begins and your reusable capacity changes from ${currentSlots} to ${targetSlots} total slots. Alygnn will not delete existing jobs. If you are above ${targetSlots} active jobs when the downgrade takes effect, you will need to close enough jobs before posting another one.`}
+        <div class="change-notice ${immediateUpgrade?'':'downgrade'}">
+          <strong>${developerTestMode
+            ? 'Developer test mode applies this selection immediately.'
+            : immediateUpgrade
+              ? 'Your upgrade starts after payment.'
+              : billingChanged
+                ? 'Your current billing period is protected.'
+                : 'You keep your current plan through the paid period.'}</strong>
+          ${developerTestMode
+            ? `No payment is processed. Your test entitlement will switch to ${targetProduct.name} ${targetBillingLabel}. On a live paid account, a billing-cadence change is scheduled for renewal.`
+            : immediateUpgrade
+              ? `Alygnn will charge only the fixed ${money(difference)} plan difference today. ${targetProduct.name} capacity becomes available after that payment succeeds. Your next renewal will be ${displayPrice(targetPrice)} ${billingCadenceLabel(targetBilling)}.`
+              : billingChanged
+                ? `${currentProduct.name} ${currentBillingLabel} stays active${periodEnd?' through '+periodEnd:' until your current paid period ends'}. Then ${targetProduct.name} ${targetBillingLabel} begins at ${displayPrice(targetPrice)} ${billingCadenceLabel(targetBilling)}. No plan-change charge is taken today.`
+                : `${currentProduct.name} stays active${periodEnd?' through '+periodEnd:' until your current billing period ends'}. Then ${targetProduct.name} begins and your reusable capacity changes from ${currentSlots} to ${targetSlots} total slots. Alygnn will not delete existing jobs. If you are above ${targetSlots} active jobs when the change takes effect, you will need to close enough jobs before posting another one.`}
         </div>
         ${weeklyCount>0?`<div class="change-notice"><strong>Your Weekly Job Slot is separate.</strong>Any active $99 Weekly Job Slot keeps its own 7-day expiration and is not extended by this plan change.</div>`:''}
         <ul class="review-list">
-          ${upgrade?'<li>Additional included job slots unlock after successful payment.</li>':'<li>No plan-change charge is taken today.</li>'}
+          ${immediateUpgrade?'<li>Additional included job slots unlock after successful payment.</li>':'<li>No plan-change charge is taken today.</li>'}
           <li>Your permanent free job slot remains included.</li>
           <li>Your jobs, applications, messages, and history are preserved.</li>
         </ul>
       </div>`;
 
     document.getElementById('enterprise-note').style.display='none';
-    document.getElementById('payment-section-title').textContent=upgrade?'3. Confirm & pay':'3. Confirm change';
-    document.getElementById('secure-title').textContent=upgrade?'Confirm your upgrade':'Schedule your downgrade';
-    document.getElementById('secure-copy').textContent=upgrade
-      ? 'Your plan changes only after the fixed price-difference payment succeeds.'
-      : `Your current ${currentProduct.name} access stays active until the end of the paid period. No charge is due today.`;
+    document.getElementById('payment-section-title').textContent=developerTestMode?'3. Confirm change':immediateUpgrade?'3. Confirm & pay':'3. Confirm change';
+    document.getElementById('secure-title').textContent=developerTestMode?'Confirm test plan change':immediateUpgrade?'Confirm your upgrade':'Schedule your plan change';
+    document.getElementById('secure-copy').textContent=developerTestMode
+      ? `No payment will be processed. Your test entitlement will become ${targetProduct.name} ${targetBillingLabel}.`
+      : immediateUpgrade
+        ? 'Your plan changes only after the fixed price-difference payment succeeds.'
+        : `${currentProduct.name} ${currentBillingLabel} stays active until the end of the paid period. ${targetProduct.name} ${targetBillingLabel} starts at renewal.`;
 
     const targetFeatures=targetProduct.features||[];
     document.getElementById('summary-name').textContent=targetProduct.name;
-    document.getElementById('summary-billing').textContent=billing==='quarterly'?'Quarterly':'Monthly';
+    document.getElementById('summary-billing').textContent=targetBillingLabel;
     document.getElementById('summary-price').innerHTML=`${displayPrice(targetPrice)} <span>${targetProduct.suffix}</span>`;
     document.getElementById('summary-sub').textContent=targetProduct.slots;
     document.getElementById('summary-features').innerHTML=targetFeatures.map(x=>`<li>${x}</li>`).join('');
-    document.getElementById('summary-change-line').innerHTML=upgrade
-      ? `<strong>Upgrade:</strong> ${currentProduct.name} → ${targetProduct.name}. Fixed difference due today: ${developerTestMode?'$0 test mode':money(difference)+' + tax'}.`
-      : `<strong>Downgrade:</strong> ${currentProduct.name} stays active until ${periodEnd||'your next renewal'}, then ${targetProduct.name} begins.`;
-    document.getElementById('subtotal').textContent=upgrade?(developerTestMode?'$0.00':money(difference)):'$0.00';
-    document.getElementById('tax-row').style.display=upgrade&&!developerTestMode?'flex':'none';
-    document.getElementById('due-total').textContent=developerTestMode?'$0.00':upgrade?money(difference)+' + tax':'$0.00';
+    document.getElementById('summary-change-line').innerHTML=developerTestMode
+      ? `<strong>Test change:</strong> ${currentProduct.name} ${currentBillingLabel} → ${targetProduct.name} ${targetBillingLabel}. No charge.`
+      : immediateUpgrade
+        ? `<strong>Upgrade:</strong> ${currentProduct.name} → ${targetProduct.name}. Fixed difference due today: ${money(difference)} + tax.`
+        : `<strong>Scheduled change:</strong> ${currentProduct.name} ${currentBillingLabel} → ${targetProduct.name} ${targetBillingLabel} at ${periodEnd||'your next renewal'}.`;
+    document.getElementById('subtotal').textContent=developerTestMode?'$0.00':immediateUpgrade?money(difference):'$0.00';
+    document.getElementById('tax-row').style.display=immediateUpgrade&&!developerTestMode?'flex':'none';
+    document.getElementById('due-total').textContent=developerTestMode?'$0.00':immediateUpgrade?money(difference)+' + tax':'$0.00';
     document.getElementById('trust-copy').textContent=developerTestMode
       ? 'Developer test mode · No charge'
-      : upgrade?'Secure plan upgrade · fixed difference only':'No charge today · change takes effect at renewal';
+      : immediateUpgrade
+        ? 'Secure plan upgrade · fixed difference only'
+        : 'No charge today · change takes effect at renewal';
 
     document.getElementById('authorization-copy').textContent=developerTestMode
-      ? `Developer test mode: confirming changes the test entitlement to ${targetProduct.name}. No payment is processed.`
-      : upgrade
-        ? `By confirming, you authorize the fixed ${money(difference)} plan-difference charge plus applicable tax. After payment succeeds, ${targetProduct.name} starts immediately and renews at ${displayPrice(targetPrice)} ${billingCadenceLabel(billing)}.`
-        : `By confirming, you schedule ${targetProduct.name} for your next renewal. ${currentProduct.name} remains active through the current paid period. Your next renewal will be ${displayPrice(targetPrice)} ${billingCadenceLabel(billing)}.`;
+      ? `Developer test mode: confirming changes the test entitlement to ${targetProduct.name} ${targetBillingLabel}. No payment is processed.`
+      : immediateUpgrade
+        ? `By confirming, you authorize the fixed ${money(difference)} plan-difference charge plus applicable tax. After payment succeeds, ${targetProduct.name} starts immediately and renews at ${displayPrice(targetPrice)} ${billingCadenceLabel(targetBilling)}.`
+        : `By confirming, you schedule ${targetProduct.name} ${targetBillingLabel} for your next renewal. ${currentProduct.name} ${currentBillingLabel} remains active through the current paid period. Your next renewal will be ${displayPrice(targetPrice)} ${billingCadenceLabel(targetBilling)}.`;
 
     const fineprint=document.querySelector('.fineprint');
-    if(fineprint) fineprint.textContent=upgrade
-      ? 'Review the plan difference and renewal price above before confirming.'
-      : 'No payment is taken today. You can review the scheduled change in Billing & plan.';
+    if(fineprint) fineprint.textContent=developerTestMode
+      ? 'Developer test mode only. No payment is processed.'
+      : immediateUpgrade
+        ? 'Review the plan difference and renewal price above before confirming.'
+        : 'No payment is taken today. You can review the scheduled change in Billing & plan.';
 
     updateCheckoutState();
   }
@@ -452,10 +503,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     const button=document.getElementById('checkout-btn');
     const target=planChangeTarget;
-    const upgrade=planChangeIsUpgrade();
+    const immediateUpgrade=planChangeIsImmediateUpgrade();
     planChangeBusy=true;
     button.disabled=true;
-    button.textContent=upgrade?'Processing plan change…':'Scheduling plan change…';
+    button.textContent=developerTestMode?'Applying test change…':immediateUpgrade?'Processing plan change…':'Scheduling plan change…';
     clearMessage();
 
     try{
@@ -471,7 +522,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       const response=await fetch(CHECKOUT_ENDPOINT,{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
-        body:JSON.stringify({action:'change_plan',target_plan:target})
+        body:JSON.stringify({action:'change_plan',target_plan:target,billing:planChangeBilling})
       });
       const data=await response.json().catch(()=>({}));
 
@@ -498,7 +549,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         return;
       }
 
-      if(data.change==='downgrade_scheduled'){
+      if(['downgrade_scheduled','plan_change_scheduled','billing_change_scheduled'].includes(data.change)){
         button.textContent='Change scheduled ✓';
         const when=formattedDate(data.effective_at)||'your next renewal';
         showMessage(`${titleCasePlan(target)} is scheduled for ${when}. Your current plan stays active until then.`,'info');
@@ -732,15 +783,15 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const p=activeProduct();
 
     if(planChangeMode){
-      const upgrade=planChangeIsUpgrade();
+      const immediateUpgrade=planChangeIsImmediateUpgrade();
       const {difference}=planChangePrices();
       button.disabled=!accepted || planChangeBusy;
       button.textContent=accepted
         ? (developerTestMode
-            ? `Confirm ${titleCasePlan(planChangeTarget)} test change — $0`
-            : upgrade
+            ? `Confirm ${titleCasePlan(planChangeTarget)} ${planChangeBilling==='quarterly'?'Quarterly':'Monthly'} test change — $0`
+            : immediateUpgrade
               ? `Confirm upgrade — ${money(difference)} + tax`
-              : `Schedule ${titleCasePlan(planChangeTarget)} at renewal`)
+              : `Schedule ${titleCasePlan(planChangeTarget)} ${planChangeBilling==='quarterly'?'Quarterly':'Monthly'} at renewal`)
         : 'Accept terms to continue';
       return;
     }
@@ -898,7 +949,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     if(planChangeMode){
       planChangeCurrent=normalizedExistingPlan();
-      planChangeBilling=existingBillingPeriod();
+      planChangeCurrentBilling=existingBillingPeriod();
+      if(!['monthly','quarterly'].includes(planChangeBilling)) planChangeBilling=planChangeCurrentBilling;
       planChangeTarget=normalizeRequestedPlan(planChangeTarget,planChangeBilling);
       selectedPlan=planChangeTarget;
       selectedBilling=planChangeBilling;
@@ -908,8 +960,11 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         document.body.classList.add('ready');
         return;
       }
-      if(planChangeCurrent==='free' || planChangeTarget===planChangeCurrent){
-        location.replace('pricing.html');
+      if(
+        planChangeCurrent==='free' ||
+        (planChangeTarget===planChangeCurrent && planChangeBilling===planChangeCurrentBilling)
+      ){
+        location.replace('pricing.html?mode='+encodeURIComponent(planChangeBilling));
         return;
       }
       renderPlanChangeReview();
