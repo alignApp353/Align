@@ -138,7 +138,7 @@
 <body>
 
 <div class="left-panel" id="left-panel">
-  <a class="panel-logo" id="login-home-logo" href="index.html">Alygnn<span>.</span></a>
+  <a class="panel-logo" href="index.html">Alygnn<span>.</span></a>
   <div class="panel-content">
     <div class="seeker-content">
       <h2>Jobs that fit<br><em>your reality.</em></h2>
@@ -165,7 +165,7 @@
 <div class="right-panel">
   <div class="form-container">
 
-    <a href="index.html" class="back-link" id="login-back-link">
+    <a href="index.html" class="back-link">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
       Back to Alygnn
     </a>
@@ -325,18 +325,166 @@ const { createClient } = supabase;
 
   const redirectFor = r => window.location.origin + (r === 'employer' ? '/employer-account.html' : '/account.html');
 
+  function normalizeRole(value) {
+    const role = String(value || '').toLowerCase();
+    return role === 'employer' ? 'employer' : 'seeker';
+  }
+
+  function oauthCallbackUrl(role, mode) {
+    const url = new URL('/login.html', window.location.origin);
+    url.searchParams.set('oauth', 'complete');
+    url.searchParams.set('role', normalizeRole(role));
+    url.searchParams.set('mode', mode === 'signup' ? 'signup' : 'login');
+    return url.toString();
+  }
+
+  function saveOAuthContext(role, mode) {
+    sessionStorage.setItem('alygnn_oauth_role', normalizeRole(role));
+    sessionStorage.setItem('alygnn_oauth_mode', mode === 'signup' ? 'signup' : 'login');
+
+    if (mode === 'signup' && normalizeRole(role) === 'employer') {
+      const company = document.getElementById('signup-company')?.value?.trim() || '';
+      if (company) sessionStorage.setItem('alygnn_oauth_company', company);
+      else sessionStorage.removeItem('alygnn_oauth_company');
+    } else {
+      sessionStorage.removeItem('alygnn_oauth_company');
+    }
+  }
+
+  function clearOAuthContext() {
+    sessionStorage.removeItem('alygnn_oauth_role');
+    sessionStorage.removeItem('alygnn_oauth_mode');
+    sessionStorage.removeItem('alygnn_oauth_company');
+  }
+
+  async function finishOAuthReturn() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('oauth') !== 'complete') return;
+
+    const oauthError = params.get('error_description') || params.get('error');
+    if (oauthError) {
+      clearOAuthContext();
+      showMsg(decodeURIComponent(oauthError));
+      history.replaceState({}, '', 'login.html');
+      return;
+    }
+
+    showMsg('Finishing sign in…', 'success');
+
+    const { data: { session }, error: sessionError } = await sb.auth.getSession();
+    if (sessionError || !session?.user) {
+      showMsg('We could not finish your Google or Apple sign in. Please try again.');
+      return;
+    }
+
+    const user = session.user;
+    const storedRole =
+      sessionStorage.getItem('alygnn_oauth_role') ||
+      params.get('role') ||
+      user.user_metadata?.role ||
+      'seeker';
+
+    const storedMode =
+      sessionStorage.getItem('alygnn_oauth_mode') ||
+      params.get('mode') ||
+      'login';
+
+    const storedCompany =
+      sessionStorage.getItem('alygnn_oauth_company') ||
+      '';
+
+    const { data: profile, error: profileError } = await sb
+      .from('profiles')
+      .select('role, full_name, company_name, has_password')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error('Could not read OAuth profile:', profileError);
+    }
+
+    // Existing Alygnn accounts always keep their saved role.
+    // Only a brand-new OAuth account uses the role selected before OAuth.
+    const role = normalizeRole(
+      profile?.role ||
+      storedRole ||
+      user.user_metadata?.role
+    );
+
+    const fullName =
+      profile?.full_name ||
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
+      user.email?.split('@')[0] ||
+      '';
+
+    const profilePatch = { id: user.id };
+
+    if (!profile?.role) {
+      profilePatch.role = role;
+    }
+
+    if (!profile?.full_name && fullName) {
+      profilePatch.full_name = fullName;
+    }
+
+    if (
+      role === 'employer' &&
+      !profile?.company_name &&
+      storedMode === 'signup' &&
+      storedCompany
+    ) {
+      profilePatch.company_name = storedCompany;
+    }
+
+    if (Object.keys(profilePatch).length > 1) {
+      const { error: saveProfileError } = await sb
+        .from('profiles')
+        .upsert(profilePatch, { onConflict: 'id' });
+
+      if (saveProfileError) {
+        console.error('Could not finish OAuth profile setup:', saveProfileError);
+        showMsg('Signed in, but we could not finish setting up your Alygnn profile. Please try again.');
+        return;
+      }
+    }
+
+    // Keep auth metadata consistent for new OAuth accounts without forcing a password.
+    if (!profile?.role && !user.user_metadata?.role) {
+      try {
+        const nextMeta = {
+          ...(user.user_metadata || {}),
+          role
+        };
+
+        if (role === 'employer' && storedCompany) {
+          nextMeta.company = storedCompany;
+        }
+
+        await sb.auth.updateUser({ data: nextMeta });
+      } catch (metadataError) {
+        console.warn('Could not backfill OAuth role metadata:', metadataError);
+      }
+    }
+
+    await savePendingPreferences(user, fullName);
+    clearOAuthContext();
+
+    // Password setup is intentionally optional. Google/Apple users continue
+    // directly into Alygnn and can add a password later in Account settings.
+    window.location.replace(redirectFor(role));
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    finishOAuthReturn().catch(error => {
+      console.error('OAuth completion failed:', error);
+      showMsg('We could not finish your Google or Apple sign in. Please try again.');
+    });
+  });
+
   function switchRole(role) {
     currentRole = role;
     const isEmp = role === 'employer';
-
-    // Keep the login page anchored to the correct public home.
-    // Job Seeker -> index.html, Employer -> employers.html.
-    const publicHome = isEmp ? 'employers.html' : 'index.html';
-    const homeLogo = document.getElementById('login-home-logo');
-    const backLink = document.getElementById('login-back-link');
-    if (homeLogo) homeLogo.href = publicHome;
-    if (backLink) backLink.href = publicHome;
-
     document.getElementById('left-panel').classList.toggle('is-employer', isEmp);
     document.getElementById('role-seeker').classList.toggle('active', !isEmp);
     document.getElementById('role-employer').classList.toggle('active', isEmp);
@@ -463,7 +611,7 @@ const { createClient } = supabase;
     // redirected to set-password.html on every login. We now check
     // the error and only skip it (rather than blocking signup) when
     // there's no session yet, since in that case the row will be
-    // written by set-password.html or the post-confirmation flow instead.
+    // written after the confirmed user signs in.
     if (data.user && data.session) {
       const { error: profileError } = await sb.from('profiles').upsert({
         id: data.user.id,
@@ -496,30 +644,39 @@ const { createClient } = supabase;
 
   async function handleGoogle() {
     const isSignupTab = document.getElementById('signup-form').style.display !== 'none';
+
     if (isSignupTab && !document.getElementById('signup-terms').checked) {
       showMsg('Please agree to the Terms of Service and Privacy Policy to continue.');
       return;
     }
-    // Pass the currently selected role in the redirect URL so
-    // set-password.html can save it to the profiles table after
-    // Google OAuth completes — fixing the role routing for Google sign-ins.
-    const roleParam = currentRole === 'employer' ? '?role=employer' : '';
+
+    const mode = isSignupTab ? 'signup' : 'login';
+    saveOAuthContext(currentRole, mode);
+
     await sb.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/set-password.html' + roleParam }
+      options: {
+        redirectTo: oauthCallbackUrl(currentRole, mode)
+      }
     });
   }
 
   async function handleApple() {
     const isSignupTab = document.getElementById('signup-form').style.display !== 'none';
+
     if (isSignupTab && !document.getElementById('signup-terms').checked) {
       showMsg('Please agree to the Terms of Service and Privacy Policy to continue.');
       return;
     }
-    const roleParam = currentRole === 'employer' ? '?role=employer' : '';
+
+    const mode = isSignupTab ? 'signup' : 'login';
+    saveOAuthContext(currentRole, mode);
+
     await sb.auth.signInWithOAuth({
       provider: 'apple',
-      options: { redirectTo: window.location.origin + '/set-password.html' + roleParam }
+      options: {
+        redirectTo: oauthCallbackUrl(currentRole, mode)
+      }
     });
   }
 
