@@ -623,6 +623,71 @@
       line-height:1.45;
     }
 
+    .free-slot-applicant-meter{
+      margin-top:10px;
+      max-width:290px;
+    }
+
+    .free-slot-applicant-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      color:var(--muted);
+      font-size:10px;
+      font-weight:800;
+    }
+
+    .free-slot-applicant-row strong{
+      color:var(--text);
+      font-size:10px;
+      font-weight:900;
+    }
+
+    .free-slot-applicant-track{
+      height:6px;
+      margin-top:7px;
+      border-radius:999px;
+      overflow:hidden;
+      background:#E7EDF1;
+    }
+
+    .free-slot-applicant-fill{
+      height:100%;
+      border-radius:999px;
+      background:#6FBF8F;
+    }
+
+    .free-slot-limit-box{
+      margin-top:10px;
+      padding:11px 12px;
+      border:1px solid #F0D39B;
+      border-radius:14px;
+      background:#FFF8EC;
+      color:#765116;
+      font-size:10px;
+      line-height:1.5;
+      font-weight:800;
+    }
+
+    .free-slot-boost-active{
+      margin-top:10px;
+      padding:10px 12px;
+      border:1px solid #B8E0C5;
+      border-radius:14px;
+      background:#EFF9F3;
+      color:#268A58;
+      font-size:10px;
+      line-height:1.5;
+      font-weight:800;
+    }
+
+    .mini-btn.boost{
+      border-color:#B9CCE2;
+      background:#EEF5FB;
+      color:#35689E;
+    }
+
 
     .job-stats{
       display:grid;
@@ -5824,37 +5889,189 @@
       ).toLowerCase();
     }
 
-    function jobAccessBadge(job){
-      const type = postingAccessType(job);
+    function jobConsumesCurrentSlot(job){
+      const status=String(job?.status||'active').toLowerCase();
 
-      if(type === 'free'){
+      return ![
+        'closed',
+        'archived',
+        'inactive',
+        'deleted'
+      ].includes(status);
+    }
+
+    function canonicalFreeJobId(){
+      /*
+       * Defensive UI de-duplication for legacy rows:
+       * there may temporarily be more than one old job tagged "free".
+       * The database migration fixes the source data. Until it runs,
+       * show the Free Job Slot badge on only the newest active free-tagged job.
+       */
+      const freeJobs=(state.jobs||[])
+        .filter(job=>
+          jobConsumesCurrentSlot(job) &&
+          postingAccessType(job)==='free'
+        )
+        .sort((a,b)=>{
+          const at=new Date(
+            a?.created_at||a?.updated_at||0
+          ).getTime()||0;
+
+          const bt=new Date(
+            b?.created_at||b?.updated_at||0
+          ).getTime()||0;
+
+          return bt-at;
+        });
+
+      return freeJobs.length
+        ?String(freeJobs[0].id)
+        :'';
+    }
+
+    function jobBoostIsActive(job){
+      const until=job?.boosted_until;
+
+      if(!until)return false;
+
+      const time=new Date(until).getTime();
+
+      return Number.isFinite(time)&&time>Date.now();
+    }
+
+    function freeApplicantCount(job){
+      return jobApplications(job).length;
+    }
+
+    function freeApplicantLimitHtml(job){
+      const count=freeApplicantCount(job);
+      const limit=25;
+      const capped=Math.min(count,limit);
+      const percent=Math.max(
+        0,
+        Math.min(100,(capped/limit)*100)
+      );
+
+      if(jobBoostIsActive(job)){
+        const until=new Date(job.boosted_until);
+
+        return `
+          <div class="free-slot-boost-active">
+            Boost active · $15/day<br>
+            The 25-applicant free-slot limit is lifted until
+            ${escapeHtml(
+              until.toLocaleString([],{
+                month:'short',
+                day:'numeric',
+                hour:'numeric',
+                minute:'2-digit'
+              })
+            )}.
+          </div>
+        `;
+      }
+
+      if(count>=limit){
+        return `
+          <div class="free-slot-applicant-meter">
+            <div class="free-slot-applicant-row">
+              <span>Free-slot applicants</span>
+              <strong>25 / 25</strong>
+            </div>
+
+            <div class="free-slot-applicant-track">
+              <div
+                class="free-slot-applicant-fill"
+                style="width:100%">
+              </div>
+            </div>
+          </div>
+
+          <div class="free-slot-limit-box">
+            Applicant limit reached. This free job has reached its
+            25-applicant limit. Boost this job for $15/day to keep
+            receiving applications.
+          </div>
+        `;
+      }
+
+      return `
+        <div class="free-slot-applicant-meter">
+          <div class="free-slot-applicant-row">
+            <span>Free-slot applicants</span>
+            <strong>${count} / 25</strong>
+          </div>
+
+          <div class="free-slot-applicant-track">
+            <div
+              class="free-slot-applicant-fill"
+              style="width:${percent}%">
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function jobAccessBadge(job){
+      const type=postingAccessType(job);
+
+      if(
+        type==='free' &&
+        String(job?.id)!==canonicalFreeJobId()
+      ){
+        // Never show two active "Free Job Slot" labels.
+        return '';
+      }
+
+      if(type==='free'){
         return `
           <div class="job-access-badges">
             <span class="job-access-badge free">Free job slot</span>
           </div>
-          <div class="job-access-note">This role is using the employer's included free reusable job slot.</div>
+
+          <div class="job-access-note">
+            This is the 1 included free reusable job slot.
+            Free-slot jobs include up to 25 applicants.
+          </div>
+
+          ${freeApplicantLimitHtml(job)}
         `;
       }
 
-      if(type === 'weekly'){
+      if(type==='weekly'){
         return `
           <div class="job-access-badges">
             <span class="job-access-badge weekly">Weekly slot</span>
           </div>
-          <div class="job-access-note">This role is using a paid $99 Weekly Job Slot.</div>
+
+          <div class="job-access-note">
+            This role is using a paid $99 Weekly Job Slot.
+          </div>
         `;
       }
 
-      if(type === 'second_slot'){
+      if(type==='second_slot'){
         return `
           <div class="job-access-badges">
             <span class="job-access-badge second-slot">Second job slot</span>
           </div>
-          <div class="job-access-note">This role is using the standalone second reusable job slot.</div>
+
+          <div class="job-access-note">
+            This role is using the standalone second reusable job slot.
+          </div>
         `;
       }
 
       return '';
+    }
+
+    function freeJobNeedsBoost(job){
+      return (
+        postingAccessType(job)==='free' &&
+        String(job?.id)===canonicalFreeJobId() &&
+        freeApplicantCount(job)>=25 &&
+        !jobBoostIsActive(job)
+      );
     }
 
 
@@ -5893,6 +6110,10 @@
               <button class="mini-btn" data-job-action="view" data-job-id="${job.id}">View Job</button>
               <button class="mini-btn primary" data-job-action="applicants" data-job-id="${job.id}">View Applicants</button>
               <button class="mini-btn" data-job-action="edit" data-job-id="${job.id}">Edit</button>
+              ${freeJobNeedsBoost(job)
+                ? `<button class="mini-btn boost" data-job-action="boost" data-job-id="${job.id}">Boost · $15/day</button>`
+                : ''
+              }
               <button class="mini-btn" data-job-action="duplicate" data-job-id="${job.id}">Duplicate</button>
               <button class="mini-btn" data-job-action="${status === 'paused' ? 'activate' : 'pause'}" data-job-id="${job.id}">${status === 'paused' ? 'Activate' : 'Pause'}</button>
               <button class="mini-btn" data-job-action="analytics" data-job-id="${job.id}">Analytics</button>
@@ -5931,6 +6152,10 @@
             <button class="mini-btn" data-job-action="view" data-job-id="${escapeHtml(id)}">View Job</button>
             <button class="mini-btn primary" data-job-action="applicants" data-job-id="${escapeHtml(id)}">View Applicants</button>
             <button class="mini-btn" data-job-action="edit" data-job-id="${escapeHtml(id)}">Edit</button>
+            ${freeJobNeedsBoost(job)
+              ? `<button class="mini-btn boost" data-job-action="boost" data-job-id="${escapeHtml(id)}">Boost · $15/day</button>`
+              : ''
+            }
             ${statusRaw === 'closed'
               ? `<button class="mini-btn" data-job-action="reopen" data-job-id="${escapeHtml(id)}">Reopen</button>`
               : statusRaw === 'archived'
@@ -7558,6 +7783,15 @@
         location.href = 'app-post-job.html?edit=' + encodeURIComponent(String(id));
         return;
       }
+
+      if(action === 'boost'){
+        location.href=
+          'app-employer-payment.html?product=job_boost&job_id='+
+          encodeURIComponent(String(id))+
+          '&days=1&return=jobs';
+        return;
+      }
+
 
       if(action === 'duplicate'){
         const copy = {...job};
