@@ -9027,16 +9027,87 @@
           );
         }
 
+        const initialParams=
+          new URLSearchParams(location.search);
+
+        const requestedJobId=
+          String(
+            initialParams.get('open_job') ||
+            sessionStorage.getItem(
+              'alygnnOpenEmployerJobId'
+            ) ||
+            ''
+          ).trim();
+
+        const requestedView=
+          String(
+            initialParams.get('view') ||
+            ''
+          ).trim();
+
+        /*
+         * IMPORTANT:
+         * If the employer came from "Job published -> View Job",
+         * do not render the Dashboard first.
+         *
+         * Open My Jobs immediately and open the exact listing whose ID
+         * was supplied by app-job-preview.html.
+         */
+        if(
+          requestedJobId ||
+          requestedView==='jobs'
+        ){
+          state.currentView='jobs';
+        }
+
         safeRenderAll();
         refreshEmployerMessageBadge();
+
+        if(
+          requestedJobId ||
+          requestedView==='jobs'
+        ){
+          jobsStatusTab='open';
+
+          setView('jobs');
+
+          /*
+           * state.jobs is already loaded above, so this normally opens
+           * immediately. openRequestedDashboardJob() also has its own
+           * retry behavior for a just-published record.
+           */
+          openRequestedDashboardJob();
+        }
+
       }catch(error){
-        console.error('Employer workspace failed to initialize:',error);
+        console.error(
+          'Employer workspace failed to initialize:',
+          error
+        );
+
         safeRenderAll();
+
       }finally{
         els.loading.hidden = true;
 
-        if(state.currentView==='jobs'){
-          refreshJobsView();
+        /*
+         * Do not require a second tap on Open Jobs.
+         * If a direct listing request is pending, resolve it here too.
+         */
+        const pendingJobId=
+          requestedDashboardJobId();
+
+        if(
+          state.currentView==='jobs' ||
+          pendingJobId
+        ){
+          jobsStatusTab='open';
+
+          if(state.currentView!=='jobs'){
+            setView('jobs');
+          }
+
+          openRequestedDashboardJob();
         }
       }
     }
