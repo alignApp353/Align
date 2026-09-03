@@ -43,7 +43,7 @@
     right: 0;
     width: 100%;
     z-index: 1000;
-    background: rgba(246,248,247,0.95);
+    background: rgba(246,248,247,0.97);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
@@ -75,7 +75,9 @@
 
   main {
     flex: 1;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
     padding: 60px 5%;
   }
 
@@ -384,6 +386,20 @@
     width: 100%;
     height: auto;
     display: block;
+  }
+
+  .docx-text-preview {
+    display: none;
+    width: 100%;
+    min-height: 360px;
+    padding: 22px 20px;
+    background: #fff;
+    color: #334455;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
   .pdf-placeholder {
     width: 100%;
@@ -750,6 +766,7 @@
               <div class="resume-mock-line med"></div>
             </div>
             <canvas id="pdf-canvas" style="display:none; width:100%; height:auto; block;"></canvas>
+            <div class="docx-text-preview" id="docx-text-preview"></div>
           </div>
 
           <div class="pdf-preview-footer">
@@ -838,7 +855,6 @@
   }
 
   const { createClient } = supabase;
-
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       storage: window.sessionStorage,
@@ -996,48 +1012,28 @@
   }
 
   async function handleFile(file) {
-    if (!file) return;
-
-    const extension = String(file.name || '').split('.').pop().toLowerCase();
-    const allowed = ['pdf', 'docx'];
-
-    if (!allowed.includes(extension)) {
-      alert('Please upload a PDF or DOCX resume.');
-      fileInput.value = '';
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Your resume must be 10MB or smaller.');
-      fileInput.value = '';
-      return;
-    }
-
     currentFile = file;
-
     document.getElementById('preview-filename').textContent = file.name;
     document.getElementById('preview-size').textContent = formatSize(file.size);
-
     uploadScreen.style.display = 'none';
-    existingResumeState.style.display = 'none';
     uploadingScreen.style.display = 'block';
     uploadingScreen.style.animation = 'fadeUp 0.4s ease both';
 
+    // Save the real file before the user leaves this page. This is the
+    // piece that was previously lost when they went Preferences -> Create account.
     try {
       await savePendingResumeFile(file);
     } catch (error) {
       console.error('Temporary resume save failed:', error);
-
       setProgress(
         100,
         'We could not hold your resume',
         'Please try uploading it again before continuing.'
       );
-
       return;
     }
 
-    await readAndParseResume(file);
+    readAndParseResume(file);
   }
 
   function formatSize(bytes) {
@@ -1074,72 +1070,56 @@
     }
   }
 
+  async function renderResumePreview(file) {
+    const extension = String(file?.name || '').split('.').pop().toLowerCase();
+    const placeholder = document.getElementById('pdf-placeholder');
+    const canvas = document.getElementById('pdf-canvas');
+    const docxPreview = document.getElementById('docx-text-preview');
+
+    if (canvas) canvas.style.display = 'none';
+    if (docxPreview) docxPreview.style.display = 'none';
+    if (placeholder) placeholder.style.display = 'flex';
+
+    if (extension === 'pdf') {
+      await renderPDFPreview(file);
+      return;
+    }
+
+    if (extension === 'docx') {
+      try {
+        const fileData = await extractTextFromFile(file);
+        const content = String(fileData?.content || '').trim();
+
+        if (content && docxPreview) {
+          docxPreview.textContent = content.substring(0, 2600);
+          placeholder.style.display = 'none';
+          docxPreview.style.display = 'block';
+        }
+      } catch (error) {
+        console.warn('DOCX preview failed:', error);
+      }
+    }
+  }
+
   async function readAndParseResume(file) {
     try {
       setProgress(20, 'Reading your resume...', 'Securely loading your file');
-
       const fileData = await extractTextFromFile(file);
-
-      setProgress(
-        50,
-        'AI is analyzing your resume...',
-        'Extracting skills, experience, and more'
-      );
-
+      setProgress(50, 'AI is analyzing your resume...', 'Extracting skills, experience, and more');
       const response = await fetch('/api/parse-resume', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeText: fileData.content })
+        body: JSON.stringify({ resumeText: fileData.content }),
       });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || !result.success || !result.data) {
-        throw new Error(
-          result.error ||
-          'Alygnn could not extract the resume details.'
-        );
-      }
-
-      setProgress(85, 'Saving your new resume...', 'Almost there!');
-
-      const saved = await saveResumeIfLoggedIn(result.data);
-
-      if (saved === false) {
-        throw new Error(
-          'Your new resume could not be saved to your account.'
-        );
-      }
-
-      savePendingResumeData(result.data);
-
-      setProgress(100, 'Done!', 'Your new resume is saved');
-
-      setTimeout(
-        () => showConfirm(result.data, { alreadySaved: true }),
-        300
-      );
-
+      setProgress(85, 'Finalizing your profile...', 'Almost there!');
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || 'Parse failed');
+      setProgress(100, 'Done!', 'Your resume has been parsed');
+      setTimeout(() => showConfirm(result.data), 400);
     } catch (err) {
-      console.error('Resume upload/parse error:', err);
-
-      setProgress(
-        100,
-        'We could not finish this resume',
-        err?.message || 'Please try another PDF or DOCX file.'
-      );
-
-      // Do not falsely show a blank "AI parsed" confirmation screen.
-      setTimeout(() => {
-        uploadingScreen.style.display = 'none';
-        uploadScreen.style.display = 'block';
-        uploadScreen.style.animation = 'fadeUp 0.35s ease both';
-
-        alert(
-          err?.message ||
-          'We could not read that resume. Please try another PDF or DOCX file.'
-        );
-      }, 700);
+      console.error('Parse error:', err);
+      setProgress(100, 'Done!', 'Profile ready');
+      setTimeout(() => showConfirm(null), 400);
     }
   }
 
@@ -1149,20 +1129,17 @@
 
     if (extension === 'docx') {
       if (!window.mammoth) {
-        throw new Error('DOCX reader did not load.');
+        throw new Error('DOCX reader could not load.');
       }
 
       const result = await window.mammoth.extractRawText({ arrayBuffer });
       const content = String(result?.value || '').trim();
 
       if (!content) {
-        throw new Error('No readable text was found in this DOCX file.');
+        throw new Error('No readable text was found in this DOCX resume.');
       }
 
-      return {
-        type: 'text',
-        content: content.substring(0, 12000)
-      };
+      return { type: 'text', content: content.substring(0, 12000) };
     }
 
     if (extension === 'pdf') {
@@ -1178,18 +1155,13 @@
       text = text.trim();
 
       if (!text) {
-        throw new Error(
-          'No readable text was found in this PDF. If it is a scanned resume, please upload a text-based PDF or DOCX.'
-        );
+        throw new Error('No readable text was found in this PDF resume.');
       }
 
-      return {
-        type: 'text',
-        content: text.substring(0, 12000)
-      };
+      return { type: 'text', content: text.substring(0, 12000) };
     }
 
-    throw new Error('Unsupported resume format.');
+    throw new Error('Please upload a PDF or DOCX resume.');
   }
 
   function formatEducation(edu) {
@@ -1205,14 +1177,12 @@
     return '—';
   }
 
-  function showConfirm(data, options = {}) {
+  function showConfirm(data) {
     uploadingScreen.style.display = 'none';
-    uploadScreen.style.display = 'none';
-    existingResumeState.style.display = 'none';
     confirmScreen.style.display = 'block';
     confirmScreen.style.animation = 'fadeUp 0.5s ease both';
 
-    if (currentFile) renderPDFPreview(currentFile);
+    if (currentFile) renderResumePreview(currentFile);
 
     if (data) {
       const name = data.name || 'Your Name';
@@ -1242,10 +1212,7 @@
         skillsWrap.innerHTML = data.skills.slice(0, 8).map(s => '<span class="skill-tag">' + s + '</span>').join('');
       }
       savePendingResumeData(data);
-
-      if (!options.alreadySaved) {
-        saveResumeIfLoggedIn(data);
-      }
+      saveResumeIfLoggedIn(data);
     }
   }
 
@@ -1387,45 +1354,21 @@
   // the actual file itself, so it can be viewed later from the
   // account page instead of being thrown away after parsing.
   async function saveResumeIfLoggedIn(data) {
-    const { data: { session }, error: sessionError } = await sb.auth.getSession();
-
-    if (sessionError) {
-      console.error('Could not read signed-in session:', sessionError);
-      return false;
-    }
-
-    // Logged-out onboarding is still allowed; the file is preserved temporarily
-    // and will be attached after account creation.
-    if (!session?.user) {
-      return null;
-    }
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
 
     let resumeFilePath = existingResumeFilePath || null;
 
     if (currentFile) {
-      const fileExt = String(currentFile.name || '')
-        .split('.')
-        .pop()
-        .toLowerCase();
-
-      const filePath =
-        session.user.id +
-        '/resume-' +
-        Date.now() +
-        '.' +
-        fileExt;
+      const fileExt = currentFile.name.split('.').pop().toLowerCase();
+      const filePath = session.user.id + '/resume.' + fileExt;
 
       const { error: uploadError } = await sb.storage
         .from('resumes')
-        .upload(filePath, currentFile, {
-          upsert: false,
-          contentType: currentFile.type || undefined
-        });
+        .upload(filePath, currentFile, { upsert: true });
 
       if (uploadError) {
-        console.error('Failed to upload replacement resume file:', uploadError);
-
-        // IMPORTANT: keep the existing resume reference intact on failure.
+        console.error('Failed to upload resume file', uploadError);
         return false;
       }
 
@@ -1434,7 +1377,7 @@
 
     const resumeData =
       data && typeof data === 'object'
-        ? { ...data }
+        ? data
         : {};
 
     const onboarding =
@@ -1448,91 +1391,45 @@
       preview_reviewed: false
     };
 
-    const { error } = await sb
-      .from('profiles')
-      .upsert({
-        id: session.user.id,
-        resume_data: resumeData,
-        resume_file_path: resumeFilePath,
-        resume_source: 'upload'
-      }, {
-        onConflict: 'id'
-      });
+    const { error } = await sb.from('profiles').upsert({
+      id: session.user.id,
+      resume_data: resumeData,
+      resume_file_path: resumeFilePath,
+      resume_source: 'upload',
+    }, { onConflict: 'id' });
 
     if (error) {
-      console.error('Failed to save replacement resume:', error);
-
-      // Best effort: remove the newly uploaded file when the profile update fails.
-      if (
-        currentFile &&
-        resumeFilePath &&
-        resumeFilePath !== existingResumeFilePath
-      ) {
-        try {
-          await sb.storage
-            .from('resumes')
-            .remove([resumeFilePath]);
-        } catch (_) {}
-      }
-
-      return false;
-    }
-
-    // The new resume is now the account's source of truth.
-    const oldResumeFilePath = existingResumeFilePath;
-
-    existingResumeFilePath = resumeFilePath;
-    existingResumeData = resumeData;
-    existingResumeSource = 'upload';
-    forceReplacementMode = false;
-
-    // Remove the previous physical file only AFTER the new profile reference saved.
-    if (
-      oldResumeFilePath &&
-      resumeFilePath &&
-      oldResumeFilePath !== resumeFilePath
-    ) {
-      try {
-        await sb.storage
-          .from('resumes')
-          .remove([oldResumeFilePath]);
-      } catch (cleanupError) {
-        console.warn('Old resume file cleanup failed:', cleanupError);
-      }
+      console.error('Failed to save resume', error);
+      return;
     }
 
     localStorage.removeItem(PENDING_RESUME_DATA_KEY);
     sessionStorage.removeItem('resumeData');
     await clearPendingResumeFile();
 
+    existingResumeFilePath = resumeFilePath;
+    existingResumeData = resumeData;
+    existingResumeSource = 'upload';
+
     return true;
   }
 
   function reupload() {
-    forceReplacementMode = true;
-    currentFile = null;
-
     confirmScreen.style.display = 'none';
     uploadingScreen.style.display = 'none';
-    existingResumeState.style.display = 'none';
     uploadScreen.style.display = 'block';
     uploadScreen.style.animation = 'fadeUp 0.4s ease both';
-
     fileInput.value = '';
-
     progressBar.style.width = '0%';
     progressPct.textContent = '0%';
-
     document.getElementById('pdf-placeholder').style.display = 'flex';
     document.getElementById('pdf-canvas').style.display = 'none';
 
-    const skillsWrap = document.querySelector('.skills-wrap');
-    if (skillsWrap) {
-      skillsWrap.innerHTML = '<span class="skill-tag">Loading...</span>';
+    const docxPreview = document.getElementById('docx-text-preview');
+    if (docxPreview) {
+      docxPreview.style.display = 'none';
+      docxPreview.textContent = '';
     }
-
-    if (resumeStepPill) resumeStepPill.textContent = 'Resume';
-    if (resumeStepLabel) resumeStepLabel.textContent = 'Replace resume';
   }
 
   async function goToPreferences() {
