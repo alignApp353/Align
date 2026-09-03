@@ -144,6 +144,11 @@
       <span class="value">Google</span>
       <span class="pill" id="google-pill">Checking…</span>
     </div>
+
+    <div class="row" style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
+      <span class="value">Apple</span>
+      <span class="pill" id="apple-pill">Checking…</span>
+    </div>
   </div>
 
   <!-- Sign out -->
@@ -243,11 +248,17 @@
     const role = String(profile?.role || session.user.user_metadata?.role || '').toLowerCase();
     document.getElementById('back-link').href = role === 'employer' ? 'employer-account.html' : 'account.html';
 
-    const providers = session.user.identities?.map(i => i.provider) || [];
+    const providers = session.user.identities?.map(i => String(i.provider || '').toLowerCase()) || [];
+
     const hasGoogle = providers.includes('google');
-    const pill = document.getElementById('google-pill');
-    pill.textContent = hasGoogle ? 'Connected' : 'Not connected';
-    pill.classList.toggle('off', !hasGoogle);
+    const googlePill = document.getElementById('google-pill');
+    googlePill.textContent = hasGoogle ? 'Connected' : 'Not connected';
+    googlePill.classList.toggle('off', !hasGoogle);
+
+    const hasApple = providers.includes('apple');
+    const applePill = document.getElementById('apple-pill');
+    applePill.textContent = hasApple ? 'Connected' : 'Not connected';
+    applePill.classList.toggle('off', !hasApple);
   }
 
   function generateCode() {
