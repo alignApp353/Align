@@ -169,8 +169,33 @@
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+  function alygnnAuthStorageKey() {
+    let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
+
+    if (!tabId) {
+      tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+        ? window.crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+
+      window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
+    }
+
+    return `alygnn-auth-${tabId}`;
+  }
+
   const { createClient } = supabase;
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Use the same per-tab Supabase session as account.html and employer-account.html.
+  // Without this, Account Settings thinks the user is signed out and redirects to login.
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      storage: window.sessionStorage,
+      storageKey: alygnnAuthStorageKey(),
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
 
   let currentEmail = null;
   let currentUserId = null;
