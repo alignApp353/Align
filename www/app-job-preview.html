@@ -3365,27 +3365,60 @@ async function insertJob(){
   return result;
 }
 
-async function resolvePublishedJobIdBestEffort(){
-  try{
-    const result=await promiseTimeout(
-      sb
-        .from('jobs')
-        .select('id')
-        .eq('employer_id',session.user.id)
-        .eq('title',draft.title)
-        .order('created_at',{ascending:false})
-        .limit(1)
-        .maybeSingle(),
-      3000,
-      'Job ID lookup timed out.'
-    );
-
-    if(!result.error&&result.data?.id){
-      publishedJobId=result.data.id;
-    }
-  }catch(error){
-    console.warn('Published job ID lookup skipped:',error);
+async function resolvePublishedJobIdBestEffort(maxAttempts=5){
+  if(publishedJobId){
+    return publishedJobId;
   }
+
+  const saved=sessionStorage.getItem(
+    'alygnnLastPublishedJobId'
+  );
+
+  if(saved){
+    publishedJobId=saved;
+    return publishedJobId;
+  }
+
+  for(let attempt=0;attempt<maxAttempts;attempt++){
+    try{
+      const result=await promiseTimeout(
+        sb
+          .from('jobs')
+          .select('id')
+          .eq('employer_id',session.user.id)
+          .eq('title',draft.title)
+          .order('created_at',{ascending:false})
+          .limit(1)
+          .maybeSingle(),
+        3500,
+        'Job ID lookup timed out.'
+      );
+
+      if(!result.error&&result.data?.id){
+        publishedJobId=String(result.data.id);
+
+        sessionStorage.setItem(
+          'alygnnLastPublishedJobId',
+          publishedJobId
+        );
+
+        return publishedJobId;
+      }
+    }catch(error){
+      console.warn(
+        'Published job ID lookup attempt failed:',
+        error
+      );
+    }
+
+    if(attempt<maxAttempts-1){
+      await new Promise(resolve=>
+        setTimeout(resolve,300)
+      );
+    }
+  }
+
+  return '';
 }
 
 async function publishJob(){
@@ -3446,9 +3479,16 @@ async function publishJob(){
       throw error;
     }
 
-    /* The insert is complete. Resolve the ID separately without blocking UI. */
+    /*
+     * The insert is complete. Resolve the exact new job ID before showing
+     * the success screen so View Job always knows which posting to open.
+     */
     publishedJobId='';
-    resolvePublishedJobIdBestEffort();
+    sessionStorage.removeItem(
+      'alygnnLastPublishedJobId'
+    );
+
+    await resolvePublishedJobIdBestEffort();
 
     sessionStorage.removeItem(
       'alygnnJobDraft'
@@ -3575,23 +3615,51 @@ function wire(){
     );
   };
 
-  $('view-job-btn').onclick=()=>{
-    if(publishedJobId){
-      // Use the exact same employer-side View Job experience as My Jobs.
+  $('view-job-btn').onclick=async()=>{
+    const button=$('view-job-btn');
+    const original=button.textContent;
+
+    button.disabled=true;
+    button.textContent='Opening job…';
+
+    try{
+      const id=
+        publishedJobId ||
+        await resolvePublishedJobIdBestEffort();
+
+      if(!id){
+        throw new Error(
+          'Alygnn could not locate the job that was just published.'
+        );
+      }
+
+      sessionStorage.setItem(
+        'alygnnOpenEmployerJobId',
+        String(id)
+      );
+
       const params=new URLSearchParams({
         view:'jobs',
-        open_job:String(publishedJobId)
+        open_job:String(id)
       });
 
-      location.replace(
-        'app-employer-dashboard.html?'+params.toString()
-      );
-      return;
-    }
+      location.href=
+        'app-employer-dashboard.html?'+
+        params.toString();
 
-    location.replace(
-      'app-employer-dashboard.html?view=jobs'
-    );
+    }catch(error){
+      console.error(
+        'Could not open published job:',
+        error
+      );
+
+      showMessage(
+        'Your job is published, but Alygnn could not open it automatically. Open My Jobs to view it.'
+      );
+
+      button.disabled=false;
+      button.textContent=original;
+    }
   };
 }
 
