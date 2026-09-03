@@ -1003,11 +1003,30 @@ function renderPlans(){
           return;
         }
 
+        const params=new URLSearchParams({
+          plan:selected,
+          billing:
+            basePaidPlanActive()
+              ?activeBillingPeriod()
+              :billing
+        });
+
+        if(
+          basePaidPlanActive() &&
+          ['launch','growth','scale'].includes(
+            selected
+          ) &&
+          selected!==activePlanCode()
+        ){
+          params.set(
+            'change',
+            'plan'
+          );
+        }
+
         location.href=
-          'app-employer-payment.html?plan='+
-          encodeURIComponent(selected)+
-          '&billing='+
-          encodeURIComponent(billing);
+          'app-employer-payment.html?'+
+          params.toString();
       });
     });
   }
