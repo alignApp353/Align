@@ -69,8 +69,37 @@
   body.test-mode .checkout-btn{background:var(--sage)}
   .test-pill{display:none;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:5px 9px;border-radius:999px;background:rgba(140,182,155,.16);color:#4F9568;margin-left:8px}
   body.test-mode .test-pill{display:inline-flex}
+  .change-review{display:none}
+  body.plan-change-mode .billing-tabs,
+  body.plan-change-mode #enterprise-note{display:none!important}
+  body.plan-change-mode .plan-options{display:block;margin-bottom:0}
+  body.plan-change-mode .change-review{display:block}
+  .change-path{display:grid;grid-template-columns:1fr 44px 1fr;gap:12px;align-items:center;margin-bottom:18px}
+  .change-plan-box{border:1px solid var(--border);border-radius:15px;background:white;padding:18px;min-height:118px}
+  .change-plan-box.target{border-color:rgba(93,127,163,.5);background:#F8FBFD}
+  .change-label{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+  .change-name{font-family:'DM Serif Display',serif;font-size:26px;line-height:1.05}
+  .change-price{font-size:12px;color:var(--muted);margin-top:8px}
+  .change-arrow{width:44px;height:44px;border-radius:50%;border:1px solid var(--border);background:var(--bg);display:grid;place-items:center;color:var(--brand);font-size:20px}
+  .change-details{display:grid;gap:10px;margin-top:16px}
+  .change-detail{display:flex;justify-content:space-between;gap:18px;border-top:1px solid var(--border);padding-top:10px;font-size:12px;line-height:1.45}
+  .change-detail:first-child{border-top:0;padding-top:0}
+  .change-detail .label{color:var(--muted)}
+  .change-detail .value{text-align:right;font-weight:600}
+  .change-notice{margin-top:18px;padding:15px 16px;border-radius:14px;border:1px solid #D6E3EE;background:#EEF4F9;font-size:12px;line-height:1.6;color:#35556F}
+  .change-notice strong{display:block;color:var(--text);font-size:13px;margin-bottom:4px}
+  .change-notice.downgrade{border-color:#E5D9B7;background:#FBF7EA;color:#675C38}
+  .change-notice.test{border-color:rgba(140,182,155,.55);background:rgba(140,182,155,.12);color:#446B52}
+  .change-success{display:none;margin-top:14px;padding:14px 16px;border-radius:13px;border:1px solid rgba(111,191,143,.45);background:rgba(111,191,143,.11);font-size:12px;line-height:1.55;color:#356448}
+  .change-success.show{display:block}
+  .review-list{list-style:none;margin-top:14px}
+  .review-list li{position:relative;padding:7px 0 7px 20px;font-size:12px;line-height:1.5;color:var(--muted)}
+  .review-list li:before{content:'✓';position:absolute;left:0;color:var(--sage);font-weight:700}
+  .summary-change-line{display:none;margin:14px 0 0;padding:12px;border-radius:12px;background:#F4F7F9;border:1px solid var(--border);font-size:11px;line-height:1.5;color:var(--muted)}
+  body.plan-change-mode .summary-change-line{display:block}
 
   @media(max-width:800px){
+    .change-path{grid-template-columns:1fr}.change-arrow{transform:rotate(90deg);margin:0 auto}
     .checkout-grid{grid-template-columns:1fr}.summary{position:static}.nav-link{display:none}.plan-options{grid-template-columns:1fr}.billing-tabs{width:100%;display:grid;grid-template-columns:repeat(3,1fr)}.billing-tab{padding-left:8px;padding-right:8px}main{padding-top:35px}.panel{padding:22px}
   }
 </style>
@@ -153,6 +182,7 @@
       <div class="summary-price" id="summary-price">$750 <span>/ 3 months</span></div>
       <div class="summary-sub" id="summary-sub">3 active reusable job slots</div>
       <ul class="features" id="summary-features"></ul>
+      <div class="summary-change-line" id="summary-change-line"></div>
       <div class="total">
         <div class="total-row"><span>Plan subtotal</span><span id="subtotal">$750.00</span></div>
         <div class="total-row muted" id="tax-row"><span>Tax</span><span>Calculated at checkout</span></div>
@@ -255,6 +285,239 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   let selectedProduct = 'job_plan';
   let session = null;
   let postingAccess = null;
+  let currentEntitlement = null;
+  let planChangeMode = false;
+  let planChangeTarget = null;
+  let planChangeCurrent = null;
+  let planChangeBilling = null;
+  let planChangeBusy = false;
+
+  const PLAN_TOTAL_SLOTS={launch:4,growth:6,scale:9};
+  const PLAN_RANK={launch:1,growth:2,scale:3};
+
+  function normalizedExistingPlan(){
+    const raw=String(
+      postingAccess?.test_plan || postingAccess?.plan ||
+      currentEntitlement?.test_plan || currentEntitlement?.plan || 'free'
+    ).toLowerCase();
+    if(raw==='business') return 'launch';
+    if(raw==='enterprise'){
+      const slots=Number(postingAccess?.plan_slot_limit ?? currentEntitlement?.slot_limit ?? 0);
+      return slots>=8?'scale':'growth';
+    }
+    return ['launch','growth','scale'].includes(raw)?raw:'free';
+  }
+
+  function existingBillingPeriod(){
+    const value=String(postingAccess?.billing_period || currentEntitlement?.billing_period || planChangeBilling || 'monthly').toLowerCase();
+    return ['monthly','quarterly'].includes(value)?value:'monthly';
+  }
+
+  function billingCadenceLabel(billing){
+    return billing==='quarterly'?'every 3 months':'each month';
+  }
+
+  function formattedDate(value){
+    if(!value) return '';
+    const date=new Date(value);
+    if(Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  }
+
+  function planChangeIsUpgrade(){
+    return (PLAN_RANK[planChangeTarget]||0)>(PLAN_RANK[planChangeCurrent]||0);
+  }
+
+  function planChangePrices(){
+    const billing=planChangeBilling||existingBillingPeriod();
+    const currentPrice=CATALOG[billing]?.[planChangeCurrent]?.price||0;
+    const targetPrice=CATALOG[billing]?.[planChangeTarget]?.price||0;
+    return {currentPrice,targetPrice,difference:Math.max(0,targetPrice-currentPrice)};
+  }
+
+  function renderPlanChangeReview(){
+    if(!planChangeMode) return;
+
+    const current=planChangeCurrent;
+    const target=planChangeTarget;
+    const billing=planChangeBilling;
+    const currentProduct=CATALOG[billing]?.[current];
+    const targetProduct=CATALOG[billing]?.[target];
+    if(!currentProduct||!targetProduct) return;
+
+    const upgrade=planChangeIsUpgrade();
+    const {currentPrice,targetPrice,difference}=planChangePrices();
+    const periodEnd=formattedDate(currentEntitlement?.current_period_end || postingAccess?.current_period_end);
+    const effectiveText=upgrade?'Immediately after payment succeeds':(periodEnd?periodEnd:'At your next renewal');
+    const currentSlots=PLAN_TOTAL_SLOTS[current]||1;
+    const targetSlots=PLAN_TOTAL_SLOTS[target]||1;
+    const weeklyCount=Math.max(0,Number(postingAccess?.weekly_slot_count||0));
+
+    document.body.classList.add('plan-change-mode');
+    selectedPlan=target;
+    selectedBilling=billing;
+
+    const heading=document.querySelector('.heading h1');
+    const headingCopy=document.querySelector('.heading p');
+    const eyebrow=document.querySelector('.heading .eyebrow');
+    if(eyebrow) eyebrow.textContent='Plan change review';
+    if(heading) heading.textContent='Review your plan change.';
+    if(headingCopy) headingCopy.textContent=upgrade
+      ? 'Review the price difference, new capacity, and next renewal before confirming your upgrade.'
+      : 'Nothing changes today. Review when your lower plan begins and what your capacity will become.';
+
+    const firstTitle=document.querySelector('.panel-title');
+    if(firstTitle) firstTitle.textContent='1. Review your change';
+
+    const options=document.getElementById('plan-options');
+    options.innerHTML=`
+      <div class="change-review">
+        <div class="change-path">
+          <div class="change-plan-box">
+            <div class="change-label">Current plan</div>
+            <div class="change-name">${currentProduct.name}</div>
+            <div class="change-price">${displayPrice(currentPrice)} ${currentProduct.suffix} · ${currentSlots} total slots</div>
+          </div>
+          <div class="change-arrow">→</div>
+          <div class="change-plan-box target">
+            <div class="change-label">New plan</div>
+            <div class="change-name">${targetProduct.name}</div>
+            <div class="change-price">${displayPrice(targetPrice)} ${targetProduct.suffix} · ${targetSlots} total slots</div>
+          </div>
+        </div>
+        <div class="change-details">
+          <div class="change-detail"><span class="label">Effective</span><span class="value">${effectiveText}</span></div>
+          <div class="change-detail"><span class="label">Due today</span><span class="value">${developerTestMode?'$0.00 test mode':upgrade?money(difference)+' + applicable tax':'$0.00'}</span></div>
+          <div class="change-detail"><span class="label">Next renewal</span><span class="value">${displayPrice(targetPrice)} ${billingCadenceLabel(billing)}</span></div>
+          <div class="change-detail"><span class="label">Job-slot capacity</span><span class="value">${currentSlots} → ${targetSlots} total slots</span></div>
+        </div>
+        <div class="change-notice ${upgrade?'':'downgrade'}">
+          <strong>${upgrade?'Your upgrade starts after payment.':'You keep your current plan through the paid period.'}</strong>
+          ${upgrade
+            ? `Alygnn will charge only the fixed ${money(difference)} plan difference today. ${targetProduct.name} capacity becomes available after that payment succeeds. Your next renewal will be the full ${displayPrice(targetPrice)} ${billing==='quarterly'?'3-month':'monthly'} price.`
+            : `${currentProduct.name} stays active${periodEnd?' through '+periodEnd:' until your current billing period ends'}. Then ${targetProduct.name} begins and your reusable capacity changes from ${currentSlots} to ${targetSlots} total slots. Alygnn will not delete existing jobs. If you are above ${targetSlots} active jobs when the downgrade takes effect, you will need to close enough jobs before posting another one.`}
+        </div>
+        ${weeklyCount>0?`<div class="change-notice"><strong>Your Weekly Job Slot is separate.</strong>Any active $99 Weekly Job Slot keeps its own 7-day expiration and is not extended by this plan change.</div>`:''}
+        <ul class="review-list">
+          ${upgrade?'<li>Additional included job slots unlock after successful payment.</li>':'<li>No plan-change charge is taken today.</li>'}
+          <li>Your permanent free job slot remains included.</li>
+          <li>Your jobs, applications, messages, and history are preserved.</li>
+        </ul>
+      </div>`;
+
+    document.getElementById('enterprise-note').style.display='none';
+    document.getElementById('payment-section-title').textContent=upgrade?'3. Confirm & pay':'3. Confirm change';
+    document.getElementById('secure-title').textContent=upgrade?'Confirm your upgrade':'Schedule your downgrade';
+    document.getElementById('secure-copy').textContent=upgrade
+      ? 'Your plan changes only after the fixed price-difference payment succeeds.'
+      : `Your current ${currentProduct.name} access stays active until the end of the paid period. No charge is due today.`;
+
+    const targetFeatures=targetProduct.features||[];
+    document.getElementById('summary-name').textContent=targetProduct.name;
+    document.getElementById('summary-billing').textContent=billing==='quarterly'?'Quarterly':'Monthly';
+    document.getElementById('summary-price').innerHTML=`${displayPrice(targetPrice)} <span>${targetProduct.suffix}</span>`;
+    document.getElementById('summary-sub').textContent=targetProduct.slots;
+    document.getElementById('summary-features').innerHTML=targetFeatures.map(x=>`<li>${x}</li>`).join('');
+    document.getElementById('summary-change-line').innerHTML=upgrade
+      ? `<strong>Upgrade:</strong> ${currentProduct.name} → ${targetProduct.name}. Fixed difference due today: ${developerTestMode?'$0 test mode':money(difference)+' + tax'}.`
+      : `<strong>Downgrade:</strong> ${currentProduct.name} stays active until ${periodEnd||'your next renewal'}, then ${targetProduct.name} begins.`;
+    document.getElementById('subtotal').textContent=upgrade?(developerTestMode?'$0.00':money(difference)):'$0.00';
+    document.getElementById('tax-row').style.display=upgrade&&!developerTestMode?'flex':'none';
+    document.getElementById('due-total').textContent=developerTestMode?'$0.00':upgrade?money(difference)+' + tax':'$0.00';
+    document.getElementById('trust-copy').textContent=developerTestMode
+      ? 'Developer test mode · No charge'
+      : upgrade?'Secure plan upgrade · fixed difference only':'No charge today · change takes effect at renewal';
+
+    document.getElementById('authorization-copy').textContent=developerTestMode
+      ? `Developer test mode: confirming changes the test entitlement to ${targetProduct.name}. No payment is processed.`
+      : upgrade
+        ? `By confirming, you authorize the fixed ${money(difference)} plan-difference charge plus applicable tax. After payment succeeds, ${targetProduct.name} starts immediately and renews at ${displayPrice(targetPrice)} ${billingCadenceLabel(billing)}.`
+        : `By confirming, you schedule ${targetProduct.name} for your next renewal. ${currentProduct.name} remains active through the current paid period. Your next renewal will be ${displayPrice(targetPrice)} ${billingCadenceLabel(billing)}.`;
+
+    const fineprint=document.querySelector('.fineprint');
+    if(fineprint) fineprint.textContent=upgrade
+      ? 'Review the plan difference and renewal price above before confirming.'
+      : 'No payment is taken today. You can review the scheduled change in Billing & plan.';
+
+    updateCheckoutState();
+  }
+
+  async function startPlanChange(){
+    if(planChangeBusy||!session) return;
+    const accepted=document.getElementById('terms-accept').checked;
+    if(!accepted){
+      showMessage('Please confirm that you reviewed and accept the plan-change terms.','error');
+      return;
+    }
+
+    const button=document.getElementById('checkout-btn');
+    const target=planChangeTarget;
+    const upgrade=planChangeIsUpgrade();
+    planChangeBusy=true;
+    button.disabled=true;
+    button.textContent=upgrade?'Processing plan change…':'Scheduling plan change…';
+    clearMessage();
+
+    try{
+      if(developerTestMode){
+        const {error}=await sb.rpc('activate_employer_test_plan',{p_plan:target,p_billing:planChangeBilling});
+        if(error) throw error;
+        showMessage(`Developer test mode: ${titleCasePlan(target)} is now the active test plan. No payment was processed.`,'info');
+        button.textContent='Plan changed ✓';
+        setTimeout(()=>location.href='employer-account.html#billing-section',900);
+        return;
+      }
+
+      const response=await fetch(CHECKOUT_ENDPOINT,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+        body:JSON.stringify({action:'change_plan',target_plan:target})
+      });
+      const data=await response.json().catch(()=>({}));
+
+      if(!response.ok){
+        if(data?.payment_required){
+          showMessage(data.error||'Update your payment method before changing plans.','error');
+          return;
+        }
+        if(data?.requires_checkout){
+          throw new Error('This plan is not connected to a recurring Stripe subscription yet. Open Billing & plan to review your billing setup.');
+        }
+        throw new Error(data.error||'The plan change could not be completed.');
+      }
+
+      if(data.change==='upgrade_payment_required'&&data.hosted_invoice_url){
+        location.href=data.hosted_invoice_url;
+        return;
+      }
+
+      if(data.change==='upgrade_completed'){
+        button.textContent='Upgrade complete ✓';
+        showMessage(`${titleCasePlan(target)} is now active. Your new hiring capacity is ready.`,'info');
+        setTimeout(()=>location.href='employer-account.html#billing-section',1000);
+        return;
+      }
+
+      if(data.change==='downgrade_scheduled'){
+        button.textContent='Change scheduled ✓';
+        const when=formattedDate(data.effective_at)||'your next renewal';
+        showMessage(`${titleCasePlan(target)} is scheduled for ${when}. Your current plan stays active until then.`,'info');
+        setTimeout(()=>location.href='employer-account.html#billing-section',1100);
+        return;
+      }
+
+      button.textContent='Plan change saved ✓';
+      showMessage(data.message||'Your plan change was saved.','info');
+    }catch(error){
+      console.error('Plan change failed:',error);
+      showMessage(error?.message||'The plan change could not be completed.','error');
+    }finally{
+      if(!location.href.includes('hosted_invoice')){
+        planChangeBusy=false;
+        if(!button.textContent.includes('✓')) updateCheckoutState();
+      }
+    }
+  }
 
   function money(n){
     return '$' + Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -292,6 +555,15 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
   function updateUrl(){
     const url=new URL(location.href);
+    if(planChangeMode){
+      url.searchParams.set('action','change_plan');
+      url.searchParams.set('target_plan',planChangeTarget||selectedPlan);
+      url.searchParams.set('billing',planChangeBilling||selectedBilling);
+      url.searchParams.delete('product');
+      url.searchParams.delete('plan');
+      history.replaceState({},'',url);
+      return;
+    }
     if(isAddon()){
       url.searchParams.set('product','additional_slot');
       url.searchParams.set('billing','monthly');
@@ -363,7 +635,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       document.getElementById('secure-title').textContent='Activate package for testing';
       document.getElementById('secure-copy').textContent='No payment will be taken from this account. Your selected package will be stored as a developer test entitlement so you can test the Alygnn flow.';
     }
-    renderSummary();
+    if(!planChangeMode) renderSummary();
   }
 
   function renderSummary(){
@@ -458,6 +730,21 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const accepted=document.getElementById('terms-accept').checked;
     const button=document.getElementById('checkout-btn');
     const p=activeProduct();
+
+    if(planChangeMode){
+      const upgrade=planChangeIsUpgrade();
+      const {difference}=planChangePrices();
+      button.disabled=!accepted || planChangeBusy;
+      button.textContent=accepted
+        ? (developerTestMode
+            ? `Confirm ${titleCasePlan(planChangeTarget)} test change — $0`
+            : upgrade
+              ? `Confirm upgrade — ${money(difference)} + tax`
+              : `Schedule ${titleCasePlan(planChangeTarget)} at renewal`)
+        : 'Accept terms to continue';
+      return;
+    }
+
     const eligible=enforceSelectedPurchaseEligibility();
     button.disabled=!accepted || !eligible;
     button.textContent=accepted && eligible
@@ -492,6 +779,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   function enforceSelectedPurchaseEligibility(){
+    if(planChangeMode) return true;
     if(!postingAccess) return true;
 
     if(isAddon()){
@@ -541,19 +829,27 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
   async function init(){
     const params=new URLSearchParams(location.search);
+    planChangeMode=String(params.get('action')||'').toLowerCase()==='change_plan';
+    planChangeTarget=planChangeMode?String(params.get('target_plan')||'').toLowerCase():null;
+    planChangeBilling=planChangeMode?String(params.get('billing')||'').toLowerCase():null;
+
     selectedProduct=(params.get('product')||'job_plan').toLowerCase();
     if(selectedProduct==='single_job') selectedProduct='additional_slot';
     if(selectedProduct!=='additional_slot') selectedProduct='job_plan';
 
-    let requestedBilling=isAddon() ? 'monthly' : (params.get('billing')||'quarterly').toLowerCase();
+    let requestedBilling=planChangeMode
+      ? (['monthly','quarterly'].includes(planChangeBilling)?planChangeBilling:'monthly')
+      : (isAddon() ? 'monthly' : (params.get('billing')||'quarterly').toLowerCase());
     if(!CATALOG[requestedBilling]) requestedBilling='quarterly';
-    let requestedPlan=normalizeRequestedPlan(params.get('plan'),requestedBilling);
+    let requestedPlan=planChangeMode
+      ? normalizeRequestedPlan(planChangeTarget,requestedBilling)
+      : normalizeRequestedPlan(params.get('plan'),requestedBilling);
 
     selectedBilling=requestedBilling;
     selectedPlan=requestedPlan;
     renderBillingTabs();
     renderPlanOptions();
-    renderSummary();
+    if(!planChangeMode) renderSummary();
     updateUrl();
     resetTermsAcceptance();
 
@@ -582,15 +878,52 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     await loadPostingAccess();
 
+    try{
+      const {data:entitlement,error:entError}=await sb
+        .from('employer_entitlements')
+        .select('*')
+        .eq('employer_id',session.user.id)
+        .maybeSingle();
+      if(entError) throw entError;
+      currentEntitlement=entitlement||null;
+    }catch(error){
+      console.warn('Could not load employer entitlement for checkout review:',error);
+      currentEntitlement=null;
+    }
+
     const email=session.user.email||'Employer account';
     document.getElementById('account-email').textContent=email;
     document.getElementById('account-avatar').textContent=(email[0]||'A').toUpperCase();
     applyDeveloperTestMode();
+
+    if(planChangeMode){
+      planChangeCurrent=normalizedExistingPlan();
+      planChangeBilling=existingBillingPeriod();
+      planChangeTarget=normalizeRequestedPlan(planChangeTarget,planChangeBilling);
+      selectedPlan=planChangeTarget;
+      selectedBilling=planChangeBilling;
+
+      if(postingAccess?.active_paid_plan!==true && currentEntitlement?.test_mode!==true){
+        showMessage('An active paid plan is required before you can change plans.','error');
+        document.body.classList.add('ready');
+        return;
+      }
+      if(planChangeCurrent==='free' || planChangeTarget===planChangeCurrent){
+        location.replace('pricing.html');
+        return;
+      }
+      renderPlanChangeReview();
+      updateUrl();
+    }
+
     document.body.classList.add('ready');
-    enforceSelectedPurchaseEligibility();
+    if(!planChangeMode) enforceSelectedPurchaseEligibility();
   }
 
   async function startCheckout(){
+    if(planChangeMode){
+      return startPlanChange();
+    }
     if(!session){
       location.replace('login.html?role=employer');
       return;
