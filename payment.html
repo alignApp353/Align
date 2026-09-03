@@ -46,6 +46,8 @@
 
   .account-card{display:flex;gap:12px;align-items:center;border:1px solid var(--border);background:white;border-radius:14px;padding:15px}.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#E9F0F7;color:var(--brand);font-weight:700}.acct-main{font-size:13px;font-weight:600}.acct-sub{font-size:12px;color:var(--muted);margin-top:2px;word-break:break-word}
   .secure-box{border:1px solid var(--border);border-radius:16px;background:white;padding:20px}.secure-row{display:flex;gap:12px;align-items:flex-start}.lock{width:34px;height:34px;border-radius:10px;background:#EDF6F0;display:grid;place-items:center;color:#4F9568;font-size:16px;flex:none}.secure-title{font-size:14px;font-weight:600}.secure-copy{font-size:12px;line-height:1.55;color:var(--muted);margin-top:3px}
+  .weekly-expiry-notice{display:none;margin-top:18px;border:1px solid rgba(201,162,39,.38);background:rgba(201,162,39,.08);border-radius:13px;padding:14px 15px;font-size:12px;line-height:1.55;color:var(--text)}
+  .weekly-expiry-notice strong{display:block;margin-bottom:3px;font-size:12.5px}.weekly-expiry-notice span{color:var(--muted)}
 
   .terms-box{margin-top:18px;border:1px solid var(--border);border-radius:13px;background:#FBFCFC;padding:14px}
   .terms-label{display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12px;line-height:1.55;color:var(--text)}
@@ -56,7 +58,7 @@
   .message{display:none;margin-top:14px;padding:12px 14px;border-radius:12px;font-size:12px;line-height:1.5}.message.error{display:block;background:#FFF1F1;color:#8A4545;border:1px solid #F0CECE}.message.info{display:block;background:#EEF4F9;color:#466580;border:1px solid #D6E3EE}
   .fineprint{font-size:10px;color:var(--muted);line-height:1.55;text-align:center;margin-top:10px}
 
-  .summary{position:sticky;top:92px}.summary-top{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--border);gap:12px}.summary-name{font-size:15px;font-weight:600}.pill{font-size:11px;padding:5px 9px;border-radius:999px;background:#EDF6F0;color:#4F9568;white-space:nowrap}
+  .summary{position:static;top:auto;align-self:start}.summary-top{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--border);gap:12px}.summary-name{font-size:15px;font-weight:600}.pill{font-size:11px;padding:5px 9px;border-radius:999px;background:#EDF6F0;color:#4F9568;white-space:nowrap}
   .summary-price{font-family:'DM Serif Display',serif;font-size:36px;margin:18px 0 3px}.summary-price span{font:400 13px 'DM Sans',sans-serif;color:var(--muted)}
   .summary-sub{font-size:12px;color:var(--brand);font-weight:600;margin-bottom:20px}.features{list-style:none}.features li{padding:9px 0 9px 22px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);position:relative;line-height:1.4}.features li:first-child{border-top:0}.features li::before{content:'✓';position:absolute;left:0;color:var(--sage);font-weight:700}
   .total{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}.total-row{display:flex;justify-content:space-between;gap:15px;font-size:13px;margin:8px 0}.total-row.muted{color:var(--muted);font-size:12px}.total-row.final{font-weight:700;font-size:15px;margin-top:14px}.total-row span:last-child{text-align:right}
@@ -122,6 +124,11 @@
             <div class="secure-title" id="secure-title">Secure payment checkout</div>
             <div class="secure-copy" id="secure-copy">You’ll be redirected to our secure payment provider to complete checkout. Alygnn does not store your full payment-card number or card security code.</div>
           </div>
+        </div>
+
+        <div class="weekly-expiry-notice" id="weekly-expiry-notice" role="note" aria-live="polite">
+          <strong>7-day Weekly Job Slot notice</strong>
+          <span>The job using this Weekly Job Slot will automatically close when the 7-day period ends. Your job, applications, and history will stay saved, and you can reopen the job later when you have available capacity.</span>
         </div>
 
         <div class="terms-box">
@@ -215,7 +222,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     weekly: {
       weekly_slot: {
         name:'Weekly Job Slot', price:99, suffix:'/ 7 days', billing:'Weekly', kind:'fixed_term', slots:'+1 temporary job slot on top of your paid plan',
-        features:['Requires an active Launch, Growth, or Scale plan','Starts immediately after purchase','Expires 7 days after purchase','AI candidate matching and applicant management','Launch/Growth: upgrade is recommended after the first Weekly slot','Optional Job Boost · $15/day']
+        features:['Requires an active Launch, Growth, or Scale plan','Starts immediately after purchase','Expires 7 days after purchase','Job using this Weekly slot automatically closes after 7 days','Job, applications, and history remain saved','AI candidate matching and applicant management','Launch/Growth: upgrade is recommended after the first Weekly slot','Optional Job Boost · $15/day']
       }
     }
   };
@@ -304,11 +311,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if(isAddon()){
       if(tabs) tabs.style.display='none';
       options.classList.add('weekly');
+      const p=ADDITIONAL_SLOT;
       options.innerHTML=`
         <button type="button" class="plan-option active" disabled>
-          <div class="name">Second Job Slot</div>
-          <div class="price">$150 <span>/ month</span></div>
-          <div class="slots">Free account only · 2 total slots</div>
+          <div class="name">${p.name}</div>
+          <div class="price">${displayPrice(p.price)} <span>${p.suffix}</span></div>
+          <div class="slots">${p.slots}</div>
         </button>
       `;
       document.getElementById('enterprise-note').style.display='none';
@@ -378,6 +386,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     document.getElementById('summary-price').innerHTML=`${displayPrice(p.price)} <span>${p.suffix}</span>`;
     document.getElementById('summary-sub').textContent=p.slots;
     document.getElementById('summary-features').innerHTML=p.features.map(x=>`<li>${x}</li>`).join('');
+    const weeklyExpiryNotice=document.getElementById('weekly-expiry-notice');
+    if(weeklyExpiryNotice) weeklyExpiryNotice.style.display=(!isAddon() && selectedBilling==='weekly')?'block':'none';
     document.getElementById('subtotal').textContent=money(p.price);
 
     if(developerTestMode){
@@ -399,7 +409,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         document.getElementById('authorization-copy').textContent=`By continuing, you authorize ${displayPrice(p.price)} plus applicable tax every 3 months for the ${p.name} plan until canceled according to the Terms.`;
       }else{
         document.getElementById('trust-copy').textContent='🔒 Secure checkout · 7-day job slot';
-        document.getElementById('authorization-copy').textContent=`By continuing, you authorize a ${displayPrice(p.price)} plus applicable tax payment for one 7-day weekly job slot.`;
+        document.getElementById('authorization-copy').textContent=`By continuing, you authorize a ${displayPrice(p.price)} plus applicable tax payment for one 7-day Weekly Job Slot. The job using that slot will automatically close when the 7-day period ends.`;
       }
     }
 
