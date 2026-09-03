@@ -485,7 +485,17 @@
   .link-card .icon{ font-size:1.3rem; margin-bottom:8px; display:block; }
   .link-card .label{ font-weight:500; font-size:15px; }
   .link-card .sub{ font-size:13px; color:var(--text-muted); margin-top:2px; font-weight:300; }
+  .settings-action-card{border:1px solid var(--border);text-align:left;font-family:'DM Sans',sans-serif;cursor:pointer}
+  .settings-billing-panel{display:none;margin-top:16px}
+  .settings-billing-panel.open{display:block}
+  .settings-card-icon{width:24px;height:24px;margin-bottom:8px;display:flex;align-items:center;justify-content:center;color:var(--brand)}
+  .settings-card-icon svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .billing-card{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:22px}
+  .settings-billing-wrap{margin-top:16px}
+  .settings-billing-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:12px;flex-wrap:wrap}
+  .settings-box-kicker{font-size:10px;font-weight:600;letter-spacing:1.1px;text-transform:uppercase;color:var(--brand);margin-bottom:4px}
+  .settings-box-title{font-weight:500;font-size:15px;color:var(--text)}
+  .settings-billing-card{padding:20px}
   .billing-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
   .billing-eyebrow{font-size:10px;font-weight:600;letter-spacing:1.1px;text-transform:uppercase;color:var(--brand);margin-bottom:5px}
   .billing-plan{font-family:'DM Serif Display',serif;font-size:24px;letter-spacing:-.4px}
@@ -710,7 +720,13 @@
   .company-id-copy:hover{ border-color:rgba(93,127,163,.45); }
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+  window.addEventListener('hashchange',()=>{
+    if(location.hash==='#billing-section')toggleBillingPanel(true);
+  });
+  if(location.hash==='#billing-section')setTimeout(()=>toggleBillingPanel(true),0);
+
+</script>
 </head>
 <body>
 
@@ -856,16 +872,6 @@
     </div>
   </div>
 
-  <div class="section" id="billing-section">
-    <div class="section-header">
-      <h2>Billing &amp; plan</h2>
-      <a href="pricing.html" class="section-link">Compare plans →</a>
-    </div>
-    <div class="billing-card" id="billing-card">
-      <div class="billing-meta">Loading your billing details…</div>
-    </div>
-  </div>
-
   <div class="section">
     <div class="section-header">
       <h2>Candidates</h2>
@@ -880,15 +886,39 @@
     <div class="section-header"><h2>Settings</h2></div>
     <div class="links-row">
       <a href="employer-dashboard.html" class="link-card">
-        <span class="icon">📋</span>
+        <span class="settings-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>
+        </span>
         <div class="label">Manage job posts</div>
         <div class="sub">Edit or close active listings</div>
       </a>
       <a href="account-settings.html" class="link-card">
-        <span class="icon">🔒</span>
+        <span class="settings-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        </span>
         <div class="label">Account settings</div>
         <div class="sub">Password, linked accounts, sign out</div>
       </a>
+      <button type="button" class="link-card settings-action-card" id="billing-settings-card" onclick="toggleBillingPanel()" aria-expanded="false" aria-controls="billing-section">
+        <span class="settings-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/><path d="M7 15h4"/></svg>
+        </span>
+        <div class="label">Billing &amp; plan</div>
+        <div class="sub" id="billing-settings-sub">Plan, payment method, invoices</div>
+      </button>
+    </div>
+
+    <div class="settings-billing-panel" id="billing-section">
+      <div class="settings-billing-head">
+        <div>
+          <div class="settings-box-kicker">Billing</div>
+          <div class="settings-box-title">Billing &amp; plan</div>
+        </div>
+        <a href="pricing.html" class="section-link">Compare plans →</a>
+      </div>
+      <div class="billing-card settings-billing-card" id="billing-card">
+        <div class="billing-meta">Loading your billing details…</div>
+      </div>
     </div>
   </div>
 
@@ -1632,6 +1662,16 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     window.location.href = 'employer-dashboard.html#post';
   }
 
+  function toggleBillingPanel(forceOpen){
+    const panel=document.getElementById('billing-section');
+    const card=document.getElementById('billing-settings-card');
+    if(!panel)return;
+    const shouldOpen=typeof forceOpen==='boolean' ? forceOpen : !panel.classList.contains('open');
+    panel.classList.toggle('open',shouldOpen);
+    if(card)card.setAttribute('aria-expanded',shouldOpen?'true':'false');
+    if(shouldOpen)panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+
   function billingMoney(cents){
     return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format((Number(cents)||0)/100);
   }
@@ -1807,6 +1847,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         : secondActive
           ? `2 total reusable job slots · Second Job Slot $150/month`
           : `1 permanent reusable free job slot · up to 25 candidates on the free slot`;
+      const settingsBillingSub=document.getElementById('billing-settings-sub');
+      if(settingsBillingSub){
+        settingsBillingSub.textContent=lock
+          ? 'Payment past due · update billing'
+          : `${displayPlan} · ${slots} total job slot${slots===1?'':'s'}`;
+      }
 
       const currentKey=String(summary.current_plan||'').toLowerCase();
       const planChoices=paidPlan && !lock && ACCOUNT_PLAN_PRICES[billing]
