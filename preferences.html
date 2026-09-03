@@ -565,8 +565,8 @@
       </div>
       <div class="location-grid">
         <div class="input-group">
-          <label class="input-label">City</label>
-          <input type="text" class="input-field" placeholder="e.g. New York, NY" id="city-input"
+          <label class="input-label">City or state</label>
+          <input type="text" class="input-field" placeholder="e.g. Raleigh, NC or North Carolina" id="city-input"
             autocomplete="off"
             oninput="checkSection('sc-location'); renderCitySuggestions();"
             onfocus="renderCitySuggestions();"
@@ -763,28 +763,8 @@
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-  
-function alygnnAuthStorageKey() {
-  let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
-  if (!tabId) {
-    tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
-      ? window.crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-    window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
-  }
-  return `alygnn-auth-${tabId}`;
-}
-
-const { createClient } = supabase;
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      storage: window.sessionStorage,
-      storageKey: alygnnAuthStorageKey(),
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
-    }
-  });
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const TOTAL = 300000;
   const FLOOR = 10000;
@@ -853,7 +833,8 @@ const { createClient } = supabase;
     'Back End Developer','Full Stack Developer','QA Engineer','IT Support Specialist',
     'Systems Administrator','Network Administrator','Data Analyst','Data Scientist',
     'Registered Nurse','Licensed Practical Nurse','Certified Nursing Assistant',
-    'Medical Assistant','Home Health Aide','Physical Therapist','Occupational Therapist',
+    'Medical Assistant','Home Health Aide','Therapist','Physical Therapist','Occupational Therapist',
+    'Respiratory Therapist','Speech Therapist','Behavioral Therapist','Marriage and Family Therapist',
     'Pharmacy Technician','Dental Assistant','Dental Hygienist','Veterinary Technician',
     'Teacher','Substitute Teacher','Teaching Assistant','Tutor','School Counselor',
     'Daycare Worker','Preschool Teacher','Warehouse Associate','Forklift Operator',
@@ -948,24 +929,78 @@ const { createClient } = supabase;
     WA:'Washington', WV:'West Virginia', WI:'Wisconsin', WY:'Wyoming'
   };
 
+  const STATE_NAME_TO_ABBR = Object.fromEntries(
+    Object.entries(STATE_ABBR_TO_NAME).map(([abbr, name]) => [name.toLowerCase(), abbr])
+  );
+
+  function normalizeStateValue(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return { name: '', abbr: '' };
+
+    const upper = raw.toUpperCase();
+    if (STATE_ABBR_TO_NAME[upper]) {
+      return { name: STATE_ABBR_TO_NAME[upper], abbr: upper };
+    }
+
+    const abbr = STATE_NAME_TO_ABBR[raw.toLowerCase()] || '';
+    return {
+      name: abbr ? STATE_ABBR_TO_NAME[abbr] : '',
+      abbr
+    };
+  }
+
   // Splits a combined "City, ST" (or "City, State") string into its
   // parts so we can keep saving separate `city` / `state` fields to
   // Supabase even though there's now only one visible input. Falls
   // back gracefully if the person only typed a city, or typed
   // "Remote" with no state at all.
   function parseCityState(value) {
-    const trimmed = (value || '').trim();
-    if (!trimmed) return { city: '', state: '' };
+    const trimmed = String(value || '').trim();
+    if (!trimmed) return { city: '', state: '', state_abbr: '', location_scope: '' };
+
+    // Remote remains a location choice rather than a state.
+    if (/^remote(?:\s*-\s*united states)?$/i.test(trimmed)) {
+      return {
+        city: 'Remote',
+        state: '',
+        state_abbr: '',
+        location_scope: 'remote'
+      };
+    }
 
     const parts = trimmed.split(',').map(p => p.trim()).filter(Boolean);
-    if (parts.length < 2) return { city: trimmed, state: '' };
+
+    // A state by itself is a valid statewide preference:
+    // "NC" and "North Carolina" both become state=North Carolina, city="".
+    if (parts.length === 1) {
+      const stateOnly = normalizeStateValue(parts[0]);
+      if (stateOnly.abbr) {
+        return {
+          city: '',
+          state: stateOnly.name,
+          state_abbr: stateOnly.abbr,
+          location_scope: 'state'
+        };
+      }
+
+      // Free-text city still works for towns not in our suggestion list.
+      return {
+        city: trimmed,
+        state: '',
+        state_abbr: '',
+        location_scope: 'city'
+      };
+    }
 
     const city = parts[0];
-    const statePart = parts[1];
-    const abbrMatch = statePart.toUpperCase();
-    const state = STATE_ABBR_TO_NAME[abbrMatch] || statePart;
+    const stateInfo = normalizeStateValue(parts[1]);
 
-    return { city, state };
+    return {
+      city,
+      state: stateInfo.name || parts[1],
+      state_abbr: stateInfo.abbr,
+      location_scope: 'city'
+    };
   }
 
   const COMPENSATION_CONFIG = {
@@ -1188,12 +1223,27 @@ const { createClient } = supabase;
       return;
     }
 
-    // Remove duplicates and rank the most natural matches first:
-    // 1) city begins with what was typed
-    // 2) another word begins with it
-    // 3) remaining substring matches
+    // Statewide options are first-class choices. Typing "NC", "North",
+    // or "North Carolina" can select the whole state instead of a city.
+    const stateSuggestions = Object.entries(STATE_ABBR_TO_NAME)
+      .map(([abbr, name]) => {
+        const normalizedName = normalize(name);
+        const normalizedAbbr = normalize(abbr);
+
+        let score = 99;
+        if (normalizedAbbr === value || normalizedName === value) score = -2;
+        else if (normalizedAbbr.startsWith(value) || normalizedName.startsWith(value)) score = -1;
+        else if (normalizedName.includes(value)) score = 0;
+
+        return { abbr, name, score };
+      })
+      .filter(item => item.score < 99)
+      .sort((a, b) => a.score - b.score || a.name.localeCompare(b.name))
+      .slice(0, 3);
+
+    // City matches remain available under the statewide option.
     const uniqueCities = [...new Set(KNOWN_CITIES)];
-    const scored = uniqueCities
+    const citySuggestions = uniqueCities
       .map(city => {
         const normalized = normalize(city);
         const cityName = normalized.split(',')[0].trim();
@@ -1208,19 +1258,26 @@ const { createClient } = supabase;
       })
       .filter(item => item.score < 99)
       .sort((a, b) => a.score - b.score || a.city.localeCompare(b.city))
-      .slice(0, 7)
-      .map(item => item.city);
+      .slice(0, Math.max(0, 7 - stateSuggestions.length));
 
-    if (scored.length === 0) {
+    if (!stateSuggestions.length && !citySuggestions.length) {
       box.style.display = 'none';
       box.innerHTML = '';
       return;
     }
 
-    box.innerHTML = scored.map(name =>
-      `<div class="city-suggestion-item" role="option" onclick="selectCitySuggestion('${name.replace(/'/g, "\\'")}')">${name}</div>`
+    const stateHtml = stateSuggestions.map(({ name }) =>
+      `<div class="city-suggestion-item" role="option" onclick="selectCitySuggestion('${name.replace(/'/g, "\\'")}')">
+        <span>${name}</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--brand);font-weight:600;">STATEWIDE</span>
+      </div>`
     ).join('');
 
+    const cityHtml = citySuggestions.map(({ city }) =>
+      `<div class="city-suggestion-item" role="option" onclick="selectCitySuggestion('${city.replace(/'/g, "\\'")}')">${city}</div>`
+    ).join('');
+
+    box.innerHTML = stateHtml + cityHtml;
     box.style.display = 'block';
   }
 
@@ -1253,6 +1310,9 @@ const { createClient } = supabase;
       document.getElementById('city-input').value = saved.state
         ? `${saved.city}, ${saved.state}`
         : saved.city;
+    } else if (saved.state) {
+      // State-only preference such as "North Carolina".
+      document.getElementById('city-input').value = saved.state;
     }
 
     const savedCompensationType =
@@ -1484,7 +1544,16 @@ const { createClient } = supabase;
       return;
     }
 
-    const matches = JOB_TITLES.filter(title => normalize(title).includes(value)).slice(0, 8);
+    const matches = JOB_TITLES
+      .filter(title => normalize(title).includes(value))
+      .sort((a, b) => {
+        // For an umbrella search like "therapist", put the broad title first
+        // so candidates can intentionally search every therapist specialty.
+        const aExact = normalize(a) === value ? -2 : normalize(a).startsWith(value) ? -1 : 0;
+        const bExact = normalize(b) === value ? -2 : normalize(b).startsWith(value) ? -1 : 0;
+        return aExact - bExact || a.localeCompare(b);
+      })
+      .slice(0, 8);
 
     if (matches.length === 0) {
       box.style.display = 'none';
@@ -1492,9 +1561,17 @@ const { createClient } = supabase;
       return;
     }
 
-    box.innerHTML = matches.map(name =>
-      `<div class="city-suggestion-item" onclick="selectRoleSuggestion('${name.replace(/'/g, "\\'")}')">${name}</div>`
-    ).join('');
+    box.innerHTML = matches.map(name => {
+      const broadTherapist = normalize(name) === 'therapist';
+      const detail = broadTherapist
+        ? '<span style="margin-left:auto;font-size:11px;color:var(--brand);font-weight:600;">ANY SPECIALTY</span>'
+        : '';
+
+      return `<div class="city-suggestion-item" onclick="selectRoleSuggestion('${name.replace(/'/g, "\\'")}')">
+        <span>${name}</span>${detail}
+      </div>`;
+    }).join('');
+
     box.style.display = 'block';
   }
 
@@ -1529,7 +1606,7 @@ const { createClient } = supabase;
   function collectPreferences() {
     const role = document.getElementById('role-input').value.trim();
     const locationInput = document.getElementById('city-input').value.trim();
-    const { city, state } = parseCityState(locationInput);
+    const { city, state, state_abbr, location_scope } = parseCityState(locationInput);
     const salaryMin = parseInt(document.getElementById('salary-min').value, 10);
     const salaryMax = parseInt(document.getElementById('salary-max').value, 10);
 
@@ -1553,6 +1630,8 @@ const { createClient } = supabase;
       // `city` / `state` separately, derived from the single input.
       city: city,
       state: state,
+      state_abbr: state_abbr,
+      location_scope: location_scope,
       location: locationInput,
       salary_min: salaryMin,
       salary_max: salaryMax,
