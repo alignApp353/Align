@@ -211,93 +211,31 @@
   .view-details-link:hover { opacity: 0.8; }
 
   /* ACTION BUTTONS */
-  .action-buttons {
-    display:flex;
-    align-items:stretch;
-    justify-content:center;
-    gap:12px;
-    margin-top:20px;
-    width:min(100%, 520px);
-    flex-wrap:wrap;
+  .action-buttons { display: flex; align-items: center; gap: 16px; margin-top: 20px; }
+  .btn-skip {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: white; border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 22px; transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
-  .btn-undo,
-  .btn-skip,
-  .btn-apply{
-    border-radius:18px;
-    min-height:72px;
-    padding:12px 18px;
-    cursor:pointer;
-    transition:all .2s;
-    font-family:'DM Sans', sans-serif;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
+  .btn-skip:hover { border-color: var(--rose); transform: scale(1.08); }
+  .btn-apply {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--brand); border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 26px; transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(93,127,163,0.35);
   }
-  .btn-undo,
-  .btn-skip{
-    background:white;
-    border:1.5px solid var(--border);
-    box-shadow:0 2px 8px rgba(0,0,0,0.06);
+  .btn-apply:hover { transform: scale(1.08); opacity: 0.9; }
+  .btn-undo {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: white; border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
-  .btn-undo{
-    min-width:100px;
-  }
-  .btn-skip{
-    min-width:140px;
-  }
-  .btn-apply{
-    min-width:170px;
-    background:var(--brand);
-    border:1.5px solid var(--brand);
-    box-shadow:0 8px 20px rgba(93,127,163,0.30);
-  }
-  .btn-undo:hover { border-color: var(--brand); transform: translateY(-1px); }
-  .btn-skip:hover { border-color: var(--rose); color:#9a5151; transform: translateY(-1px); }
-  .btn-apply:hover { transform: translateY(-1px); opacity: 0.92; }
-
-  .action-btn-stack{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:2px;
-  }
-  .action-btn-icon{
-    font-size:18px;
-    line-height:1;
-    font-weight:600;
-  }
-  .btn-apply .action-btn-icon{ color:white; }
-  .btn-undo .action-btn-icon,
-  .btn-skip .action-btn-icon{ color:var(--text); }
-
-  .action-btn-label{
-    font-size:16px;
-    line-height:1.1;
-    font-weight:700;
-  }
-  .btn-apply .action-btn-label{ color:white; }
-  .btn-undo .action-btn-label,
-  .btn-skip .action-btn-label{ color:var(--text); }
-
-  .action-btn-sub{
-    font-size:11px;
-    line-height:1.2;
-    font-weight:500;
-  }
-  .btn-apply .action-btn-sub{ color:rgba(255,255,255,.88); }
-  .btn-undo .action-btn-sub,
-  .btn-skip .action-btn-sub{ color:var(--text-muted); }
-
-  @media (max-width: 640px) {
-    .action-buttons{
-      width:100%;
-      gap:10px;
-    }
-    .btn-undo{ min-width:96px; }
-    .btn-skip{ min-width:132px; }
-    .btn-apply{ min-width:154px; }
-  }
+  .btn-undo:hover { border-color: var(--brand); }
 
   /* EMPTY STATE */
   .empty-screen {
@@ -346,7 +284,7 @@
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
   <div class="nav-stats">
     <div class="stat"><div class="stat-val" id="stat-applied">0</div><div class="stat-label">Applied</div></div>
-    <div class="stat"><div class="stat-val" id="stat-skipped">0</div><div class="stat-label">Passed</div></div>
+    <div class="stat"><div class="stat-val" id="stat-skipped">0</div><div class="stat-label">Skipped</div></div>
     <div class="stat"><div class="stat-val" id="stat-remaining">—</div><div class="stat-label">Left</div></div>
   </div>
   <div style="display:flex;align-items:center;gap:20px;">
@@ -377,27 +315,9 @@
 <div class="swipe-area" id="swipe-area">
   <div class="card-stack" id="card-stack"></div>
   <div class="action-buttons">
-    <button class="btn-undo" onclick="undo()" title="Undo">
-      <span class="action-btn-stack">
-        <span class="action-btn-icon">↩</span>
-        <span class="action-btn-label">Undo</span>
-        <span class="action-btn-sub">Bring it back</span>
-      </span>
-    </button>
-    <button class="btn-skip" onclick="skipCurrent()" title="Pass">
-      <span class="action-btn-stack">
-        <span class="action-btn-icon">✕</span>
-        <span class="action-btn-label">Pass</span>
-        <span class="action-btn-sub">Skip this job</span>
-      </span>
-    </button>
-    <button class="btn-apply" onclick="applyCurrent()" title="Apply now">
-      <span class="action-btn-stack">
-        <span class="action-btn-icon">✓</span>
-        <span class="action-btn-label">Apply now</span>
-        <span class="action-btn-sub">Send my application</span>
-      </span>
-    </button>
+    <button class="btn-undo" onclick="undo()" title="Undo">↩</button>
+    <button class="btn-skip" onclick="skipCurrent()" title="Skip">✕</button>
+    <button class="btn-apply" onclick="applyCurrent()" title="Apply">✓</button>
   </div>
 </div>
 
@@ -418,31 +338,8 @@
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-  
-function alygnnAuthStorageKey() {
-  let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
-  if (!tabId) {
-    tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
-      ? window.crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-    window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
-  }
-  return `alygnn-auth-${tabId}`;
-}
-
-const { createClient } = supabase;
-  const sb = // Keep Alygnn authentication isolated to this browser tab.
-// This lets a candidate account stay open in one tab while a different
-// employer account is signed in in another tab.
-createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      storage: window.sessionStorage,
-      storageKey: alygnnAuthStorageKey(),
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
-    }
-  });
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let jobs = [];
   let currentIndex = 0;
@@ -533,30 +430,14 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if (currentUserId) {
       const { data: profile, error: profileError } = await sb
         .from('profiles')
-        .select('resume_file_path,resume_data,preferences')
+        .select('preferences')
         .eq('id', currentUserId)
         .maybeSingle();
 
       if (profileError) {
-        console.warn('Could not load candidate onboarding status:', profileError);
+        console.warn('Could not load saved preferences:', profileError);
       }
-
-      // Logged-in candidates cannot enter the swipe experience until the
-      // required onboarding is complete. Resume comes first, then preferences.
-      const hasResume = !!(profile?.resume_file_path || profile?.resume_data);
-      const hasPreferences = !!profile?.preferences;
-
-      if (!hasResume) {
-        window.location.replace('align-upload.html');
-        return;
-      }
-
-      if (!hasPreferences) {
-        window.location.replace('preferences.html');
-        return;
-      }
-
-      pref = profile.preferences || {};
+      pref = profile?.preferences || {};
     } else {
       const prefRaw = sessionStorage.getItem('preferences');
       pref = prefRaw ? JSON.parse(prefRaw) : {};
@@ -608,39 +489,91 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         );
       }
 
-      // Location matching:
-      // 1) Prefer the exact city the candidate selected.
-      // 2) Remote jobs always qualify.
-      // 3) If there are NO exact-city matches, fall back to jobs in the same
-      //    state so a candidate is not shown a blank screen just because
-      //    Alygnn does not yet have inventory in that exact city.
-      const locationPref = (pref.city || pref.location || '').trim().toLowerCase();
-      if (locationPref) {
+      // Location matching supports BOTH:
+      //   • City + state: "Raleigh, NC"
+      //   • Statewide: "North Carolina" / "NC"
+      // Remote jobs remain eligible unless the rest of the user's criteria removes them.
+      const STATE_ABBR_TO_NAME = {
+        AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas', CA:'California',
+        CO:'Colorado', CT:'Connecticut', DE:'Delaware', DC:'District of Columbia',
+        FL:'Florida', GA:'Georgia', HI:'Hawaii', ID:'Idaho', IL:'Illinois',
+        IN:'Indiana', IA:'Iowa', KS:'Kansas', KY:'Kentucky', LA:'Louisiana',
+        ME:'Maine', MD:'Maryland', MA:'Massachusetts', MI:'Michigan', MN:'Minnesota',
+        MS:'Mississippi', MO:'Missouri', MT:'Montana', NE:'Nebraska', NV:'Nevada',
+        NH:'New Hampshire', NJ:'New Jersey', NM:'New Mexico', NY:'New York',
+        NC:'North Carolina', ND:'North Dakota', OH:'Ohio', OK:'Oklahoma', OR:'Oregon',
+        PA:'Pennsylvania', RI:'Rhode Island', SC:'South Carolina', SD:'South Dakota',
+        TN:'Tennessee', TX:'Texas', UT:'Utah', VT:'Vermont', VA:'Virginia',
+        WA:'Washington', WV:'West Virginia', WI:'Wisconsin', WY:'Wyoming'
+      };
+
+      const STATE_NAME_TO_ABBR = Object.fromEntries(
+        Object.entries(STATE_ABBR_TO_NAME).map(([abbr, name]) => [name.toLowerCase(), abbr.toLowerCase()])
+      );
+
+      function preferredStateAbbr(pref) {
+        const directAbbr = String(pref.state_abbr || '').trim().toLowerCase();
+        if (/^[a-z]{2}$/.test(directAbbr)) return directAbbr;
+
+        const stateText = String(pref.state || '').trim();
+        if (stateText) {
+          if (/^[a-z]{2}$/i.test(stateText)) return stateText.toLowerCase();
+          const fromName = STATE_NAME_TO_ABBR[stateText.toLowerCase()];
+          if (fromName) return fromName;
+        }
+
+        const locationText = String(pref.location || '').trim();
+        if (/^[a-z]{2}$/i.test(locationText)) return locationText.toLowerCase();
+
+        const fullState = STATE_NAME_TO_ABBR[locationText.toLowerCase()];
+        if (fullState) return fullState;
+
+        const commaMatch = locationText.match(/,\s*([a-z]{2})\s*$/i);
+        return commaMatch ? commaMatch[1].toLowerCase() : '';
+      }
+
+      function jobMatchesState(job, stateAbbr) {
+        if (!stateAbbr) return false;
+        if (job.work_style === 'Remote') return true;
+
+        const jobLocation = String(job.location || '').trim().toLowerCase();
+        const stateName = (STATE_ABBR_TO_NAME[stateAbbr.toUpperCase()] || '').toLowerCase();
+
+        return new RegExp(`,\\s*${stateAbbr}(?:\\s|$)`, 'i').test(jobLocation) ||
+          (stateName && jobLocation.includes(stateName));
+      }
+
+      const preferredCity = String(pref.city || '').trim().toLowerCase();
+      const preferredState = preferredStateAbbr(pref);
+      const rawLocation = String(pref.location || '').trim().toLowerCase();
+      const stateOnly = !preferredCity && !!preferredState;
+
+      if (stateOnly) {
+        // State-only means exactly what it says: any city in that state.
+        results = results.filter(job => jobMatchesState(job, preferredState));
+
+      } else if (preferredCity || rawLocation) {
         const beforeLocationFilter = [...results];
-        const exactLocationMatches = beforeLocationFilter.filter(job => {
-          const jobLocation = (job.location || '').trim().toLowerCase();
-          return job.work_style === 'Remote' ||
-            jobLocation.includes(locationPref) ||
-            locationPref.includes(jobLocation);
+
+        const citySearch = preferredCity ||
+          rawLocation.replace(/,\s*[a-z]{2}\s*$/i, '').trim();
+
+        const exactCityMatches = beforeLocationFilter.filter(job => {
+          if (job.work_style === 'Remote') return true;
+
+          const jobLocation = String(job.location || '').trim().toLowerCase();
+          return citySearch &&
+            (jobLocation.includes(citySearch) || citySearch.includes(jobLocation));
         });
 
-        if (exactLocationMatches.length) {
-          results = exactLocationMatches;
+        if (exactCityMatches.length) {
+          results = exactCityMatches;
+        } else if (preferredState) {
+          // City choice can still gracefully widen to the same state if
+          // Alygnn does not have inventory in that exact city yet.
+          results = beforeLocationFilter.filter(job => jobMatchesState(job, preferredState));
         } else {
-          const stateMatch = locationPref.match(/,\s*([a-z]{2})\s*$/i);
-          const preferredState = stateMatch ? stateMatch[1].toLowerCase() : '';
-
-          if (preferredState) {
-            const sameStateMatches = beforeLocationFilter.filter(job => {
-              if (job.work_style === 'Remote') return true;
-              const jobLocation = (job.location || '').trim().toLowerCase();
-              return new RegExp(`,\\s*${preferredState}(?:\\s|$)`, 'i').test(jobLocation);
-            });
-
-            results = sameStateMatches;
-          } else {
-            results = exactLocationMatches;
-          }
+          results = exactCityMatches;
         }
       }
 
@@ -663,18 +596,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         noMatchError.code = 'NO_MATCHES';
         throw noMatchError;
       }
-
-      // Job Boost priority placement: any job with an active boosted_until
-      // timestamp comes before non-boosted matches. Within each group, keep
-      // newest jobs first. This changes placement only; it never bypasses the
-      // candidate's preference filters.
-      const nowMs = Date.now();
-      results.sort((a,b) => {
-        const aBoosted = a.boosted_until && new Date(a.boosted_until).getTime() > nowMs ? 1 : 0;
-        const bBoosted = b.boosted_until && new Date(b.boosted_until).getTime() > nowMs ? 1 : 0;
-        if (aBoosted !== bBoosted) return bBoosted - aBoosted;
-        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-      });
 
       jobs = results;
       currentIndex = 0;
@@ -774,8 +695,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       : '';
 
     card.innerHTML = `
-      <div class="stamp stamp-apply">APPLIED ✓</div>
-      <div class="stamp stamp-skip">PASS ✕</div>
+      <div class="stamp stamp-apply">APPLY ✓</div>
+      <div class="stamp stamp-skip">SKIP ✕</div>
       <div class="card-top">
         <div class="company-logo">${getInitials(job.company)}</div>
         <div class="card-top-text">
@@ -790,7 +711,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       ${benefitsHTML}
       <div class="card-bottom">
         <div class="posted-time">${timeAgo(job.created_at)}</div>
-        <a class="view-details-link" href="job-details.html?job=${encodeURIComponent(job.id)}&from=swipe">View details →</a>
+        <a class="view-details-link" href="job-details.html?job=${encodeURIComponent(job.id)}" target="_blank" rel="noopener">View details →</a>
       </div>
     `;
 
@@ -1160,7 +1081,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       recordApplication(job);
     } else {
       skipped++;
-      showToast('Passed');
+      showToast('Skipped');
       recordSkip(job);
     }
 
