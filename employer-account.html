@@ -485,6 +485,30 @@
   .link-card .icon{ font-size:1.3rem; margin-bottom:8px; display:block; }
   .link-card .label{ font-weight:500; font-size:15px; }
   .link-card .sub{ font-size:13px; color:var(--text-muted); margin-top:2px; font-weight:300; }
+  .billing-card{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:22px}
+  .billing-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+  .billing-eyebrow{font-size:10px;font-weight:600;letter-spacing:1.1px;text-transform:uppercase;color:var(--brand);margin-bottom:5px}
+  .billing-plan{font-family:'DM Serif Display',serif;font-size:24px;letter-spacing:-.4px}
+  .billing-meta{font-size:12px;color:var(--text-muted);line-height:1.55;margin-top:4px}
+  .billing-status{display:inline-flex;align-items:center;border-radius:999px;padding:5px 10px;font-size:10px;font-weight:600;background:rgba(111,191,143,.14);color:#3C7955}
+  .billing-status.warning{background:rgba(215,154,154,.16);color:#914848}
+  .billing-status.neutral{background:rgba(93,127,163,.10);color:var(--brand)}
+  .billing-alert{margin-top:16px;border:1px solid rgba(180,90,90,.30);background:#FFF8F7;border-radius:12px;padding:13px 14px;font-size:12px;line-height:1.55;color:var(--text)}
+  .billing-alert strong{color:#914848}
+  .billing-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+  .billing-btn{border-radius:999px;padding:10px 16px;font:600 12px 'DM Sans',sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+  .billing-btn.primary{border:0;background:var(--brand);color:#fff}
+  .billing-btn.secondary{border:1px solid var(--brand);background:white;color:var(--brand)}
+  .billing-plan-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+  .billing-plan-choice{border:1px solid var(--border);background:white;border-radius:12px;padding:12px 13px;text-align:left;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text)}
+  .billing-plan-choice:hover{border-color:var(--brand)}
+  .billing-plan-choice strong{display:block;font-size:12px;margin-bottom:2px}
+  .billing-plan-choice span{font-size:10.5px;color:var(--text-muted);line-height:1.4}
+  .billing-plan-choice:disabled{opacity:.5;cursor:not-allowed}
+  .billing-message{margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(93,127,163,.08);color:var(--brand);font-size:11.5px;line-height:1.5}
+  @media(max-width:620px){.billing-plan-actions{grid-template-columns:1fr}}
+  .candidate-lock-empty{background:#FFF8F7;border:1px solid rgba(180,90,90,.30);border-radius:14px;padding:24px;text-align:left;font-size:13px;line-height:1.6;color:var(--text-muted)}
+  .candidate-lock-empty strong{display:block;color:var(--text);font-size:14px;margin-bottom:4px}
   .account-job-row{
     background:var(--card-bg);
     border:1px solid var(--border);
@@ -832,10 +856,20 @@
     </div>
   </div>
 
+  <div class="section" id="billing-section">
+    <div class="section-header">
+      <h2>Billing &amp; plan</h2>
+      <a href="pricing.html" class="section-link">Compare plans →</a>
+    </div>
+    <div class="billing-card" id="billing-card">
+      <div class="billing-meta">Loading your billing details…</div>
+    </div>
+  </div>
+
   <div class="section">
     <div class="section-header">
       <h2>Candidates</h2>
-      <a href="employer-dashboard.html" class="section-link">View all →</a>
+      <a href="candidates.html" class="section-link">View all →</a>
     </div>
     <div id="account-candidates-list">
       <div class="empty-state">No candidates yet. Once people apply to your jobs, you'll see them here.</div>
@@ -956,6 +990,9 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   // employer-dashboard.html does.
   let employerJobs = [];
   let accountPostingAccess = null;
+  let accountCandidateAccessLocked = false;
+  let accountCandidateAccessLockReason = '';
+  let accountBillingSummary = null;
 
   const PROFILE_UPDATE_BUCKET = 'employer-profile-update-documents';
   let pendingProfileUpdateRequests = [];
@@ -1490,10 +1527,9 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if (serverLimit > 0) return serverLimit;
 
     const plan = String(entitlement?.test_plan || entitlement?.plan || '').toLowerCase();
-    if (plan === 'weekly_slot') return 1;
-    if (plan === 'launch' || plan === 'business') return 3;
-    if (plan === 'growth' || plan === 'enterprise') return 5;
-    if (plan === 'scale') return 8;
+    if (plan === 'launch' || plan === 'business') return 4;
+    if (plan === 'growth' || plan === 'enterprise') return 6;
+    if (plan === 'scale') return 9;
     return 1;
   }
 
@@ -1502,13 +1538,13 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     let result = await sb
       .from('employer_entitlements')
-      .select('plan, subscription_status, current_period_end, slot_limit, billing_period, test_mode, test_plan')
+      .select('plan, subscription_status, current_period_end, slot_limit, billing_period, test_mode, test_plan, candidate_access_locked, candidate_access_lock_reason')
       .eq('employer_id', currentUserId)
       .maybeSingle();
 
     // Backward-compatible fallback if the newer entitlement columns are not
     // installed yet.
-    if (result.error && /slot_limit|billing_period|test_mode|test_plan/i.test(String(result.error.message || ''))) {
+    if (result.error && /slot_limit|billing_period|test_mode|test_plan|candidate_access/i.test(String(result.error.message || ''))) {
       result = await sb
         .from('employer_entitlements')
         .select('plan, subscription_status, current_period_end')
@@ -1520,8 +1556,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const status = String(ent.subscription_status || 'inactive').toLowerCase();
     const plan = String(ent.test_plan || ent.plan || 'free').toLowerCase();
     const activePaid =
-      ['active', 'trialing'].includes(status) &&
-      accountEntitlementNotExpired(ent) &&
+      ['active', 'trialing', 'past_due'].includes(status) &&
+      (status === 'past_due' || accountEntitlementNotExpired(ent)) &&
       (
         (ent.test_mode === true && Number(ent.slot_limit || 0) > 0) ||
         ['launch','growth','scale','weekly_slot','business','enterprise'].includes(plan)
@@ -1532,15 +1568,24 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     // Unified server capacity includes temporary Weekly slots as add-ons.
     const accessResult = await sb.rpc('get_employer_posting_access');
+    let serverAllowed = null;
+    let serverReason = null;
     if (!accessResult.error && accessResult.data) {
       limit = Math.max(0, Number(accessResult.data.slot_limit || limit));
+      serverAllowed = typeof accessResult.data.can_post === 'boolean' ? accessResult.data.can_post : null;
+      serverReason = accessResult.data.reason || null;
+      accountCandidateAccessLocked = accessResult.data.candidate_access_locked === true;
+      accountCandidateAccessLockReason = String(accessResult.data.candidate_access_lock_reason || '');
+    } else {
+      accountCandidateAccessLocked = ent.candidate_access_locked === true || status === 'past_due';
+      accountCandidateAccessLockReason = String(ent.candidate_access_lock_reason || '');
     }
 
     accountPostingAccess = {
-      allowed: used < limit,
+      allowed: serverAllowed === null ? used < limit : serverAllowed,
       used,
       limit,
-      reason: used < limit ? 'slot-available' : 'slot-limit'
+      reason: serverReason || (used < limit ? 'slot-available' : 'slot-limit')
     };
 
     updateAccountPostingButtons();
@@ -1585,6 +1630,218 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     }
 
     window.location.href = 'employer-dashboard.html#post';
+  }
+
+  function billingMoney(cents){
+    return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format((Number(cents)||0)/100);
+  }
+
+  function billingPlanName(plan){
+    const key=String(plan||'free').toLowerCase();
+    return ({free:'Free',launch:'Launch',growth:'Growth',scale:'Scale',business:'Launch',enterprise:'Growth'})[key]||key;
+  }
+
+  const ACCOUNT_PLAN_PRICES={
+    monthly:{launch:29900,growth:44900,scale:64900},
+    quarterly:{launch:75000,growth:114000,scale:170000}
+  };
+  const ACCOUNT_PLAN_RANK={launch:1,growth:2,scale:3};
+
+  function billingActionMessage(message,type='info'){
+    const card=document.getElementById('billing-card');
+    if(!card)return;
+    let el=card.querySelector('.billing-message');
+    if(!el){el=document.createElement('div');el.className='billing-message';card.appendChild(el);}
+    el.textContent=message;
+    el.style.background=type==='error'?'#FFF8F7':'rgba(93,127,163,.08)';
+    el.style.color=type==='error'?'#914848':'var(--brand)';
+  }
+
+  async function accountBillingAction(payload,button){
+    const original=button?.textContent||'';
+    if(button){button.disabled=true;button.textContent='Working…';}
+    try{
+      const {data:{session}}=await sb.auth.getSession();
+      if(!session?.access_token)throw new Error('Your session expired. Please sign in again.');
+      const response=await fetch('/api/create-checkout-session',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+        body:JSON.stringify(payload)
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.error||'Billing change could not be completed.');
+      return data;
+    }finally{
+      if(button){button.disabled=false;button.textContent=original;}
+    }
+  }
+
+  async function changeAccountPlan(target,button){
+    const summary=accountBillingSummary||{};
+    const current=String(summary.current_plan||'').toLowerCase();
+    const billing=String(summary.billing_period||'').toLowerCase();
+    const currentPrice=ACCOUNT_PLAN_PRICES[billing]?.[current];
+    const targetPrice=ACCOUNT_PLAN_PRICES[billing]?.[target];
+    if(!currentPrice||!targetPrice)return;
+
+    const upgrade=ACCOUNT_PLAN_RANK[target]>ACCOUNT_PLAN_RANK[current];
+    const difference=Math.max(0,targetPrice-currentPrice);
+    const targetName=billingPlanName(target);
+    const prompt=upgrade
+      ? `Upgrade to ${targetName}? Alygnn will charge the fixed ${billingMoney(difference)} plan difference now. Your extra slots become available after payment succeeds, and your next ${billing==='quarterly'?'3-month':'monthly'} renewal will be ${billingMoney(targetPrice)}.`
+      : `Downgrade to ${targetName}? You keep your current capacity through this paid period. The lower plan and ${billingMoney(targetPrice)} renewal take effect at your next renewal.`;
+    if(!window.confirm(prompt))return;
+
+    try{
+      const data=await accountBillingAction({action:'change_plan',target_plan:target},button);
+      if(data.hosted_invoice_url && data.change==='upgrade_payment_required'){
+        location.href=data.hosted_invoice_url;
+        return;
+      }
+      billingActionMessage(
+        data.change==='downgrade_scheduled'
+          ? `${targetName} is scheduled for your next renewal.`
+          : `${targetName} is now active.`
+      );
+      await loadAccountPostingAccess();
+      await loadBillingSummary();
+    }catch(error){
+      console.error(error);
+      billingActionMessage(error?.message||'Could not change your plan.','error');
+    }
+  }
+
+  async function cancelAccountPlan(button){
+    if(!window.confirm('Cancel this paid plan at renewal? You keep your current plan and capacity through the paid period. After it ends, Alygnn returns the account to its permanent Free slot and preserves your data.'))return;
+    try{
+      await accountBillingAction({action:'cancel_plan'},button);
+      billingActionMessage('Cancellation scheduled for the end of the current paid period.');
+      await loadBillingSummary();
+    }catch(error){billingActionMessage(error?.message||'Could not schedule cancellation.','error');}
+  }
+
+  async function resumeAccountPlan(button){
+    try{
+      await accountBillingAction({action:'resume_plan'},button);
+      billingActionMessage('Plan renewal restored.');
+      await loadBillingSummary();
+    }catch(error){billingActionMessage(error?.message||'Could not restore renewal.','error');}
+  }
+
+  async function cancelSecondSlot(button){
+    if(!window.confirm('Cancel the $150/month Second Job Slot at renewal? It remains available through the current paid period.'))return;
+    try{await accountBillingAction({action:'cancel_second_slot'},button);await loadBillingSummary();}
+    catch(error){billingActionMessage(error?.message||'Could not schedule Second Job Slot cancellation.','error');}
+  }
+
+  async function resumeSecondSlot(button){
+    try{await accountBillingAction({action:'resume_second_slot'},button);await loadBillingSummary();}
+    catch(error){billingActionMessage(error?.message||'Could not restore the Second Job Slot.','error');}
+  }
+
+  function billingDate(value){
+    if(!value)return '';
+    const d=new Date(value);
+    return Number.isNaN(d.getTime())?'':d.toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'});
+  }
+
+  async function openAccountBillingPortal(button){
+    const original=button?.textContent||'Manage payment method';
+    if(button){button.disabled=true;button.textContent='Opening billing…';}
+    try{
+      const {data:{session}}=await sb.auth.getSession();
+      if(!session?.access_token)throw new Error('Your session expired. Please sign in again.');
+      const response=await fetch('/api/create-checkout-session',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+        body:JSON.stringify({action:'billing_portal',return_url:location.origin+'/employer-account.html?billing=return'})
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.url)throw new Error(data.error||'Could not open billing settings.');
+      location.href=data.url;
+    }catch(error){
+      console.error(error);
+      const card=document.getElementById('billing-card');
+      if(card){
+        const oldAlert=card.querySelector('.billing-inline-error');
+        if(oldAlert)oldAlert.remove();
+        const alert=document.createElement('div');
+        alert.className='billing-alert billing-inline-error';
+        alert.textContent=error?.message||'Could not open billing settings.';
+        card.appendChild(alert);
+      }
+      if(button){button.disabled=false;button.textContent=original;}
+    }
+  }
+
+  async function loadBillingSummary(){
+    const card=document.getElementById('billing-card');
+    if(!card)return;
+    try{
+      const {data:{session}}=await sb.auth.getSession();
+      if(!session?.access_token)throw new Error('Your session expired.');
+      const response=await fetch('/api/create-checkout-session',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+        body:JSON.stringify({action:'summary'})
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.summary)throw new Error(data.error||'Could not load billing details.');
+      accountBillingSummary=data.summary;
+      const summary=data.summary;
+      const second=summary.second_job_slot||{};
+      const plan=billingPlanName(summary.current_plan);
+      const paidPlan=['launch','growth','scale','business','enterprise'].includes(String(summary.current_plan||'').toLowerCase());
+      const secondActive=!paidPlan && ['active','trialing','past_due'].includes(String(second.subscription_status||'').toLowerCase());
+      const displayPlan=secondActive && plan==='Free' ? 'Free + Second Job Slot' : plan;
+      const status=String(summary.subscription_status||'free').toLowerCase();
+      const lock=accountCandidateAccessLocked || status==='past_due';
+      const statusLabel=lock?'Payment past due':paidPlan?'Active plan':secondActive?'Second slot active':'Free account';
+      const statusClass=lock?'warning':(paidPlan||secondActive)?'':'neutral';
+      const billing=String(summary.billing_period||'').toLowerCase();
+      const slots=accountPostingAccess?.limit || Number(summary.slot_limit||1);
+      const renewal=summary.current_period_end?billingDate(summary.current_period_end):'';
+      const amount=Number(summary.amount_cents||0);
+      const recurringMeta=paidPlan
+        ? `${slots} total reusable job slots${billing ? ' · '+billing.charAt(0).toUpperCase()+billing.slice(1) : ''}${amount ? ' · '+billingMoney(amount) : ''}${renewal ? ' · Current period ends '+renewal : ''}`
+        : secondActive
+          ? `2 total reusable job slots · Second Job Slot $150/month`
+          : `1 permanent reusable free job slot · up to 25 candidates on the free slot`;
+
+      const currentKey=String(summary.current_plan||'').toLowerCase();
+      const planChoices=paidPlan && !lock && ACCOUNT_PLAN_PRICES[billing]
+        ? Object.keys(ACCOUNT_PLAN_PRICES[billing])
+            .filter(key=>key!==currentKey)
+            .map(key=>{
+              const isUpgrade=ACCOUNT_PLAN_RANK[key]>ACCOUNT_PLAN_RANK[currentKey];
+              const price=ACCOUNT_PLAN_PRICES[billing][key];
+              const diff=Math.max(0,price-(ACCOUNT_PLAN_PRICES[billing][currentKey]||0));
+              return `<button class="billing-plan-choice" type="button" onclick="changeAccountPlan('${key}',this)"><strong>${isUpgrade?'Upgrade':'Downgrade'} to ${escapeHtml(billingPlanName(key))}</strong><span>${isUpgrade?`${escapeHtml(billingMoney(diff))} fixed difference now · then ${escapeHtml(billingMoney(price))} at renewal`:`Takes effect at renewal · ${escapeHtml(billingMoney(price))}`}</span></button>`;
+            }).join('')
+        : '';
+
+      card.innerHTML=`
+        <div class="billing-top">
+          <div>
+            <div class="billing-eyebrow">Current access</div>
+            <div class="billing-plan">${escapeHtml(displayPlan)}</div>
+            <div class="billing-meta">${escapeHtml(recurringMeta)}</div>
+          </div>
+          <span class="billing-status ${statusClass}">${escapeHtml(statusLabel)}</span>
+        </div>
+        ${lock ? `<div class="billing-alert"><strong>Candidate access is paused.</strong> We couldn’t process your latest plan payment. Your jobs, applications, messages, and history are preserved. Update your payment method to restore candidate profiles, resumes, matching details, and hiring actions.</div>` : ''}
+        ${summary.pending_plan ? `<div class="billing-meta" style="margin-top:14px">Scheduled change: ${escapeHtml(billingPlanName(summary.pending_plan))}${summary.pending_plan_effective_at ? ' on '+escapeHtml(billingDate(summary.pending_plan_effective_at)) : ''}.</div>` : ''}
+        ${planChoices ? `<div class="billing-plan-actions">${planChoices}</div>` : ''}
+        <div class="billing-actions">
+          ${(paidPlan||secondActive||summary.billing_account?.stripe_customer_count>0) ? `<button class="billing-btn primary" type="button" onclick="openAccountBillingPortal(this)">${lock?'Update payment method':'Payment method & invoices'}</button>` : ''}
+          ${paidPlan ? (summary.cancel_at_period_end ? `<button class="billing-btn secondary" type="button" onclick="resumeAccountPlan(this)">Keep current plan</button>` : `<button class="billing-btn secondary" type="button" onclick="cancelAccountPlan(this)">Cancel at renewal</button>`) : ''}
+          ${secondActive ? (second.cancel_at_period_end ? `<button class="billing-btn secondary" type="button" onclick="resumeSecondSlot(this)">Keep Second Job Slot</button>` : `<button class="billing-btn secondary" type="button" onclick="cancelSecondSlot(this)">Cancel Second Job Slot</button>`) : ''}
+          <a class="billing-btn secondary" href="pricing.html">Compare plans</a>
+        </div>`;
+    }catch(error){
+      console.error('Failed to load billing summary:',error);
+      card.innerHTML=`<div class="billing-meta">Billing details could not be loaded right now.</div><div class="billing-actions"><a class="billing-btn secondary" href="pricing.html">View plans</a></div>`;
+    }
   }
 
   async function loadEmployerJobs() {
@@ -1643,6 +1900,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   async function loadCandidates() {
     const listEl = document.getElementById('account-candidates-list');
     if (!currentUserId || !listEl) return;
+
+    if (accountCandidateAccessLocked) {
+      accountCandidates = [];
+      listEl.innerHTML = `<div class="candidate-lock-empty"><strong>Candidate access paused</strong>We couldn’t process your latest plan payment. Candidate profiles and hiring actions are locked, but your applications, messages, jobs, and history are still stored. <a href="#billing-section" style="color:var(--brand);font-weight:500">Update billing to restore access →</a></div>`;
+      return;
+    }
 
     if (employerJobs.length === 0) {
       accountCandidates = [];
@@ -2167,6 +2430,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     await loadProfileUpdateRequests();
     await loadEmployerJobs();
     await loadAccountPostingAccess();
+    await loadBillingSummary();
+    const requestedPlan=new URLSearchParams(location.search).get('target_plan');
+    if(requestedPlan && ['launch','growth','scale'].includes(requestedPlan)){
+      document.getElementById('billing-section')?.scrollIntoView({behavior:'smooth',block:'start'});
+      billingActionMessage(`Choose the ${billingPlanName(requestedPlan)} option below to continue.`);
+    }
     await loadCandidates();
     initNotifications();
   }
