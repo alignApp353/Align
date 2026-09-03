@@ -1577,6 +1577,81 @@ function getJob(){
   };
 }
 
+async function checkFreeRepostRotation(){
+  /*
+   * Editing an existing posting is not a new ad and should not be blocked.
+   */
+  const editId=
+    new URLSearchParams(location.search).get('edit') ||
+    sessionStorage.getItem('alygnnEditJobId') ||
+    '';
+
+  if(editId)return true;
+
+  const title=el('title').value.trim();
+
+  if(!title)return true;
+
+  try{
+    const {data,error}=await sb.rpc(
+      'check_free_job_repost_eligibility',
+      {
+        p_title:title
+      }
+    );
+
+    if(error)throw error;
+
+    if(!data||data.allowed!==false){
+      sessionStorage.removeItem(
+        'alygnn_free_repost_gate'
+      );
+      return true;
+    }
+
+    const needed=Math.max(
+      1,
+      Number(data.different_jobs_needed||1)
+    );
+
+    saveCurrentJobDraft();
+
+    sessionStorage.setItem(
+      'alygnn_free_repost_gate',
+      JSON.stringify({
+        title,
+        matched_title:data.matched_title||title,
+        different_jobs_needed:needed,
+        checked_at:new Date().toISOString()
+      })
+    );
+
+    const params=new URLSearchParams({
+      reason:'free_repost_rotation',
+      title,
+      different_jobs_needed:String(needed)
+    });
+
+    location.href=
+      'app-employer-pricing.html?'+
+      params.toString();
+
+    return false;
+
+  }catch(error){
+    /*
+     * The database insert trigger is still the final enforcement layer.
+     * A temporary pre-check failure should not break normal job creation.
+     */
+    console.warn(
+      'Free-job repost pre-check unavailable:',
+      error
+    );
+
+    return true;
+  }
+}
+
 function validateStep(step){
   const job = getJob();
 
@@ -1748,10 +1823,19 @@ el('next-btn').addEventListener('click', async () => {
 
   if(currentStep < 5){
     const error = validateStep(currentStep);
+
     if(error){
       showMessage(error);
       return;
     }
+
+    if(
+      currentStep===1 &&
+      !(await checkFreeRepostRotation())
+    ){
+      return;
+    }
+
     showStep(currentStep + 1);
     return;
   }
