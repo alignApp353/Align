@@ -866,96 +866,22 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       return;
     }
 
-    // Alygnn's plan-change rules preserve the employer's current billing cycle.
-    // If they are looking at another pricing tab, bring them back to the cycle
-    // that the change will actually use before asking them to confirm.
+    // Existing customers review every plan change on a dedicated checkout-style
+    // screen. No browser confirm() dialogs and no silent redirect to Account.
+    const params=new URLSearchParams({
+      action:'change_plan',
+      target_plan:target,
+      billing:billing,
+      from:'pricing'
+    });
+
     if(clickedBilling && clickedBilling!==billing){
-      switchView(billing);
-      updatePaidPlanCardState();
-      showPlanChangeMessage(`Your current ${planDisplayName(currentPlan)} plan is billed ${billing}. Plan changes keep that billing cycle. Review the ${titleCasePlan(billing)} prices below, then choose the new plan.`);
-      return;
+      // Keep the employer's existing billing cadence for plan changes. The
+      // review page explains that clearly instead of showing a misleading price.
+      params.set('viewed_billing',clickedBilling);
     }
 
-    const prices={
-      monthly:{launch:299,growth:449,scale:649},
-      quarterly:{launch:750,growth:1140,scale:1700}
-    };
-    const ranks={launch:1,growth:2,scale:3};
-    const currentPrice=prices[billing]?.[currentPlan]||0;
-    const targetPrice=prices[billing]?.[target]||0;
-    const upgrading=(ranks[target]||0)>(ranks[currentPlan]||0);
-    const difference=Math.max(0,targetPrice-currentPrice);
-
-    const confirmation=upgrading
-      ? `Change from ${planDisplayName(currentPlan)} to ${planDisplayName(target)}? Alygnn will charge the fixed $${difference.toLocaleString()} plan difference now. The extra capacity starts after payment succeeds, and your next ${billing==='quarterly'?'3-month':'monthly'} renewal will be $${targetPrice.toLocaleString()}.`
-      : `Change from ${planDisplayName(currentPlan)} to ${planDisplayName(target)}? You keep ${planDisplayName(currentPlan)} capacity through the current paid period. ${planDisplayName(target)} and the $${targetPrice.toLocaleString()} ${billing==='quarterly'?'3-month':'monthly'} renewal start at your next renewal.`;
-
-    if(!window.confirm(confirmation)) return;
-    clearPlanChangeMessage();
-    planChangeBusy=true;
-
-    try{
-      // Developer test entitlements intentionally have no Stripe subscription.
-      // Change the test plan directly so the pricing page behaves like the live
-      // product without creating a fake Stripe subscription.
-      if(developerTestPlanActive()){
-        const {error}=await sb.rpc('activate_employer_test_plan',{
-          p_plan:target,
-          p_billing:billing
-        });
-        if(error) throw error;
-        await refreshPricingAccess();
-        showPlanChangeMessage(`Developer test mode: ${planDisplayName(target)} is now your active test plan. No payment was processed.`,'success');
-        return;
-      }
-
-      const response=await fetch('/api/create-checkout-session',{
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'Authorization':'Bearer '+currentSession.access_token
-        },
-        body:JSON.stringify({action:'change_plan',target_plan:target})
-      });
-      const data=await response.json().catch(()=>({}));
-
-      if(!response.ok){
-        if(data?.payment_required){
-          showPlanChangeMessage(data.error||'Update your payment method before changing plans.','error');
-          return;
-        }
-        if(data?.requires_checkout){
-          window.location.href='payment.html?plan='+encodeURIComponent(target)+'&billing='+encodeURIComponent(billing);
-          return;
-        }
-        throw new Error(data.error||'The plan change could not be completed.');
-      }
-
-      if(data.hosted_invoice_url && data.change==='upgrade_payment_required'){
-        window.location.href=data.hosted_invoice_url;
-        return;
-      }
-
-      if(data.change==='downgrade_scheduled'){
-        showPlanChangeMessage(`${planDisplayName(target)} is scheduled for your next renewal. You keep your current ${planDisplayName(currentPlan)} capacity until then.`,'success');
-        await refreshPricingAccess();
-        return;
-      }
-
-      if(data.change==='upgrade_completed'){
-        await refreshPricingAccess();
-        showPlanChangeMessage(`${planDisplayName(target)} is now active. Your updated hiring capacity is ready.`,'success');
-        return;
-      }
-
-      await refreshPricingAccess();
-      showPlanChangeMessage(data.message||`${planDisplayName(target)} plan change saved.`,'success');
-    }catch(error){
-      console.error('Plan change failed:',error);
-      showPlanChangeMessage(error?.message||'The plan change could not be completed.','error');
-    }finally{
-      planChangeBusy=false;
-    }
+    window.location.href='payment.html?'+params.toString();
   }
 
   function applyAccountPricingRules(){
