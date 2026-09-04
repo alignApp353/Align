@@ -463,6 +463,10 @@ let verificationDocumentSubmitted = false;
 let currentCompanyId = '';
 let currentCompany = null;
 let editingJobId = '';
+let activeJobDraftId='';
+let draftAutosaveTimer=null;
+let draftAutosaveBusy=false;
+let draftAutosaveQueued=false;
 let editingOriginalStatus = 'active';
 let slotEntitlement = null;
 let slotUsage = {used:0,limit:1};
@@ -2105,6 +2109,13 @@ function showStep(step){
   }
 
   if(step === 5) updatePreview();
+
+  if(session?.user&&!editingJobId){
+    queueJobDraftAutosave(
+      250
+    );
+  }
+
   clearMessage();
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -2332,14 +2343,241 @@ function saveCurrentJobDraft(){
         : new Date().toISOString()
   };
 
-  sessionStorage.setItem('alygnnJobDraft',JSON.stringify(draft));
+  sessionStorage.setItem(
+    'alygnnJobDraft',
+    JSON.stringify(draft)
+  );
+
+  return draft;
 }
 
-function saveDraftAndOpenPreview(){
+function draftHasMeaningfulContent(draft){
+  if(!draft||typeof draft!=='object'){
+    return false;
+  }
+
+  return Boolean(
+    String(draft.title||'').trim()||
+    String(draft.location||'').trim()||
+    String(draft.description||'').trim()||
+    String(draft.requirements||'').trim()||
+    String(draft.benefits||'').trim()||
+    Number(draft.pay_min||0)||
+    Number(draft.pay_max||0)
+  );
+}
+
+async function persistJobDraftNow(){
+  if(
+    !session?.user?.id ||
+    editingJobId
+  ){
+    return;
+  }
+
+  if(draftAutosaveBusy){
+    draftAutosaveQueued=true;
+    return;
+  }
+
+  const draft=
+    saveCurrentJobDraft();
+
+  if(!draftHasMeaningfulContent(draft)){
+    return;
+  }
+
+  draftAutosaveBusy=true;
+
+  try{
+    const row={
+      employer_id:
+        session.user.id,
+
+      title:
+        String(
+          draft.title||
+          ''
+        ).trim()||
+        'Untitled job draft',
+
+      location:
+        String(
+          draft.location||
+          ''
+        ).trim()||
+        null,
+
+      current_step:
+        Math.max(
+          1,
+          Math.min(
+            5,
+            Number(currentStep||1)
+          )
+        ),
+
+      draft_data:draft,
+      updated_at:
+        new Date().toISOString()
+    };
+
+    if(activeJobDraftId){
+      const {error}=await sb
+        .from('employer_job_drafts')
+        .update(row)
+        .eq(
+          'id',
+          activeJobDraftId
+        )
+        .eq(
+          'employer_id',
+          session.user.id
+        );
+
+      if(error)throw error;
+    }else{
+      const {data,error}=await sb
+        .from('employer_job_drafts')
+        .insert(row)
+        .select('id')
+        .single();
+
+      if(error)throw error;
+
+      activeJobDraftId=
+        String(
+          data?.id||
+          ''
+        );
+
+      if(activeJobDraftId){
+        sessionStorage.setItem(
+          'alygnnActiveJobDraftId',
+          activeJobDraftId
+        );
+      }
+    }
+  }catch(error){
+    console.warn(
+      'Could not cloud-save job draft:',
+      error
+    );
+  }finally{
+    draftAutosaveBusy=false;
+
+    if(draftAutosaveQueued){
+      draftAutosaveQueued=false;
+      queueJobDraftAutosave(
+        150
+      );
+    }
+  }
+}
+
+function queueJobDraftAutosave(
+  delay=700
+){
+  if(editingJobId){
+    return;
+  }
+
+  clearTimeout(
+    draftAutosaveTimer
+  );
+
+  draftAutosaveTimer=
+    setTimeout(
+      ()=>{
+        persistJobDraftNow();
+      },
+      delay
+    );
+}
+
+async function loadPersistentDraftIfRequested(){
+  const params=
+    new URLSearchParams(
+      location.search
+    );
+
+  const requestedId=
+    params.get('draft')||
+    sessionStorage.getItem(
+      'alygnnActiveJobDraftId'
+    )||
+    '';
+
+  if(!requestedId){
+    activeJobDraftId='';
+    return;
+  }
+
+  const {data,error}=await sb
+    .from('employer_job_drafts')
+    .select(
+      'id,draft_data,current_step'
+    )
+    .eq(
+      'id',
+      requestedId
+    )
+    .eq(
+      'employer_id',
+      session.user.id
+    )
+    .maybeSingle();
+
+  if(error){
+    console.warn(
+      'Could not restore cloud draft:',
+      error
+    );
+    return;
+  }
+
+  if(!data?.id){
+    return;
+  }
+
+  activeJobDraftId=
+    String(data.id);
+
+  sessionStorage.setItem(
+    'alygnnActiveJobDraftId',
+    activeJobDraftId
+  );
+
+  sessionStorage.setItem(
+    'alygnnJobDraft',
+    JSON.stringify(
+      data.draft_data||{}
+    )
+  );
+
+  sessionStorage.setItem(
+    'alygnnJobReturnStep',
+    String(
+      Math.max(
+        1,
+        Math.min(
+          5,
+          Number(
+            data.current_step||
+            1
+          )||1
+        )
+      )
+    )
+  );
+}
+
+async function saveDraftAndOpenPreview(){
   // Employer setup already collected company-level voice, strengths, and
   // hiring priorities. A separate Company AI Profile is optional refinement,
   // not a requirement for creating or previewing a job.
   saveCurrentJobDraft();
+  await persistJobDraftNow();
   location.href='app-job-preview.html';
 }
 
@@ -2425,20 +2663,25 @@ el('next-btn').addEventListener('click', async () => {
     return;
   }
 
-  saveDraftAndOpenPreview();
+  await saveDraftAndOpenPreview();
 });
 
-el('previous-btn').addEventListener('click', () => {
+el('previous-btn').addEventListener('click', async () => {
   if(currentStep === 1){
-    location.href = 'app-employer-dashboard.html';
+    await persistJobDraftNow();
+    location.href = 'app-employer-dashboard.html?view=jobs';
   }else{
     showStep(currentStep - 1);
   }
 });
 
-el('back-btn').addEventListener('click', () => {
-  if(currentStep === 1) location.href = 'app-employer-dashboard.html';
-  else showStep(currentStep - 1);
+el('back-btn').addEventListener('click', async () => {
+  if(currentStep === 1){
+    await persistJobDraftNow();
+    location.href = 'app-employer-dashboard.html?view=jobs';
+  }else{
+    showStep(currentStep - 1);
+  }
 });
 
 el('company-ai-link').addEventListener('click',()=>{
@@ -2485,6 +2728,34 @@ el('description').addEventListener('input', () => {
   el('description-count').textContent = el('description').value.length;
 });
 
+document.addEventListener(
+  'input',
+  event=>{
+    if(
+      event.target?.matches?.(
+        'input,textarea,select'
+      )
+    ){
+      queueJobDraftAutosave();
+    }
+  }
+);
+
+document.addEventListener(
+  'change',
+  event=>{
+    if(
+      event.target?.matches?.(
+        'input,textarea,select'
+      )
+    ){
+      queueJobDraftAutosave(
+        300
+      );
+    }
+  }
+);
+
 (async function init(){
   try{
     const entryParams=new URLSearchParams(location.search);
@@ -2509,6 +2780,16 @@ el('description').addEventListener('input', () => {
     }
 
     const userId=session.user.id;
+
+    activeJobDraftId=
+      String(
+        sessionStorage.getItem(
+          'alygnnActiveJobDraftId'
+        )||
+        ''
+      );
+
+    await loadPersistentDraftIfRequested();
 
     const [
       profileResult,
@@ -2553,8 +2834,22 @@ el('description').addEventListener('input', () => {
      * We still perform the authoritative slot check again on Publish.
      */
     try{
-      const slotAllowed=await enforceJobSlotAccess(userId,currentCompanyId);
-      if(!slotAllowed)return;
+      const continuingDraft=
+        Boolean(
+          new URLSearchParams(
+            location.search
+          ).get('draft')
+        );
+
+      if(!continuingDraft){
+        const slotAllowed=
+          await enforceJobSlotAccess(
+            userId,
+            currentCompanyId
+          );
+
+        if(!slotAllowed)return;
+      }
     }catch(slotCheckError){
       console.error('Job-slot preflight check deferred:',slotCheckError);
     }
