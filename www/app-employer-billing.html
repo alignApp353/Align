@@ -939,12 +939,14 @@ button,a{-webkit-tap-highlight-color:transparent}
   <div class="note">
     <strong>How Alygnn billing works:</strong>
     <span id="developer-billing-note"></span>
-    billing is collected at the beginning of each paid period. Upgrades charge
-    only the exact price difference between your current plan and the higher
-    plan, unlock immediately after payment, and keep the same renewal date.
-    Downgrades never create a refund or account credit: your current plan stays
-    active through the period already paid for, and the lower plan begins on
-    your next renewal date at its lower price.
+    all Alygnn plans are prepaid. Monthly plans are charged upfront before each
+    monthly term begins, and quarterly plans are charged upfront before each
+    three-month term begins. Upgrades also require the full exact plan-price
+    difference upfront immediately; the higher plan does not activate until
+    that payment succeeds. The renewal date stays the same. Downgrades never
+    create a refund or account credit: the current plan stays active through
+    the period already paid for, and the lower plan begins on the next renewal
+    date at its lower upfront price.
   </div>
 
   <div class="message" id="message"></div>
@@ -1590,7 +1592,7 @@ function renderPlans(){
       `Your current prepaid term stays active through ${fmtDate(summary?.current_period_end)}. New recurring subscriptions can be managed automatically from this page.`;
   }else if(currentItem){
     $('change-copy').textContent=
-      'Upgrades charge only the exact plan-price difference and unlock immediately after payment while keeping your same renewal date. Downgrades are $0 today, never create refunds or credits, and begin at your next renewal.';
+      'All Alygnn billing is upfront. Upgrades require the full exact plan-price difference immediately and unlock only after payment succeeds. Downgrades are $0 today, never create refunds or credits, and begin at your next renewal.';
   }else{
     $('change-copy').textContent=
       'Choose the hiring capacity that fits your team. Your always-free reusable slot remains included.';
@@ -1639,7 +1641,7 @@ function renderPlans(){
             );
 
           hint=
-            `${money(upgradeDifference)} due now. ${p.name} unlocks immediately after payment and your renewal date stays the same.`;
+            `${money(upgradeDifference)} is due upfront now. ${p.name} unlocks only after the full payment succeeds. Your renewal date stays the same.`;
         }else if(lower){
           button=
             `<button class="action secondary" data-change-plan="${key}">Downgrade to ${p.name}</button>`;
@@ -2058,9 +2060,9 @@ async function changePlan(target,button){
     upgrade
       ?`Upgrade from ${planName(current)} to ${planName(target)} now?
 
-${money(Math.max(0,targetItem.cents-item.cents))} is due today — only the exact plan-price difference.
+${money(Math.max(0,targetItem.cents-item.cents))} is due upfront today — the full exact plan-price difference.
 
-${planName(target)} activates immediately after payment, and your current renewal date stays the same. Your next renewal will be ${money(targetItem.cents)} ${suffix(billing)}.`
+${planName(target)} will not activate until that payment succeeds. Your current renewal date stays the same. At the next renewal, ${money(targetItem.cents)} ${suffix(billing)} is charged upfront for the next billing period.`
       :`Schedule a downgrade from ${planName(current)} to ${planName(target)}?
 
 $0 is due today and there is no refund or account credit for the difference.
@@ -2121,7 +2123,7 @@ You keep ${planName(current)} through ${fmtDate(summary?.current_period_end)}. O
         );
 
       showMessage(
-        `Upgrade complete. ${money(paidDifference)} was the exact plan-price difference due today. ${planName(target)} is available immediately, your renewal date stays the same, and your next renewal will be ${money(data.next_renewal_amount_cents??targetItem.cents)} ${suffix(billing)}.`,
+        `Upgrade complete. The full ${money(paidDifference)} plan-price difference was due upfront today. ${planName(target)} is available now, your renewal date stays the same, and ${money(data.next_renewal_amount_cents??targetItem.cents)} ${suffix(billing)} will be charged upfront at the next renewal for the next billing period.`,
         'success'
       );
 
