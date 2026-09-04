@@ -5,154 +5,1892 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>Alygnn — Messages</title>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+
 <style>
 *{box-sizing:border-box;font-family:'DM Sans',Arial,sans-serif!important}
-:root{--brand:#5D7FA3;--brand-dark:#345F91;--sage:#8CB69B;--bg:#F6F8F7;--card:#fff;--text:#172333;--muted:#647282;--border:#DDE3E8;--soft:#EAF0F6;--danger:#C74747;--danger-bg:#FCECEC}
-@media(prefers-color-scheme:dark){:root{--bg:#061821;--card:#10232D;--text:#F3F7FA;--muted:#A9B8C5;--border:#29404C;--soft:#172A40;--danger-bg:#3B1E22}}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
-body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
-button{font:inherit;cursor:pointer}.shell{width:100%;max-width:620px;margin:auto;padding:calc(16px + env(safe-area-inset-top)) 18px 28px}
-.top{display:grid;grid-template-columns:52px 1fr 52px;align-items:center;min-height:78px}.back{width:46px;height:46px;border:1px solid var(--border);border-radius:50%;background:var(--card);color:var(--text);font-size:22px}.logo{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:38px;color:var(--brand)}.logo span{color:var(--sage)}
-.eyebrow{margin-top:22px;color:var(--brand-dark);font-size:11px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase}.title{margin-top:7px;font-size:34px;line-height:1.06;font-weight:900;letter-spacing:-.8px}.sub{margin-top:8px;color:var(--muted);font-size:14px;line-height:1.55}
-.list{display:grid;gap:12px;margin-top:22px}.thread{width:100%;border:1px solid var(--border);border-radius:22px;background:var(--card);padding:12px 12px 12px 16px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;color:var(--text)}.thread-main{min-width:0;border:0;background:transparent;color:inherit;padding:4px 0;display:grid;grid-template-columns:50px minmax(0,1fr) auto;gap:12px;align-items:center;text-align:left}.avatar{width:50px;height:50px;border-radius:16px;background:var(--soft);color:var(--brand-dark);display:grid;place-items:center;font-size:14px;font-weight:900}.name{font-size:15px;font-weight:900}.job{margin-top:3px;color:var(--muted);font-size:11px}.preview{margin-top:7px;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}.time{font-size:9px;color:var(--muted);white-space:nowrap}.unread{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-top:7px;padding:0 5px;border-radius:999px;background:#E64141;color:#fff;font-size:9px;font-weight:900}.delete-thread{width:38px;height:38px;border:1px solid #F0C5C5;border-radius:12px;background:var(--danger-bg);color:var(--danger);display:grid;place-items:center;font-size:18px}.delete-thread svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.empty{margin-top:24px;padding:38px 24px;border:1px solid var(--border);border-radius:24px;background:var(--card);text-align:center}.empty strong{font-size:17px}.empty p{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.55}.notice{margin-top:18px;padding:13px 15px;border-radius:15px;background:var(--soft);color:var(--brand-dark);font-size:12px;font-weight:700;line-height:1.5}.error{background:var(--danger-bg);color:var(--danger)}
-.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:20;min-height:76px;padding:8px 5px calc(10px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--card) 96%,transparent);border-top:1px solid var(--border);display:grid;backdrop-filter:blur(18px)}.bottom-nav.candidate{grid-template-columns:repeat(5,1fr)}.bottom-nav.employer{grid-template-columns:repeat(6,1fr)}.nav{border:0;background:transparent;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:8px;font-weight:900}.nav.active{color:var(--brand-dark)}.nav svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+:root{
+  --brand:#5D7FA3;
+  --brand-dark:#345F91;
+  --sage:#8CB69B;
+  --bg:#F6F8F7;
+  --card:#fff;
+  --text:#172333;
+  --muted:#647282;
+  --border:#DDE3E8;
+  --soft:#EAF0F6;
+  --danger:#C74747;
+  --danger-bg:#FCECEC;
+  --success:#2F9760;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#061821;
+    --card:#10232D;
+    --text:#F3F7FA;
+    --muted:#A9B8C5;
+    --border:#29404C;
+    --soft:#172A40;
+    --danger-bg:#3B1E22;
+  }
+}
+
+html,body{
+  margin:0;
+  min-height:100%;
+  background:var(--bg);
+  color:var(--text);
+}
+body{
+  padding-bottom:calc(92px + env(safe-area-inset-bottom));
+}
+button,input,select{
+  font:inherit;
+}
+button{
+  cursor:pointer;
+}
+
+.shell{
+  width:100%;
+  max-width:620px;
+  margin:auto;
+  padding:calc(16px + env(safe-area-inset-top)) 18px 28px;
+}
+
+.top{
+  display:grid;
+  grid-template-columns:52px 1fr 52px;
+  align-items:center;
+  min-height:78px;
+}
+.back{
+  width:46px;
+  height:46px;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:var(--card);
+  color:var(--text);
+  font-size:22px;
+}
+.logo{
+  text-align:center;
+  font-family:'DM Serif Display',Georgia,serif!important;
+  font-size:38px;
+  color:var(--brand);
+}
+.logo span{
+  color:var(--sage);
+}
+
+.eyebrow{
+  margin-top:22px;
+  color:var(--brand-dark);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+}
+.title{
+  margin:7px 0 0;
+  font-size:34px;
+  line-height:1.06;
+  font-weight:900;
+  letter-spacing:-.8px;
+}
+.sub{
+  margin:8px 0 0;
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.55;
+}
+
+.tools{
+  margin-top:20px;
+  display:grid;
+  gap:11px;
+}
+
+.search-wrap{
+  position:relative;
+}
+.search-icon{
+  position:absolute;
+  left:14px;
+  top:50%;
+  transform:translateY(-50%);
+  width:18px;
+  height:18px;
+  color:var(--muted);
+  pointer-events:none;
+}
+.search{
+  width:100%;
+  min-height:48px;
+  padding:0 14px 0 43px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:var(--card);
+  color:var(--text);
+  outline:none;
+  font-size:13px;
+}
+.search:focus{
+  border-color:color-mix(in srgb,var(--brand) 62%,var(--border));
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 10%,transparent);
+}
+
+.filters{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.filters::-webkit-scrollbar{display:none}
+.filter-btn{
+  min-height:38px;
+  padding:0 14px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:var(--card);
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.filter-btn.active{
+  color:#fff;
+  border-color:var(--brand-dark);
+  background:var(--brand-dark);
+}
+
+.job-filter{
+  min-height:38px;
+  min-width:128px;
+  max-width:210px;
+  padding:0 30px 0 12px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:var(--card);
+  color:var(--text);
+  font-size:11px;
+  font-weight:800;
+  margin-left:auto;
+}
+
+.list{
+  display:grid;
+  gap:12px;
+  margin-top:18px;
+}
+
+.thread{
+  position:relative;
+  width:100%;
+  border:1px solid var(--border);
+  border-radius:22px;
+  background:var(--card);
+  color:var(--text);
+  transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease;
+}
+.thread.unread-thread{
+  border-color:color-mix(in srgb,var(--brand) 42%,var(--border));
+  box-shadow:0 8px 24px rgba(52,95,145,.07);
+}
+.thread:hover{
+  border-color:color-mix(in srgb,var(--brand) 45%,var(--border));
+}
+
+.thread-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 42px;
+  gap:5px;
+  align-items:center;
+  padding:13px 11px 13px 15px;
+}
+
+.thread-main{
+  min-width:0;
+  border:0;
+  background:transparent;
+  color:inherit;
+  padding:2px 0;
+  display:grid;
+  grid-template-columns:52px minmax(0,1fr) auto;
+  gap:12px;
+  align-items:center;
+  text-align:left;
+}
+
+.avatar{
+  width:52px;
+  height:52px;
+  border-radius:16px;
+  background:var(--soft);
+  color:var(--brand-dark);
+  display:grid;
+  place-items:center;
+  font-size:14px;
+  font-weight:900;
+}
+
+.thread-copy{
+  min-width:0;
+}
+
+.name-row{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-width:0;
+}
+.name{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:15px;
+  font-weight:800;
+}
+.unread-thread .name{
+  font-weight:900;
+}
+
+.unread-dot{
+  width:8px;
+  height:8px;
+  flex:0 0 auto;
+  border-radius:50%;
+  background:var(--brand-dark);
+}
+
+.job{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:11px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.preview{
+  margin-top:7px;
+  color:var(--muted);
+  font-size:12px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:330px;
+}
+.unread-thread .preview{
+  color:var(--text);
+  font-weight:700;
+}
+
+.status-line{
+  margin-top:7px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:800;
+}
+.status-dot{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--sage);
+}
+.status-line.waiting .status-dot{
+  background:#C69B55;
+}
+
+.thread-meta{
+  align-self:flex-start;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  padding-top:4px;
+}
+.time{
+  color:var(--muted);
+  font-size:9px;
+  white-space:nowrap;
+}
+.unread-count{
+  display:inline-grid;
+  place-items:center;
+  min-width:20px;
+  height:20px;
+  margin-top:7px;
+  padding:0 5px;
+  border-radius:999px;
+  background:var(--brand-dark);
+  color:#fff;
+  font-size:9px;
+  font-weight:900;
+}
+
+.more-thread{
+  width:38px;
+  height:38px;
+  border:1px solid transparent;
+  border-radius:12px;
+  background:transparent;
+  color:var(--muted);
+  display:grid;
+  place-items:center;
+  font-size:22px;
+  font-weight:800;
+  line-height:1;
+}
+.more-thread:hover,
+.more-thread.open{
+  background:var(--soft);
+  color:var(--text);
+  border-color:var(--border);
+}
+
+.thread-menu{
+  position:absolute;
+  z-index:40;
+  right:10px;
+  top:55px;
+  width:190px;
+  padding:7px;
+  border:1px solid var(--border);
+  border-radius:15px;
+  background:var(--card);
+  box-shadow:0 18px 46px rgba(15,30,45,.16);
+}
+.thread-menu[hidden]{
+  display:none;
+}
+.menu-action{
+  width:100%;
+  min-height:40px;
+  border:0;
+  border-radius:10px;
+  background:transparent;
+  color:var(--text);
+  text-align:left;
+  padding:0 11px;
+  font-size:11px;
+  font-weight:800;
+}
+.menu-action:hover{
+  background:var(--soft);
+}
+.menu-action.danger{
+  color:var(--danger);
+}
+
+.archived-tag{
+  display:inline-flex;
+  align-items:center;
+  margin-left:2px;
+  min-height:20px;
+  padding:0 7px;
+  border-radius:999px;
+  background:var(--soft);
+  color:var(--muted);
+  font-size:8px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+
+.empty{
+  margin-top:8px;
+  padding:38px 24px;
+  border:1px solid var(--border);
+  border-radius:24px;
+  background:var(--card);
+  text-align:center;
+}
+.empty strong{
+  font-size:17px;
+}
+.empty p{
+  margin:8px 0 0;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.55;
+}
+
+.notice{
+  margin-top:14px;
+  padding:13px 15px;
+  border-radius:15px;
+  background:var(--soft);
+  color:var(--brand-dark);
+  font-size:12px;
+  font-weight:700;
+  line-height:1.5;
+}
+.notice.error{
+  background:var(--danger-bg);
+  color:var(--danger);
+}
+
+.bottom-nav{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:20;
+  min-height:76px;
+  padding:8px 5px calc(10px + env(safe-area-inset-bottom));
+  background:color-mix(in srgb,var(--card) 96%,transparent);
+  border-top:1px solid var(--border);
+  display:grid;
+  backdrop-filter:blur(18px);
+}
+.bottom-nav.candidate{
+  grid-template-columns:repeat(5,1fr);
+}
+.bottom-nav.employer{
+  grid-template-columns:repeat(6,1fr);
+}
+.nav{
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  font-size:8px;
+  font-weight:900;
+}
+.nav.active{
+  color:var(--brand-dark);
+}
+.nav svg{
+  width:20px;
+  height:20px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
 </style>
 </head>
+
 <body>
 <div class="shell">
-  <div class="top"><button class="back" id="back" type="button">←</button><div class="logo">Alygnn<span>.</span></div><div></div></div>
+  <div class="top">
+    <button class="back" id="back" type="button" aria-label="Back">←</button>
+    <div class="logo">Alygnn<span>.</span></div>
+    <div></div>
+  </div>
+
   <div class="eyebrow" id="eyebrow">Messages</div>
   <h1 class="title">Messages</h1>
   <p class="sub" id="sub">Hiring conversations connected to applications.</p>
+
+  <div class="tools">
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="11" cy="11" r="6"></circle>
+        <path d="m16 16 4 4"></path>
+      </svg>
+      <input
+        id="search"
+        class="search"
+        type="search"
+        autocomplete="off"
+        placeholder="Search candidate or job">
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" type="button" data-filter="all">All</button>
+      <button class="filter-btn" type="button" data-filter="unread">Unread</button>
+      <button class="filter-btn" type="button" data-filter="archived">Archived</button>
+
+      <select class="job-filter" id="job-filter">
+        <option value="">All jobs</option>
+      </select>
+    </div>
+  </div>
+
   <div id="notice" class="notice" hidden></div>
-  <div id="list" class="list"><div class="empty"><strong>Loading conversations…</strong></div></div>
+
+  <div id="list" class="list">
+    <div class="empty">
+      <strong>Loading conversations…</strong>
+    </div>
+  </div>
 </div>
+
 <nav class="bottom-nav candidate" id="nav"></nav>
+
 <script>
-const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const sb=supabase.createClient(
+  'https://auth.alygnn.com',
+  'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+  {
+    auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true
+    }
+  }
+);
+
 const $=id=>document.getElementById(id);
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-let session=null,role='candidate',channelA=null,channelB=null,reloadTimer=null,deleting=false;
-const icon={profile:'<circle cx="12" cy="7.5" r="3.5"></circle><path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6"></path>',discover:'<circle cx="10.5" cy="10.5" r="5.5"></circle><path d="m15 15 4.5 4.5"></path>',jobs:'<rect x="4" y="7" width="16" height="12" rx="2"></rect><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"></path>',messages:'<path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"></path><path d="M8 9h8"></path><path d="M8 13h5"></path>',settings:'<circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"></path>',dashboard:'<rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect>',applicants:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>',company:'<path d="M3 21h18"></path><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"></path>'};
-function navButton(name,label,url,active=false){return `<button class="nav ${active?'active':''}" onclick="location.href='${url}'"><svg viewBox="0 0 24 24">${icon[name]}</svg><span>${label}</span></button>`}
-function renderNav(){const n=$('nav');if(role==='employer'){n.className='bottom-nav employer';n.innerHTML=navButton('dashboard','Dashboard','app-employer-dashboard.html?view=dashboard')+navButton('jobs','Jobs','app-employer-dashboard.html?view=jobs')+navButton('applicants','Applicants','app-employer-dashboard.html?view=applicants')+navButton('messages','Messages','app-messages.html?role=employer',true)+navButton('company','Company','app-employer-dashboard.html?view=company')+navButton('settings','Settings','app-employer-dashboard.html?view=settings')}else{n.className='bottom-nav candidate';n.innerHTML=navButton('profile','My Profile','app-account.html')+navButton('discover','Discover','app-swipe.html')+navButton('jobs','My Jobs','app-applied.html')+navButton('messages','Messages','app-messages.html?role=candidate',true)+navButton('settings','Settings','app-account.html#settings')}}
-function initials(v){return String(v||'A').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'A'}
-function time(v){if(!v)return'';const d=new Date(v),s=Math.max(0,(Date.now()-d)/1000);if(s<60)return'Now';if(s<3600)return Math.floor(s/60)+'m';if(s<86400)return Math.floor(s/3600)+'h';if(s<604800)return Math.floor(s/86400)+'d';return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}
-function setNotice(text,error=false){$('notice').hidden=!text;$('notice').className='notice'+(error?' error':'');$('notice').textContent=text||''}
-async function resolveRole(){const q=new URLSearchParams(location.search).get('role');if(q==='employer'||q==='candidate')return q;try{const {data}=await sb.from('profiles').select('role').eq('id',session.user.id).maybeSingle();if(String(data?.role||'').toLowerCase()==='employer')return'employer'}catch(_){}const meta=String(session.user.user_metadata?.role||session.user.user_metadata?.account_type||session.user.app_metadata?.role||'').toLowerCase();return meta==='employer'?'employer':'candidate'}
-async function deleteConversation(id,name){if(deleting)return;const label=name||'this conversation';if(!confirm(`Delete the conversation with ${label} from your Messages?\n\nThis removes it only from your side. The other person will still keep the conversation. If they send you a new message later, it will appear again.`))return;deleting=true;setNotice('Removing conversation…');try{let result=await sb.rpc('hide_application_conversation',{p_conversation_id:id});if(result.error&&String(result.error.message||'').toLowerCase().includes('function'))result=await sb.rpc('delete_application_conversation',{p_conversation_id:id});if(result.error)throw result.error;setNotice('Conversation removed from your Messages.');await load()}catch(error){console.error(error);setNotice(error?.message||'Conversation could not be removed.',true)}finally{deleting=false}}
+
+const esc=value=>
+  String(value??'')
+    .replace(
+      /[&<>"']/g,
+      char=>({
+        '&':'&amp;',
+        '<':'&lt;',
+        '>':'&gt;',
+        '"':'&quot;',
+        "'":'&#039;'
+      }[char])
+    );
+
+let session=null;
+let role='candidate';
+let channelA=null;
+let channelB=null;
+let reloadTimer=null;
+let currentFilter='all';
+let currentJob='';
+let searchTerm='';
+let inboxRows=[];
+let mutating=false;
+let openMenuId='';
+
+const icon={
+  profile:'<circle cx="12" cy="7.5" r="3.5"></circle><path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6"></path>',
+  discover:'<circle cx="10.5" cy="10.5" r="5.5"></circle><path d="m15 15 4.5 4.5"></path>',
+  jobs:'<rect x="4" y="7" width="16" height="12" rx="2"></rect><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"></path>',
+  messages:'<path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"></path><path d="M8 9h8"></path><path d="M8 13h5"></path>',
+  settings:'<circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"></path>',
+  dashboard:'<rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect>',
+  applicants:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>',
+  company:'<path d="M3 21h18"></path><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"></path>'
+};
+
+function navButton(name,label,url,active=false){
+  return `
+    <button
+      class="nav ${active?'active':''}"
+      onclick="location.href='${url}'">
+      <svg viewBox="0 0 24 24">${icon[name]}</svg>
+      <span>${label}</span>
+    </button>
+  `;
+}
+
+function renderNav(){
+  const nav=$('nav');
+
+  if(role==='employer'){
+    nav.className='bottom-nav employer';
+    nav.innerHTML=
+      navButton('dashboard','Dashboard','app-employer-dashboard.html?view=dashboard')+
+      navButton('jobs','Jobs','app-employer-dashboard.html?view=jobs')+
+      navButton('applicants','Applicants','app-employer-dashboard.html?view=applicants')+
+      navButton('messages','Messages','app-messages.html?role=employer',true)+
+      navButton('company','Company','app-employer-dashboard.html?view=company')+
+      navButton('settings','Settings','app-employer-dashboard.html?view=settings');
+  }else{
+    nav.className='bottom-nav candidate';
+    nav.innerHTML=
+      navButton('profile','My Profile','app-account.html')+
+      navButton('discover','Discover','app-swipe.html')+
+      navButton('jobs','My Jobs','app-applied.html')+
+      navButton('messages','Messages','app-messages.html?role=candidate',true)+
+      navButton('settings','Settings','app-account.html#settings');
+  }
+}
+
+function initials(value){
+  return String(value||'A')
+    .trim()
+    .split(/\s+/)
+    .slice(0,2)
+    .map(x=>x[0]||'')
+    .join('')
+    .toUpperCase()||
+    'A';
+}
+
+function time(value){
+  if(!value)return '';
+
+  const date=new Date(value);
+  const seconds=Math.max(
+    0,
+    (Date.now()-date)/1000
+  );
+
+  if(seconds<60)return 'Just now';
+  if(seconds<3600)return Math.floor(seconds/60)+'m';
+  if(seconds<86400)return Math.floor(seconds/3600)+'h';
+  if(seconds<604800)return Math.floor(seconds/86400)+'d';
+
+  return date.toLocaleDateString(
+    undefined,
+    {
+      month:'short',
+      day:'numeric'
+    }
+  );
+}
+
+function setNotice(text,error=false){
+  const notice=$('notice');
+
+  notice.hidden=!text;
+  notice.className=
+    'notice'+
+    (error?' error':'');
+  notice.textContent=text||'';
+}
+
 function cleanIdentity(value,generic=[]){
   const text=String(value??'').trim();
-  if(!text)return'';
-  const normalized=text.toLowerCase();
-  return generic.includes(normalized)?'':text;
+
+  if(!text)return '';
+
+  return generic.includes(
+    text.toLowerCase()
+  )
+    ?''
+    :text;
 }
+
 function profileName(profile={}){
-  return cleanIdentity(profile.full_name,['candidate','applicant'])||
-    cleanIdentity(profile.name,['candidate','applicant'])||
-    cleanIdentity([profile.first_name,profile.last_name].filter(Boolean).join(' '),['candidate','applicant']);
+  return (
+    cleanIdentity(
+      profile.full_name,
+      ['candidate','applicant']
+    )||
+    cleanIdentity(
+      profile.name,
+      ['candidate','applicant']
+    )||
+    cleanIdentity(
+      [
+        profile.first_name,
+        profile.last_name
+      ]
+        .filter(Boolean)
+        .join(' '),
+      ['candidate','applicant']
+    )
+  );
 }
+
 function applicationName(application={}){
-  return cleanIdentity(application.candidate_name,['candidate','applicant'])||
-    cleanIdentity(application.applicant_name,['candidate','applicant'])||
-    cleanIdentity(application.full_name,['candidate','applicant'])||
-    cleanIdentity([application.first_name,application.last_name].filter(Boolean).join(' '),['candidate','applicant'])||
-    cleanIdentity(String(application.candidate_email||application.email||'').split('@')[0],['candidate','applicant']);
+  return (
+    cleanIdentity(
+      application.candidate_name,
+      ['candidate','applicant']
+    )||
+    cleanIdentity(
+      application.applicant_name,
+      ['candidate','applicant']
+    )||
+    cleanIdentity(
+      application.full_name,
+      ['candidate','applicant']
+    )||
+    cleanIdentity(
+      [
+        application.first_name,
+        application.last_name
+      ]
+        .filter(Boolean)
+        .join(' '),
+      ['candidate','applicant']
+    )||
+    cleanIdentity(
+      String(
+        application.candidate_email||
+        application.email||
+        ''
+      ).split('@')[0],
+      ['candidate','applicant']
+    )
+  );
 }
-async function load(){
+
+async function resolveRole(){
+  const requested=
+    new URLSearchParams(
+      location.search
+    ).get('role');
+
+  if(
+    requested==='employer'||
+    requested==='candidate'
+  ){
+    return requested;
+  }
+
   try{
-    const hiddenField=role==='employer'?'employer_hidden_at':'candidate_hidden_at';
-    const {data,error}=await sb.from('application_conversations').select('*').is(hiddenField,null).order('last_message_at',{ascending:false});
-    if(error)throw error;
-    const conversations=data||[];
-    if(!conversations.length){$('list').innerHTML=`<div class="empty"><strong>No messages yet</strong><p>${role==='candidate'?'When an employer messages you about an application, the conversation will appear here. Candidates cannot start new employer chats.':'Open an applicant and choose Message Candidate to start a conversation.'}</p></div>`;return}
+    const {data}=await sb
+      .from('profiles')
+      .select('role')
+      .eq('id',session.user.id)
+      .maybeSingle();
 
-    const applicationIds=[...new Set(conversations.map(x=>x.application_id).filter(Boolean).map(String))];
-    const conversationIds=conversations.map(x=>x.id);
-    let applications=[],jobs=[],profiles=[],messages=[];
+    if(
+      String(
+        data?.role||
+        ''
+      ).toLowerCase()==='employer'
+    ){
+      return 'employer';
+    }
+  }catch(_error){}
 
-    if(applicationIds.length){
-      const r=await sb.from('applications').select('*').in('id',applicationIds);
-      if(!r.error)applications=r.data||[];
-      else console.warn('Could not load application identity for messages:',r.error);
+  const meta=
+    String(
+      session.user.user_metadata?.role||
+      session.user.user_metadata?.account_type||
+      session.user.app_metadata?.role||
+      ''
+    ).toLowerCase();
+
+  return meta==='employer'
+    ?'employer'
+    :'candidate';
+}
+
+function archiveField(){
+  return role==='employer'
+    ?'employer_archived_at'
+    :'candidate_archived_at';
+}
+
+function hiddenField(){
+  return role==='employer'
+    ?'employer_hidden_at'
+    :'candidate_hidden_at';
+}
+
+function closeMenus(){
+  openMenuId='';
+
+  document
+    .querySelectorAll(
+      '.thread-menu'
+    )
+    .forEach(menu=>{
+      menu.hidden=true;
+    });
+
+  document
+    .querySelectorAll(
+      '.more-thread'
+    )
+    .forEach(button=>{
+      button.classList.remove('open');
+    });
+}
+
+function conversationKey(conversation){
+  return [
+    String(
+      conversation.job_id||
+      ''
+    ),
+    String(
+      conversation.candidate_id||
+      ''
+    )
+  ].join('::');
+}
+
+function dedupeConversations(conversations){
+  const byKey=new Map();
+
+  [...conversations]
+    .sort((a,b)=>{
+      const A=new Date(
+        a.last_message_at||
+        a.created_at||
+        0
+      ).getTime();
+
+      const B=new Date(
+        b.last_message_at||
+        b.created_at||
+        0
+      ).getTime();
+
+      return B-A;
+    })
+    .forEach(conversation=>{
+      const key=conversationKey(
+        conversation
+      );
+
+      /*
+       * Defensive client-side fallback.
+       * The SQL patch also enforces this permanently.
+       */
+      if(!byKey.has(key)){
+        byKey.set(
+          key,
+          conversation
+        );
+      }
+    });
+
+  return [...byKey.values()];
+}
+
+function buildJobFilter(rows){
+  const select=$('job-filter');
+  const existing=currentJob;
+
+  const jobs=new Map();
+
+  rows.forEach(row=>{
+    if(
+      row.jobId &&
+      row.jobTitle
+    ){
+      jobs.set(
+        String(row.jobId),
+        row.jobTitle
+      );
+    }
+  });
+
+  select.innerHTML=
+    '<option value="">All jobs</option>'+
+    [...jobs.entries()]
+      .sort((a,b)=>
+        String(a[1])
+          .localeCompare(
+            String(b[1])
+          )
+      )
+      .map(([id,title])=>
+        `<option value="${esc(id)}">${esc(title)}</option>`
+      )
+      .join('');
+
+  if(
+    existing &&
+    jobs.has(existing)
+  ){
+    select.value=existing;
+  }else{
+    currentJob='';
+    select.value='';
+  }
+}
+
+function visibleRows(){
+  const needle=
+    searchTerm
+      .trim()
+      .toLowerCase();
+
+  return inboxRows.filter(row=>{
+    if(
+      currentFilter==='archived'
+    ){
+      if(!row.archived)return false;
+    }else{
+      if(row.archived)return false;
+
+      if(
+        currentFilter==='unread' &&
+        row.unreadCount<1
+      ){
+        return false;
+      }
     }
 
-    const applicationMap=new Map(applications.map(x=>[String(x.id),x]));
-    const effectiveJobIds=[...new Set(conversations.map(c=>{
-      const a=applicationMap.get(String(c.application_id))||{};
-      return a.job_id||c.job_id;
-    }).filter(Boolean).map(String))];
-    const effectiveCandidateIds=[...new Set(conversations.map(c=>{
-      const a=applicationMap.get(String(c.application_id))||{};
-      return a.candidate_id||a.user_id||a.profile_id||c.candidate_id;
-    }).filter(Boolean).map(String))];
+    if(
+      currentJob &&
+      String(row.jobId)!==
+      String(currentJob)
+    ){
+      return false;
+    }
+
+    if(needle){
+      const haystack=[
+        row.name,
+        row.jobTitle,
+        row.preview,
+        row.company,
+        row.candidate
+      ]
+        .join(' ')
+        .toLowerCase();
+
+      if(!haystack.includes(needle)){
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+function replyStatus(row){
+  if(role!=='employer'){
+    return '';
+  }
+
+  if(!row.lastMessage){
+    return '';
+  }
+
+  const employerSentLast=
+    String(
+      row.lastMessage.sender_id
+    )===
+    String(session.user.id);
+
+  return employerSentLast
+    ?`
+      <div class="status-line waiting">
+        <span class="status-dot"></span>
+        Waiting for candidate reply
+      </div>
+    `
+    :`
+      <div class="status-line">
+        <span class="status-dot"></span>
+        Candidate replied
+      </div>
+    `;
+}
+
+function threadHtml(row){
+  const unread=
+    row.unreadCount>0;
+
+  const archivedTag=
+    row.archived
+      ?'<span class="archived-tag">Archived</span>'
+      :'';
+
+  return `
+    <article
+      class="thread ${unread?'unread-thread':''}"
+      data-thread="${esc(row.id)}">
+
+      <div class="thread-row">
+        <button
+          class="thread-main"
+          type="button"
+          data-open-conversation="${esc(row.id)}">
+
+          <div class="avatar">
+            ${esc(initials(row.name))}
+          </div>
+
+          <div class="thread-copy">
+            <div class="name-row">
+              <div class="name">
+                ${esc(row.name)}
+              </div>
+
+              ${
+                unread
+                  ?'<span class="unread-dot" aria-label="Unread"></span>'
+                  :''
+              }
+
+              ${archivedTag}
+            </div>
+
+            <div class="job">
+              ${
+                role==='employer'
+                  ?'Applied to: '
+                  :''
+              }${esc(row.jobTitle)}
+            </div>
+
+            <div class="preview">
+              ${esc(row.preview)}
+            </div>
+
+            ${replyStatus(row)}
+          </div>
+
+          <div class="thread-meta">
+            <div class="time">
+              ${esc(row.time)}
+            </div>
+
+            ${
+              unread
+                ?`
+                  <div class="unread-count">
+                    ${
+                      row.unreadCount>99
+                        ?'99+'
+                        :row.unreadCount
+                    }
+                  </div>
+                `
+                :''
+            }
+          </div>
+        </button>
+
+        <button
+          class="more-thread"
+          type="button"
+          aria-label="Conversation options"
+          data-menu-button="${esc(row.id)}">
+          ⋯
+        </button>
+      </div>
+
+      <div
+        class="thread-menu"
+        data-menu="${esc(row.id)}"
+        hidden>
+
+        <button
+          class="menu-action"
+          type="button"
+          data-action="${row.archived?'unarchive':'archive'}"
+          data-id="${esc(row.id)}">
+          ${row.archived?'Move to inbox':'Archive conversation'}
+        </button>
+
+        <button
+          class="menu-action danger"
+          type="button"
+          data-action="delete"
+          data-id="${esc(row.id)}">
+          Delete for me
+        </button>
+      </div>
+    </article>
+  `;
+}
+
+function renderList(){
+  closeMenus();
+
+  const rows=visibleRows();
+  const list=$('list');
+
+  if(!rows.length){
+    let title='No conversations found';
+    let copy='Try another search or filter.';
+
+    if(
+      !searchTerm &&
+      !currentJob
+    ){
+      if(currentFilter==='archived'){
+        title='No archived conversations';
+        copy='Archived conversations will appear here.';
+      }else if(currentFilter==='unread'){
+        title='You’re all caught up';
+        copy='You do not have any unread conversations.';
+      }else{
+        title='No messages yet';
+        copy=
+          role==='candidate'
+            ?'When an employer messages you about an application, the conversation will appear here.'
+            :'Open an applicant and choose Message Candidate to start a conversation.';
+      }
+    }
+
+    list.innerHTML=`
+      <div class="empty">
+        <strong>${esc(title)}</strong>
+        <p>${esc(copy)}</p>
+      </div>
+    `;
+
+    return;
+  }
+
+  list.innerHTML=
+    rows
+      .map(threadHtml)
+      .join('');
+}
+
+async function load(){
+  try{
+    setNotice('');
+
+    const {data,error}=await sb
+      .from('application_conversations')
+      .select('*')
+      .is(
+        hiddenField(),
+        null
+      )
+      .order(
+        'last_message_at',
+        {
+          ascending:false
+        }
+      );
+
+    if(error)throw error;
+
+    const conversations=
+      dedupeConversations(
+        data||[]
+      );
+
+    if(!conversations.length){
+      inboxRows=[];
+      buildJobFilter([]);
+      renderList();
+      return;
+    }
+
+    const applicationIds=[
+      ...new Set(
+        conversations
+          .map(x=>x.application_id)
+          .filter(Boolean)
+          .map(String)
+      )
+    ];
+
+    const conversationIds=
+      conversations
+        .map(x=>x.id);
+
+    let applications=[];
+    let jobs=[];
+    let profiles=[];
+    let messages=[];
+
+    if(applicationIds.length){
+      const result=await sb
+        .from('applications')
+        .select('*')
+        .in(
+          'id',
+          applicationIds
+        );
+
+      if(!result.error){
+        applications=
+          result.data||
+          [];
+      }else{
+        console.warn(
+          'Could not load application identity:',
+          result.error
+        );
+      }
+    }
+
+    const applicationMap=
+      new Map(
+        applications.map(x=>[
+          String(x.id),
+          x
+        ])
+      );
+
+    const effectiveJobIds=[
+      ...new Set(
+        conversations
+          .map(conversation=>{
+            const application=
+              applicationMap.get(
+                String(
+                  conversation.application_id
+                )
+              )||{};
+
+            return (
+              application.job_id||
+              conversation.job_id
+            );
+          })
+          .filter(Boolean)
+          .map(String)
+      )
+    ];
+
+    const effectiveCandidateIds=[
+      ...new Set(
+        conversations
+          .map(conversation=>{
+            const application=
+              applicationMap.get(
+                String(
+                  conversation.application_id
+                )
+              )||{};
+
+            return (
+              application.candidate_id||
+              application.user_id||
+              application.profile_id||
+              conversation.candidate_id
+            );
+          })
+          .filter(Boolean)
+          .map(String)
+      )
+    ];
 
     if(effectiveJobIds.length){
-      const r=await sb.from('jobs').select('*').in('id',effectiveJobIds);
-      if(!r.error)jobs=r.data||[];
-      else console.warn('Could not load message job identity:',r.error);
+      const result=await sb
+        .from('jobs')
+        .select('*')
+        .in(
+          'id',
+          effectiveJobIds
+        );
+
+      if(!result.error){
+        jobs=result.data||[];
+      }else{
+        console.warn(
+          'Could not load message jobs:',
+          result.error
+        );
+      }
     }
 
     if(effectiveCandidateIds.length){
-      const byId=await sb.from('profiles').select('*').in('id',effectiveCandidateIds);
-      if(!byId.error)profiles.push(...(byId.data||[]));
-      else console.warn('Could not load message candidate profiles by id:',byId.error);
+      const byId=await sb
+        .from('profiles')
+        .select('*')
+        .in(
+          'id',
+          effectiveCandidateIds
+        );
 
-      const loadedKeys=new Set();
-      profiles.forEach(p=>{
-        if(p?.id)loadedKeys.add(String(p.id));
-        if(p?.user_id)loadedKeys.add(String(p.user_id));
+      if(!byId.error){
+        profiles.push(
+          ...(byId.data||[])
+        );
+      }
+
+      const loadedKeys=
+        new Set();
+
+      profiles.forEach(profile=>{
+        if(profile?.id){
+          loadedKeys.add(
+            String(profile.id)
+          );
+        }
+
+        if(profile?.user_id){
+          loadedKeys.add(
+            String(profile.user_id)
+          );
+        }
       });
-      const missing=effectiveCandidateIds.filter(id=>!loadedKeys.has(String(id)));
+
+      const missing=
+        effectiveCandidateIds
+          .filter(id=>
+            !loadedKeys.has(
+              String(id)
+            )
+          );
+
       if(missing.length){
-        const byUserId=await sb.from('profiles').select('*').in('user_id',missing);
-        if(!byUserId.error)profiles.push(...(byUserId.data||[]));
-        else console.warn('Could not load message candidate profiles by user_id:',byUserId.error);
+        const byUser=await sb
+          .from('profiles')
+          .select('*')
+          .in(
+            'user_id',
+            missing
+          );
+
+        if(!byUser.error){
+          profiles.push(
+            ...(byUser.data||[])
+          );
+        }
       }
     }
 
     if(conversationIds.length){
-      const r=await sb.from('application_messages').select('*').in('conversation_id',conversationIds).order('created_at',{ascending:false});
-      if(r.error)throw r.error;
-      messages=r.data||[];
+      const result=await sb
+        .from('application_messages')
+        .select('*')
+        .in(
+          'conversation_id',
+          conversationIds
+        )
+        .order(
+          'created_at',
+          {
+            ascending:false
+          }
+        );
+
+      if(result.error)throw result.error;
+
+      messages=result.data||[];
     }
 
-    const jobMap=new Map(jobs.map(x=>[String(x.id),x]));
-    const profileMap=new Map();
-    profiles.forEach(p=>{
-      if(p?.id)profileMap.set(String(p.id),p);
-      if(p?.user_id)profileMap.set(String(p.user_id),p);
-    });
-    const last=new Map(),unread=new Map();
-    for(const m of messages){const id=String(m.conversation_id);if(!last.has(id))last.set(id,m);if(String(m.sender_id)!==String(session.user.id)&&!m.read_at)unread.set(id,(unread.get(id)||0)+1)}
+    const jobMap=
+      new Map(
+        jobs.map(job=>[
+          String(job.id),
+          job
+        ])
+      );
 
-    $('list').innerHTML=conversations.map(c=>{
-      const a=applicationMap.get(String(c.application_id))||{};
-      const candidateKey=a.candidate_id||a.user_id||a.profile_id||c.candidate_id;
-      const jobKey=a.job_id||c.job_id;
-      const p=profileMap.get(String(candidateKey))||{};
-      const j=jobMap.get(String(jobKey))||{};
-      const m=last.get(String(c.id));
-      const snapshotCandidate=cleanIdentity(c.candidate_name,['candidate','applicant']);
-      const candidate=snapshotCandidate||profileName(p)||applicationName(a)||'Candidate';
-      const snapshotCompany=cleanIdentity(c.company_name,['employer','company']);
-      const company=snapshotCompany||cleanIdentity(j.company)||cleanIdentity(j.company_name)||cleanIdentity(j.employer_name)||'Employer';
-      const snapshotJob=cleanIdentity(c.job_title,['job application','position']);
-      const jobTitle=snapshotJob||cleanIdentity(j.title)||cleanIdentity(a.job_title)||'Job application';
-      const name=role==='employer'?candidate:company;
-      const count=unread.get(String(c.id))||0;
-      return `<div class="thread"><button class="thread-main" type="button" onclick="location.href='app-chat.html?role=${role}&application=${encodeURIComponent(c.application_id)}'"><div class="avatar">${esc(initials(name))}</div><div><div class="name">${esc(name)}</div><div class="job">${esc(jobTitle)}</div><div class="preview">${esc(m?.body||'Conversation started')}</div></div><div><div class="time">${esc(time(m?.created_at||c.last_message_at))}</div>${count?`<div class="unread">${count>99?'99+':count}</div>`:''}</div></button><button class="delete-thread" type="button" aria-label="Delete conversation with ${esc(name)} from your Messages" data-delete-id="${esc(c.id)}" data-delete-name="${esc(name)}"><svg viewBox="0 0 24 24"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg></button></div>`
-    }).join('');
-    document.querySelectorAll('[data-delete-id]').forEach(btn=>btn.onclick=()=>deleteConversation(btn.dataset.deleteId,btn.dataset.deleteName));
-  }catch(error){console.error(error);setNotice('Messaging could not be loaded. Make sure the latest Alygnn messaging SQL is installed.',true);$('list').innerHTML=''}
+    const profileMap=
+      new Map();
+
+    profiles.forEach(profile=>{
+      if(profile?.id){
+        profileMap.set(
+          String(profile.id),
+          profile
+        );
+      }
+
+      if(profile?.user_id){
+        profileMap.set(
+          String(profile.user_id),
+          profile
+        );
+      }
+    });
+
+    const last=new Map();
+    const unread=new Map();
+
+    messages.forEach(message=>{
+      const id=
+        String(
+          message.conversation_id
+        );
+
+      if(!last.has(id)){
+        last.set(
+          id,
+          message
+        );
+      }
+
+      if(
+        String(message.sender_id)!==
+          String(session.user.id) &&
+        !message.read_at
+      ){
+        unread.set(
+          id,
+          (unread.get(id)||0)+1
+        );
+      }
+    });
+
+    inboxRows=
+      conversations.map(conversation=>{
+        const application=
+          applicationMap.get(
+            String(
+              conversation.application_id
+            )
+          )||{};
+
+        const candidateKey=
+          application.candidate_id||
+          application.user_id||
+          application.profile_id||
+          conversation.candidate_id;
+
+        const jobKey=
+          application.job_id||
+          conversation.job_id;
+
+        const profile=
+          profileMap.get(
+            String(candidateKey)
+          )||{};
+
+        const job=
+          jobMap.get(
+            String(jobKey)
+          )||{};
+
+        const lastMessage=
+          last.get(
+            String(
+              conversation.id
+            )
+          );
+
+        const candidate=
+          cleanIdentity(
+            conversation.candidate_name,
+            ['candidate','applicant']
+          )||
+          profileName(profile)||
+          applicationName(application)||
+          'Candidate';
+
+        const company=
+          cleanIdentity(
+            conversation.company_name,
+            ['employer','company']
+          )||
+          cleanIdentity(job.company)||
+          cleanIdentity(job.company_name)||
+          cleanIdentity(job.employer_name)||
+          'Employer';
+
+        const jobTitle=
+          cleanIdentity(
+            conversation.job_title,
+            ['job application','position']
+          )||
+          cleanIdentity(job.title)||
+          cleanIdentity(application.job_title)||
+          'Job application';
+
+        const name=
+          role==='employer'
+            ?candidate
+            :company;
+
+        const archived=
+          Boolean(
+            role==='employer'
+              ?conversation.employer_archived_at
+              :conversation.candidate_archived_at
+          );
+
+        return {
+          id:String(conversation.id),
+          applicationId:String(
+            conversation.application_id||
+            ''
+          ),
+          jobId:String(jobKey||''),
+          candidateId:String(candidateKey||''),
+          candidate,
+          company,
+          jobTitle,
+          name,
+          preview:
+            cleanIdentity(
+              lastMessage?.body
+            )||
+            'Conversation started',
+          time:time(
+            lastMessage?.created_at||
+            conversation.last_message_at
+          ),
+          lastMessage,
+          unreadCount:
+            unread.get(
+              String(
+                conversation.id
+              )
+            )||0,
+          archived,
+          lastMessageAt:
+            lastMessage?.created_at||
+            conversation.last_message_at||
+            conversation.created_at
+        };
+      })
+      .sort((a,b)=>
+        new Date(b.lastMessageAt).getTime()-
+        new Date(a.lastMessageAt).getTime()
+      );
+
+    buildJobFilter(inboxRows);
+    renderList();
+  }catch(error){
+    console.error(error);
+
+    setNotice(
+      'Messaging could not be loaded. Run the latest Alygnn Messages Inbox SQL in Supabase, then try again.',
+      true
+    );
+
+    $('list').innerHTML='';
+  }
 }
-function schedule(){clearTimeout(reloadTimer);reloadTimer=setTimeout(load,150)}
-function realtime(){channelA=sb.channel('alygnn-conversations-'+session.user.id).on('postgres_changes',{event:'*',schema:'public',table:'application_conversations'},schedule).subscribe();channelB=sb.channel('alygnn-messages-'+session.user.id).on('postgres_changes',{event:'*',schema:'public',table:'application_messages'},schedule).subscribe()}
-$('back').onclick=()=>location.href=role==='employer'?'app-employer-dashboard.html?view=applicants':'app-applied.html';
-(async()=>{const {data,error}=await sb.auth.getSession();if(error||!data.session){location.replace('app-login.html');return}session=data.session;role=await resolveRole();$('eyebrow').textContent=role==='employer'?'Employer workspace':'Candidate workspace';$('sub').textContent=role==='candidate'?'Only conversations started by an employer after you applied appear here.':'Start and manage conversations with candidates who applied to your jobs.';renderNav();await load();realtime()})();
+
+async function archiveConversation(
+  id,
+  archived
+){
+  if(mutating)return;
+
+  mutating=true;
+  closeMenus();
+
+  try{
+    const result=await sb.rpc(
+      'archive_application_conversation',
+      {
+        p_conversation_id:id,
+        p_archived:archived
+      }
+    );
+
+    if(result.error)throw result.error;
+
+    setNotice(
+      archived
+        ?'Conversation archived.'
+        :'Conversation moved back to your inbox.'
+    );
+
+    await load();
+  }catch(error){
+    console.error(error);
+
+    setNotice(
+      error?.message||
+      'Conversation could not be updated.',
+      true
+    );
+  }finally{
+    mutating=false;
+  }
+}
+
+async function deleteConversation(id){
+  if(mutating)return;
+
+  const row=
+    inboxRows.find(item=>
+      item.id===String(id)
+    );
+
+  const name=
+    row?.name||
+    'this conversation';
+
+  if(
+    !confirm(
+      `Delete the conversation with ${name} from your Messages?\n\nThis removes it only from your side. The other person keeps their copy. If a new message is sent later, the conversation can appear again.`
+    )
+  ){
+    return;
+  }
+
+  mutating=true;
+  closeMenus();
+
+  try{
+    let result=await sb.rpc(
+      'hide_application_conversation',
+      {
+        p_conversation_id:id
+      }
+    );
+
+    if(
+      result.error &&
+      String(
+        result.error.message||
+        ''
+      )
+        .toLowerCase()
+        .includes('function')
+    ){
+      result=await sb.rpc(
+        'delete_application_conversation',
+        {
+          p_conversation_id:id
+        }
+      );
+    }
+
+    if(result.error)throw result.error;
+
+    setNotice(
+      'Conversation deleted from your Messages.'
+    );
+
+    await load();
+  }catch(error){
+    console.error(error);
+
+    setNotice(
+      error?.message||
+      'Conversation could not be deleted.',
+      true
+    );
+  }finally{
+    mutating=false;
+  }
+}
+
+function openConversation(id){
+  const row=
+    inboxRows.find(item=>
+      item.id===String(id)
+    );
+
+  if(!row)return;
+
+  const params=
+    new URLSearchParams({
+      role,
+      conversation:row.id
+    });
+
+  if(row.applicationId){
+    params.set(
+      'application',
+      row.applicationId
+    );
+  }
+
+  location.href=
+    'app-chat.html?'+
+    params.toString();
+}
+
+function schedule(){
+  clearTimeout(reloadTimer);
+
+  reloadTimer=setTimeout(
+    load,
+    150
+  );
+}
+
+function realtime(){
+  channelA=sb
+    .channel(
+      'alygnn-conversations-'+
+      session.user.id
+    )
+    .on(
+      'postgres_changes',
+      {
+        event:'*',
+        schema:'public',
+        table:'application_conversations'
+      },
+      schedule
+    )
+    .subscribe();
+
+  channelB=sb
+    .channel(
+      'alygnn-messages-'+
+      session.user.id
+    )
+    .on(
+      'postgres_changes',
+      {
+        event:'*',
+        schema:'public',
+        table:'application_messages'
+      },
+      schedule
+    )
+    .subscribe();
+}
+
+$('search').addEventListener(
+  'input',
+  event=>{
+    searchTerm=
+      String(
+        event.target.value||
+        ''
+      );
+
+    renderList();
+  }
+);
+
+$('job-filter').addEventListener(
+  'change',
+  event=>{
+    currentJob=
+      String(
+        event.target.value||
+        ''
+      );
+
+    renderList();
+  }
+);
+
+document
+  .querySelectorAll(
+    '[data-filter]'
+  )
+  .forEach(button=>{
+    button.onclick=()=>{
+      currentFilter=
+        button.dataset.filter||
+        'all';
+
+      document
+        .querySelectorAll(
+          '[data-filter]'
+        )
+        .forEach(item=>
+          item.classList.toggle(
+            'active',
+            item===button
+          )
+        );
+
+      renderList();
+    };
+  });
+
+document.addEventListener(
+  'click',
+  event=>{
+    const menuButton=
+      event.target.closest(
+        '[data-menu-button]'
+      );
+
+    if(menuButton){
+      event.stopPropagation();
+
+      const id=
+        String(
+          menuButton.dataset.menuButton||
+          ''
+        );
+
+      const same=
+        openMenuId===id;
+
+      closeMenus();
+
+      if(!same){
+        openMenuId=id;
+
+        const menu=document.querySelector(
+          `[data-menu="${CSS.escape(id)}"]`
+        );
+
+        if(menu){
+          menu.hidden=false;
+          menuButton.classList.add('open');
+        }
+      }
+
+      return;
+    }
+
+    const action=
+      event.target.closest(
+        '[data-action]'
+      );
+
+    if(action){
+      event.stopPropagation();
+
+      const id=
+        String(
+          action.dataset.id||
+          ''
+        );
+
+      if(action.dataset.action==='archive'){
+        archiveConversation(id,true);
+      }else if(action.dataset.action==='unarchive'){
+        archiveConversation(id,false);
+      }else if(action.dataset.action==='delete'){
+        deleteConversation(id);
+      }
+
+      return;
+    }
+
+    const open=
+      event.target.closest(
+        '[data-open-conversation]'
+      );
+
+    if(open){
+      openConversation(
+        String(
+          open.dataset.openConversation||
+          ''
+        )
+      );
+      return;
+    }
+
+    closeMenus();
+  }
+);
+
+$('back').onclick=()=>{
+  location.href=
+    role==='employer'
+      ?'app-employer-dashboard.html?view=applicants'
+      :'app-applied.html';
+};
+
+(async()=>{
+  const {
+    data,
+    error
+  }=await sb.auth.getSession();
+
+  if(
+    error||
+    !data.session
+  ){
+    location.replace(
+      'app-login.html'
+    );
+    return;
+  }
+
+  session=data.session;
+  role=await resolveRole();
+
+  $('eyebrow').textContent=
+    role==='employer'
+      ?'Employer workspace'
+      :'Candidate workspace';
+
+  $('sub').textContent=
+    role==='candidate'
+      ?'Conversations employers started after you applied.'
+      :'Manage applicant conversations and follow up faster.';
+
+  $('search').placeholder=
+    role==='employer'
+      ?'Search candidate or job'
+      :'Search employer or job';
+
+  renderNav();
+  await load();
+  realtime();
+})();
 </script>
 </body>
 </html>
