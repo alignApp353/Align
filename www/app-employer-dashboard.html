@@ -1645,6 +1645,19 @@
       border-color:var(--brand-dark);box-shadow:0 0 0 3px rgba(52,95,145,.11)
     }
     .company-edit-note{margin-top:7px;color:var(--muted);font-size:10px;line-height:1.45}
+    .company-logo-editor{display:flex;align-items:center;gap:16px;padding:16px;border:1px solid var(--border);border-radius:18px;background:var(--card-bg)}
+    .company-logo-preview{width:76px;height:76px;border-radius:20px;border:1px solid var(--border);background:#eef4f8;display:grid;place-items:center;overflow:hidden;flex:0 0 auto;color:var(--brand);font-size:24px;font-weight:900}
+    .company-logo-preview img{width:100%;height:100%;object-fit:contain;background:#fff}
+    .company-logo-upload-copy{min-width:0;flex:1}
+    .company-logo-upload-copy strong{display:block;font-size:14px;color:var(--text);margin-bottom:5px}
+    .company-logo-upload-copy p{margin:0 0 10px;font-size:12px;line-height:1.5;color:var(--muted)}
+    .company-logo-file{width:100%;font-size:12px}
+    .social-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .social-preview-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+    .social-preview-link{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:var(--card-bg);color:var(--brand);font-size:12px;font-weight:800;text-decoration:none}
+    #company-logo img,.candidate-company-preview-logo img{width:100%;height:100%;object-fit:contain;border-radius:inherit;background:#fff}
+    @media(max-width:640px){.social-fields{grid-template-columns:1fr}}
+
     .company-edit-message{
       margin-top:14px;padding:12px 14px;border-radius:13px;
       background:#FCEDED;color:#B64040;font-size:11px;font-weight:800
@@ -3927,6 +3940,18 @@
           <div class="locked-field-note">Company names are locked after the workspace is created.</div>
         </div>
 
+        <div class="company-edit-field full">
+          <label>Company logo *</label>
+          <div class="company-logo-editor">
+            <div class="company-logo-preview" id="edit-company-logo-preview">CO</div>
+            <div class="company-logo-upload-copy">
+              <strong>Upload your company logo</strong>
+              <p>Required before publishing jobs. PNG, JPG, or WEBP up to 5 MB.</p>
+              <input class="company-logo-file" id="edit-company-logo" type="file" accept="image/png,image/jpeg,image/webp">
+            </div>
+          </div>
+        </div>
+
         <div class="company-edit-field">
           <label for="edit-company-industry">Industry</label>
           <input id="edit-company-industry" type="text" maxlength="120" placeholder="Business consulting">
@@ -3950,6 +3975,17 @@
         <div class="company-edit-field full">
           <label for="edit-company-about">About the company</label>
           <textarea id="edit-company-about" maxlength="2500" placeholder="Describe what your company does and what makes it different."></textarea>
+        </div>
+
+        <div class="company-edit-field full">
+          <label>Company social media</label>
+          <div class="social-fields">
+            <input id="edit-company-linkedin" type="url" maxlength="300" placeholder="https://linkedin.com/company/your-company" aria-label="LinkedIn company page">
+            <input id="edit-company-instagram" type="url" maxlength="300" placeholder="https://instagram.com/yourcompany" aria-label="Instagram company page">
+            <input id="edit-company-facebook" type="url" maxlength="300" placeholder="https://facebook.com/yourcompany" aria-label="Facebook company page">
+            <input id="edit-company-x" type="url" maxlength="300" placeholder="https://x.com/yourcompany" aria-label="X company page">
+          </div>
+          <div class="company-edit-note">Optional. Only connected links appear publicly on job listings.</div>
         </div>
 
         <div class="company-edit-field full">
@@ -4008,6 +4044,7 @@
             <div><span>Company size</span><strong id="preview-company-size">—</strong></div>
             <div><span>Website</span><strong id="preview-company-website">—</strong></div>
           </div>
+          <div class="social-preview-links" id="preview-company-socials" hidden></div>
         </div>
 
         <p class="candidate-preview-note">
@@ -4333,7 +4370,8 @@
       selectedApplicantJobId:null,
       aiProfileComplete:false,
       verificationStatus:'pending_review',
-      entitlement:null
+      entitlement:null,
+      pendingCompanyLogoFile:null
     };
 
     const THEME_STORAGE_KEY = 'alygnnEmployerTheme';
@@ -6834,7 +6872,7 @@
       const company = companyMetadata();
       const verification = companyVerificationView();
 
-      $('preview-company-logo').textContent = initials(company.name);
+      renderLogoInto($('preview-company-logo'),company.logo,company.name);
       $('preview-company-name').textContent = company.name;
       $('preview-company-headline').textContent =
         [company.industry,company.location,company.size]
@@ -6849,6 +6887,16 @@
       $('preview-company-location').textContent = company.location;
       $('preview-company-size').textContent = company.size;
       $('preview-company-website').textContent = company.website;
+
+      const socials=$('preview-company-socials');
+      const socialHtml=[
+        companySocialLinkHtml('LinkedIn',company.linkedin),
+        companySocialLinkHtml('Instagram',company.instagram),
+        companySocialLinkHtml('Facebook',company.facebook),
+        companySocialLinkHtml('X',company.x)
+      ].filter(Boolean).join('');
+      socials.innerHTML=socialHtml;
+      socials.hidden=!socialHtml;
 
       const verified = $('preview-company-verified');
       verified.textContent =
@@ -6868,6 +6916,68 @@
     function closeCompanyCandidatePreview(){
       $('company-preview-modal').hidden = true;
       document.body.style.overflow = '';
+    }
+
+    function normalizePublicUrl(value){
+      let raw=String(value||'').trim();
+      if(!raw)return '';
+      if(!/^https?:\/\//i.test(raw))raw='https://'+raw;
+      try{
+        const url=new URL(raw);
+        return ['http:','https:'].includes(url.protocol)?url.href:'';
+      }catch(_error){
+        return '';
+      }
+    }
+
+    function platformCompanyUrl(value,platform){
+      const url=normalizePublicUrl(value);
+      if(!url)return '';
+      let host='';
+      try{
+        host=new URL(url).hostname.toLowerCase().replace(/^www\./,'');
+      }catch(_error){
+        return '';
+      }
+      const allowed={
+        linkedin:['linkedin.com'],
+        instagram:['instagram.com'],
+        facebook:['facebook.com','fb.com'],
+        x:['x.com','twitter.com']
+      }[platform]||[];
+      return allowed.some(domain=>host===domain||host.endsWith('.'+domain))?url:'';
+    }
+
+    function renderLogoInto(element,logoUrl,name){
+      if(!element)return;
+      element.innerHTML='';
+      if(logoUrl){
+        const img=document.createElement('img');
+        img.src=logoUrl;
+        img.alt=(name||'Company')+' logo';
+        img.onerror=()=>{element.textContent=initials(name);};
+        element.appendChild(img);
+        return;
+      }
+      element.textContent=initials(name);
+    }
+
+    function companySocialLinkHtml(label,url){
+      if(!url)return '';
+      return `<a class="social-preview-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+    }
+
+    async function uploadCompanyLogo(file,userId){
+      if(!file)return '';
+      const allowed=['image/png','image/jpeg','image/webp'];
+      if(!allowed.includes(file.type))throw new Error('Use a PNG, JPG, or WEBP company logo.');
+      if(file.size>5*1024*1024)throw new Error('Company logo must be 5 MB or smaller.');
+      const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
+      const path=`${userId}/company-logo-${Date.now()}.${ext}`;
+      const {error}=await sb.storage.from('company-logos').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
+      if(error)throw error;
+      const {data}=sb.storage.from('company-logos').getPublicUrl(path);
+      return data?.publicUrl||'';
     }
 
     function companyMetadata(){
@@ -6948,7 +7058,45 @@
           setup.company_benefits,
           meta.company_benefits,
           meta.benefits
-        ))
+        )),
+        logo:firstValue(
+          aiProfile.company_logo,
+          setup.company_logo,
+          verification.company_logo,
+          company.logo_url,
+          company.company_logo,
+          meta.company_logo,
+          meta.logo_url
+        ),
+        linkedin:platformCompanyUrl(firstValue(
+          aiProfile.linkedin_url,
+          setup.linkedin_url,
+          verification.linkedin_url,
+          company.linkedin_url,
+          meta.linkedin_url
+        ),'linkedin'),
+        instagram:platformCompanyUrl(firstValue(
+          aiProfile.instagram_url,
+          setup.instagram_url,
+          verification.instagram_url,
+          company.instagram_url,
+          meta.instagram_url
+        ),'instagram'),
+        facebook:platformCompanyUrl(firstValue(
+          aiProfile.facebook_url,
+          setup.facebook_url,
+          verification.facebook_url,
+          company.facebook_url,
+          meta.facebook_url
+        ),'facebook'),
+        x:platformCompanyUrl(firstValue(
+          aiProfile.x_url,
+          setup.x_url,
+          verification.x_url,
+          company.x_url,
+          meta.x_url,
+          meta.twitter_url
+        ),'x')
       };
     }
 
@@ -6963,9 +7111,25 @@
       $('edit-company-website').value=company.website==='Not added'?'':company.website;
       $('edit-company-about').value=company.about||'';
       $('edit-company-benefits').value=company.benefits.join(', ');
+      $('edit-company-linkedin').value=company.linkedin||'';
+      $('edit-company-instagram').value=company.instagram||'';
+      $('edit-company-facebook').value=company.facebook||'';
+      $('edit-company-x').value=company.x||'';
 
-      $('company-edit-message').hidden=true;
-      $('company-edit-message').textContent='';
+      state.pendingCompanyLogoFile=null;
+      $('edit-company-logo').value='';
+      renderLogoInto($('edit-company-logo-preview'),company.logo,company.name);
+
+      const editMessage=$('company-edit-message');
+      const reason=new URLSearchParams(location.search).get('reason');
+      if(reason==='logo_required'&&!company.logo){
+        editMessage.textContent='Add your company logo before publishing a job.';
+        editMessage.hidden=false;
+      }else{
+        editMessage.textContent='';
+        editMessage.hidden=true;
+      }
+
       $('company-edit-modal').hidden=false;
       document.body.style.overflow='hidden';
     }
@@ -6988,6 +7152,24 @@
       const description=$('edit-company-about').value.trim();
       const benefits=normalizeList($('edit-company-benefits').value);
 
+      const linkedin=platformCompanyUrl($('edit-company-linkedin').value,'linkedin');
+      const instagram=platformCompanyUrl($('edit-company-instagram').value,'instagram');
+      const facebook=platformCompanyUrl($('edit-company-facebook').value,'facebook');
+      const xUrl=platformCompanyUrl($('edit-company-x').value,'x');
+
+      const invalidSocials=[
+        ['LinkedIn',$('edit-company-linkedin').value,linkedin],
+        ['Instagram',$('edit-company-instagram').value,instagram],
+        ['Facebook',$('edit-company-facebook').value,facebook],
+        ['X',$('edit-company-x').value,xUrl]
+      ].filter(([,raw,clean])=>String(raw||'').trim()&&!clean);
+
+      if(invalidSocials.length){
+        message.textContent=`${invalidSocials[0][0]} link is not a valid ${invalidSocials[0][0]} URL.`;
+        message.hidden=false;
+        return;
+      }
+
       if(!companyName){
         message.textContent='Please enter the company name.';
         message.hidden=false;
@@ -7006,6 +7188,14 @@
         const setup=meta.onboarding_company_profile||{};
         const aiProfile=meta.employer_ai_profile||{};
 
+        let logoUrl=existingCompany.logo||'';
+        if(state.pendingCompanyLogoFile){
+          logoUrl=await uploadCompanyLogo(state.pendingCompanyLogoFile,user.id);
+        }
+        if(!logoUrl){
+          throw new Error('A company logo is required before publishing jobs.');
+        }
+
         const {data:updateData,error:updateError}=await sb.auth.updateUser({
           data:{
             ...meta,
@@ -7017,6 +7207,12 @@
             website,
             company_description:description,
             company_benefits:benefits,
+            company_logo:logoUrl,
+            logo_url:logoUrl,
+            linkedin_url:linkedin,
+            instagram_url:instagram,
+            facebook_url:facebook,
+            x_url:xUrl,
             onboarding_company_profile:{
               ...setup,
               company_name:companyName,
@@ -7026,6 +7222,11 @@
               website,
               company_description:description,
               company_benefits:benefits,
+              company_logo:logoUrl,
+              linkedin_url:linkedin,
+              instagram_url:instagram,
+              facebook_url:facebook,
+              x_url:xUrl,
               saved_at:new Date().toISOString()
             },
             employer_ai_profile:{
@@ -7034,7 +7235,12 @@
               industry,
               website,
               company_description:description,
-              company_benefits:benefits
+              company_benefits:benefits,
+              company_logo:logoUrl,
+              linkedin_url:linkedin,
+              instagram_url:instagram,
+              facebook_url:facebook,
+              x_url:xUrl
             }
           }
         });
@@ -7055,6 +7261,11 @@
             headquarters,
             website,
             company_description:description,
+            company_logo:logoUrl,
+            linkedin_url:linkedin,
+            instagram_url:instagram,
+            facebook_url:facebook,
+            x_url:xUrl,
             updated_at:new Date().toISOString()
           })
           .eq('user_id',user.id);
@@ -7069,12 +7280,42 @@
             company_size:companySize,
             headquarters,
             website,
-            company_description:description
+            company_description:description,
+            company_logo:logoUrl,
+            linkedin_url:linkedin,
+            instagram_url:instagram,
+            facebook_url:facebook,
+            x_url:xUrl
           };
+        }
+
+        const jobSync=await sb
+          .from('jobs')
+          .update({
+            company_logo:logoUrl,
+            company_website:website,
+            company_description:description,
+            company_linkedin_url:linkedin,
+            company_instagram_url:instagram,
+            company_facebook_url:facebook,
+            company_x_url:xUrl,
+            updated_at:new Date().toISOString()
+          })
+          .eq('employer_id',user.id);
+
+        if(jobSync.error){
+          console.warn('Company saved but existing job snapshots were not synchronized:',jobSync.error);
         }
 
         renderCompany();
         closeCompanyEditor();
+
+        const returnTo=sessionStorage.getItem('alygnnCompanyProfileReturn');
+        if(returnTo){
+          sessionStorage.removeItem('alygnnCompanyProfileReturn');
+          location.replace(returnTo);
+          return;
+        }
       }catch(error){
         console.error(error);
         message.textContent=error.message||'Could not save the company profile. Please try again.';
@@ -7092,7 +7333,7 @@
       const account = companyAccountNumber();
 
       $('company-name').textContent = company.name;
-      $('company-logo').textContent = initials(company.name);
+      renderLogoInto($('company-logo'),company.logo,company.name);
 
       $('company-industry').textContent = company.industry;
       $('company-size').textContent = company.size;
@@ -9058,10 +9299,19 @@
           requestedView==='jobs'
         ){
           state.currentView='jobs';
+        }else if(requestedView==='company'){
+          state.currentView='company';
         }
 
         safeRenderAll();
         refreshEmployerMessageBadge();
+
+        if(requestedView==='company'){
+          setView('company');
+          if(initialParams.get('edit')==='1'||initialParams.get('reason')==='logo_required'){
+            setTimeout(openCompanyEditor,0);
+          }
+        }
 
         if(
           requestedJobId ||
@@ -9368,6 +9618,35 @@
     };
 
     $('open-company-page').onclick = openCompanyEditor;
+
+    $('edit-company-logo').addEventListener('change',event=>{
+      const file=event.target.files?.[0]||null;
+      state.pendingCompanyLogoFile=file;
+
+      if(!file){
+        const company=companyMetadata();
+        renderLogoInto($('edit-company-logo-preview'),company.logo,company.name);
+        return;
+      }
+
+      if(file.size>5*1024*1024){
+        toast('Company logo must be 5 MB or smaller.');
+        event.target.value='';
+        state.pendingCompanyLogoFile=null;
+        return;
+      }
+
+      const reader=new FileReader();
+      reader.onload=()=>{
+        renderLogoInto(
+          $('edit-company-logo-preview'),
+          String(reader.result||''),
+          companyMetadata().name
+        );
+      };
+      reader.readAsDataURL(file);
+    });
+
     $('close-company-editor').onclick = closeCompanyEditor;
     $('cancel-company-edit').onclick = closeCompanyEditor;
     $('save-company-edit').onclick = saveCompanyEditor;
