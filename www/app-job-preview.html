@@ -3796,6 +3796,42 @@ function goToFreeRepostOptions(){
     params.toString();
 }
 
+async function deletePersistentDraftAfterPublish(){
+  const id=
+    sessionStorage.getItem(
+      'alygnnActiveJobDraftId'
+    )||
+    '';
+
+  if(!id){
+    return;
+  }
+
+  try{
+    const {error}=await sb
+      .from('employer_job_drafts')
+      .delete()
+      .eq('id',id);
+
+    if(error){
+      console.warn(
+        'Published job, but draft cleanup failed:',
+        error
+      );
+    }
+  }catch(error){
+    console.warn(
+      'Published job, but draft cleanup failed:',
+      error
+    );
+  }
+
+  sessionStorage.removeItem(
+    'alygnnActiveJobDraftId'
+  );
+}
+
+
 async function publishJob(){
   clearMessage();
 
@@ -3892,6 +3928,10 @@ async function publishJob(){
 
     const updatedExistingJob=
       isEditMode();
+
+    if(!updatedExistingJob){
+      await deletePersistentDraftAfterPublish();
+    }
 
     sessionStorage.removeItem(
       'alygnnJobDraft'
