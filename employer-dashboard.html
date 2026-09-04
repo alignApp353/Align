@@ -2283,8 +2283,16 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   // it is never applied automatically. Only plans that include the perk
   // (Growth, Scale, Enterprise) are allowed to turn it on.
   function canUseUrgentBadge() {
-    const plan = String(billingEntitlement.test_plan || billingEntitlement.plan || '').toLowerCase();
-    return ['growth', 'scale', 'enterprise'].includes(plan);
+    // Check BOTH the base plan and the test/add-on plan.
+    // A temporary Weekly slot must never hide a Growth/Scale base plan.
+    const plans = [
+      String(billingEntitlement.plan || '').toLowerCase(),
+      String(billingEntitlement.test_plan || '').toLowerCase()
+    ];
+
+    return plans.some(plan =>
+      ['growth', 'scale', 'enterprise'].includes(plan)
+    );
   }
 
   async function toggleUrgent(jobId) {
@@ -2339,7 +2347,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         const expiry = billingEntitlement.current_period_end
           ? new Date(billingEntitlement.current_period_end).toLocaleString()
           : 'No expiration set';
-        const urgent = billingEntitlement.urgently_hiring ? ' · Urgently Hiring enabled' : '';
+        const urgent = canUseUrgentBadge() ? ' · Urgently Hiring available' : '';
         const addonCount = hasActivePaidPlan() ? 0 : Math.max(0, Number(billingEntitlement.addon_slot_count || 0));
         const addonCopy = addonCount
           ? ` · +1 Second Job Slot ($150/month)`
