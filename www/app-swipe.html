@@ -2016,10 +2016,114 @@ function candidateCompanyLogoHtml(job,company){
   return `<img src="${escapeHtml(logo)}" alt="${escapeHtml(company)} logo" onerror="this.remove();this.parentElement.textContent='${escapeHtml(initials(company))}'">`;
 }
 
-function candidateCompanyLink(label,value){
+function candidateCompanyLinks(job){
+  let links=job?.company_links;
+
+  if(typeof links==='string'){
+    try{
+      links=JSON.parse(links);
+    }catch(_error){
+      links=[];
+    }
+  }
+
+  if(!Array.isArray(links)){
+    links=[];
+  }
+
+  const legacy=[
+    job?.company_linkedin_url,
+    job?.company_instagram_url,
+    job?.company_facebook_url,
+    job?.company_x_url
+  ];
+
+  const seen=new Set();
+
+  return [...links,...legacy]
+    .map(item=>
+      candidateExternalUrl(
+        typeof item==='string'
+          ?item
+          :item?.url
+      )
+    )
+    .filter(Boolean)
+    .filter(url=>{
+      const key=url
+        .replace(/\/+$/,'')
+        .toLowerCase();
+
+      if(seen.has(key))return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function candidateCompanyLinkType(value){
+  const url=candidateExternalUrl(value);
+  if(!url)return 'link';
+
+  const host=new URL(url).hostname
+    .toLowerCase()
+    .replace(/^www\./,'');
+
+  if(host==='facebook.com'||host.endsWith('.facebook.com')||host==='fb.com')return 'facebook';
+  if(host==='instagram.com'||host.endsWith('.instagram.com'))return 'instagram';
+  if(host==='linkedin.com'||host.endsWith('.linkedin.com'))return 'linkedin';
+  if(host==='x.com'||host.endsWith('.x.com')||host==='twitter.com'||host.endsWith('.twitter.com'))return 'x';
+  if(host==='tiktok.com'||host.endsWith('.tiktok.com'))return 'tiktok';
+  if(host==='youtube.com'||host.endsWith('.youtube.com')||host==='youtu.be')return 'youtube';
+  if(host==='threads.net'||host.endsWith('.threads.net'))return 'threads';
+
+  return 'website';
+}
+
+function candidateCompanyLinkLabel(value){
+  return {
+    facebook:'Facebook',
+    instagram:'Instagram',
+    linkedin:'LinkedIn',
+    x:'X',
+    tiktok:'TikTok',
+    youtube:'YouTube',
+    threads:'Threads',
+    website:'Website',
+    link:'Link'
+  }[candidateCompanyLinkType(value)]||'Link';
+}
+
+function candidateCompanyLinkIcon(value){
+  return {
+    facebook:'f',
+    instagram:'◎',
+    linkedin:'in',
+    x:'𝕏',
+    tiktok:'♪',
+    youtube:'▶',
+    threads:'@',
+    website:'↗',
+    link:'↗'
+  }[candidateCompanyLinkType(value)]||'↗';
+}
+
+function candidateCompanyLink(value){
   const url=candidateExternalUrl(value);
   if(!url)return '';
-  return `<a class="details-company-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+
+  const label=candidateCompanyLinkLabel(url);
+
+  return `
+    <a
+      class="details-company-link"
+      href="${escapeHtml(url)}"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="${escapeHtml(label)}">
+      <span aria-hidden="true">${escapeHtml(candidateCompanyLinkIcon(url))}</span>
+      <span>${escapeHtml(label)}</span>
+    </a>
+  `;
 }
 
 function openJobDetails(index){
@@ -2092,11 +2196,10 @@ function openJobDetails(index){
       <div class="details-copy">${escapeHtml(companyAbout||'Company information has not been added yet.')}</div>
 
       <div class="details-company-links">
-        ${candidateCompanyLink('Website',job.company_website)}
-        ${candidateCompanyLink('LinkedIn',job.company_linkedin_url)}
-        ${candidateCompanyLink('Instagram',job.company_instagram_url)}
-        ${candidateCompanyLink('Facebook',job.company_facebook_url)}
-        ${candidateCompanyLink('X',job.company_x_url)}
+        ${candidateCompanyLink(job.company_website)}
+        ${candidateCompanyLinks(job)
+          .map(candidateCompanyLink)
+          .join('')}
       </div>
     </section>
   `;
