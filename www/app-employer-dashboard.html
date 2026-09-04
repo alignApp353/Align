@@ -1652,11 +1652,25 @@
     .company-logo-upload-copy strong{display:block;font-size:14px;color:var(--text);margin-bottom:5px}
     .company-logo-upload-copy p{margin:0 0 10px;font-size:12px;line-height:1.5;color:var(--muted)}
     .company-logo-file{width:100%;font-size:12px}
-    .social-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .company-link-adder{display:flex;gap:10px;align-items:stretch}
+    .company-link-adder input{flex:1;min-width:0}
+    .company-link-add-btn{border:1px solid var(--brand);background:var(--brand);color:#fff;border-radius:14px;padding:0 18px;font:inherit;font-size:12px;font-weight:900;white-space:nowrap}
+    .company-link-list{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
+    .company-link-chip{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:0 10px 0 9px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--text);font-size:11px;font-weight:800;max-width:100%}
+    .company-link-chip-icon{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#edf3f8;color:var(--brand);font-size:10px;font-weight:900;flex:0 0 auto}
+    .company-link-chip-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px}
+    .company-link-remove{border:0;background:transparent;color:var(--muted);font-size:17px;line-height:1;padding:0 1px;cursor:pointer}
+    .company-link-empty{font-size:11px;color:var(--muted);padding:2px 0}
+    .company-link-error{font-size:11px;color:#a33;margin-top:8px}
+    
     .social-preview-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
     .social-preview-link{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:var(--card-bg);color:var(--brand);font-size:12px;font-weight:800;text-decoration:none}
     #company-logo img,.candidate-company-preview-logo img{width:100%;height:100%;object-fit:contain;border-radius:inherit;background:#fff}
-    @media(max-width:640px){.social-fields{grid-template-columns:1fr}}
+    @media(max-width:640px){
+      .company-link-adder{flex-direction:column}
+      .company-link-add-btn{min-height:48px}
+      .company-link-chip-label{max-width:220px}
+    }
 
     .company-edit-message{
       margin-top:14px;padding:12px 14px;border-radius:13px;
@@ -3978,14 +3992,39 @@
         </div>
 
         <div class="company-edit-field full">
-          <label>Company social media</label>
-          <div class="social-fields">
-            <input id="edit-company-linkedin" type="url" maxlength="300" placeholder="https://linkedin.com/company/your-company" aria-label="LinkedIn company page">
-            <input id="edit-company-instagram" type="url" maxlength="300" placeholder="https://instagram.com/yourcompany" aria-label="Instagram company page">
-            <input id="edit-company-facebook" type="url" maxlength="300" placeholder="https://facebook.com/yourcompany" aria-label="Facebook company page">
-            <input id="edit-company-x" type="url" maxlength="300" placeholder="https://x.com/yourcompany" aria-label="X company page">
+          <label for="edit-company-link-input">Company links</label>
+
+          <div class="company-link-adder">
+            <input
+              id="edit-company-link-input"
+              type="url"
+              maxlength="500"
+              placeholder="Paste a website or social media link">
+
+            <button
+              class="company-link-add-btn"
+              id="add-company-link"
+              type="button">
+              Add Link
+            </button>
           </div>
-          <div class="company-edit-note">Optional. Only connected links appear publicly on job listings.</div>
+
+          <div
+            class="company-link-error"
+            id="company-link-error"
+            hidden>
+          </div>
+
+          <div
+            class="company-link-list"
+            id="company-link-list">
+          </div>
+
+          <div class="company-edit-note">
+            Add links one at a time. Alygnn recognizes Facebook, Instagram,
+            LinkedIn, X, TikTok, YouTube, and other websites automatically.
+            Job-board competitor links are not allowed.
+          </div>
         </div>
 
         <div class="company-edit-field full">
@@ -4371,7 +4410,8 @@
       aiProfileComplete:false,
       verificationStatus:'pending_review',
       entitlement:null,
-      pendingCompanyLogoFile:null
+      pendingCompanyLogoFile:null,
+      pendingCompanyLinks:[]
     };
 
     const THEME_STORAGE_KEY = 'alygnnEmployerTheme';
@@ -6889,12 +6929,16 @@
       $('preview-company-website').textContent = company.website;
 
       const socials=$('preview-company-socials');
-      const socialHtml=[
-        companySocialLinkHtml('LinkedIn',company.linkedin),
-        companySocialLinkHtml('Instagram',company.instagram),
-        companySocialLinkHtml('Facebook',company.facebook),
-        companySocialLinkHtml('X',company.x)
-      ].filter(Boolean).join('');
+      const socialHtml=
+        (company.links||[])
+          .map(url=>
+            companySocialLinkHtml(
+              companyLinkLabel(url),
+              url
+            )
+          )
+          .filter(Boolean)
+          .join('');
       socials.innerHTML=socialHtml;
       socials.hidden=!socialHtml;
 
@@ -6930,41 +6974,337 @@
       }
     }
 
-    function platformCompanyUrl(value,platform){
+    const BLOCKED_JOB_LINK_DOMAINS=[
+      'indeed.com',
+      'ziprecruiter.com',
+      'glassdoor.com',
+      'monster.com',
+      'careerbuilder.com',
+      'simplyhired.com',
+      'snagajob.com',
+      'dice.com',
+      'wellfound.com',
+      'handshake.com',
+      'talent.com',
+      'jooble.org',
+      'adzuna.com',
+      'lensa.com',
+      'jobcase.com',
+      'jobs2careers.com',
+      'careerjet.com',
+      'jobisjob.com'
+    ];
+
+    function linkHostname(value){
       const url=normalizePublicUrl(value);
       if(!url)return '';
-      let host='';
+
       try{
-        host=new URL(url).hostname.toLowerCase().replace(/^www\./,'');
+        return new URL(url).hostname
+          .toLowerCase()
+          .replace(/^www\./,'');
       }catch(_error){
         return '';
       }
-      const allowed={
-        linkedin:['linkedin.com'],
-        instagram:['instagram.com'],
-        facebook:['facebook.com','fb.com'],
-        x:['x.com','twitter.com']
-      }[platform]||[];
-      return allowed.some(domain=>host===domain||host.endsWith('.'+domain))?url:'';
     }
 
-    function renderLogoInto(element,logoUrl,name){
-      if(!element)return;
-      element.innerHTML='';
-      if(logoUrl){
-        const img=document.createElement('img');
-        img.src=logoUrl;
-        img.alt=(name||'Company')+' logo';
-        img.onerror=()=>{element.textContent=initials(name);};
-        element.appendChild(img);
+    function isBlockedCompanyLink(value){
+      const url=normalizePublicUrl(value);
+      if(!url)return false;
+
+      let parsed;
+
+      try{
+        parsed=new URL(url);
+      }catch(_error){
+        return false;
+      }
+
+      const host=parsed.hostname
+        .toLowerCase()
+        .replace(/^www\./,'');
+
+      const blockedDomain=
+        BLOCKED_JOB_LINK_DOMAINS.some(domain=>
+          host===domain||
+          host.endsWith('.'+domain)
+        );
+
+      if(blockedDomain){
+        return true;
+      }
+
+      /*
+       * LinkedIn company/social pages are allowed.
+       * LinkedIn job-ad/application links are not.
+       */
+      if(
+        (
+          host==='linkedin.com'||
+          host.endsWith('.linkedin.com')
+        ) &&
+        /^\/jobs(?:\/|$)/i.test(parsed.pathname)
+      ){
+        return true;
+      }
+
+      return false;
+    }
+
+    function companyLinkType(value){
+      const url=normalizePublicUrl(value);
+      if(!url)return 'link';
+
+      let parsed;
+
+      try{
+        parsed=new URL(url);
+      }catch(_error){
+        return 'link';
+      }
+
+      const host=parsed.hostname
+        .toLowerCase()
+        .replace(/^www\./,'');
+
+      if(host==='facebook.com'||host.endsWith('.facebook.com')||host==='fb.com'||host.endsWith('.fb.com'))return 'facebook';
+      if(host==='instagram.com'||host.endsWith('.instagram.com'))return 'instagram';
+      if(host==='linkedin.com'||host.endsWith('.linkedin.com'))return 'linkedin';
+      if(host==='x.com'||host.endsWith('.x.com')||host==='twitter.com'||host.endsWith('.twitter.com'))return 'x';
+      if(host==='tiktok.com'||host.endsWith('.tiktok.com'))return 'tiktok';
+      if(host==='youtube.com'||host.endsWith('.youtube.com')||host==='youtu.be')return 'youtube';
+      if(host==='threads.net'||host.endsWith('.threads.net'))return 'threads';
+
+      return 'website';
+    }
+
+    function companyLinkLabel(value){
+      const type=companyLinkType(value);
+
+      const labels={
+        facebook:'Facebook',
+        instagram:'Instagram',
+        linkedin:'LinkedIn',
+        x:'X',
+        tiktok:'TikTok',
+        youtube:'YouTube',
+        threads:'Threads',
+        website:'Website',
+        link:'Link'
+      };
+
+      if(type!=='website'){
+        return labels[type]||'Link';
+      }
+
+      return linkHostname(value)||'Website';
+    }
+
+    function companyLinkIcon(value){
+      const type=companyLinkType(value);
+
+      return {
+        facebook:'f',
+        instagram:'◎',
+        linkedin:'in',
+        x:'𝕏',
+        tiktok:'♪',
+        youtube:'▶',
+        threads:'@',
+        website:'↗',
+        link:'↗'
+      }[type]||'↗';
+    }
+
+    function normalizeCompanyLinks(value){
+      let input=value;
+
+      if(typeof input==='string'){
+        try{
+          input=JSON.parse(input);
+        }catch(_error){
+          input=[input];
+        }
+      }
+
+      if(!Array.isArray(input)){
+        input=[];
+      }
+
+      const seen=new Set();
+      const links=[];
+
+      input.forEach(item=>{
+        const raw=
+          typeof item==='string'
+            ?item
+            :item?.url;
+
+        const url=normalizePublicUrl(raw);
+
+        if(!url||isBlockedCompanyLink(url)){
+          return;
+        }
+
+        const key=url
+          .replace(/\/+$/,'')
+          .toLowerCase();
+
+        if(seen.has(key)){
+          return;
+        }
+
+        seen.add(key);
+        links.push(url);
+      });
+
+      return links;
+    }
+
+    function legacySocialLinks(source){
+      if(!source||typeof source!=='object'){
+        return [];
+      }
+
+      return normalizeCompanyLinks([
+        source.linkedin_url,
+        source.instagram_url,
+        source.facebook_url,
+        source.x_url,
+        source.twitter_url
+      ]);
+    }
+
+    function mergeCompanyLinks(...sources){
+      const combined=[];
+
+      sources.forEach(source=>{
+        if(Array.isArray(source)){
+          combined.push(...source);
+        }else if(source){
+          combined.push(source);
+        }
+      });
+
+      return normalizeCompanyLinks(combined);
+    }
+
+    function renderCompanyLinkList(){
+      const list=$('company-link-list');
+      if(!list)return;
+
+      const links=normalizeCompanyLinks(
+        state.pendingCompanyLinks
+      );
+
+      state.pendingCompanyLinks=links;
+
+      if(!links.length){
+        list.innerHTML=
+          '<div class="company-link-empty">No company links added yet.</div>';
         return;
       }
-      element.textContent=initials(name);
+
+      list.innerHTML=links.map((url,index)=>`
+        <div class="company-link-chip">
+          <span class="company-link-chip-icon">${escapeHtml(companyLinkIcon(url))}</span>
+          <span class="company-link-chip-label">${escapeHtml(companyLinkLabel(url))}</span>
+          <button
+            class="company-link-remove"
+            type="button"
+            data-remove-company-link="${index}"
+            aria-label="Remove ${escapeHtml(companyLinkLabel(url))}">
+            ×
+          </button>
+        </div>
+      `).join('');
+
+      list
+        .querySelectorAll('[data-remove-company-link]')
+        .forEach(button=>{
+          button.onclick=()=>{
+            const index=Number(
+              button.dataset.removeCompanyLink
+            );
+
+            if(
+              Number.isInteger(index) &&
+              index>=0
+            ){
+              state.pendingCompanyLinks.splice(
+                index,
+                1
+              );
+
+              renderCompanyLinkList();
+            }
+          };
+        });
+    }
+
+    function addCompanyLinkFromInput(){
+      const input=$('edit-company-link-input');
+      const error=$('company-link-error');
+      const raw=input.value.trim();
+
+      error.hidden=true;
+      error.textContent='';
+
+      if(!raw){
+        return;
+      }
+
+      const url=normalizePublicUrl(raw);
+
+      if(!url){
+        error.textContent=
+          'Enter a valid website or social media link.';
+        error.hidden=false;
+        return;
+      }
+
+      if(isBlockedCompanyLink(url)){
+        error.textContent=
+          'Job-board competitor links are not allowed on Alygnn company profiles.';
+        error.hidden=false;
+        return;
+      }
+
+      const normalizedKey=
+        url.replace(/\/+$/,'').toLowerCase();
+
+      const duplicate=
+        state.pendingCompanyLinks.some(existing=>
+          existing.replace(/\/+$/,'').toLowerCase()===
+          normalizedKey
+        );
+
+      if(duplicate){
+        error.textContent=
+          'That link is already connected.';
+        error.hidden=false;
+        return;
+      }
+
+      state.pendingCompanyLinks.push(url);
+      input.value='';
+      renderCompanyLinkList();
     }
 
     function companySocialLinkHtml(label,url){
       if(!url)return '';
-      return `<a class="social-preview-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+
+      return `
+        <a
+          class="social-preview-link"
+          href="${escapeHtml(url)}"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="${escapeHtml(label)}">
+          <span aria-hidden="true">${escapeHtml(companyLinkIcon(url))}</span>
+          <span>${escapeHtml(label)}</span>
+        </a>
+      `;
     }
 
     async function uploadCompanyLogo(file,userId){
@@ -7068,35 +7408,20 @@
           meta.company_logo,
           meta.logo_url
         ),
-        linkedin:platformCompanyUrl(firstValue(
-          aiProfile.linkedin_url,
-          setup.linkedin_url,
-          verification.linkedin_url,
-          company.linkedin_url,
-          meta.linkedin_url
-        ),'linkedin'),
-        instagram:platformCompanyUrl(firstValue(
-          aiProfile.instagram_url,
-          setup.instagram_url,
-          verification.instagram_url,
-          company.instagram_url,
-          meta.instagram_url
-        ),'instagram'),
-        facebook:platformCompanyUrl(firstValue(
-          aiProfile.facebook_url,
-          setup.facebook_url,
-          verification.facebook_url,
-          company.facebook_url,
-          meta.facebook_url
-        ),'facebook'),
-        x:platformCompanyUrl(firstValue(
-          aiProfile.x_url,
-          setup.x_url,
-          verification.x_url,
-          company.x_url,
-          meta.x_url,
-          meta.twitter_url
-        ),'x')
+        links:mergeCompanyLinks(
+          aiProfile.company_links,
+          setup.company_links,
+          verification.company_links,
+          company.company_links,
+          meta.company_links,
+          firstJob.company_links,
+          legacySocialLinks(aiProfile),
+          legacySocialLinks(setup),
+          legacySocialLinks(verification),
+          legacySocialLinks(company),
+          legacySocialLinks(meta),
+          legacySocialLinks(firstJob)
+        )
       };
     }
 
@@ -7111,10 +7436,14 @@
       $('edit-company-website').value=company.website==='Not added'?'':company.website;
       $('edit-company-about').value=company.about||'';
       $('edit-company-benefits').value=company.benefits.join(', ');
-      $('edit-company-linkedin').value=company.linkedin||'';
-      $('edit-company-instagram').value=company.instagram||'';
-      $('edit-company-facebook').value=company.facebook||'';
-      $('edit-company-x').value=company.x||'';
+      state.pendingCompanyLinks=[
+        ...(company.links||[])
+      ];
+
+      $('edit-company-link-input').value='';
+      $('company-link-error').hidden=true;
+      $('company-link-error').textContent='';
+      renderCompanyLinkList();
 
       state.pendingCompanyLogoFile=null;
       $('edit-company-logo').value='';
@@ -7152,22 +7481,43 @@
       const description=$('edit-company-about').value.trim();
       const benefits=normalizeList($('edit-company-benefits').value);
 
-      const linkedin=platformCompanyUrl($('edit-company-linkedin').value,'linkedin');
-      const instagram=platformCompanyUrl($('edit-company-instagram').value,'instagram');
-      const facebook=platformCompanyUrl($('edit-company-facebook').value,'facebook');
-      const xUrl=platformCompanyUrl($('edit-company-x').value,'x');
+      const companyLinks=
+        normalizeCompanyLinks(
+          state.pendingCompanyLinks
+        );
 
-      const invalidSocials=[
-        ['LinkedIn',$('edit-company-linkedin').value,linkedin],
-        ['Instagram',$('edit-company-instagram').value,instagram],
-        ['Facebook',$('edit-company-facebook').value,facebook],
-        ['X',$('edit-company-x').value,xUrl]
-      ].filter(([,raw,clean])=>String(raw||'').trim()&&!clean);
+      let normalizedWebsite='';
 
-      if(invalidSocials.length){
-        message.textContent=`${invalidSocials[0][0]} link is not a valid ${invalidSocials[0][0]} URL.`;
-        message.hidden=false;
-        return;
+      if(website){
+        normalizedWebsite=
+          normalizePublicUrl(website);
+
+        let websiteHost='';
+
+        try{
+          websiteHost=
+            new URL(normalizedWebsite)
+              .hostname;
+        }catch(_error){}
+
+        if(
+          !normalizedWebsite ||
+          !websiteHost ||
+          !websiteHost.includes('.') ||
+          website.includes('@')
+        ){
+          message.textContent=
+            'Enter a real company website, such as https://company.com. Email addresses are not websites.';
+          message.hidden=false;
+          return;
+        }
+
+        if(isBlockedCompanyLink(normalizedWebsite)){
+          message.textContent=
+            'Job-board competitor websites cannot be used as the company website.';
+          message.hidden=false;
+          return;
+        }
       }
 
       if(!companyName){
@@ -7203,16 +7553,17 @@
             industry,
             company_size:companySize,
             company_location:headquarters,
-            company_website:website,
-            website,
+            company_website:normalizedWebsite,
+            website:normalizedWebsite,
             company_description:description,
             company_benefits:benefits,
             company_logo:logoUrl,
             logo_url:logoUrl,
-            linkedin_url:linkedin,
-            instagram_url:instagram,
-            facebook_url:facebook,
-            x_url:xUrl,
+            company_links:companyLinks,
+            linkedin_url:companyLinks.find(url=>companyLinkType(url)==='linkedin')||'',
+            instagram_url:companyLinks.find(url=>companyLinkType(url)==='instagram')||'',
+            facebook_url:companyLinks.find(url=>companyLinkType(url)==='facebook')||'',
+            x_url:companyLinks.find(url=>companyLinkType(url)==='x')||'',
             onboarding_company_profile:{
               ...setup,
               company_name:companyName,
@@ -7223,10 +7574,11 @@
               company_description:description,
               company_benefits:benefits,
               company_logo:logoUrl,
-              linkedin_url:linkedin,
-              instagram_url:instagram,
-              facebook_url:facebook,
-              x_url:xUrl,
+              company_links:companyLinks,
+              linkedin_url:companyLinks.find(url=>companyLinkType(url)==='linkedin')||'',
+              instagram_url:companyLinks.find(url=>companyLinkType(url)==='instagram')||'',
+              facebook_url:companyLinks.find(url=>companyLinkType(url)==='facebook')||'',
+              x_url:companyLinks.find(url=>companyLinkType(url)==='x')||'',
               saved_at:new Date().toISOString()
             },
             employer_ai_profile:{
@@ -7237,10 +7589,11 @@
               company_description:description,
               company_benefits:benefits,
               company_logo:logoUrl,
-              linkedin_url:linkedin,
-              instagram_url:instagram,
-              facebook_url:facebook,
-              x_url:xUrl
+              company_links:companyLinks,
+              linkedin_url:companyLinks.find(url=>companyLinkType(url)==='linkedin')||'',
+              instagram_url:companyLinks.find(url=>companyLinkType(url)==='instagram')||'',
+              facebook_url:companyLinks.find(url=>companyLinkType(url)==='facebook')||'',
+              x_url:companyLinks.find(url=>companyLinkType(url)==='x')||''
             }
           }
         });
@@ -7262,10 +7615,11 @@
             website,
             company_description:description,
             company_logo:logoUrl,
-            linkedin_url:linkedin,
-            instagram_url:instagram,
-            facebook_url:facebook,
-            x_url:xUrl,
+            company_links:companyLinks,
+            linkedin_url:companyLinks.find(url=>companyLinkType(url)==='linkedin')||'',
+            instagram_url:companyLinks.find(url=>companyLinkType(url)==='instagram')||'',
+            facebook_url:companyLinks.find(url=>companyLinkType(url)==='facebook')||'',
+            x_url:companyLinks.find(url=>companyLinkType(url)==='x')||'',
             updated_at:new Date().toISOString()
           })
           .eq('user_id',user.id);
@@ -7282,10 +7636,11 @@
             website,
             company_description:description,
             company_logo:logoUrl,
-            linkedin_url:linkedin,
-            instagram_url:instagram,
-            facebook_url:facebook,
-            x_url:xUrl
+            company_links:companyLinks,
+            linkedin_url:companyLinks.find(url=>companyLinkType(url)==='linkedin')||'',
+            instagram_url:companyLinks.find(url=>companyLinkType(url)==='instagram')||'',
+            facebook_url:companyLinks.find(url=>companyLinkType(url)==='facebook')||'',
+            x_url:companyLinks.find(url=>companyLinkType(url)==='x')||''
           };
         }
 
@@ -7293,12 +7648,13 @@
           .from('jobs')
           .update({
             company_logo:logoUrl,
-            company_website:website,
+            company_website:normalizedWebsite,
             company_description:description,
-            company_linkedin_url:linkedin,
-            company_instagram_url:instagram,
-            company_facebook_url:facebook,
-            company_x_url:xUrl,
+            company_links:companyLinks,
+            company_linkedin_url:companyLinks.find(url=>companyLinkType(url)==='linkedin')||'',
+            company_instagram_url:companyLinks.find(url=>companyLinkType(url)==='instagram')||'',
+            company_facebook_url:companyLinks.find(url=>companyLinkType(url)==='facebook')||'',
+            company_x_url:companyLinks.find(url=>companyLinkType(url)==='x')||'',
             updated_at:new Date().toISOString()
           })
           .eq('employer_id',user.id);
@@ -9618,6 +9974,20 @@
     };
 
     $('open-company-page').onclick = openCompanyEditor;
+
+    $('add-company-link').onclick=
+      addCompanyLinkFromInput;
+
+    $('edit-company-link-input')
+      .addEventListener(
+        'keydown',
+        event=>{
+          if(event.key==='Enter'){
+            event.preventDefault();
+            addCompanyLinkFromInput();
+          }
+        }
+      );
 
     $('edit-company-logo').addEventListener('change',event=>{
       const file=event.target.files?.[0]||null;
