@@ -938,6 +938,7 @@ button,a{-webkit-tap-highlight-color:transparent}
 
   <div class="note">
     <strong>How Alygnn billing works:</strong>
+    <span id="developer-billing-note"></span>
     billing is collected at the beginning of each paid period. Upgrades charge
     only the exact price difference between your current plan and the higher
     plan, unlock immediately after payment, and keep the same renewal date.
@@ -1043,6 +1044,35 @@ function clearMessage(){
   const box=$('message');
   box.className='message';
   box.textContent='';
+}
+
+function developerBypassActive(){
+  return entitlement?.test_mode===true;
+}
+
+async function developerBypass(
+  action,
+  {
+    plan=null,
+    billing=null,
+    jobId=null,
+    days=1
+  }={}
+){
+  const {data,error}=await sb.rpc(
+    'alygnn_developer_bypass',
+    {
+      p_action:action,
+      p_plan:plan,
+      p_billing:billing,
+      p_job_id:jobId,
+      p_days:days
+    }
+  );
+
+  if(error)throw error;
+
+  return data||{};
 }
 
 async function openUrl(url){
@@ -2050,10 +2080,24 @@ You keep ${planName(current)} through ${fmtDate(summary?.current_period_end)}. O
       :'Scheduling downgrade…';
 
   try{
-    const data=await api({
-      action:'change_plan',
-      target_plan:target
-    });
+    const data=
+      developerBypassActive()
+        ?await developerBypass(
+            'change_plan',
+            {
+              plan:target,
+              billing
+            }
+          )
+        :await api({
+            action:'change_plan',
+            target_plan:target
+          });
+
+    const normalizedChange=
+      data.change||
+      data.action||
+      '';
 
     if(
       data.hosted_invoice_url &&
@@ -2070,6 +2114,7 @@ You keep ${planName(current)} through ${fmtDate(summary?.current_period_end)}. O
       const paidDifference=
         data.amount_due_now_cents ??
         data.amount_due_cents ??
+        data.simulated_difference_cents ??
         Math.max(
           0,
           targetItem.cents-item.cents
@@ -2146,7 +2191,11 @@ async function cancelPending(){
       :'Canceling change…';
 
   try{
-    await api({action});
+    if(developerBypassActive()){
+      await developerBypass(action);
+    }else{
+      await api({action});
+    }
 
     showMessage(
       isCancellation
@@ -2204,9 +2253,14 @@ async function cancelPlan(){
   button.textContent='Scheduling cancellation…';
 
   try{
-    const data=await api({
-      action:'cancel_plan'
-    });
+    const data=
+      developerBypassActive()
+        ?await developerBypass(
+            'cancel_plan'
+          )
+        :await api({
+            action:'cancel_plan'
+          });
 
     showMessage(
       `Cancellation scheduled for ${fmtDate(data.effective_at||summary?.current_period_end)}. Your current plan stays active until then and there will be no next renewal charge.`,
@@ -2258,12 +2312,20 @@ async function toggleSecondSlotCancellation(){
       :'Scheduling cancellation…';
 
   try{
-    const data=await api({
-      action:
-        scheduled
-          ?'resume_second_slot'
-          :'cancel_second_slot'
-    });
+    const requestedAction=
+      scheduled
+        ?'resume_second_slot'
+        :'cancel_second_slot';
+
+    const data=
+      developerBypassActive()
+        ?await developerBypass(
+            requestedAction
+          )
+        :await api({
+            action:
+              requestedAction
+          });
 
     showMessage(
       scheduled
@@ -2290,6 +2352,15 @@ async function toggleSecondSlotCancellation(){
 }
 
 function renderAll(){
+  const devNote=$('developer-billing-note');
+
+  if(devNote){
+    devNote.textContent=
+      developerBypassActive()
+        ?' Developer test bypass is active: Stripe is skipped and all test billing actions are $0. '
+        :'';
+  }
+
   renderCurrent();
   renderPending();
   renderPlans();
