@@ -1,35 +1,1304 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark">
-<title>Alygnn — Chat</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Alygnn — Chat</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+
 <style>
-*{box-sizing:border-box;font-family:'DM Sans',Arial,sans-serif!important}:root{--brand:#5D7FA3;--brand-dark:#345F91;--sage:#8CB69B;--bg:#F6F8F7;--card:#fff;--text:#172333;--muted:#647282;--border:#DDE3E8;--soft:#EAF0F6;--danger:#C74747;--danger-bg:#FCECEC}@media(prefers-color-scheme:dark){:root{--bg:#061821;--card:#10232D;--text:#F3F7FA;--muted:#A9B8C5;--border:#29404C;--soft:#172A40;--danger-bg:#3B1E22}}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--text)}body{overflow:hidden}.app{height:100dvh;display:grid;grid-template-rows:auto auto 1fr auto}.header{padding:calc(10px + env(safe-area-inset-top)) 14px 10px;display:grid;grid-template-columns:48px 1fr 48px;align-items:center;border-bottom:1px solid var(--border);background:var(--bg)}.back,.more{width:44px;height:44px;border:1px solid var(--border);border-radius:50%;background:var(--card);color:var(--text);font-size:21px}.more{font-size:24px;font-weight:800;line-height:1}.logo{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;color:var(--brand);font-size:30px}.logo span{color:var(--sage)}.context{padding:12px 18px;border-bottom:1px solid var(--border);background:var(--card)}.person{font-size:16px;font-weight:900}.job{margin-top:3px;color:var(--muted);font-size:11px}.rule{margin-top:7px;color:var(--muted);font-size:10px;line-height:1.4}.messages{overflow-y:auto;padding:18px 16px 24px;display:flex;flex-direction:column;gap:9px}.bubble{max-width:82%;padding:11px 13px;border-radius:17px;font-size:13px;line-height:1.45;white-space:pre-wrap;word-break:break-word}.mine{align-self:flex-end;background:var(--brand-dark);color:#fff;border-bottom-right-radius:5px}.theirs{align-self:flex-start;background:var(--card);border:1px solid var(--border);border-bottom-left-radius:5px}.stamp{display:block;margin-top:5px;font-size:8px;opacity:.65}.empty{margin:auto;padding:28px 20px;text-align:center;color:var(--muted);font-size:13px;line-height:1.55}.empty strong{display:block;color:var(--text);font-size:16px;margin-bottom:6px}.composer{padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr auto;gap:8px;border-top:1px solid var(--border);background:var(--card)}textarea{resize:none;max-height:120px;min-height:46px;border:1px solid var(--border);border-radius:15px;background:var(--bg);color:var(--text);padding:12px 13px;outline:none;font-size:13px}.send{min-width:72px;border:0;border-radius:15px;background:var(--brand-dark);color:#fff;font-weight:900;padding:0 16px}.send:disabled{opacity:.45}.notice{margin:10px 16px 0;padding:11px 13px;border-radius:13px;background:var(--soft);color:var(--brand-dark);font-size:11px;font-weight:700;line-height:1.45}.notice.error{background:var(--danger-bg);color:var(--danger)}
-</style></head>
-<body><div class="app"><header class="header"><button class="back" id="back">←</button><div class="logo">Alygnn<span>.</span></div><button class="more" id="more" type="button" aria-label="Conversation options" hidden>⋯</button></header><div><div class="context"><div class="person" id="person">Conversation</div><div class="job" id="job">Job application</div><div class="rule" id="rule"></div></div><div class="notice" id="notice" hidden></div></div><main class="messages" id="messages"><div class="empty"><strong>Loading conversation…</strong></div></main><div class="composer" id="composer"><textarea id="input" maxlength="2000" rows="1" placeholder="Write a message…"></textarea><button class="send" id="send">Send</button></div></div>
+*{box-sizing:border-box;font-family:'DM Sans',Arial,sans-serif!important}
+:root{
+  --brand:#5D7FA3;
+  --brand-dark:#345F91;
+  --sage:#8CB69B;
+  --bg:#F6F8F7;
+  --card:#fff;
+  --text:#172333;
+  --muted:#647282;
+  --border:#DDE3E8;
+  --soft:#EAF0F6;
+  --danger:#C74747;
+  --danger-bg:#FCECEC;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#061821;
+    --card:#10232D;
+    --text:#F3F7FA;
+    --muted:#A9B8C5;
+    --border:#29404C;
+    --soft:#172A40;
+    --danger-bg:#3B1E22;
+  }
+}
+
+html,body{
+  margin:0;
+  height:100%;
+  background:var(--bg);
+  color:var(--text);
+}
+body{
+  overflow:hidden;
+}
+button,textarea{
+  font:inherit;
+}
+button{
+  cursor:pointer;
+}
+
+.app{
+  height:100dvh;
+  display:grid;
+  grid-template-rows:auto auto 1fr auto;
+}
+.header{
+  position:relative;
+  padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
+  display:grid;
+  grid-template-columns:48px 1fr 48px;
+  align-items:center;
+  border-bottom:1px solid var(--border);
+  background:var(--bg);
+}
+.back,
+.more{
+  width:44px;
+  height:44px;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:var(--card);
+  color:var(--text);
+  font-size:21px;
+}
+.more{
+  font-size:24px;
+  font-weight:800;
+  line-height:1;
+}
+.logo{
+  text-align:center;
+  font-family:'DM Serif Display',Georgia,serif!important;
+  color:var(--brand);
+  font-size:30px;
+}
+.logo span{
+  color:var(--sage);
+}
+
+.chat-menu{
+  position:absolute;
+  z-index:50;
+  right:14px;
+  top:calc(58px + env(safe-area-inset-top));
+  width:190px;
+  padding:7px;
+  border:1px solid var(--border);
+  border-radius:15px;
+  background:var(--card);
+  box-shadow:0 18px 46px rgba(15,30,45,.16);
+}
+.chat-menu[hidden]{display:none}
+.menu-action{
+  width:100%;
+  min-height:40px;
+  border:0;
+  border-radius:10px;
+  background:transparent;
+  color:var(--text);
+  text-align:left;
+  padding:0 11px;
+  font-size:11px;
+  font-weight:800;
+}
+.menu-action:hover{background:var(--soft)}
+.menu-action.danger{color:var(--danger)}
+
+.context{
+  padding:12px 18px;
+  border-bottom:1px solid var(--border);
+  background:var(--card);
+}
+.person{
+  font-size:16px;
+  font-weight:900;
+}
+.job{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:11px;
+}
+.rule{
+  margin-top:7px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.4;
+}
+
+.messages{
+  overflow-y:auto;
+  padding:18px 16px 24px;
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+}
+.bubble{
+  max-width:82%;
+  padding:11px 13px;
+  border-radius:17px;
+  font-size:13px;
+  line-height:1.45;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+.mine{
+  align-self:flex-end;
+  background:var(--brand-dark);
+  color:#fff;
+  border-bottom-right-radius:5px;
+}
+.theirs{
+  align-self:flex-start;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-bottom-left-radius:5px;
+}
+.stamp{
+  display:block;
+  margin-top:5px;
+  font-size:8px;
+  opacity:.65;
+}
+
+.empty{
+  margin:auto;
+  padding:28px 20px;
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.55;
+}
+.empty strong{
+  display:block;
+  color:var(--text);
+  font-size:16px;
+  margin-bottom:6px;
+}
+
+.composer{
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+  border-top:1px solid var(--border);
+  background:var(--card);
+}
+textarea{
+  resize:none;
+  max-height:120px;
+  min-height:46px;
+  border:1px solid var(--border);
+  border-radius:15px;
+  background:var(--bg);
+  color:var(--text);
+  padding:12px 13px;
+  outline:none;
+  font-size:13px;
+}
+.send{
+  min-width:72px;
+  border:0;
+  border-radius:15px;
+  background:var(--brand-dark);
+  color:#fff;
+  font-weight:900;
+  padding:0 16px;
+}
+.send:disabled{
+  opacity:.45;
+}
+
+.notice{
+  margin:10px 16px 0;
+  padding:11px 13px;
+  border-radius:13px;
+  background:var(--soft);
+  color:var(--brand-dark);
+  font-size:11px;
+  font-weight:700;
+  line-height:1.45;
+}
+.notice.error{
+  background:var(--danger-bg);
+  color:var(--danger);
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <header class="header">
+    <button class="back" id="back" type="button">←</button>
+
+    <div class="logo">
+      Alygnn<span>.</span>
+    </div>
+
+    <button
+      class="more"
+      id="more"
+      type="button"
+      aria-label="Conversation options"
+      hidden>
+      ⋯
+    </button>
+
+    <div
+      class="chat-menu"
+      id="chat-menu"
+      hidden>
+
+      <button
+        class="menu-action"
+        id="archive-chat"
+        type="button">
+        Archive conversation
+      </button>
+
+      <button
+        class="menu-action danger"
+        id="delete-chat"
+        type="button">
+        Delete for me
+      </button>
+    </div>
+  </header>
+
+  <div>
+    <div class="context">
+      <div class="person" id="person">Conversation</div>
+      <div class="job" id="job">Job application</div>
+      <div class="rule" id="rule"></div>
+    </div>
+
+    <div
+      class="notice"
+      id="notice"
+      hidden>
+    </div>
+  </div>
+
+  <main
+    class="messages"
+    id="messages">
+    <div class="empty">
+      <strong>Loading conversation…</strong>
+    </div>
+  </main>
+
+  <div
+    class="composer"
+    id="composer">
+    <textarea
+      id="input"
+      maxlength="2000"
+      rows="1"
+      placeholder="Write a message…"></textarea>
+
+    <button
+      class="send"
+      id="send"
+      type="button">
+      Send
+    </button>
+  </div>
+</div>
+
 <script>
-const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-let session=null,role='candidate',applicationId='',conversation=null,application=null,job=null,profile=null,channel=null,sending=false,deleting=false,contextCandidateName='',contextJobTitle='';
-function fmt(v){const d=new Date(v);return Number.isNaN(d.getTime())?'':d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}
-function cleanIdentity(value,generic=[]){const text=String(value??'').trim();if(!text)return'';return generic.includes(text.toLowerCase())?'':text}
-function profileCandidateName(){return cleanIdentity(profile?.full_name,['candidate','applicant'])||cleanIdentity(profile?.name,['candidate','applicant'])||cleanIdentity([profile?.first_name,profile?.last_name].filter(Boolean).join(' '),['candidate','applicant'])||cleanIdentity(application?.candidate_name,['candidate','applicant'])||cleanIdentity(application?.applicant_name,['candidate','applicant'])||cleanIdentity(application?.full_name,['candidate','applicant'])||cleanIdentity([application?.first_name,application?.last_name].filter(Boolean).join(' '),['candidate','applicant'])||cleanIdentity(String(application?.candidate_email||application?.email||'').split('@')[0],['candidate','applicant'])}
-function candidateName(){return cleanIdentity(contextCandidateName,['candidate','applicant'])||cleanIdentity(conversation?.candidate_name,['candidate','applicant'])||profileCandidateName()||'Candidate'}
-function companyName(){return cleanIdentity(job?.company)||cleanIdentity(job?.company_name)||cleanIdentity(job?.employer_name)||cleanIdentity(conversation?.company_name,['employer','company'])||'Employer'}
-function jobTitle(){return cleanIdentity(contextJobTitle,['job application','position'])||cleanIdentity(conversation?.job_title,['job application','position'])||cleanIdentity(job?.title)||cleanIdentity(application?.job_title)||'Job application'}
-function setNotice(text,error=false){$('notice').hidden=!text;$('notice').className='notice'+(error?' error':'');$('notice').textContent=text||''}
-function renderContext(){$('person').textContent=role==='employer'?candidateName():companyName();$('job').textContent=jobTitle();$('rule').textContent=role==='employer'?'You control the first contact. The candidate can reply only after you send the first message.':'This chat was opened by the employer after you applied. You can reply here.';$('more').hidden=!conversation?.id}
-async function metadata(){const ar=await sb.from('applications').select('*').eq('id',applicationId).maybeSingle();if(ar.error)throw ar.error;application=ar.data;if(!application)throw new Error('Application not found.');const jr=await sb.from('jobs').select('*').eq('id',application.job_id).maybeSingle();if(!jr.error)job=jr.data||null;const pid=application.candidate_id||application.user_id||application.profile_id;if(pid){const byId=await sb.from('profiles').select('*').eq('id',pid).maybeSingle();if(!byId.error&&byId.data)profile=byId.data;if(!profile){const byUser=await sb.from('profiles').select('*').eq('user_id',pid).maybeSingle();if(!byUser.error&&byUser.data)profile=byUser.data}}}
-async function findConversation(){const r=await sb.from('application_conversations').select('*').eq('application_id',applicationId).maybeSingle();if(r.error){const msg=String(r.error.message||'');if(msg.toLowerCase().includes('does not exist'))throw new Error('Messaging is not installed yet.');throw r.error}conversation=r.data||null;if(conversation){const hidden=role==='employer'?conversation.employer_hidden_at:conversation.candidate_hidden_at;if(hidden)conversation=null}renderContext()}
-async function loadMessages(){if(!conversation){$('messages').innerHTML=`<div class="empty"><strong>${role==='employer'?'Send the first message':'No conversation yet'}</strong>${role==='employer'?'The candidate will not see a chat until you send this first message.':'The employer has not started a conversation for this application.'}</div>`;if(role==='candidate')$('composer').style.display='none';return}const r=await sb.from('application_messages').select('*').eq('conversation_id',conversation.id).order('created_at',{ascending:true});if(r.error)throw r.error;const rows=r.data||[];$('messages').innerHTML=rows.length?rows.map(m=>`<div class="bubble ${String(m.sender_id)===String(session.user.id)?'mine':'theirs'}">${esc(m.body)}<span class="stamp">${esc(fmt(m.created_at))}</span></div>`).join(''):'<div class="empty"><strong>Conversation started</strong>No messages yet.</div>';$('messages').scrollTop=$('messages').scrollHeight;await markRead()}
-async function markRead(){if(!conversation)return;try{await sb.rpc('mark_application_conversation_read',{p_conversation_id:conversation.id})}catch(e){console.warn(e)}}
-function subscribe(){if(channel)sb.removeChannel(channel);if(!conversation)return;channel=sb.channel('chat-'+conversation.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'application_messages',filter:`conversation_id=eq.${conversation.id}`},async()=>{await loadMessages()}).subscribe()}
-async function send(){const body=$('input').value.trim();if(!body||sending)return;sending=true;$('send').disabled=true;setNotice('');try{if(!conversation){if(role!=='employer')throw new Error('Only the employer can start this conversation.');const r=await sb.rpc('start_application_conversation_v3',{p_application_id:applicationId,p_body:body,p_candidate_name:candidateName(),p_job_title:jobTitle()});if(r.error)throw r.error;$('input').value='';await findConversation();await loadMessages();subscribe();return}const r=await sb.from('application_messages').insert({conversation_id:conversation.id,sender_id:session.user.id,body});if(r.error)throw r.error;$('input').value='';await loadMessages()}catch(error){console.error(error);setNotice(error?.message||'Message could not be sent.',true)}finally{sending=false;$('send').disabled=false;$('input').focus()}}
-async function deleteConversation(){if(!conversation?.id||deleting)return;const name=role==='employer'?candidateName():companyName();if(!confirm(`Delete the conversation with ${name} from your Messages?\n\nThis removes it only from your side. The other person will still keep the conversation. If they send you a new message later, it will appear again.`))return;deleting=true;$('more').disabled=true;setNotice('Removing conversation…');try{let result=await sb.rpc('hide_application_conversation',{p_conversation_id:conversation.id});if(result.error&&String(result.error.message||'').toLowerCase().includes('function'))result=await sb.rpc('delete_application_conversation',{p_conversation_id:conversation.id});if(result.error)throw result.error;if(channel)sb.removeChannel(channel);location.replace('app-messages.html?role='+role)}catch(error){console.error(error);setNotice(error?.message||'Conversation could not be removed.',true);$('more').disabled=false;deleting=false}}
+const sb=supabase.createClient(
+  'https://auth.alygnn.com',
+  'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+  {
+    auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true
+    }
+  }
+);
+
+const $=id=>document.getElementById(id);
+
+const esc=value=>
+  String(value??'')
+    .replace(
+      /[&<>"']/g,
+      char=>({
+        '&':'&amp;',
+        '<':'&lt;',
+        '>':'&gt;',
+        '"':'&quot;',
+        "'":'&#039;'
+      }[char])
+    );
+
+let session=null;
+let role='candidate';
+let applicationId='';
+let conversationId='';
+let conversation=null;
+let application=null;
+let job=null;
+let profile=null;
+let channel=null;
+let sending=false;
+let mutating=false;
+let contextCandidateName='';
+let contextJobTitle='';
+
+function fmt(value){
+  const date=new Date(value);
+
+  return Number.isNaN(
+    date.getTime()
+  )
+    ?''
+    :date.toLocaleTimeString(
+      undefined,
+      {
+        hour:'numeric',
+        minute:'2-digit'
+      }
+    );
+}
+
+function cleanIdentity(value,generic=[]){
+  const text=String(value??'').trim();
+
+  if(!text)return '';
+
+  return generic.includes(
+    text.toLowerCase()
+  )
+    ?''
+    :text;
+}
+
+function profileCandidateName(){
+  return (
+    cleanIdentity(
+      profile?.full_name,
+      ['candidate','applicant']
+    )||
+    cleanIdentity(
+      profile?.name,
+      ['candidate','applicant']
+    )||
+    cleanIdentity(
+      [
+        profile?.first_name,
+        profile?.last_name
+      ]
+        .filter(Boolean)
+        .join(' '),
+      ['candidate','applicant']
+    )||
+    cleanIdentity(
+      application?.candidate_name,
+      ['candidate','applicant']
+    )||
+    cleanIdentity(
+      application?.applicant_name,
+      ['candidate','applicant']
+    )||
+    cleanIdentity(
+      application?.full_name,
+      ['candidate','applicant']
+    )||
+    cleanIdentity(
+      [
+        application?.first_name,
+        application?.last_name
+      ]
+        .filter(Boolean)
+        .join(' '),
+      ['candidate','applicant']
+    )||
+    cleanIdentity(
+      String(
+        application?.candidate_email||
+        application?.email||
+        ''
+      ).split('@')[0],
+      ['candidate','applicant']
+    )
+  );
+}
+
+function candidateName(){
+  return (
+    cleanIdentity(
+      contextCandidateName,
+      ['candidate','applicant']
+    )||
+    cleanIdentity(
+      conversation?.candidate_name,
+      ['candidate','applicant']
+    )||
+    profileCandidateName()||
+    'Candidate'
+  );
+}
+
+function companyName(){
+  return (
+    cleanIdentity(job?.company)||
+    cleanIdentity(job?.company_name)||
+    cleanIdentity(job?.employer_name)||
+    cleanIdentity(
+      conversation?.company_name,
+      ['employer','company']
+    )||
+    'Employer'
+  );
+}
+
+function jobTitle(){
+  return (
+    cleanIdentity(
+      contextJobTitle,
+      ['job application','position']
+    )||
+    cleanIdentity(
+      conversation?.job_title,
+      ['job application','position']
+    )||
+    cleanIdentity(job?.title)||
+    cleanIdentity(
+      application?.job_title
+    )||
+    'Job application'
+  );
+}
+
+function setNotice(text,error=false){
+  const notice=$('notice');
+
+  notice.hidden=!text;
+  notice.className=
+    'notice'+
+    (error?' error':'');
+  notice.textContent=text||'';
+}
+
+function archived(){
+  if(!conversation)return false;
+
+  return Boolean(
+    role==='employer'
+      ?conversation.employer_archived_at
+      :conversation.candidate_archived_at
+  );
+}
+
+function renderContext(){
+  $('person').textContent=
+    role==='employer'
+      ?candidateName()
+      :companyName();
+
+  $('job').textContent=
+    jobTitle();
+
+  $('rule').textContent=
+    role==='employer'
+      ?'You control the first contact. The candidate can reply after you start the conversation.'
+      :'This conversation was opened by the employer after you applied.';
+
+  $('more').hidden=
+    !conversation?.id;
+
+  $('archive-chat').textContent=
+    archived()
+      ?'Move to inbox'
+      :'Archive conversation';
+}
+
+async function metadata(){
+  if(!applicationId){
+    return;
+  }
+
+  const applicationResult=await sb
+    .from('applications')
+    .select('*')
+    .eq(
+      'id',
+      applicationId
+    )
+    .maybeSingle();
+
+  if(applicationResult.error){
+    throw applicationResult.error;
+  }
+
+  application=
+    applicationResult.data||
+    null;
+
+  if(!application){
+    return;
+  }
+
+  const jobResult=await sb
+    .from('jobs')
+    .select('*')
+    .eq(
+      'id',
+      application.job_id
+    )
+    .maybeSingle();
+
+  if(!jobResult.error){
+    job=
+      jobResult.data||
+      null;
+  }
+
+  const candidateId=
+    application.candidate_id||
+    application.user_id||
+    application.profile_id;
+
+  if(candidateId){
+    const byId=await sb
+      .from('profiles')
+      .select('*')
+      .eq(
+        'id',
+        candidateId
+      )
+      .maybeSingle();
+
+    if(
+      !byId.error &&
+      byId.data
+    ){
+      profile=byId.data;
+    }
+
+    if(!profile){
+      const byUser=await sb
+        .from('profiles')
+        .select('*')
+        .eq(
+          'user_id',
+          candidateId
+        )
+        .maybeSingle();
+
+      if(
+        !byUser.error &&
+        byUser.data
+      ){
+        profile=byUser.data;
+      }
+    }
+  }
+}
+
+async function findConversation(){
+  let result=null;
+
+  if(conversationId){
+    result=await sb
+      .from('application_conversations')
+      .select('*')
+      .eq(
+        'id',
+        conversationId
+      )
+      .maybeSingle();
+  }else if(applicationId){
+    result=await sb
+      .from('application_conversations')
+      .select('*')
+      .eq(
+        'application_id',
+        applicationId
+      )
+      .maybeSingle();
+  }
+
+  if(
+    result?.error
+  ){
+    throw result.error;
+  }
+
+  conversation=
+    result?.data||
+    null;
+
+  /*
+   * One thread per candidate + job:
+   * older application links can still find the canonical conversation.
+   */
+  if(
+    !conversation &&
+    application
+  ){
+    const candidateId=
+      application.candidate_id||
+      application.user_id||
+      application.profile_id;
+
+    if(
+      candidateId &&
+      application.job_id
+    ){
+      const fallback=await sb
+        .from('application_conversations')
+        .select('*')
+        .eq(
+          'job_id',
+          String(
+            application.job_id
+          )
+        )
+        .eq(
+          'candidate_id',
+          candidateId
+        )
+        .maybeSingle();
+
+      if(fallback.error){
+        throw fallback.error;
+      }
+
+      conversation=
+        fallback.data||
+        null;
+    }
+  }
+
+  if(conversation){
+    conversationId=
+      String(
+        conversation.id
+      );
+
+    applicationId=
+      String(
+        conversation.application_id||
+        applicationId||
+        ''
+      );
+
+    const hidden=
+      role==='employer'
+        ?conversation.employer_hidden_at
+        :conversation.candidate_hidden_at;
+
+    if(hidden){
+      conversation=null;
+    }
+  }
+
+  renderContext();
+}
+
+async function loadMessages(){
+  if(!conversation){
+    $('messages').innerHTML=`
+      <div class="empty">
+        <strong>
+          ${
+            role==='employer'
+              ?'Send the first message'
+              :'No conversation yet'
+          }
+        </strong>
+        ${
+          role==='employer'
+            ?'The candidate will not see a chat until you send the first message.'
+            :'The employer has not started a conversation for this application.'
+        }
+      </div>
+    `;
+
+    if(role==='candidate'){
+      $('composer').style.display='none';
+    }
+
+    return;
+  }
+
+  const result=await sb
+    .from('application_messages')
+    .select('*')
+    .eq(
+      'conversation_id',
+      conversation.id
+    )
+    .order(
+      'created_at',
+      {
+        ascending:true
+      }
+    );
+
+  if(result.error)throw result.error;
+
+  const rows=result.data||[];
+
+  $('messages').innerHTML=
+    rows.length
+      ?rows
+        .map(message=>`
+          <div
+            class="bubble ${
+              String(message.sender_id)===
+              String(session.user.id)
+                ?'mine'
+                :'theirs'
+            }">
+            ${esc(message.body)}
+            <span class="stamp">
+              ${esc(fmt(message.created_at))}
+            </span>
+          </div>
+        `)
+        .join('')
+      :`
+        <div class="empty">
+          <strong>Conversation started</strong>
+          No messages yet.
+        </div>
+      `;
+
+  $('messages').scrollTop=
+    $('messages').scrollHeight;
+
+  await markRead();
+}
+
+async function markRead(){
+  if(!conversation)return;
+
+  try{
+    await sb.rpc(
+      'mark_application_conversation_read',
+      {
+        p_conversation_id:
+          conversation.id
+      }
+    );
+  }catch(error){
+    console.warn(error);
+  }
+}
+
+function subscribe(){
+  if(channel){
+    sb.removeChannel(channel);
+  }
+
+  if(!conversation)return;
+
+  channel=sb
+    .channel(
+      'chat-'+
+      conversation.id
+    )
+    .on(
+      'postgres_changes',
+      {
+        event:'INSERT',
+        schema:'public',
+        table:'application_messages',
+        filter:
+          `conversation_id=eq.${conversation.id}`
+      },
+      async()=>{
+        await findConversation();
+        await loadMessages();
+      }
+    )
+    .subscribe();
+}
+
+async function send(){
+  const body=
+    $('input').value.trim();
+
+  if(
+    !body||
+    sending
+  ){
+    return;
+  }
+
+  sending=true;
+  $('send').disabled=true;
+  setNotice('');
+
+  try{
+    if(!conversation){
+      if(role!=='employer'){
+        throw new Error(
+          'Only the employer can start this conversation.'
+        );
+      }
+
+      if(!applicationId){
+        throw new Error(
+          'Application information is missing.'
+        );
+      }
+
+      const result=await sb.rpc(
+        'start_application_conversation_v3',
+        {
+          p_application_id:
+            applicationId,
+
+          p_body:
+            body,
+
+          p_candidate_name:
+            candidateName(),
+
+          p_job_title:
+            jobTitle()
+        }
+      );
+
+      if(result.error){
+        throw result.error;
+      }
+
+      conversationId=
+        String(
+          result.data?.conversation_id||
+          ''
+        );
+
+      $('input').value='';
+
+      await findConversation();
+      await loadMessages();
+      subscribe();
+      return;
+    }
+
+    const result=await sb
+      .from('application_messages')
+      .insert({
+        conversation_id:
+          conversation.id,
+
+        sender_id:
+          session.user.id,
+
+        body
+      });
+
+    if(result.error){
+      throw result.error;
+    }
+
+    $('input').value='';
+    await findConversation();
+    await loadMessages();
+  }catch(error){
+    console.error(error);
+
+    setNotice(
+      error?.message||
+      'Message could not be sent.',
+      true
+    );
+  }finally{
+    sending=false;
+    $('send').disabled=false;
+    $('input').focus();
+  }
+}
+
+async function archiveConversation(){
+  if(
+    !conversation?.id||
+    mutating
+  ){
+    return;
+  }
+
+  mutating=true;
+  $('more').disabled=true;
+
+  try{
+    const toArchive=
+      !archived();
+
+    const result=await sb.rpc(
+      'archive_application_conversation',
+      {
+        p_conversation_id:
+          conversation.id,
+
+        p_archived:
+          toArchive
+      }
+    );
+
+    if(result.error){
+      throw result.error;
+    }
+
+    setNotice(
+      toArchive
+        ?'Conversation archived.'
+        :'Conversation moved back to your inbox.'
+    );
+
+    await findConversation();
+    renderContext();
+    $('chat-menu').hidden=true;
+  }catch(error){
+    console.error(error);
+
+    setNotice(
+      error?.message||
+      'Conversation could not be updated.',
+      true
+    );
+  }finally{
+    mutating=false;
+    $('more').disabled=false;
+  }
+}
+
+async function deleteConversation(){
+  if(
+    !conversation?.id||
+    mutating
+  ){
+    return;
+  }
+
+  const name=
+    role==='employer'
+      ?candidateName()
+      :companyName();
+
+  if(
+    !confirm(
+      `Delete the conversation with ${name} from your Messages?\n\nThis removes it only from your side. The other person keeps their copy. If a new message is sent later, the conversation can appear again.`
+    )
+  ){
+    return;
+  }
+
+  mutating=true;
+  $('more').disabled=true;
+
+  setNotice(
+    'Removing conversation…'
+  );
+
+  try{
+    let result=await sb.rpc(
+      'hide_application_conversation',
+      {
+        p_conversation_id:
+          conversation.id
+      }
+    );
+
+    if(
+      result.error &&
+      String(
+        result.error.message||
+        ''
+      )
+        .toLowerCase()
+        .includes('function')
+    ){
+      result=await sb.rpc(
+        'delete_application_conversation',
+        {
+          p_conversation_id:
+            conversation.id
+        }
+      );
+    }
+
+    if(result.error){
+      throw result.error;
+    }
+
+    if(channel){
+      sb.removeChannel(channel);
+    }
+
+    location.replace(
+      'app-messages.html?role='+
+      role
+    );
+  }catch(error){
+    console.error(error);
+
+    setNotice(
+      error?.message||
+      'Conversation could not be removed.',
+      true
+    );
+
+    $('more').disabled=false;
+    mutating=false;
+  }
+}
+
 $('send').onclick=send;
-$('input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
-$('back').onclick=()=>location.href='app-messages.html?role='+role;
-$('more').onclick=deleteConversation;
-(async()=>{const q=new URLSearchParams(location.search);role=q.get('role')==='employer'?'employer':'candidate';applicationId=String(q.get('application')||'');if(role==='employer'){contextCandidateName=String(q.get('candidate')||'').trim();contextJobTitle=String(q.get('job')||'').trim();try{const saved=JSON.parse(sessionStorage.getItem('alygnnMessageContext')||'null');if(saved&&String(saved.applicationId||'')===applicationId){contextCandidateName=contextCandidateName||String(saved.candidateName||'').trim();contextJobTitle=contextJobTitle||String(saved.jobTitle||'').trim()}}catch(_){}}if(!applicationId){setNotice('Application ID is missing.',true);$('composer').style.display='none';return}const {data,error}=await sb.auth.getSession();if(error||!data.session){location.replace('app-login.html');return}session=data.session;try{await metadata();await findConversation();if(role==='employer'&&conversation&&(contextCandidateName||contextJobTitle)){const sync=await sb.rpc('sync_application_conversation_identity',{p_application_id:applicationId,p_candidate_name:candidateName(),p_job_title:jobTitle()});if(sync.error)console.warn('Could not refresh conversation identity:',sync.error);else await findConversation()}renderContext();if(role==='candidate'&&!conversation)$('composer').style.display='none';await loadMessages();subscribe()}catch(error){console.error(error);setNotice(error?.message||'Conversation could not be loaded.',true);$('composer').style.display='none'}})();
-</script></body></html>
+
+$('input').addEventListener(
+  'keydown',
+  event=>{
+    if(
+      event.key==='Enter' &&
+      !event.shiftKey
+    ){
+      event.preventDefault();
+      send();
+    }
+  }
+);
+
+$('back').onclick=()=>{
+  location.href=
+    'app-messages.html?role='+
+    role;
+};
+
+$('more').onclick=event=>{
+  event.stopPropagation();
+  $('chat-menu').hidden=
+    !$('chat-menu').hidden;
+};
+
+$('archive-chat').onclick=
+  archiveConversation;
+
+$('delete-chat').onclick=
+  deleteConversation;
+
+document.addEventListener(
+  'click',
+  event=>{
+    if(
+      !event.target.closest(
+        '.header'
+      )
+    ){
+      $('chat-menu').hidden=true;
+    }
+  }
+);
+
+(async()=>{
+  const query=
+    new URLSearchParams(
+      location.search
+    );
+
+  role=
+    query.get('role')==='employer'
+      ?'employer'
+      :'candidate';
+
+  applicationId=
+    String(
+      query.get('application')||
+      ''
+    );
+
+  conversationId=
+    String(
+      query.get('conversation')||
+      ''
+    );
+
+  if(role==='employer'){
+    contextCandidateName=
+      String(
+        query.get('candidate')||
+        ''
+      ).trim();
+
+    contextJobTitle=
+      String(
+        query.get('job')||
+        ''
+      ).trim();
+
+    try{
+      const saved=JSON.parse(
+        sessionStorage.getItem(
+          'alygnnMessageContext'
+        )||
+        'null'
+      );
+
+      if(
+        saved &&
+        (
+          !applicationId ||
+          String(
+            saved.applicationId||
+            ''
+          )===applicationId
+        )
+      ){
+        contextCandidateName=
+          contextCandidateName||
+          String(
+            saved.candidateName||
+            ''
+          ).trim();
+
+        contextJobTitle=
+          contextJobTitle||
+          String(
+            saved.jobTitle||
+            ''
+          ).trim();
+      }
+    }catch(_error){}
+  }
+
+  if(
+    !applicationId &&
+    !conversationId
+  ){
+    setNotice(
+      'Conversation information is missing.',
+      true
+    );
+
+    $('composer').style.display='none';
+    return;
+  }
+
+  const {
+    data,
+    error
+  }=await sb.auth.getSession();
+
+  if(
+    error||
+    !data.session
+  ){
+    location.replace(
+      'app-login.html'
+    );
+    return;
+  }
+
+  session=data.session;
+
+  try{
+    /*
+     * When opening by conversation ID, resolve its current application first.
+     */
+    if(
+      conversationId &&
+      !applicationId
+    ){
+      const initial=await sb
+        .from('application_conversations')
+        .select('application_id')
+        .eq(
+          'id',
+          conversationId
+        )
+        .maybeSingle();
+
+      if(initial.error){
+        throw initial.error;
+      }
+
+      applicationId=
+        String(
+          initial.data?.application_id||
+          ''
+        );
+    }
+
+    await metadata();
+    await findConversation();
+
+    if(
+      role==='employer' &&
+      conversation &&
+      applicationId &&
+      (
+        contextCandidateName||
+        contextJobTitle
+      )
+    ){
+      const sync=await sb.rpc(
+        'sync_application_conversation_identity',
+        {
+          p_application_id:
+            applicationId,
+
+          p_candidate_name:
+            candidateName(),
+
+          p_job_title:
+            jobTitle()
+        }
+      );
+
+      if(sync.error){
+        console.warn(
+          'Could not refresh conversation identity:',
+          sync.error
+        );
+      }else{
+        await findConversation();
+      }
+    }
+
+    renderContext();
+
+    if(
+      role==='candidate' &&
+      !conversation
+    ){
+      $('composer').style.display='none';
+    }
+
+    await loadMessages();
+    subscribe();
+  }catch(error){
+    console.error(error);
+
+    setNotice(
+      error?.message||
+      'Conversation could not be loaded.',
+      true
+    );
+
+    $('composer').style.display='none';
+  }
+})();
+</script>
+</body>
+</html>
