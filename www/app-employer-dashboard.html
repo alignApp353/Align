@@ -6995,6 +6995,64 @@
       'jobisjob.com'
     ];
 
+    function validCompanyWebsite(value){
+      const raw=String(value||'').trim();
+
+      if(!raw||raw.includes('@')){
+        return '';
+      }
+
+      const url=normalizePublicUrl(raw);
+
+      if(!url||isBlockedCompanyLink(url)){
+        return '';
+      }
+
+      try{
+        const parsed=new URL(url);
+        const host=parsed.hostname
+          .toLowerCase()
+          .replace(/^www\./,'');
+
+        if(
+          !host ||
+          !host.includes('.') ||
+          host.includes('@')
+        ){
+          return '';
+        }
+
+        /*
+         * The dedicated Website field should be a normal company domain.
+         * Social profiles belong in Company Links.
+         */
+        if(
+          [
+            'facebook.com',
+            'fb.com',
+            'instagram.com',
+            'linkedin.com',
+            'x.com',
+            'twitter.com',
+            'tiktok.com',
+            'youtube.com',
+            'youtu.be',
+            'threads.net'
+          ].some(domain=>
+            host===domain||
+            host.endsWith('.'+domain)
+          )
+        ){
+          return '';
+        }
+
+        return url;
+      }catch(_error){
+        return '';
+      }
+    }
+
+
     function linkHostname(value){
       const url=normalizePublicUrl(value);
       if(!url)return '';
@@ -7287,6 +7345,23 @@
       }
 
       state.pendingCompanyLinks.push(url);
+
+      /*
+       * If the employer pastes a normal company website into Company Links,
+       * use it as the Website automatically. Social links remain links only.
+       */
+      if(companyLinkType(url)==='website'){
+        const websiteInput=$('edit-company-website');
+        const currentWebsite=
+          validCompanyWebsite(
+            websiteInput.value
+          );
+
+        if(!currentWebsite){
+          websiteInput.value=url;
+        }
+      }
+
       input.value='';
       renderCompanyLinkList();
     }
@@ -7474,7 +7549,26 @@
       $('edit-company-industry').value=company.industry==='Not added'?'':company.industry;
       $('edit-company-size').value=company.size==='Not added'?'':company.size;
       $('edit-company-location').value=company.location==='Not added'?'':company.location;
-      $('edit-company-website').value=company.website==='Not added'?'':company.website;
+
+      const savedWebsite=
+        company.website==='Not added'
+          ?''
+          :validCompanyWebsite(
+              company.website
+            );
+
+      const linkWebsite=
+        (company.links||[])
+          .find(url=>
+            companyLinkType(url)==='website'
+          )||
+        '';
+
+      $('edit-company-website').value=
+        savedWebsite||
+        linkWebsite||
+        '';
+
       $('edit-company-about').value=company.about||'';
       $('edit-company-benefits').value=company.benefits.join(', ');
       state.pendingCompanyLinks=[
@@ -7527,39 +7621,53 @@
           state.pendingCompanyLinks
         );
 
-      let normalizedWebsite='';
+      const websiteFromLinks=
+        companyLinks.find(url=>
+          companyLinkType(url)==='website'
+        )||
+        '';
 
-      if(website){
-        normalizedWebsite=
+      let normalizedWebsite=
+        validCompanyWebsite(website)||
+        validCompanyWebsite(
+          websiteFromLinks
+        )||
+        '';
+
+      /*
+       * Old Alygnn records may contain an email address inside the Website
+       * field. Do not let that legacy bad value prevent employers from
+       * saving new social links. Website is optional.
+       */
+      if(
+        website &&
+        !normalizedWebsite &&
+        !website.includes('@')
+      ){
+        const attempted=
           normalizePublicUrl(website);
 
-        let websiteHost='';
-
-        try{
-          websiteHost=
-            new URL(normalizedWebsite)
-              .hostname;
-        }catch(_error){}
-
         if(
-          !normalizedWebsite ||
-          !websiteHost ||
-          !websiteHost.includes('.') ||
-          website.includes('@')
+          attempted &&
+          isBlockedCompanyLink(attempted)
         ){
-          message.textContent=
-            'Enter a real company website, such as https://company.com. Email addresses are not websites.';
-          message.hidden=false;
-          return;
-        }
-
-        if(isBlockedCompanyLink(normalizedWebsite)){
           message.textContent=
             'Job-board competitor websites cannot be used as the company website.';
           message.hidden=false;
           return;
         }
+
+        message.textContent=
+          'Enter a real company website, such as https://company.com, or leave Website blank.';
+        message.hidden=false;
+        return;
       }
+
+      /*
+       * Keep the visible field synchronized with the value that will save.
+       */
+      $('edit-company-website').value=
+        normalizedWebsite;
 
       if(!companyName){
         message.textContent='Please enter the company name.';
