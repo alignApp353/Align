@@ -427,6 +427,11 @@ button,a{font:inherit}
   gap:14px;
 }
 
+
+.company-card-logo img,.company-logo img{width:100%;height:100%;object-fit:contain;border-radius:inherit;background:#fff}
+.company-social-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.company-social-link{display:inline-flex;align-items:center;min-height:34px;padding:0 11px;border:1px solid var(--border);border-radius:999px;background:var(--card);color:var(--brand);font-size:11px;font-weight:800;text-decoration:none}
+
 .company-card-logo{
   width:56px;
   height:56px;
@@ -765,6 +770,7 @@ html[data-effective-theme="dark"] .toast{
       <div class="body-copy" id="company-description">
         This employer uses Alygnn to connect with candidates whose goals and preferences align with the role.
       </div>
+      <div class="company-social-links" id="company-social-links" hidden></div>
     </section>
   </div>
 </main>
@@ -1184,6 +1190,39 @@ function setBreakdown(id,value){
   });
 }
 
+function detailsExternalUrl(value){
+  const raw=String(value||'').trim();
+  if(!raw)return '';
+  try{
+    const url=new URL(/^https?:\/\//i.test(raw)?raw:'https://'+raw);
+    return ['http:','https:'].includes(url.protocol)?url.href:'';
+  }catch(_error){
+    return '';
+  }
+}
+
+function renderCompanyLogo(elementId,company){
+  const element=document.getElementById(elementId);
+  if(!element)return;
+  element.innerHTML='';
+  const url=detailsExternalUrl(job.company_logo||job.logo_url);
+  if(!url){
+    element.textContent=initials(company);
+    return;
+  }
+  const img=document.createElement('img');
+  img.src=url;
+  img.alt=company+' logo';
+  img.onerror=()=>{element.textContent=initials(company);};
+  element.appendChild(img);
+}
+
+function detailsCompanyLink(label,value){
+  const url=detailsExternalUrl(value);
+  if(!url)return '';
+  return `<a class="company-social-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+}
+
 function renderJob(){
   const company=firstValue(job.company,job.company_name,'Employer');
   const location=firstValue(
@@ -1210,8 +1249,8 @@ function renderJob(){
   }
   document.getElementById('job-title').textContent=job.title||'Job Opportunity';
   document.getElementById('company-name').textContent=company;
-  document.getElementById('company-logo').textContent=logoInitials;
-  document.getElementById('company-card-logo').textContent=logoInitials;
+  renderCompanyLogo('company-logo',company);
+  renderCompanyLogo('company-card-logo',company);
   document.getElementById('company-card-name').textContent=company;
   document.getElementById('posted-time').textContent=postedText(job.created_at);
 
@@ -1283,6 +1322,18 @@ function renderJob(){
       job.about_company,
       company+' uses Alygnn to connect with candidates whose skills, preferences, and goals align with this opportunity.'
     );
+
+  const socialLinks=document.getElementById('company-social-links');
+  const socialHtml=[
+    detailsCompanyLink('Website',job.company_website),
+    detailsCompanyLink('LinkedIn',job.company_linkedin_url),
+    detailsCompanyLink('Instagram',job.company_instagram_url),
+    detailsCompanyLink('Facebook',job.company_facebook_url),
+    detailsCompanyLink('X',job.company_x_url)
+  ].filter(Boolean).join('');
+
+  socialLinks.innerHTML=socialHtml;
+  socialLinks.hidden=!socialHtml;
 
   const loadingState=document.getElementById('loading-state');
   const jobContent=document.getElementById('job-content');
