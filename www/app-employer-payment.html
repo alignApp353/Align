@@ -1339,7 +1339,7 @@ async function initialize(){
               ?'Stripe is bypassed in this temporary development build. Alygnn will activate the Urgently Hiring add-on in Supabase for testing.'
               :'Stripe is bypassed in this temporary development build. Alygnn will activate the selected package in Supabase so you can test the real plan limits and features.';
     const fineprint=$('payment-fineprint');
-    if(fineprint) fineprint.textContent='TEST MODE: $0 will be charged. Disable FORCE_DEVELOPER_TEST_MODE before releasing the app.';
+    if(fineprint) fineprint.textContent='MASTER TEST BYPASS: all employer billing is $0 and Stripe is skipped. Disable FORCE_DEVELOPER_TEST_MODE and the Supabase developer switch before release.';
   }
 
   renderAll();
@@ -1355,162 +1355,200 @@ async function initialize(){
 async function activateDeveloperTest(){
   const p=item();
   const btn=$('checkout-btn');
+  const change=existingPlanChange();
 
-  if(existingPlanChange()){
-    await executeExistingPlanChange();
-    return;
-  }
+  let action='activate_plan';
+  let actionPlan=plan;
+  let actionBilling=billing;
+  let actionJobId=null;
+  let actionDays=1;
 
-  if(isBoost()){
+  if(change){
+    action='change_plan';
+    actionPlan=change.target;
+    actionBilling=change.period;
+
+  }else if(isBoost()){
     if(!boostEligible()){
-      showMessage(boostIneligibleMessage());
+      showMessage(
+        boostIneligibleMessage()
+      );
       updateCheckoutButton();
       return;
     }
 
     if(!boostJobId){
-      showMessage('A job must be selected before starting a Job Boost.');
-      updateCheckoutButton();
-      return;
-    }
-
-    const {data,error}=await sb.rpc(
-      'activate_employer_test_job_boost',
-      {
-        p_job_id:boostJobId,
-        p_days:boostDays
-      }
-    );
-
-    if(error){
-      console.error(error);
       showMessage(
-        error.message||
-        'Job Boost test activation is not enabled yet. Run ALYGNN-FREE-JOB-25-APPLICANT-LIMIT.sql in Supabase, then try again.'
+        'A job must be selected before starting a Job Boost.'
       );
       updateCheckoutButton();
       return;
     }
 
-    btn.textContent='Job Boost activated ✓';
+    action='job_boost';
+    actionJobId=boostJobId;
+    actionDays=boostDays;
 
-    setTimeout(()=>{
-      location.href='app-employer-dashboard.html?view=jobs';
-    },650);
+  }else if(isAddon()){
+    action='second_slot';
+    actionPlan=null;
+    actionBilling='monthly';
 
-    return;
-  }
+  }else if(isUrgentAddon()){
+    action='urgent_addon';
+    actionPlan=null;
+    actionBilling=billing;
 
-  if(isAddon()){
-    const {data,error}=await sb.rpc('activate_employer_test_second_slot');
-
-    if(error){
-      console.error(error);
-      showMessage(
-        'Second Job Slot test activation is not enabled yet. Run ALYGNN-SLOT-RULES-CORRECTION.sql in Supabase, then try again. No payment was processed.'
-      );
-      updateCheckoutButton();
-      return;
-    }
-
-    btn.textContent='Second Job Slot activated ✓';
-
-    setTimeout(()=>{
-      location.href=returnMode==='preview'
-        ?'app-job-preview.html'
-        :'app-employer-dashboard.html#jobs';
-    },650);
-
-    return;
-  }
-
-  if(isUrgentAddon()){
-    const {data,error}=await sb.rpc(
-      'activate_employer_test_urgently_hiring_addon',
-      {
-        p_billing:
-          billing==='quarterly'
-            ?'quarterly'
-            :'monthly'
-      }
-    );
-
-    if(error){
-      console.error(error);
-      showMessage(
-        error.message||
-        'Urgently Hiring test activation is not installed yet. Run ALYGNN-WEEKLY-TEST-AND-URGENTLY-HIRING.sql in Supabase.'
-      );
-      updateCheckoutButton();
-      return;
-    }
-
-    btn.textContent='Urgently Hiring activated ✓';
-
-    setTimeout(()=>{
-      location.href='app-employer-pricing.html';
-    },650);
-
-    return;
-  }
-
-  if(billing==='weekly'||plan==='weekly_slot'){
-    const {data,error}=await sb.rpc(
-      'activate_employer_test_weekly_slot'
-    );
-
-    if(error){
-      console.error(error);
-      showMessage(
-        error.message||
-        'Weekly Job Slot test activation is not installed yet. Run ALYGNN-WEEKLY-TEST-AND-URGENTLY-HIRING.sql in Supabase.'
-      );
-      updateCheckoutButton();
-      return;
-    }
-
-    btn.textContent='Weekly Job Slot activated ✓';
-
-    setTimeout(()=>{
-      location.href=returnMode==='preview'
-        ?'app-job-preview.html'
-        :'app-employer-dashboard.html?view=jobs';
-    },650);
-
-    return;
-  }
-
-  const {data,error}=await sb.rpc('activate_employer_test_plan',{
-    p_plan:plan,
-    p_billing:billing
-  });
-
-  if(error){
-    console.error(error);
-    showMessage(
-      'The developer test-plan RPC is not installed or does not match the current backend. No payment was processed.'
-    );
-    updateCheckoutButton();
-    return;
+  }else if(
+    billing==='weekly' ||
+    plan==='weekly_slot'
+  ){
+    action='weekly_slot';
+    actionPlan=null;
+    actionBilling='weekly';
   }
 
   try{
-    localStorage.setItem('alygnn_test_entitlement',JSON.stringify({
-      plan,
-      billing,
-      slot_limit:Number(data?.slot_limit||slotLimitFor()),
-      expires_at:data?.expires_at||expiryFor(),
-      test_mode:true
-    }));
-  }catch(_){}
+    const {data,error}=await sb.rpc(
+      'alygnn_developer_bypass',
+      {
+        p_action:action,
+        p_plan:actionPlan,
+        p_billing:actionBilling,
+        p_job_id:actionJobId,
+        p_days:actionDays
+      }
+    );
 
-  btn.textContent='Test package activated ✓';
+    if(error)throw error;
 
-  setTimeout(()=>{
-    location.href=returnMode==='preview'
-      ?'app-job-preview.html'
-      :'app-employer-dashboard.html#jobs';
-  },650);
+    if(change?.upgrade){
+      btn.textContent=
+        `${planNameFromCode(change.target)} activated ✓`;
+
+      showMessage(
+        `${planNameFromCode(change.target)} is active now. Alygnn simulated the ${display(change.difference)} upgrade difference and charged $0. Your renewal date stays the same.`
+      );
+
+      setTimeout(()=>{
+        location.replace(
+          'app-employer-billing.html'
+        );
+      },750);
+
+      return;
+    }
+
+    if(change?.downgrade){
+      btn.textContent=
+        'Downgrade scheduled ✓';
+
+      showMessage(
+        `${planNameFromCode(change.current)} stays active until your renewal date. $0 was charged, and there is no refund or credit. ${planNameFromCode(change.target)} is scheduled for renewal.`
+      );
+
+      setTimeout(()=>{
+        location.replace(
+          'app-employer-billing.html'
+        );
+      },900);
+
+      return;
+    }
+
+    if(action==='job_boost'){
+      btn.textContent='Job Boost activated ✓';
+
+      setTimeout(()=>{
+        location.href=
+          'app-employer-dashboard.html?view=jobs';
+      },650);
+
+      return;
+    }
+
+    if(action==='second_slot'){
+      btn.textContent=
+        'Second Job Slot activated ✓';
+
+      setTimeout(()=>{
+        location.href=
+          returnMode==='preview'
+            ?'app-job-preview.html'
+            :'app-employer-dashboard.html?view=jobs';
+      },650);
+
+      return;
+    }
+
+    if(action==='weekly_slot'){
+      btn.textContent=
+        'Weekly Job Slot activated ✓';
+
+      setTimeout(()=>{
+        location.href=
+          returnMode==='preview'
+            ?'app-job-preview.html'
+            :'app-employer-dashboard.html?view=jobs';
+      },650);
+
+      return;
+    }
+
+    if(action==='urgent_addon'){
+      btn.textContent=
+        'Urgently Hiring activated ✓';
+
+      setTimeout(()=>{
+        location.href=
+          'app-employer-pricing.html';
+      },650);
+
+      return;
+    }
+
+    btn.textContent=
+      `${p.name} activated ✓`;
+
+    try{
+      localStorage.setItem(
+        'alygnn_test_entitlement',
+        JSON.stringify({
+          plan,
+          billing,
+          slot_limit:
+            Number(
+              data?.slot_limit||
+              slotLimitFor()
+            ),
+          expires_at:
+            data?.current_period_end||
+            expiryFor(),
+          test_mode:true
+        })
+      );
+    }catch(_error){}
+
+    setTimeout(()=>{
+      location.href=
+        returnMode==='preview'
+          ?'app-job-preview.html'
+          :'app-employer-dashboard.html?view=jobs';
+    },650);
+
+  }catch(error){
+    console.error(
+      'Master developer bypass failed:',
+      error
+    );
+
+    showMessage(
+      error.message||
+      'Developer bypass could not be applied. Run ALYGNN-MASTER-DEVELOPER-FREE-BYPASS.sql in Supabase and try again.'
+    );
+
+    updateCheckoutButton();
+  }
 }
 
 async function startCheckout(){
@@ -1546,19 +1584,24 @@ async function startCheckout(){
   btn.disabled=true;
 
   /*
-   * Existing Launch/Growth/Scale customers do not buy another full
-   * subscription. Use the billing plan-change API:
+   * MASTER DEVELOPER BYPASS:
+   * when test mode is ON, absolutely no Stripe or billing API is used.
+   * Every paid feature is simulated directly through the single
+   * Supabase developer-bypass RPC.
+   */
+  if(developerTestMode){
+    btn.textContent='Activating free test access…';
+    await activateDeveloperTest();
+    return;
+  }
+
+  /*
+   * Production existing-plan changes use Alygnn billing:
    * upgrade = exact difference + instant access;
    * downgrade = $0 today + change at renewal.
    */
   if(existingPlanChange()){
     await executeExistingPlanChange();
-    return;
-  }
-
-  if(developerTestMode){
-    btn.textContent='Activating test access…';
-    await activateDeveloperTest();
     return;
   }
 
