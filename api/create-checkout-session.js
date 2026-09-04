@@ -1511,26 +1511,47 @@ async function runManageAction(res,user,input){
     ent
   );
 
+  /*
+   * IMPORTANT:
+   * Developer/test billing must never touch Stripe.
+   *
+   * Previously the API tried to resolve a Stripe subscription BEFORE it
+   * reached the test-mode plan-change branch. That caused:
+   *
+   *   STRIPE_SECRET_KEY is not configured.
+   *
+   * even though the user was explicitly using $0 developer test billing.
+   */
   let sub=
-    shouldResolveSubscription(ent)
-      ?await resolveSubscription(
-          user.id,
-          ent
-        )
-      :null;
+    ent?.test_mode===true
+      ?null
+      :shouldResolveSubscription(ent)
+        ?await resolveSubscription(
+            user.id,
+            ent
+          )
+        :null;
 
   ent=await getEntitlement(user.id);
 
   if(action==='summary'){
     let secondSlot=null;
 
-    try{
-      secondSlot=await resolveSecondSlotSubscription(user.id);
-    }catch(error){
-      console.warn(
-        'Could not resolve Second Job Slot subscription:',
-        error?.message||error
-      );
+    /*
+     * Test billing intentionally has no Stripe subscription/payment data.
+     */
+    if(ent?.test_mode!==true){
+      try{
+        secondSlot=
+          await resolveSecondSlotSubscription(
+            user.id
+          );
+      }catch(error){
+        console.warn(
+          'Could not resolve Second Job Slot subscription:',
+          error?.message||error
+        );
+      }
     }
 
     let billingAccount={
@@ -1538,21 +1559,28 @@ async function runManageAction(res,user,input){
       payment_method:null,
       invoices:[],
       stripe_customer_count:0,
-      next_plan_charge_cents:calculateNextPlanCharge(ent,sub)
+      next_plan_charge_cents:
+        calculateNextPlanCharge(
+          ent,
+          sub
+        )
     };
 
-    try{
-      billingAccount=await billingAccountSummary(
-        user,
-        ent,
-        sub,
-        secondSlot
-      );
-    }catch(error){
-      console.warn(
-        'Could not load billing account summary:',
-        error?.message||error
-      );
+    if(ent?.test_mode!==true){
+      try{
+        billingAccount=
+          await billingAccountSummary(
+            user,
+            ent,
+            sub,
+            secondSlot
+          );
+      }catch(error){
+        console.warn(
+          'Could not load billing account summary:',
+          error?.message||error
+        );
+      }
     }
 
     return send(res,200,{
