@@ -2109,6 +2109,72 @@ function showStep(step){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
+function employerCompanyMeta(){
+  const metadata=session?.user?.user_metadata||{};
+  return{
+    setup:metadata.onboarding_company_profile||{},
+    ai:metadata.employer_ai_profile||{},
+    metadata
+  };
+}
+
+function firstCompanyValue(...values){
+  for(const value of values){
+    if(value!==undefined&&value!==null&&String(value).trim()!=='')return value;
+  }
+  return '';
+}
+
+function currentCompanyLogo(){
+  const {setup,ai,metadata}=employerCompanyMeta();
+  return String(firstCompanyValue(
+    ai.company_logo,
+    setup.company_logo,
+    metadata.company_logo,
+    metadata.logo_url,
+    currentCompany?.logo_url,
+    currentCompany?.company_logo,
+    profile?.company_logo,
+    profile?.logo_url,
+    localStorage.getItem('companyLogo')
+  )||'').trim();
+}
+
+function currentCompanySocials(){
+  const {setup,ai,metadata}=employerCompanyMeta();
+  return{
+    linkedin:firstCompanyValue(ai.linkedin_url,setup.linkedin_url,metadata.linkedin_url,currentCompany?.linkedin_url),
+    instagram:firstCompanyValue(ai.instagram_url,setup.instagram_url,metadata.instagram_url,currentCompany?.instagram_url),
+    facebook:firstCompanyValue(ai.facebook_url,setup.facebook_url,metadata.facebook_url,currentCompany?.facebook_url),
+    x:firstCompanyValue(ai.x_url,setup.x_url,metadata.x_url,metadata.twitter_url,currentCompany?.x_url)
+  };
+}
+
+function companyDescriptionForJob(){
+  const {setup,ai,metadata}=employerCompanyMeta();
+  return firstCompanyValue(
+    ai.company_description,
+    setup.company_description,
+    metadata.company_description,
+    currentCompany?.company_description,
+    currentCompany?.description
+  );
+}
+
+function requireCompanyLogoBeforeJob(){
+  if(currentCompanyLogo())return true;
+
+  const params=new URLSearchParams(location.search);
+  const editId=params.get('edit')||sessionStorage.getItem('alygnnEditJobId')||'';
+  const returnUrl=editId
+    ?`app-post-job.html?edit=${encodeURIComponent(editId)}&from=company-profile`
+    :'app-post-job.html?from=company-profile';
+
+  sessionStorage.setItem('alygnnCompanyProfileReturn',returnUrl);
+  location.replace('app-employer-dashboard.html?view=company&edit=1&reason=logo_required');
+  return false;
+}
+
 function saveCurrentJobDraft(){
   if(!session?.user)return;
 
@@ -2143,13 +2209,19 @@ function saveCurrentJobDraft(){
 
     employer_id:session.user.id,
     company_id:currentCompanyId||null,
-    company_logo:profile?.company_logo||profile?.logo_url||localStorage.getItem('companyLogo')||'',
+    company_logo:currentCompanyLogo(),
     company_headline:profile?.company_headline||'',
     company_website:
       aiProfile.website ||
       currentCompany?.website ||
       profile?.company_website ||
       '',
+    company_description:companyDescriptionForJob(),
+    company_linkedin_url:currentCompanySocials().linkedin||'',
+    company_instagram_url:currentCompanySocials().instagram||'',
+    company_facebook_url:currentCompanySocials().facebook||'',
+    company_x_url:currentCompanySocials().x||'',
+
     pay_period:el('pay-period').value,
     pay_min:Number(el('pay-min').value)||null,
     pay_max:Number(el('pay-max').value)||null,
@@ -2374,6 +2446,10 @@ el('description').addEventListener('input', () => {
     currentCompany=membership
       ? (Array.isArray(membership.companies)?membership.companies[0]:membership.companies)
       : null;
+
+    if(!requireCompanyLogoBeforeJob()){
+      return;
+    }
 
     /*
      * The builder should never become unusable because a preflight slot lookup
