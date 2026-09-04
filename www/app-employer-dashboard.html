@@ -3166,6 +3166,143 @@
        MY JOBS — OPEN / CLOSED TABS
        Clean underline navigation for long-term job history.
        ========================================================== */
+
+    .jobs-toolbar-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin:14px 0 0;
+    }
+
+    .jobs-sort-wrap{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-left:auto;
+    }
+
+    .jobs-sort-wrap label{
+      font-size:11px;
+      font-weight:800;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+
+    .jobs-sort{
+      min-height:42px;
+      border:1px solid var(--border);
+      border-radius:13px;
+      background:var(--card-bg);
+      color:var(--text);
+      padding:0 34px 0 12px;
+      font:inherit;
+      font-size:12px;
+      font-weight:800;
+    }
+
+    .draft-card{
+      border:1px solid var(--border);
+      background:var(--card-bg);
+      border-radius:22px;
+      padding:20px;
+      margin-bottom:14px;
+    }
+
+    .draft-card-top{
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      align-items:flex-start;
+    }
+
+    .draft-title{
+      font-size:18px;
+      line-height:1.2;
+      font-weight:900;
+      color:var(--text);
+    }
+
+    .draft-meta{
+      margin-top:7px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+
+    .draft-badge{
+      flex:0 0 auto;
+      display:inline-flex;
+      align-items:center;
+      min-height:31px;
+      padding:0 10px;
+      border-radius:999px;
+      background:#EEF1F4;
+      color:#66717D;
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+    }
+
+    .draft-progress{
+      margin-top:16px;
+    }
+
+    .draft-progress-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:7px;
+      color:var(--muted);
+      font-size:11px;
+      font-weight:800;
+    }
+
+    .draft-progress-track{
+      height:7px;
+      border-radius:999px;
+      overflow:hidden;
+      background:#E9EEF3;
+    }
+
+    .draft-progress-fill{
+      height:100%;
+      border-radius:inherit;
+      background:linear-gradient(90deg,var(--brand),var(--sage));
+    }
+
+    .draft-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:9px;
+      margin-top:17px;
+    }
+
+    .draft-actions .mini-btn.primary{
+      background:var(--brand);
+      border-color:var(--brand);
+      color:#fff;
+    }
+
+    @media(max-width:560px){
+      .jobs-toolbar-row{
+        align-items:stretch;
+        flex-direction:column;
+      }
+
+      .jobs-sort-wrap{
+        width:100%;
+        margin-left:0;
+      }
+
+      .jobs-sort{
+        flex:1;
+        width:100%;
+      }
+    }
+
     .jobs-status-tabs{
       display:flex;
       align-items:center;
@@ -3653,8 +3790,22 @@
         <div class="eyebrow">Employer workspace</div>
         <h1 class="page-title">My Jobs</h1>
         <p class="page-sub">Manage every opening, track performance, and move faster from one place.</p>
-        <div class="toolbar">
-          <button class="primary-btn" id="post-job-btn-2" type="button">Post a Job</button>
+        <div class="jobs-toolbar-row">
+          <div class="toolbar" style="margin:0">
+            <button class="primary-btn" id="post-job-btn-2" type="button">Post a Job</button>
+          </div>
+
+          <div class="jobs-sort-wrap">
+            <label for="jobs-sort">Sort by</label>
+            <select class="jobs-sort" id="jobs-sort">
+              <option value="performance">Top Performing</option>
+              <option value="applications">Most Applications</option>
+              <option value="views">Most Views</option>
+              <option value="saves">Most Saves</option>
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+            </select>
+          </div>
         </div>
 
         <div class="jobs-status-tabs" id="jobs-status-tabs" role="tablist" aria-label="Job status">
@@ -3668,6 +3819,18 @@
           >
             <span>Open</span>
             <span class="jobs-tab-count" id="jobs-open-count">0</span>
+          </button>
+
+          <button
+            class="jobs-status-tab"
+            id="jobs-tab-drafts"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            data-jobs-tab="drafts"
+          >
+            <span>Drafts</span>
+            <span class="jobs-tab-count" id="jobs-drafts-count">0</span>
           </button>
 
           <button
@@ -4394,11 +4557,13 @@
     );
 
     let jobsStatusTab = 'open';
+    let jobsSortMode = 'performance';
 
     const state = {
       session:null,
       currentUser:null,
       jobs:[],
+      jobDrafts:[],
       applications:[],
       profiles:new Map(),
       employerVerification:null,
@@ -6325,291 +6490,563 @@
       }
     }
 
-    function renderJobs(){
-      const allJobs = Array.isArray(state.jobs)
-        ? state.jobs.filter(Boolean)
-        : [];
+    function jobPerformanceTuple(job){
+      return {
+        applications:jobApplications(job).length,
+        views:Number(job?.views||job?.view_count||0),
+        saves:Number(job?.saves||job?.save_count||0),
+        date:new Date(
+          job?.created_at||
+          job?.updated_at||
+          0
+        ).getTime()||0
+      };
+    }
 
-      /*
-       * Open = jobs that are still part of the employer's current hiring
-       * workflow. Paused/pending/draft jobs remain here because they can still
-       * occupy or return to active capacity.
-       *
-       * Closed = intentionally closed roles. Archived roles stay out of both
-       * tabs so a long-time employer's history does not clutter My Jobs.
-       */
-      const openJobs = allJobs.filter(job => {
-        const status = String(job?.status || 'active').toLowerCase();
-        return status !== 'closed' && status !== 'archived';
+    function sortEmployerJobs(jobs){
+      const list=[...(jobs||[])];
+
+      list.sort((a,b)=>{
+        const A=jobPerformanceTuple(a);
+        const B=jobPerformanceTuple(b);
+
+        if(jobsSortMode==='applications'){
+          return (
+            B.applications-A.applications ||
+            B.views-A.views ||
+            B.saves-A.saves ||
+            B.date-A.date
+          );
+        }
+
+        if(jobsSortMode==='views'){
+          return (
+            B.views-A.views ||
+            B.applications-A.applications ||
+            B.saves-A.saves ||
+            B.date-A.date
+          );
+        }
+
+        if(jobsSortMode==='saves'){
+          return (
+            B.saves-A.saves ||
+            B.applications-A.applications ||
+            B.views-A.views ||
+            B.date-A.date
+          );
+        }
+
+        if(jobsSortMode==='oldest'){
+          return A.date-B.date;
+        }
+
+        if(jobsSortMode==='newest'){
+          return B.date-A.date;
+        }
+
+        /*
+         * Top Performing:
+         * actual applications are the strongest signal.
+         * Saves break ties first, then views.
+         */
+        return (
+          B.applications-A.applications ||
+          B.saves-A.saves ||
+          B.views-A.views ||
+          B.date-A.date
+        );
       });
 
-      const closedJobs = allJobs.filter(job =>
-        String(job?.status || '').toLowerCase() === 'closed'
+      return list;
+    }
+
+    function draftCompletionPercent(draft){
+      const data=
+        draft?.draft_data &&
+        typeof draft.draft_data==='object'
+          ?draft.draft_data
+          :{};
+
+      const checks=[
+        data.title,
+        data.location,
+        data.job_type,
+        data.work_style,
+        data.description,
+        data.requirements,
+        data.pay_period
+      ];
+
+      const completed=
+        checks.filter(value=>{
+          if(Array.isArray(value)){
+            return value.length>0;
+          }
+
+          return String(
+            value??''
+          ).trim()!=='';
+        }).length;
+
+      return Math.round(
+        (completed/checks.length)*100
+      );
+    }
+
+    function draftCard(draft){
+      const data=
+        draft?.draft_data &&
+        typeof draft.draft_data==='object'
+          ?draft.draft_data
+          :{};
+
+      const title=
+        String(
+          draft?.title||
+          data.title||
+          'Untitled job draft'
+        ).trim()||
+        'Untitled job draft';
+
+      const location=
+        String(
+          draft?.location||
+          data.location||
+          ''
+        ).trim();
+
+      const step=Math.max(
+        1,
+        Math.min(
+          5,
+          Number(
+            draft?.current_step||
+            1
+          )||1
+        )
       );
 
-      const visibleJobs =
-        jobsStatusTab === 'closed'
-          ? closedJobs
-          : openJobs;
+      const percent=
+        draftCompletionPercent(
+          draft
+        );
 
-      const openCount = $('jobs-open-count');
-      const closedCount = $('jobs-closed-count');
+      return `
+        <article class="draft-card">
+          <div class="draft-card-top">
+            <div>
+              <div class="draft-title">
+                ${escapeHtml(title)}
+              </div>
 
-      if(openCount) openCount.textContent = String(openJobs.length);
-      if(closedCount) closedCount.textContent = String(closedJobs.length);
+              <div class="draft-meta">
+                ${
+                  location
+                    ?escapeHtml(location)+' · '
+                    :''
+                }
+                Last edited ${timeAgo(draft.updated_at||draft.created_at)}
+              </div>
+            </div>
 
-      document.querySelectorAll('[data-jobs-tab]').forEach(button => {
-        const active = button.dataset.jobsTab === jobsStatusTab;
-        button.classList.toggle('active',active);
-        button.setAttribute('aria-selected',active ? 'true' : 'false');
-      });
+            <span class="draft-badge">
+              Draft
+            </span>
+          </div>
 
-      const empty = jobsStatusTab === 'closed'
-        ? `
+          <div class="draft-progress">
+            <div class="draft-progress-head">
+              <span>Job setup</span>
+              <span>Step ${step} of 5 · ${percent}%</span>
+            </div>
+
+            <div class="draft-progress-track">
+              <div
+                class="draft-progress-fill"
+                style="width:${percent}%">
+              </div>
+            </div>
+          </div>
+
+          <div class="draft-actions">
+            <button
+              class="mini-btn primary"
+              type="button"
+              data-draft-action="continue"
+              data-draft-id="${escapeHtml(String(draft.id))}">
+              Continue Draft
+            </button>
+
+            <button
+              class="mini-btn danger"
+              type="button"
+              data-draft-action="delete"
+              data-draft-id="${escapeHtml(String(draft.id))}">
+              Delete Draft
+            </button>
+          </div>
+        </article>
+      `;
+    }
+
+    async function loadEmployerJobDrafts(){
+      if(!state.session?.user?.id){
+        state.jobDrafts=[];
+        return [];
+      }
+
+      const {data,error}=await sb
+        .from('employer_job_drafts')
+        .select(
+          'id,employer_id,title,location,current_step,draft_data,created_at,updated_at'
+        )
+        .eq(
+          'employer_id',
+          state.session.user.id
+        )
+        .order(
+          'updated_at',
+          {ascending:false}
+        );
+
+      if(error){
+        console.warn(
+          'Could not load job drafts:',
+          error
+        );
+
+        return state.jobDrafts||[];
+      }
+
+      state.jobDrafts=
+        Array.isArray(data)
+          ?data
+          :[];
+
+      return state.jobDrafts;
+    }
+
+    async function handleDraftAction(
+      action,
+      id
+    ){
+      const draft=
+        (state.jobDrafts||[])
+          .find(item=>
+            String(item.id)===
+            String(id)
+          );
+
+      if(!draft){
+        toast(
+          'This draft could not be found.'
+        );
+        return;
+      }
+
+      if(action==='continue'){
+        try{
+          sessionStorage.setItem(
+            'alygnnJobDraft',
+            JSON.stringify(
+              draft.draft_data||{}
+            )
+          );
+
+          sessionStorage.setItem(
+            'alygnnActiveJobDraftId',
+            String(draft.id)
+          );
+
+          sessionStorage.setItem(
+            'alygnnJobReturnStep',
+            String(
+              Math.max(
+                1,
+                Math.min(
+                  5,
+                  Number(
+                    draft.current_step||
+                    1
+                  )||1
+                )
+              )
+            )
+          );
+
+          sessionStorage.removeItem(
+            'alygnnEditJobId'
+          );
+
+          location.href=
+            'app-post-job.html?draft='+
+            encodeURIComponent(
+              String(draft.id)
+            );
+        }catch(error){
+          console.error(
+            'Could not continue job draft:',
+            error
+          );
+
+          toast(
+            'Could not open this draft.'
+          );
+        }
+
+        return;
+      }
+
+      if(action==='delete'){
+        if(
+          !confirm(
+            'Delete this job draft? This cannot be undone.'
+          )
+        ){
+          return;
+        }
+
+        const {error}=await sb
+          .from('employer_job_drafts')
+          .delete()
+          .eq('id',id)
+          .eq(
+            'employer_id',
+            state.session.user.id
+          );
+
+        if(error){
+          console.error(
+            'Could not delete draft:',
+            error
+          );
+
+          toast(
+            'Could not delete this draft.'
+          );
+          return;
+        }
+
+        state.jobDrafts=
+          state.jobDrafts.filter(item=>
+            String(item.id)!==
+            String(id)
+          );
+
+        renderJobs();
+        toast('Draft deleted.');
+      }
+    }
+
+
+    function renderJobs(){
+      const allJobs=
+        Array.isArray(state.jobs)
+          ?state.jobs.filter(Boolean)
+          :[];
+
+      /*
+       * Drafts are separate from published listings and consume no slots.
+       * Legacy jobs rows with status=draft also stay out of Open.
+       */
+      const openJobs=
+        allJobs.filter(job=>{
+          const status=
+            String(
+              job?.status||
+              'active'
+            ).toLowerCase();
+
+          return ![
+            'closed',
+            'archived',
+            'draft'
+          ].includes(status);
+        });
+
+      const closedJobs=
+        allJobs.filter(job=>
+          String(
+            job?.status||
+            ''
+          ).toLowerCase()==='closed'
+        );
+
+      const drafts=
+        Array.isArray(state.jobDrafts)
+          ?[...state.jobDrafts]
+          :[];
+
+      const sortedOpen=
+        sortEmployerJobs(openJobs);
+
+      const sortedClosed=
+        sortEmployerJobs(closedJobs);
+
+      const sortedDrafts=
+        [...drafts].sort((a,b)=>{
+          const A=
+            new Date(
+              a.updated_at||
+              a.created_at||
+              0
+            ).getTime()||0;
+
+          const B=
+            new Date(
+              b.updated_at||
+              b.created_at||
+              0
+            ).getTime()||0;
+
+          return jobsSortMode==='oldest'
+            ?A-B
+            :B-A;
+        });
+
+      let visibleJobs=[];
+
+      if(jobsStatusTab==='closed'){
+        visibleJobs=sortedClosed;
+      }else if(jobsStatusTab==='drafts'){
+        visibleJobs=sortedDrafts;
+      }else{
+        visibleJobs=sortedOpen;
+      }
+
+      const openCount=
+        $('jobs-open-count');
+
+      const draftsCount=
+        $('jobs-drafts-count');
+
+      const closedCount=
+        $('jobs-closed-count');
+
+      if(openCount){
+        openCount.textContent=
+          String(openJobs.length);
+      }
+
+      if(draftsCount){
+        draftsCount.textContent=
+          String(drafts.length);
+      }
+
+      if(closedCount){
+        closedCount.textContent=
+          String(closedJobs.length);
+      }
+
+      document
+        .querySelectorAll(
+          '[data-jobs-tab]'
+        )
+        .forEach(button=>{
+          const active=
+            button.dataset.jobsTab===
+            jobsStatusTab;
+
+          button.classList.toggle(
+            'active',
+            active
+          );
+
+          button.setAttribute(
+            'aria-selected',
+            active
+              ?'true'
+              :'false'
+          );
+        });
+
+      let empty='';
+
+      if(jobsStatusTab==='closed'){
+        empty=`
           <div class="jobs-tab-empty">
             <strong>No closed jobs yet</strong>
-            <span>Closed roles will appear here and can be reopened anytime.</span>
-          </div>
-        `
-        : `
-          <div class="jobs-tab-empty">
-            <strong>No open jobs</strong>
-            <span>Post a new role or reopen one from Closed.</span>
+            <span>
+              Closed roles will appear here and can be reopened anytime.
+            </span>
           </div>
         `;
+      }else if(jobsStatusTab==='drafts'){
+        empty=`
+          <div class="jobs-tab-empty">
+            <strong>No drafts yet</strong>
+            <span>
+              Start a job and Alygnn will automatically save your progress here.
+            </span>
+          </div>
+        `;
+      }else{
+        empty=`
+          <div class="jobs-tab-empty">
+            <strong>No open jobs</strong>
+            <span>
+              Post a new role or reopen one from Closed.
+            </span>
+          </div>
+        `;
+      }
 
       if(els.jobsList){
         els.jobsList.style.display='block';
         els.jobsList.style.visibility='visible';
         els.jobsList.style.opacity='1';
-        els.jobsList.style.minHeight=visibleJobs.length ? '120px' : '72px';
-        els.jobsList.innerHTML = visibleJobs.length
-          ? visibleJobs.map(job => safeJobCard(job,false)).join('')
-          : empty;
+        els.jobsList.style.minHeight=
+          visibleJobs.length
+            ?'120px'
+            :'72px';
+
+        if(!visibleJobs.length){
+          els.jobsList.innerHTML=empty;
+        }else if(
+          jobsStatusTab==='drafts'
+        ){
+          els.jobsList.innerHTML=
+            visibleJobs
+              .map(draftCard)
+              .join('');
+        }else{
+          els.jobsList.innerHTML=
+            visibleJobs
+              .map(job=>
+                safeJobCard(
+                  job,
+                  false
+                )
+              )
+              .join('');
+        }
       }
 
       /*
-       * Dashboard home should stay focused only on currently open hiring work,
-       * never old closed/archived roles.
+       * Dashboard home stays focused on published/open hiring.
        */
       if(els.dashboardJobs){
-        els.dashboardJobs.innerHTML = openJobs.length
-          ? openJobs.slice(0,2).map(job => safeJobCard(job,true)).join('')
-          : `
-            <div class="empty">
-              <strong>No open jobs</strong>
-              Post a job or reopen a role to continue hiring.
-            </div>
-          `;
-      }
-
-      console.log(
-        'RENDERING MY JOBS:',
-        jobsStatusTab,
-        visibleJobs.length,
-        visibleJobs.map(job => ({
-          id:job?.id,
-          title:job?.title,
-          status:job?.status
-        }))
-      );
-    }
-
-    function candidateCard(application){
-      const data = candidateData(application);
-      const scoreInfo = provisionalScore(application);
-      const status = String(application.status || 'applied');
-      const job = jobFor(application);
-
-      const hasResume = Boolean(
-        data.resumeUrl ||
-        data.resumePath ||
-        data.resumeText ||
-        (
-          data.resumeData &&
-          typeof data.resumeData === 'object' &&
-          Object.keys(data.resumeData).length
-        )
-      );
-
-      const identityBits = [
-        data.headline,
-        data.location
-      ].filter(Boolean);
-
-      return `
-        <button
-          class="candidate-row"
-          type="button"
-          data-app-id="${escapeHtml(String(application.id || ''))}"
-          aria-label="Open ${escapeHtml(data.name)} applicant profile"
-        >
-          <div class="avatar">${escapeHtml(initials(data.name))}</div>
-
-          <div>
-            <div class="candidate-name">${escapeHtml(data.name)}</div>
-
-            <div class="candidate-job">
-              ${escapeHtml(job?.title || application.job_title || 'Position')}
-            </div>
-
-            ${
-              identityBits.length
-                ? `
-                  <div class="candidate-identity-line">
-                    ${identityBits.map(bit => `<span>${escapeHtml(bit)}</span>`).join('<span>·</span>')}
-                  </div>
-                `
-                : ''
-            }
-
-            <div class="candidate-meta">
-              ${
-                scoreInfo.score
-                  ? `<span class="score">${scoreInfo.score} Alygnn Score</span>`
-                  : `<span class="score">${data.profileComplete ? 'Profile complete' : 'Profile incomplete'}</span>`
-              }
-
-              ${
-                scoreInfo.score
-                  ? `<span class="fit-label">${fitLabel(scoreInfo.score)}</span>`
-                  : ''
-              }
-
-              ${
-                hasResume
-                  ? `<span class="candidate-resume-pill">Resume ready</span>`
-                  : ''
-              }
-
-              <span class="app-status">${escapeHtml(status)}</span>
-            </div>
-          </div>
-
-          <div>
-            <div class="chevron">›</div>
-            <div class="candidate-profile-hint">Profile</div>
-          </div>
-        </button>
-      `;
-    }
-
-
-    function safeCandidateCard(application){
-      try{
-        return candidateCard(application);
-      }catch(error){
-        console.error(
-          'Could not render applicant row:',
-          application,
-          error
-        );
-
-        let data = {};
-        try{
-          data = candidateData(application) || {};
-        }catch(_){}
-
-        const job = jobFor(application);
-
-        const name =
-          data.name ||
-          application?.candidate_name ||
-          application?.applicant_name ||
-          application?.full_name ||
-          application?.candidate_email?.split('@')[0] ||
-          application?.email?.split('@')[0] ||
-          'Applicant';
-
-        const location =
-          data.location ||
-          application?.location ||
-          application?.candidate_location ||
-          '';
-
-        const scoreInfo = (() => {
-          try{
-            return provisionalScore(application);
-          }catch(_){
-            return {score:null};
-          }
-        })();
-
-        return `
-          <button
-            class="candidate-row"
-            type="button"
-            data-app-id="${escapeHtml(String(application?.id || ''))}"
-          >
-            <div class="avatar">${escapeHtml(initials(name))}</div>
-
-            <div>
-              <div class="candidate-name">${escapeHtml(name)}</div>
-
-              <div class="candidate-job">
-                ${escapeHtml(job?.title || application?.job_title || 'Position')}
+        els.dashboardJobs.innerHTML=
+          sortedOpen.length
+            ?sortedOpen
+              .slice(0,3)
+              .map(job=>
+                safeJobCard(
+                  job,
+                  true
+                )
+              )
+              .join('')
+            :`
+              <div class="empty">
+                <strong>No open jobs yet</strong>
+                Post your first role to start building your candidate pipeline.
               </div>
-
-              ${
-                location
-                  ? `<div class="candidate-identity-line"><span>${escapeHtml(location)}</span></div>`
-                  : ''
-              }
-
-              <div class="candidate-meta">
-                ${
-                  scoreInfo.score
-                    ? `<span class="score">${scoreInfo.score} Alygnn Score</span>`
-                    : ''
-                }
-                <span class="app-status">
-                  ${escapeHtml(String(application?.status || 'applied'))}
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <div class="chevron">›</div>
-              <div class="candidate-profile-hint">Profile</div>
-            </div>
-          </button>
-        `;
+            `;
       }
     }
 
-    function filteredApplicants(){
-      let list = [...state.applications];
-
-      if(state.selectedApplicantJobId){
-        list = list.filter(application =>
-          String(application.job_id) === String(state.selectedApplicantJobId)
-        );
-      }
-
-      const query = els.candidateSearch.value.trim().toLowerCase();
-
-      if(query){
-        list = list.filter(application => {
-          const profile = appProfile(application);
-          return fullName(profile,application).toLowerCase().includes(query) ||
-            (jobFor(application)?.title || '').toLowerCase().includes(query);
-        });
-      }
-
-      if(els.candidateSort.value === 'score'){
-        list.sort((a,b) => Number(b.match_score || b.alygnn_score || 0) - Number(a.match_score || a.alygnn_score || 0));
-      }
-
-      if(els.candidateSort.value === 'newest'){
-        list.sort((a,b) => new Date(b.applied_at || b.created_at || 0) - new Date(a.applied_at || a.created_at || 0));
-      }
-
-      if(els.candidateSort.value === 'oldest'){
-        list.sort((a,b) => new Date(a.applied_at || a.created_at || 0) - new Date(b.applied_at || b.created_at || 0));
-      }
-
-      return list;
-    }
 
     function renderApplicants(){
       const list = filteredApplicants();
@@ -9684,7 +10121,12 @@
       }
 
       try{
-        const jobs = await queryJobsReliably(state.session.user.id);
+        const [jobs]=await Promise.all([
+          queryJobsReliably(
+            state.session.user.id
+          ),
+          loadEmployerJobDrafts()
+        ]);
 
         if(Array.isArray(jobs) && jobs.length){
           state.jobs = jobs;
@@ -9878,6 +10320,19 @@
         }
 
         setView(nav.dataset.view);
+        return;
+      }
+
+      const draftAction=
+        event.target.closest(
+          '[data-draft-action]'
+        );
+
+      if(draftAction){
+        handleDraftAction(
+          draftAction.dataset.draftAction,
+          draftAction.dataset.draftId
+        );
         return;
       }
 
@@ -10082,6 +10537,8 @@
           sessionStorage.removeItem('alygnn_job_slot_gate');
           sessionStorage.removeItem('alygnnEditJobId');
           sessionStorage.removeItem('alygnnJobReturnStep');
+          sessionStorage.removeItem('alygnnJobDraft');
+          sessionStorage.removeItem('alygnnActiveJobDraftId');
           location.href='app-post-job.html?capacity=available';
           return;
         }
@@ -10110,12 +10567,29 @@
         }
 
         sessionStorage.removeItem('alygnnEditJobId');
+        sessionStorage.removeItem('alygnnJobDraft');
+        sessionStorage.removeItem('alygnnActiveJobDraftId');
         location.href='app-post-job.html';
       }catch(error){
         console.error('Could not verify job-slot capacity:',error);
         toast('Could not verify your job-slot access. Please try again.');
       }
     }
+
+    $('jobs-sort').value=jobsSortMode;
+
+    $('jobs-sort').addEventListener(
+      'change',
+      event=>{
+        jobsSortMode=
+          String(
+            event.target.value||
+            'performance'
+          );
+
+        renderJobs();
+      }
+    );
 
     $('post-job-btn').onclick = $('post-job-btn-2').onclick = $('hero-post-job').onclick = openPostJob;
     $('complete-ai-profile').onclick = () => {
