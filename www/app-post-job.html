@@ -2140,14 +2140,109 @@ function currentCompanyLogo(){
   )||'').trim();
 }
 
-function currentCompanySocials(){
+function normalizeJobCompanyLinks(value){
+  let input=value;
+
+  if(typeof input==='string'){
+    try{
+      input=JSON.parse(input);
+    }catch(_error){
+      input=[input];
+    }
+  }
+
+  if(!Array.isArray(input)){
+    input=[];
+  }
+
+  const links=[];
+  const seen=new Set();
+
+  input.forEach(item=>{
+    const raw=
+      typeof item==='string'
+        ?item
+        :item?.url;
+
+    if(!raw)return;
+
+    let url=String(raw).trim();
+
+    if(!/^https?:\/\//i.test(url)){
+      url='https://'+url;
+    }
+
+    try{
+      const parsed=new URL(url);
+
+      if(!['http:','https:'].includes(parsed.protocol)){
+        return;
+      }
+
+      const normalized=parsed.href;
+      const key=normalized
+        .replace(/\/+$/,'')
+        .toLowerCase();
+
+      if(!seen.has(key)){
+        seen.add(key);
+        links.push(normalized);
+      }
+    }catch(_error){}
+  });
+
+  return links;
+}
+
+function currentCompanyLinks(){
   const {setup,ai,metadata}=employerCompanyMeta();
-  return{
-    linkedin:firstCompanyValue(ai.linkedin_url,setup.linkedin_url,metadata.linkedin_url,currentCompany?.linkedin_url),
-    instagram:firstCompanyValue(ai.instagram_url,setup.instagram_url,metadata.instagram_url,currentCompany?.instagram_url),
-    facebook:firstCompanyValue(ai.facebook_url,setup.facebook_url,metadata.facebook_url,currentCompany?.facebook_url),
-    x:firstCompanyValue(ai.x_url,setup.x_url,metadata.x_url,metadata.twitter_url,currentCompany?.x_url)
-  };
+
+  return normalizeJobCompanyLinks([
+    ...(normalizeJobCompanyLinks(ai.company_links)),
+    ...(normalizeJobCompanyLinks(setup.company_links)),
+    ...(normalizeJobCompanyLinks(metadata.company_links)),
+    ...(normalizeJobCompanyLinks(currentCompany?.company_links)),
+    ai.linkedin_url,
+    setup.linkedin_url,
+    metadata.linkedin_url,
+    currentCompany?.linkedin_url,
+    ai.instagram_url,
+    setup.instagram_url,
+    metadata.instagram_url,
+    currentCompany?.instagram_url,
+    ai.facebook_url,
+    setup.facebook_url,
+    metadata.facebook_url,
+    currentCompany?.facebook_url,
+    ai.x_url,
+    setup.x_url,
+    metadata.x_url,
+    metadata.twitter_url,
+    currentCompany?.x_url
+  ]);
+}
+
+function companyLinkTypeForJob(value){
+  try{
+    const host=new URL(value)
+      .hostname
+      .toLowerCase()
+      .replace(/^www\./,'');
+
+    if(host==='linkedin.com'||host.endsWith('.linkedin.com'))return 'linkedin';
+    if(host==='instagram.com'||host.endsWith('.instagram.com'))return 'instagram';
+    if(host==='facebook.com'||host.endsWith('.facebook.com')||host==='fb.com')return 'facebook';
+    if(host==='x.com'||host.endsWith('.x.com')||host==='twitter.com'||host.endsWith('.twitter.com'))return 'x';
+  }catch(_error){}
+
+  return '';
+}
+
+function companyLegacySocialForJob(type){
+  return currentCompanyLinks()
+    .find(url=>
+      companyLinkTypeForJob(url)===type
+    )||'';
 }
 
 function companyDescriptionForJob(){
@@ -2217,10 +2312,11 @@ function saveCurrentJobDraft(){
       profile?.company_website ||
       '',
     company_description:companyDescriptionForJob(),
-    company_linkedin_url:currentCompanySocials().linkedin||'',
-    company_instagram_url:currentCompanySocials().instagram||'',
-    company_facebook_url:currentCompanySocials().facebook||'',
-    company_x_url:currentCompanySocials().x||'',
+    company_links:currentCompanyLinks(),
+    company_linkedin_url:companyLegacySocialForJob('linkedin'),
+    company_instagram_url:companyLegacySocialForJob('instagram'),
+    company_facebook_url:companyLegacySocialForJob('facebook'),
+    company_x_url:companyLegacySocialForJob('x'),
 
     pay_period:el('pay-period').value,
     pay_min:Number(el('pay-min').value)||null,
