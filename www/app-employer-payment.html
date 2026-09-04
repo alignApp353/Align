@@ -181,6 +181,10 @@ h1{font-family:'DM Serif Display',Georgia,serif;font-size:32px;line-height:1.08;
       <div class="summary-row"><span>Subtotal</span><strong id="subtotal">$750.00</strong></div>
       <div class="summary-row" id="tax-row"><span>Tax</span><strong>Calculated at checkout</strong></div>
       <div class="summary-row"><span>Due today</span><strong id="due">$750.00 + tax</strong></div>
+      <div class="summary-row" id="developer-bypass-row" hidden>
+        <span>Developer bypass charge</span>
+        <strong id="developer-bypass-charge">$0.00</strong>
+      </div>
     </div>
   </section>
 
@@ -558,19 +562,36 @@ function renderSummary(){
       $('subtotal').textContent=
         money(change.difference);
 
+      /*
+       * REAL BILLING MODEL:
+       * upgrades are prepaid. The FULL price difference is due immediately.
+       * Test mode bypasses the actual card charge but does not hide the
+       * commercial amount that would be due in production.
+       */
       $('tax-row').hidden=
         developerTestMode;
 
       $('due').textContent=
         developerTestMode
-          ?'$0.00'
+          ?money(change.difference)
           :money(change.difference)+
             ' + tax';
 
+      const bypassRow=
+        $('developer-bypass-row');
+
+      if(bypassRow){
+        bypassRow.hidden=
+          !developerTestMode;
+
+        $('developer-bypass-charge').textContent=
+          '$0.00';
+      }
+
       $('authorization').textContent=
         developerTestMode
-          ?`By continuing, you confirm this is a developer test upgrade from ${planNameFromCode(change.current)} to ${planNameFromCode(change.target)}. Alygnn will simulate the ${display(change.difference)} plan-price difference, activate ${planNameFromCode(change.target)} immediately, keep the same renewal date, and charge $0.`
-          :`By continuing, you authorize the ${display(change.difference)} plan-price difference plus applicable tax. ${planNameFromCode(change.target)} activates immediately after payment and your current renewal date stays the same.`;
+          ?`REAL BILLING RULE: the full ${display(change.difference)} upgrade difference is due upfront today. In this developer build only, Alygnn bypasses that payment and charges $0 so you can test ${planNameFromCode(change.target)}. In production, ${planNameFromCode(change.target)} will not activate until the full ${display(change.difference)} payment succeeds.`
+          :`By continuing, you authorize the full ${display(change.difference)} plan-price difference plus applicable tax to be charged upfront today. ${planNameFromCode(change.target)} activates only after that payment succeeds. Your current renewal date stays the same.`;
 
       updateCheckoutButton();
       return;
@@ -590,6 +611,13 @@ function renderSummary(){
     $('subtotal').textContent='$0.00';
     $('tax-row').hidden=true;
     $('due').textContent='$0.00';
+
+    const bypassRow=
+      $('developer-bypass-row');
+
+    if(bypassRow){
+      bypassRow.hidden=true;
+    }
 
     $('authorization').textContent=
       `By continuing, you schedule ${planNameFromCode(change.target)} for your next renewal. There is no refund or account credit. ${planNameFromCode(change.current)} remains active through the period already paid for.`;
@@ -616,9 +644,26 @@ function renderSummary(){
 
   $('subtotal').textContent=money(p.price);
 
+  const bypassRow=
+    $('developer-bypass-row');
+
+  if(bypassRow){
+    bypassRow.hidden=
+      !developerTestMode;
+
+    $('developer-bypass-charge').textContent=
+      '$0.00';
+  }
+
   if(developerTestMode){
     $('tax-row').hidden=true;
-    $('due').textContent='$0.00';
+
+    /*
+     * Every Alygnn purchase is prepaid in production.
+     * Test mode only bypasses the real card charge.
+     */
+    $('due').textContent=
+      money(p.price);
 
     $('authorization').textContent=isAddon()
       ?'By continuing, you confirm this is a developer test activation of the standalone $150/month Second Job Slot. No payment will be processed.'
@@ -629,6 +674,13 @@ function renderSummary(){
         :`By continuing, you confirm this is a developer test activation of ${p.name}. No payment will be processed.`;
 
   }else{
+    const bypassRow=
+      $('developer-bypass-row');
+
+    if(bypassRow){
+      bypassRow.hidden=true;
+    }
+
     $('tax-row').hidden=false;
     $('due').textContent=
       money(p.price)+' + tax';
@@ -665,7 +717,7 @@ function renderAll(){
       `Upgrade to ${planNameFromCode(change.target)}.`;
 
     $('checkout-lede').textContent=
-      `You're currently on ${planNameFromCode(change.current)}. Pay only the ${display(change.difference)} plan-price difference and get ${planNameFromCode(change.target)} immediately while keeping your current renewal date.`;
+      `You're currently on ${planNameFromCode(change.current)}. The full ${display(change.difference)} plan-price difference is due upfront today. ${planNameFromCode(change.target)} unlocks immediately after that payment succeeds, and your current renewal date stays the same.`;
 
     $('plan-panel-title').textContent=
       '1. Confirm your upgrade';
@@ -778,8 +830,8 @@ function updateCheckoutButton(){
   if(change?.upgrade){
     $('checkout-btn').textContent=
       developerTestMode
-        ?`Upgrade to ${planNameFromCode(change.target)} test access — $0`
-        :`Pay ${display(change.difference)} difference & upgrade`;
+        ?`Bypass ${display(change.difference)} payment & test upgrade — $0`
+        :`Pay ${display(change.difference)} upfront & upgrade`;
 
     return;
   }
@@ -1330,7 +1382,7 @@ async function initialize(){
 
     $('secure-copy').textContent=
       change?.upgrade
-        ?`Stripe is bypassed in this development build. Alygnn will simulate the ${display(change.difference)} upgrade difference and activate ${planNameFromCode(change.target)} immediately so you can test the real upgraded capacity and features.`
+        ?`Developer bypass is active. In production, the full ${display(change.difference)} upgrade difference is paid upfront today before ${planNameFromCode(change.target)} activates. This development build charges $0 only so you can test the upgraded capacity and features.`
         :change?.downgrade
           ?`Stripe is bypassed in this development build. Alygnn will schedule ${planNameFromCode(change.target)} for your current renewal date with no refund or credit.`
           :isBoost()
@@ -1427,7 +1479,7 @@ async function activateDeveloperTest(){
         `${planNameFromCode(change.target)} activated ✓`;
 
       showMessage(
-        `${planNameFromCode(change.target)} is active now. Alygnn simulated the ${display(change.difference)} upgrade difference and charged $0. Your renewal date stays the same.`
+        `${planNameFromCode(change.target)} is active in developer test mode. Production would require the full ${display(change.difference)} upgrade difference upfront before access is granted. This test bypass charged $0. Your renewal date stays the same.`
       );
 
       setTimeout(()=>{
