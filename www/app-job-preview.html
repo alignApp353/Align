@@ -1969,6 +1969,14 @@ body.preview-details-open{
   white-space:pre-wrap;
   word-break:break-word;
 }
+.company-about-card{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px}
+.company-about-logo{width:58px;height:58px;flex:0 0 auto;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:#edf3f8;display:grid;place-items:center;color:var(--brand);font-weight:900;font-size:20px}
+.company-about-logo img{width:100%;height:100%;object-fit:contain;background:#fff}
+.company-about-name{font-weight:900;color:var(--text);font-size:17px}
+.company-about-verified{margin-top:5px;color:var(--brand);font-size:11px;font-weight:800}
+.company-about-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.company-about-link{display:inline-flex;align-items:center;min-height:34px;padding:0 11px;border:1px solid var(--border);border-radius:999px;text-decoration:none;color:var(--brand);font-size:11px;font-weight:800}
+
 
 .details-list{
   display:grid;
@@ -3142,6 +3150,29 @@ function previewListHtml(value,fallback){
   `;
 }
 
+function safeExternalUrl(value){
+  const raw=String(value||'').trim();
+  if(!raw)return '';
+  try{
+    const url=new URL(/^https?:\/\//i.test(raw)?raw:'https://'+raw);
+    return ['http:','https:'].includes(url.protocol)?url.href:'';
+  }catch(_error){
+    return '';
+  }
+}
+
+function previewCompanyLogoHtml(){
+  const logo=safeExternalUrl(draft.company_logo);
+  if(!logo)return escapePreviewHtml(initials(draft.company));
+  return `<img src="${escapePreviewHtml(logo)}" alt="${escapePreviewHtml(draft.company||'Company')} logo" onerror="this.remove();this.parentElement.textContent='${escapePreviewHtml(initials(draft.company))}'">`;
+}
+
+function previewCompanyLinkHtml(label,value){
+  const url=safeExternalUrl(value);
+  if(!url)return '';
+  return `<a class="company-about-link" href="${escapePreviewHtml(url)}" target="_blank" rel="noopener noreferrer">${escapePreviewHtml(label)}</a>`;
+}
+
 function openCandidateDetailsPreview(){
   const company=
     draft.company||
@@ -3234,7 +3265,24 @@ function openCandidateDetailsPreview(){
 
     <section class="details-section">
       <h2>About ${escapePreviewHtml(company)}</h2>
+
+      <div class="company-about-card">
+        <div class="company-about-logo">${previewCompanyLogoHtml()}</div>
+        <div>
+          <div class="company-about-name">${escapePreviewHtml(company)}</div>
+          <div class="company-about-verified">Verified employer on Alygnn</div>
+        </div>
+      </div>
+
       <div class="details-copy">${escapePreviewHtml(aboutCompany)}</div>
+
+      <div class="company-about-links">
+        ${previewCompanyLinkHtml('Website',draft.company_website)}
+        ${previewCompanyLinkHtml('LinkedIn',draft.company_linkedin_url)}
+        ${previewCompanyLinkHtml('Instagram',draft.company_instagram_url)}
+        ${previewCompanyLinkHtml('Facebook',draft.company_facebook_url)}
+        ${previewCompanyLinkHtml('X',draft.company_x_url)}
+      </div>
     </section>
   `;
 
@@ -3357,6 +3405,34 @@ function extendedJobUpdatePayload(){
 
     location_longitude:
       draft.location_longitude??
+      null,
+
+    company_logo:
+      draft.company_logo||
+      null,
+
+    company_website:
+      draft.company_website||
+      null,
+
+    company_description:
+      draft.company_description||
+      null,
+
+    company_linkedin_url:
+      draft.company_linkedin_url||
+      null,
+
+    company_instagram_url:
+      draft.company_instagram_url||
+      null,
+
+    company_facebook_url:
+      draft.company_facebook_url||
+      null,
+
+    company_x_url:
+      draft.company_x_url||
       null
   };
 }
@@ -3404,6 +3480,34 @@ function extendedJobPayload(){
 
     location_longitude:
       draft.location_longitude??
+      null,
+
+    company_logo:
+      draft.company_logo||
+      null,
+
+    company_website:
+      draft.company_website||
+      null,
+
+    company_description:
+      draft.company_description||
+      null,
+
+    company_linkedin_url:
+      draft.company_linkedin_url||
+      null,
+
+    company_instagram_url:
+      draft.company_instagram_url||
+      null,
+
+    company_facebook_url:
+      draft.company_facebook_url||
+      null,
+
+    company_x_url:
+      draft.company_x_url||
       null
   };
 }
@@ -3575,6 +3679,15 @@ function goToFreeRepostOptions(){
 
 async function publishJob(){
   clearMessage();
+
+  if(!String(draft?.company_logo||'').trim()){
+    showMessage('Add your company logo before publishing this job.');
+    sessionStorage.setItem('alygnnCompanyProfileReturn','app-job-preview.html');
+    setTimeout(()=>{
+      location.href='app-employer-dashboard.html?view=company&edit=1&reason=logo_required';
+    },450);
+    return;
+  }
 
   liveCompany=
     await resolveCompanyLive();
