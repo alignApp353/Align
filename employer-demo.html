@@ -6,595 +6,656 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <title>Alygnn — Employer Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --brand:#5D7FA3;
-  --sage:#8CB69B;
-  --bg:#F0F3F2;
-  --card-bg:#FCFCFA;
-  --text:#1A2530;
-  --border:#DDE3E8;
-  --mint:#6FBF8F;
-  --rose:#D79A9A;
-  --text-muted:#4A5968;
-  --brand-light:rgba(93,127,163,.08);
-  --mint-light:rgba(111,191,143,.10);
-}
-body{
-  font-family:'DM Sans',sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  min-height:100vh;
-}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* Header matches the live employer dashboard */
-nav{
-  height:64px;
-  padding:0 5%;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  position:sticky;
-  top:0;
-  z-index:100;
-  background:rgba(246,248,247,.95);
-  backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--border);
-}
-.logo{
-  font-family:'DM Serif Display',serif;
-  font-size:22px;
-  color:var(--brand);
-  letter-spacing:-.5px;
-  text-decoration:none;
-}
-.logo span{color:var(--sage)}
-.nav-right{
-  display:flex;
-  align-items:center;
-  gap:14px;
-}
-.demo-pill{
-  font-size:12px;
-  color:var(--text-muted);
-  background:var(--brand-light);
-  padding:5px 12px;
-  border-radius:100px;
-}
-.btn-logout{
-  font-family:'DM Sans',sans-serif;
-  font-size:13px;
-  color:var(--text-muted);
-  background:none;
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:7px 14px;
-  cursor:pointer;
-  text-decoration:none;
-  transition:.2s;
-}
-.btn-logout:hover{
-  border-color:var(--brand);
-  color:var(--brand);
-}
+  :root {
+    --brand: #5D7FA3;
+    --sage: #8CB69B;
+    --bg: #F0F3F2;
+    --card-bg: #FCFCFA;
+    --text: #1A2530;
+    --border: #DDE3E8;
+    --mint: #6FBF8F;
+    --rose: #D79A9A;
+    --text-muted: #4A5968;
+    --brand-light: rgba(93,127,163,0.08);
+    --mint-light: rgba(111,191,143,0.10);
+  }
 
-.layout{
-  display:grid;
-  grid-template-columns:240px 1fr;
-  min-height:calc(100vh - 64px);
-}
-.sidebar{
-  height:calc(100vh - 64px);
-  overflow:auto;
-  position:sticky;
-  top:64px;
-  padding:32px 20px;
-  background:var(--card-bg);
-  border-right:1px solid var(--border);
-}
-.sidebar-label{
-  padding:0 8px;
-  margin-bottom:10px;
-  font-size:10px;
-  font-weight:500;
-  color:var(--text-muted);
-  letter-spacing:2px;
-  text-transform:uppercase;
-}
-.nav-item{
-  width:100%;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:10px 12px;
-  margin-bottom:2px;
-  border:0;
-  border-radius:10px;
-  background:none;
-  font-family:'DM Sans',sans-serif;
-  font-size:14px;
-  color:var(--text-muted);
-  text-align:left;
-  cursor:pointer;
-  text-decoration:none;
-  transition:.2s;
-}
-.nav-item:hover{
-  color:var(--text);
-  background:var(--brand-light);
-}
-.nav-item.active{
-  color:var(--brand);
-  background:var(--brand-light);
-  font-weight:500;
-}
-.nav-icon{
-  width:20px;
-  text-align:center;
-  font-size:16px;
-}
-.nav-divider{
-  border:0;
-  border-top:1px solid var(--border);
-  margin:12px 0;
-}
+  html { scroll-behavior: smooth; }
 
-.main{padding:40px 5%}
-.panel{display:none;animation:fadeUp .3s ease both}
-.panel.active{display:block}
-@keyframes fadeUp{
-  from{opacity:0;transform:translateY(10px)}
-  to{opacity:1;transform:translateY(0)}
-}
+  body {
+    font-family: 'DM Sans', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
 
-.page-header{margin-bottom:32px}
-.page-title{
-  font-family:'DM Serif Display',serif;
-  font-size:32px;
-  letter-spacing:-.5px;
-  margin-bottom:6px;
-}
-.page-sub{
-  font-size:14px;
-  color:var(--text-muted);
-}
-.section-header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:16px;
-  margin-bottom:16px;
-}
-.section-title{
-  font-size:16px;
-  font-weight:500;
-}
-.btn-primary{
-  border:0;
-  border-radius:100px;
-  padding:10px 22px;
-  background:var(--brand);
-  color:#fff;
-  font-family:'DM Sans',sans-serif;
-  font-size:13px;
-  font-weight:500;
-  cursor:pointer;
-  transition:.2s;
-}
-.btn-primary:hover{opacity:.88;transform:translateY(-1px)}
+  button, input { font: inherit; }
 
-.form-input{
-  width:100%;
-  padding:12px 16px;
-  border:1.5px solid var(--border);
-  border-radius:12px;
-  background:#fff;
-  color:var(--text);
-  outline:none;
-  font-family:'DM Sans',sans-serif;
-  font-size:14px;
-  transition:border-color .2s;
-}
-.form-input:focus{border-color:var(--brand)}
-.form-input::placeholder{color:#AAB4BC}
+  /* ----- TOP NAV: same shell as live employer dashboard ----- */
+  nav {
+    background: rgba(246,248,247,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 5%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 1000;
+  }
 
-.job-row{
-  display:flex;
-  align-items:center;
-  gap:16px;
-  padding:18px 20px;
-  margin-bottom:10px;
-  border:1px solid var(--border);
-  border-radius:14px;
-  background:var(--card-bg);
-  transition:box-shadow .2s;
-}
-.job-row:hover{box-shadow:0 4px 16px rgba(0,0,0,.06)}
-.job-status{
-  width:8px;
-  height:8px;
-  border-radius:50%;
-  flex-shrink:0;
-}
-.job-status.active{background:var(--mint)}
-.job-status.paused{background:var(--rose)}
-.job-info{flex:1;min-width:0}
-.job-title-text{
-  margin-bottom:3px;
-  font-size:15px;
-  font-weight:500;
-}
-.job-meta{
-  font-size:12px;
-  color:var(--text-muted);
-  line-height:1.45;
-}
-.job-stats{
-  display:flex;
-  gap:20px;
-  text-align:center;
-}
-.js-val{font-size:16px;font-weight:500}
-.js-label{
-  font-size:10px;
-  color:var(--text-muted);
-  letter-spacing:1px;
-  text-transform:uppercase;
-}
-.job-actions{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  flex-wrap:wrap;
-}
-.btn-view,.btn-danger{
-  border:0;
-  border-radius:8px;
-  padding:7px 14px;
-  font-family:'DM Sans',sans-serif;
-  font-size:12px;
-  cursor:pointer;
-}
-.btn-view{
-  color:var(--brand);
-  background:var(--brand-light);
-}
-.btn-danger{
-  color:#A05858;
-  background:rgba(215,154,154,.15);
-}
-.btn-view:hover,.btn-danger:hover{opacity:.8}
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--brand);
+    letter-spacing: -0.5px;
+    text-decoration: none;
+  }
 
-.empty-state{
-  padding:42px 20px;
-  text-align:center;
-  border:1px dashed var(--border);
-  border-radius:16px;
-  background:rgba(252,252,250,.65);
-  color:var(--text-muted);
-  font-size:13px;
-}
-.empty-icon{font-size:28px;margin-bottom:10px}
-.empty-title{
-  margin-bottom:5px;
-  color:var(--text);
-  font-size:15px;
-  font-weight:500;
-}
+  .logo span { color: var(--sage); }
 
-.nav-back-link{
-  display:inline-block;
-  margin-bottom:14px;
-  color:var(--text-muted);
-  font-size:13px;
-  text-decoration:none;
-}
-.nav-back-link:hover{color:var(--brand)}
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
 
-.candidates-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
-  gap:16px;
-}
-.candidate-card{
-  padding:24px;
-  border:1px solid var(--border);
-  border-radius:16px;
-  background:var(--card-bg);
-  transition:.2s;
-}
-.candidate-card:hover{
-  transform:translateY(-2px);
-  box-shadow:0 4px 20px rgba(0,0,0,.08);
-}
-.candidate-top{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  margin-bottom:14px;
-}
-.candidate-avatar{
-  width:44px;
-  height:44px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  flex-shrink:0;
-  border:1px solid var(--border);
-  border-radius:50%;
-  background:var(--brand-light);
-  color:var(--brand);
-  font-family:'DM Serif Display',serif;
-  font-size:16px;
-}
-.candidate-name{
-  margin-bottom:2px;
-  font-size:15px;
-  font-weight:500;
-}
-.candidate-role{font-size:12px;color:var(--text-muted)}
-.candidate-headline{
-  margin-bottom:14px;
-  color:var(--text-muted);
-  font-size:13px;
-  line-height:1.5;
-}
-.candidate-tags{
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px;
-  margin-bottom:16px;
-}
-.tag{
-  padding:4px 10px;
-  border:1px solid var(--border);
-  border-radius:100px;
-  color:var(--text-muted);
-  font-size:11px;
-}
-.tag.match{
-  color:#2E7A52;
-  border-color:rgba(111,191,143,.3);
-  background:var(--mint-light);
-}
-.candidate-actions{
-  display:flex;
-  gap:8px;
-}
-.btn-candidate{
-  flex:1;
-  padding:9px;
-  border:1px solid var(--border);
-  border-radius:8px;
-  background:#fff;
-  color:var(--text-muted);
-  font-family:'DM Sans',sans-serif;
-  font-size:12px;
-  cursor:pointer;
-}
-.btn-candidate.primary{
-  border-color:rgba(93,127,163,.22);
-  background:var(--brand-light);
-  color:var(--brand);
-}
-.btn-candidate:hover{opacity:.8}
+  .demo-pill {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--brand-light);
+    padding: 5px 12px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
 
-/* Interview cards use same visual language as live dashboard */
-.interview-card{
-  display:flex;
-  align-items:center;
-  gap:16px;
-  padding:18px 20px;
-  margin-bottom:10px;
-  border:1px solid var(--border);
-  border-radius:14px;
-  background:var(--card-bg);
-}
-.interview-date{
-  width:54px;
-  flex-shrink:0;
-  padding:8px 6px;
-  border-radius:12px;
-  background:var(--brand-light);
-  color:var(--brand);
-  text-align:center;
-}
-.interview-date strong{
-  display:block;
-  font-family:'DM Serif Display',serif;
-  font-size:20px;
-}
-.interview-date span{
-  display:block;
-  font-size:10px;
-  text-transform:uppercase;
-}
-.interview-info{flex:1}
-.interview-name{font-size:14px;font-weight:500;margin-bottom:3px}
-.interview-meta{font-size:12px;color:var(--text-muted)}
+  .btn-back {
+    font-size: 13px;
+    color: var(--text-muted);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: all .2s;
+    text-decoration: none;
+    white-space: nowrap;
+  }
 
-/* Current 5-step posting flow */
-.wizard-wrap{max-width:640px;margin:0 auto}
-.wizard-progress-row{
-  display:flex;
-  align-items:baseline;
-  justify-content:space-between;
-  margin-bottom:10px;
-}
-.wizard-step-label{
-  color:var(--brand);
-  font-size:13px;
-  font-weight:500;
-}
-.wizard-step-name{
-  color:var(--text-muted);
-  font-size:14px;
-}
-.wizard-progress-track{
-  height:6px;
-  margin-bottom:28px;
-  overflow:hidden;
-  border-radius:100px;
-  background:var(--border);
-}
-.wizard-progress-fill{
-  height:100%;
-  width:20%;
-  border-radius:100px;
-  background:var(--brand);
-  transition:width .25s;
-}
-.form-card{
-  padding:32px;
-  border:1px solid var(--border);
-  border-radius:20px;
-  background:var(--card-bg);
-}
-.wizard-step{display:none}
-.wizard-step.active{display:block}
-.wizard-title{
-  margin-bottom:6px;
-  font-family:'DM Serif Display',serif;
-  font-size:26px;
-  letter-spacing:-.5px;
-}
-.wizard-sub{
-  margin-bottom:22px;
-  color:var(--text-muted);
-  font-size:14px;
-  line-height:1.5;
-}
-.form-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:16px;
-}
-.form-group{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  margin-bottom:16px;
-}
-.form-group.full{grid-column:1/-1}
-.form-label{
-  color:var(--text-muted);
-  font-size:11px;
-  font-weight:500;
-  letter-spacing:1px;
-  text-transform:uppercase;
-}
-textarea.form-input{
-  min-height:120px;
-  resize:vertical;
-}
-select.form-input{cursor:pointer}
-.pay-row{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-}
-.pay-amounts{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-top:10px;
-}
-.requirement-options{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  margin-bottom:16px;
-}
-.requirement-chip{
-  padding:7px 11px;
-  border:1px solid var(--border);
-  border-radius:100px;
-  background:#fff;
-  color:var(--text-muted);
-  font-family:'DM Sans',sans-serif;
-  font-size:12px;
-  cursor:pointer;
-}
-.requirement-chip.selected{
-  border-color:var(--brand);
-  background:var(--brand);
-  color:#fff;
-}
-.wizard-nav{
-  display:flex;
-  gap:12px;
-  margin-top:24px;
-}
-.btn-wizard-back,.btn-wizard-continue{
-  padding:14px;
-  border-radius:12px;
-  font-family:'DM Sans',sans-serif;
-  font-size:15px;
-  font-weight:500;
-  cursor:pointer;
-}
-.btn-wizard-back{
-  flex:1;
-  border:1.5px solid var(--border);
-  background:#fff;
-  color:var(--text);
-}
-.btn-wizard-continue{
-  flex:2;
-  border:0;
-  background:var(--brand);
-  color:#fff;
-}
+  .btn-back:hover {
+    border-color: var(--brand);
+    color: var(--brand);
+  }
 
-.mini-footer{
-  padding:26px;
-  text-align:center;
-  color:var(--text-muted);
-  font-size:12px;
-}
-.mini-footer a{color:inherit;text-decoration:none}
-.mini-footer a:hover{color:var(--brand)}
+  /* ----- FIXED EMPLOYER SHELL ----- */
+  .layout {
+    min-height: 100vh;
+    padding-top: 64px;
+  }
 
-.toast{
-  position:fixed;
-  left:50%;
-  bottom:32px;
-  z-index:300;
-  padding:10px 20px;
-  border-radius:100px;
-  background:var(--text);
-  color:#fff;
-  font-size:13px;
-  white-space:nowrap;
-  transform:translateX(-50%) translateY(80px);
-  transition:transform .3s ease;
-}
-.toast.show{transform:translateX(-50%) translateY(0)}
+  .sidebar {
+    background: var(--card-bg);
+    border-right: 1px solid var(--border);
+    padding: 32px 20px;
+    position: fixed;
+    top: 64px;
+    left: 0;
+    width: 240px;
+    height: calc(100vh - 64px);
+    overflow: hidden;
+  }
 
-@media(max-width:1050px){
-  .job-row{align-items:flex-start;flex-wrap:wrap}
-  .job-info{min-width:55%}
-  .job-actions{width:100%;justify-content:flex-end}
-}
-@media(max-width:860px){
-  .layout{grid-template-columns:1fr}
-  .sidebar{display:none}
-  .main{padding:28px 5%}
-  .job-stats{margin-left:24px}
-  .form-grid,.pay-row,.pay-amounts{grid-template-columns:1fr}
-}
-@media(max-width:620px){
-  nav{padding:0 4%}
-  .demo-pill{display:none}
-  .page-title{font-size:28px}
-  .section-header{align-items:flex-start;flex-direction:column}
-  .job-stats{width:100%;margin-left:24px;justify-content:flex-start}
-  .job-actions{justify-content:flex-start;margin-left:24px}
-  .form-card{padding:24px 18px}
-}
+  .main {
+    margin-left: 240px;
+    padding: 40px 5%;
+  }
+
+  .sidebar-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 10px;
+    padding: 0 8px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .2s;
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    text-decoration: none;
+  }
+
+  .nav-item:hover {
+    background: var(--brand-light);
+    color: var(--text);
+  }
+
+  .nav-item.active {
+    background: var(--brand-light);
+    color: var(--brand);
+    font-weight: 500;
+  }
+
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .nav-icon svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .nav-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 12px 0;
+  }
+
+  /* ----- PANELS ----- */
+  .panel {
+    display: none;
+    animation: fadeUp .3s ease both;
+  }
+
+  .panel.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .page-header { margin-bottom: 32px; }
+
+  .page-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+
+  .page-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .demo-plan-banner {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(140,182,155,.55);
+    background: rgba(140,182,155,.12);
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .demo-plan-banner strong { color: #4F9568; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .slot-usage {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 8px;
+  }
+
+  .btn-primary {
+    background: var(--brand);
+    color: white;
+    border: none;
+    border-radius: 100px;
+    padding: 10px 22px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+
+  .btn-primary:hover {
+    opacity: .88;
+    transform: translateY(-1px);
+  }
+
+  .form-input {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color .2s;
+    width: 100%;
+    margin-bottom: 16px;
+  }
+
+  .form-input:focus { border-color: var(--brand); }
+  .form-input::placeholder { color: #aab4bc; }
+
+  /* ----- JOB ROWS: same style/actions as live dashboard ----- */
+  .job-row {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 10px;
+    transition: box-shadow .2s;
+  }
+
+  .job-row:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,.06);
+  }
+
+  .job-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .job-status.active { background: var(--mint); }
+
+  .job-info {
+    flex: 1;
+    min-width: 270px;
+  }
+
+  .job-title-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .job-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+
+  .job-status-badge,
+  .boosted-pill,
+  .urgent-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 600;
+    vertical-align: middle;
+  }
+
+  .job-status-badge.active {
+    color: #2d8a57;
+    background: var(--mint-light);
+  }
+
+  .boosted-pill {
+    color: #755b18;
+    background: rgba(231,184,109,.15);
+    border: 1px solid rgba(231,184,109,.35);
+  }
+
+  .urgent-pill {
+    color: #914848;
+    background: rgba(215,154,154,.15);
+    border: 1px solid rgba(215,154,154,.40);
+  }
+
+  .boost-until {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-left: -3px;
+    white-space: nowrap;
+  }
+
+  .job-stats {
+    display: flex;
+    gap: 20px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .js-val {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .js-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .job-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .btn-view,
+  .btn-danger {
+    font-size: 12px;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+
+  .btn-view {
+    color: var(--brand);
+    background: var(--brand-light);
+  }
+
+  .btn-view:hover { opacity: .8; }
+
+  .btn-view.urgent-on {
+    color: #914848;
+    background: rgba(215,154,154,.12);
+  }
+
+  .btn-danger {
+    color: #a05858;
+    background: rgba(215,154,154,.15);
+  }
+
+  .btn-danger:hover { opacity: .8; }
+
+  /* ----- CANDIDATES ----- */
+  .candidate-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .filter-chip {
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-muted);
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .filter-chip.active {
+    color: var(--brand);
+    border-color: rgba(93,127,163,.35);
+    background: var(--brand-light);
+  }
+
+  .candidates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .candidate-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+  }
+
+  .candidate-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .candidate-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--brand-light);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Serif Display', serif;
+    color: var(--brand);
+    font-size: 18px;
+  }
+
+  .candidate-name {
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .candidate-role {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .candidate-copy {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .candidate-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .match-score {
+    color: #2d8a57;
+    background: var(--mint-light);
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* ----- MESSAGES ----- */
+  .messages-shell {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    min-height: 520px;
+  }
+
+  .thread-list {
+    border-right: 1px solid var(--border);
+  }
+
+  .thread {
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+
+  .thread.active { background: var(--brand-light); }
+
+  .thread-name {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 3px;
+  }
+
+  .thread-preview,
+  .thread-time {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .conversation {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .conversation-title {
+    font-size: 15px;
+    font-weight: 600;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .chat-area {
+    padding: 26px 0;
+    flex: 1;
+  }
+
+  .bubble {
+    max-width: 72%;
+    padding: 11px 14px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .bubble.them {
+    background: #fff;
+    border: 1px solid var(--border);
+  }
+
+  .bubble.me {
+    background: var(--brand);
+    color: #fff;
+    margin-left: auto;
+  }
+
+  .message-input {
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  /* ----- TOAST ----- */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--text);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: transform .3s ease;
+    z-index: 2000;
+    white-space: nowrap;
+  }
+
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .mini-footer {
+    text-align: center;
+    padding: 28px 6% 40px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: 240px;
+  }
+
+  .mini-footer a {
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  /* ----- RESPONSIVE ----- */
+  @media (max-width: 1180px) {
+    .job-row { align-items: flex-start; flex-wrap: wrap; }
+    .job-info { min-width: 55%; }
+    .job-actions { width: 100%; justify-content: flex-end; padding-left: 24px; }
+  }
+
+  @media (max-width: 860px) {
+    .sidebar { display: none; }
+    .main, .mini-footer { margin-left: 0; }
+    .main { padding: 28px 5%; }
+    .messages-shell { grid-template-columns: 1fr; }
+    .thread-list { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+
+  @media (max-width: 680px) {
+    nav { padding: 0 4%; }
+    .demo-pill { display: none; }
+    .page-title { font-size: 28px; }
+    .section-header { align-items: flex-start; flex-direction: column; }
+    .job-stats { width: 100%; justify-content: flex-start; padding-left: 24px; }
+    .job-actions { justify-content: flex-start; padding-left: 24px; }
+    .btn-view, .btn-danger { padding: 7px 11px; }
+  }
 </style>
 </head>
 
@@ -605,7 +666,7 @@ select.form-input{cursor:pointer}
 
   <div class="nav-right">
     <span class="demo-pill">Demo · example data</span>
-    <a href="index.html" class="btn-logout">← Back to Alygnn</a>
+    <a href="demo.html" class="btn-back">← Back to Alygnn</a>
   </div>
 </nav>
 
@@ -614,36 +675,64 @@ select.form-input{cursor:pointer}
   <aside class="sidebar">
     <div class="sidebar-label">Employer</div>
 
-    <button class="nav-item active" data-panel="jobs" onclick="showPanel('jobs',this)">
-      <span class="nav-icon">💼</span>
+    <button class="nav-item active" data-panel="jobs" onclick="showPanel('jobs', this)">
+      <span class="nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="11" rx="1.5"/><path d="M9 7V5h6v2"/><path d="M5 11h14"/><path d="M10 11v2h4v-2"/></svg>
+      </span>
       My Jobs
     </button>
 
-    <button class="nav-item" data-panel="post" onclick="openPostJob(this)">
-      <span class="nav-icon">➕</span>
-      Post a Job
+    <button class="nav-item" data-panel="candidates" onclick="showPanel('candidates', this)">
+      <span class="nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 18a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.3"/><path d="M15.5 14.5a4.5 4.5 0 0 1 5 4.5"/></svg>
+      </span>
+      Candidates
+    </button>
+
+    <button class="nav-item" data-panel="messages" onclick="showPanel('messages', this)">
+      <span class="nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 5h16v12H8l-4 3V5z"/><path d="m7 9 5 4 5-4"/></svg>
+      </span>
+      Messages
+    </button>
+
+    <button class="nav-item" onclick="demoAction('Job-slot purchasing is disabled in the demo.')">
+      <span class="nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+      </span>
+      Add a job slot
     </button>
 
     <hr class="nav-divider">
 
-    <button class="nav-item" onclick="showToast('This is example data. Create an employer account to open My account.')">
-      <span class="nav-icon">←</span>
+    <button class="nav-item" onclick="demoAction('My account is not available in demo mode.')">
+      <span class="nav-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M10 6 4 12l6 6"/><path d="M4 12h16"/></svg>
+      </span>
       My account
     </button>
   </aside>
 
   <main class="main">
 
-    <!-- MY JOBS: current employer dashboard landing page -->
+    <!-- MY JOBS -->
     <section class="panel active" id="panel-jobs">
       <div class="page-header">
         <div class="page-title">My Jobs</div>
         <div class="page-sub">Manage your job listings</div>
+
+        <div class="demo-plan-banner">
+          <strong>DEMO PLAN ACTIVE</strong> · Growth · Monthly · 6 total job slots · Urgently Hiring available<br>
+          Example employer data only · No payment was charged.
+        </div>
       </div>
 
       <div class="section-header">
-        <div class="section-title">Active listings</div>
-        <button class="btn-primary" onclick="openPostJob()">+ Post new job</button>
+        <div class="section-title">
+          Job listings
+          <span class="slot-usage">· 6 of 6 slots used</span>
+        </div>
+        <button class="btn-primary" onclick="demoAction('All demo job slots are in use. In the live dashboard this opens job-slot options.')">+ Add a job slot</button>
       </div>
 
       <input
@@ -653,315 +742,267 @@ select.form-input{cursor:pointer}
         placeholder="Search your posted jobs by title, location, or type…"
         autocomplete="off"
         oninput="filterJobs()"
-        style="margin-bottom:16px"
       >
 
       <div id="jobs-list">
 
-        <div class="job-row" data-job-search="frontend developer full-time remote raleigh nc">
+        <div class="job-row" data-job-search="accountant full-time in person raleigh nc urgent">
           <div class="job-status active"></div>
+
           <div class="job-info">
-            <div class="job-title-text">Frontend Developer</div>
-            <div class="job-meta">Full-time · Remote · $95,000 – $125,000 per year · Raleigh, NC</div>
+            <div class="job-title-text">
+              Accountant
+              <span class="job-status-badge active">Active</span>
+              <span class="urgent-pill">Urgently Hiring</span>
+            </div>
+            <div class="job-meta">Full-time · In person · $65 – $20 per year · Raleigh, NC</div>
           </div>
+
           <div class="job-stats">
-            <div>
-              <div class="js-val">18</div>
-              <div class="js-label">Views</div>
-            </div>
-            <div>
-              <div class="js-val">5</div>
-              <div class="js-label">Applied</div>
-            </div>
+            <div><div class="js-val">8</div><div class="js-label">Views</div></div>
+            <div><div class="js-val">1</div><div class="js-label">Applied</div></div>
           </div>
+
           <div class="job-actions">
-            <button class="btn-view" onclick="openCandidates('Frontend Developer')">Candidates</button>
-            <button class="btn-view" onclick="showToast('Demo job preview opened.')">View</button>
-            <button class="btn-view" onclick="showToast('In the live dashboard, this opens the job editor.')">Edit</button>
-            <button class="btn-danger" onclick="showToast('Demo data cannot be deleted.')">Delete</button>
+            <button class="btn-view" onclick="openJobCandidates('Accountant')">Candidates</button>
+            <button class="btn-view" onclick="demoAction('Job preview is disabled in demo mode.')">View</button>
+            <button class="btn-view" onclick="demoAction('Job Boost checkout is disabled in demo mode.')">Boost</button>
+            <button class="btn-view urgent-on" onclick="demoAction('Urgently Hiring changes are disabled in demo mode.')">Remove urgently hiring</button>
+            <button class="btn-view" onclick="demoAction('Job editing is disabled in demo mode.')">Edit</button>
+            <button class="btn-danger" onclick="demoAction('Demo jobs cannot be deleted.')">Delete</button>
           </div>
         </div>
 
-        <div class="job-row" data-job-search="product manager full-time hybrid charlotte nc">
+        <div class="job-row" data-job-search="account manager full-time in person raleigh nc boosted urgent">
           <div class="job-status active"></div>
+
           <div class="job-info">
-            <div class="job-title-text">Product Manager</div>
-            <div class="job-meta">Full-time · Hybrid · $110,000 – $140,000 per year · Charlotte, NC</div>
+            <div class="job-title-text">
+              Account Manager
+              <span class="job-status-badge active">Active</span>
+              <span class="boosted-pill">Boosted</span>
+              <span class="boost-until">until Sep 7, 2026, 11:14 AM EDT</span>
+              <span class="urgent-pill">Urgently Hiring</span>
+            </div>
+            <div class="job-meta">Full-time · In person · $45,000 – $65,000 per year · Raleigh, NC</div>
           </div>
+
           <div class="job-stats">
-            <div>
-              <div class="js-val">22</div>
-              <div class="js-label">Views</div>
-            </div>
-            <div>
-              <div class="js-val">4</div>
-              <div class="js-label">Applied</div>
-            </div>
+            <div><div class="js-val">4</div><div class="js-label">Views</div></div>
+            <div><div class="js-val">0</div><div class="js-label">Applied</div></div>
           </div>
+
           <div class="job-actions">
-            <button class="btn-view" onclick="openCandidates('Product Manager')">Candidates</button>
-            <button class="btn-view" onclick="showToast('Demo job preview opened.')">View</button>
-            <button class="btn-view" onclick="showToast('In the live dashboard, this opens the job editor.')">Edit</button>
-            <button class="btn-danger" onclick="showToast('Demo data cannot be deleted.')">Delete</button>
+            <button class="btn-view" onclick="openJobCandidates('Account Manager')">Candidates</button>
+            <button class="btn-view" onclick="demoAction('Job preview is disabled in demo mode.')">View</button>
+            <button class="btn-view" onclick="demoAction('Job Boost checkout is disabled in demo mode.')">Boost again</button>
+            <button class="btn-view urgent-on" onclick="demoAction('Urgently Hiring changes are disabled in demo mode.')">Remove urgently hiring</button>
+            <button class="btn-view" onclick="demoAction('Job editing is disabled in demo mode.')">Edit</button>
+            <button class="btn-danger" onclick="demoAction('Demo jobs cannot be deleted.')">Delete</button>
           </div>
         </div>
 
-        <div class="job-row" data-job-search="ux designer contract in person durham nc">
+        <div class="job-row" data-job-search="accountant full-time in person butner nc urgent">
           <div class="job-status active"></div>
+
           <div class="job-info">
-            <div class="job-title-text">UX Designer</div>
-            <div class="job-meta">Contract · In person · $70,000 – $90,000 per year · Durham, NC</div>
+            <div class="job-title-text">
+              Accountant
+              <span class="job-status-badge active">Active</span>
+              <span class="urgent-pill">Urgently Hiring</span>
+            </div>
+            <div class="job-meta">Full-time · In person · $42,000 – $58,000 per year · Butner, NC</div>
           </div>
+
           <div class="job-stats">
-            <div>
-              <div class="js-val">7</div>
-              <div class="js-label">Views</div>
-            </div>
-            <div>
-              <div class="js-val">3</div>
-              <div class="js-label">Applied</div>
-            </div>
+            <div><div class="js-val">0</div><div class="js-label">Views</div></div>
+            <div><div class="js-val">0</div><div class="js-label">Applied</div></div>
           </div>
+
           <div class="job-actions">
-            <button class="btn-view" onclick="openCandidates('UX Designer')">Candidates</button>
-            <button class="btn-view" onclick="showToast('Demo job preview opened.')">View</button>
-            <button class="btn-view" onclick="showToast('In the live dashboard, this opens the job editor.')">Edit</button>
-            <button class="btn-danger" onclick="showToast('Demo data cannot be deleted.')">Delete</button>
+            <button class="btn-view" onclick="openJobCandidates('Accountant — Butner')">Candidates</button>
+            <button class="btn-view" onclick="demoAction('Job preview is disabled in demo mode.')">View</button>
+            <button class="btn-view" onclick="demoAction('Job Boost checkout is disabled in demo mode.')">Boost</button>
+            <button class="btn-view urgent-on" onclick="demoAction('Urgently Hiring changes are disabled in demo mode.')">Remove urgently hiring</button>
+            <button class="btn-view" onclick="demoAction('Job editing is disabled in demo mode.')">Edit</button>
+            <button class="btn-danger" onclick="demoAction('Demo jobs cannot be deleted.')">Delete</button>
           </div>
         </div>
 
-      </div>
+        <div class="job-row" data-job-search="hr coordinator full-time remote albany ny urgent">
+          <div class="job-status active"></div>
 
-      <div class="empty-state" id="jobs-no-results" style="display:none">
-        <div class="empty-icon">🔎</div>
-        <div class="empty-title">No jobs match that search</div>
-        Try another title, location, or job type.
+          <div class="job-info">
+            <div class="job-title-text">
+              HR Coordinator
+              <span class="job-status-badge active">Active</span>
+              <span class="urgent-pill">Urgently Hiring</span>
+            </div>
+            <div class="job-meta">Full-time · Remote · $38,000 – $52,000 per year · Albany, NY</div>
+          </div>
+
+          <div class="job-stats">
+            <div><div class="js-val">5</div><div class="js-label">Views</div></div>
+            <div><div class="js-val">2</div><div class="js-label">Applied</div></div>
+          </div>
+
+          <div class="job-actions">
+            <button class="btn-view" onclick="openJobCandidates('HR Coordinator')">Candidates</button>
+            <button class="btn-view" onclick="demoAction('Job preview is disabled in demo mode.')">View</button>
+            <button class="btn-view" onclick="demoAction('Job Boost checkout is disabled in demo mode.')">Boost</button>
+            <button class="btn-view urgent-on" onclick="demoAction('Urgently Hiring changes are disabled in demo mode.')">Remove urgently hiring</button>
+            <button class="btn-view" onclick="demoAction('Job editing is disabled in demo mode.')">Edit</button>
+            <button class="btn-danger" onclick="demoAction('Demo jobs cannot be deleted.')">Delete</button>
+          </div>
+        </div>
+
+        <div class="job-row" data-job-search="sales coordinator full-time hybrid durham nc">
+          <div class="job-status active"></div>
+
+          <div class="job-info">
+            <div class="job-title-text">
+              Sales Coordinator
+              <span class="job-status-badge active">Active</span>
+            </div>
+            <div class="job-meta">Full-time · Hybrid · $48,000 – $62,000 per year · Durham, NC</div>
+          </div>
+
+          <div class="job-stats">
+            <div><div class="js-val">13</div><div class="js-label">Views</div></div>
+            <div><div class="js-val">3</div><div class="js-label">Applied</div></div>
+          </div>
+
+          <div class="job-actions">
+            <button class="btn-view" onclick="openJobCandidates('Sales Coordinator')">Candidates</button>
+            <button class="btn-view" onclick="demoAction('Job preview is disabled in demo mode.')">View</button>
+            <button class="btn-view" onclick="demoAction('Job Boost checkout is disabled in demo mode.')">Boost</button>
+            <button class="btn-view" onclick="demoAction('Urgently Hiring changes are disabled in demo mode.')">Urgently Hiring</button>
+            <button class="btn-view" onclick="demoAction('Job editing is disabled in demo mode.')">Edit</button>
+            <button class="btn-danger" onclick="demoAction('Demo jobs cannot be deleted.')">Delete</button>
+          </div>
+        </div>
+
+        <div class="job-row" data-job-search="customer success specialist full-time remote charlotte nc">
+          <div class="job-status active"></div>
+
+          <div class="job-info">
+            <div class="job-title-text">
+              Customer Success Specialist
+              <span class="job-status-badge active">Active</span>
+            </div>
+            <div class="job-meta">Full-time · Remote · $50,000 – $66,000 per year · Charlotte, NC</div>
+          </div>
+
+          <div class="job-stats">
+            <div><div class="js-val">9</div><div class="js-label">Views</div></div>
+            <div><div class="js-val">2</div><div class="js-label">Applied</div></div>
+          </div>
+
+          <div class="job-actions">
+            <button class="btn-view" onclick="openJobCandidates('Customer Success Specialist')">Candidates</button>
+            <button class="btn-view" onclick="demoAction('Job preview is disabled in demo mode.')">View</button>
+            <button class="btn-view" onclick="demoAction('Job Boost checkout is disabled in demo mode.')">Boost</button>
+            <button class="btn-view" onclick="demoAction('Urgently Hiring changes are disabled in demo mode.')">Urgently Hiring</button>
+            <button class="btn-view" onclick="demoAction('Job editing is disabled in demo mode.')">Edit</button>
+            <button class="btn-danger" onclick="demoAction('Demo jobs cannot be deleted.')">Delete</button>
+          </div>
+        </div>
+
       </div>
     </section>
 
-    <!-- CANDIDATES: no longer a permanent sidebar item. -->
+    <!-- CANDIDATES -->
     <section class="panel" id="panel-candidates">
-      <a href="#" class="nav-back-link" onclick="showPanel('jobs');return false;">← Back to My Jobs</a>
-
       <div class="page-header">
-        <div class="page-title" id="candidate-page-title">Candidates</div>
-        <div class="page-sub" id="candidate-page-sub">Job seekers who applied to this listing</div>
+        <div class="page-title">Candidates</div>
+        <div class="page-sub" id="candidate-page-sub">Review applicants across your active jobs</div>
       </div>
 
-      <input
-        type="text"
-        class="form-input"
-        id="candidate-search-input"
-        placeholder="Search candidates by name, role, or skill…"
-        autocomplete="off"
-        oninput="filterCandidates()"
-        style="margin-bottom:16px"
-      >
+      <div class="candidate-toolbar">
+        <button class="filter-chip active">All candidates</button>
+        <button class="filter-chip">New</button>
+        <button class="filter-chip">Contacted</button>
+      </div>
 
-      <div class="candidates-grid" id="candidate-grid">
-
-        <div class="candidate-card" data-candidate-search="sarah m frontend developer react typescript remote">
+      <div class="candidates-grid">
+        <article class="candidate-card">
           <div class="candidate-top">
-            <div class="candidate-avatar">SM</div>
+            <div class="candidate-avatar">MC</div>
             <div>
-              <div class="candidate-name">Sarah M.</div>
-              <div class="candidate-role">Frontend Developer · 92% match</div>
+              <div class="candidate-name">Maya Chen</div>
+              <div class="candidate-role">Accountant · Raleigh, NC</div>
             </div>
           </div>
-          <div class="candidate-headline">Frontend engineer with 5 years of React and TypeScript experience.</div>
-          <div class="candidate-tags">
-            <span class="tag match">React</span>
-            <span class="tag match">TypeScript</span>
-            <span class="tag">5 yrs exp</span>
-            <span class="tag">Remote</span>
+          <div class="candidate-copy">Accounting professional with month-end close, reconciliation, and reporting experience.</div>
+          <div class="candidate-bottom">
+            <span class="match-score">91% match</span>
+            <button class="btn-view" onclick="demoAction('Candidate profiles are preview-only in the demo.')">View profile</button>
           </div>
-          <div class="candidate-actions">
-            <button class="btn-candidate primary" onclick="showToast('Candidate profile preview opened.')">View candidate</button>
-            <button class="btn-candidate" onclick="showToast('Resume preview opened in the live dashboard.')">Resume</button>
-          </div>
-        </div>
+        </article>
 
-        <div class="candidate-card" data-candidate-search="priya k frontend developer vue css remote">
-          <div class="candidate-top">
-            <div class="candidate-avatar">PK</div>
-            <div>
-              <div class="candidate-name">Priya K.</div>
-              <div class="candidate-role">Frontend Developer · 86% match</div>
-            </div>
-          </div>
-          <div class="candidate-headline">UI-focused developer experienced with Vue, CSS systems, and responsive products.</div>
-          <div class="candidate-tags">
-            <span class="tag match">Vue.js</span>
-            <span class="tag match">CSS</span>
-            <span class="tag">3 yrs exp</span>
-            <span class="tag">Remote</span>
-          </div>
-          <div class="candidate-actions">
-            <button class="btn-candidate primary" onclick="showToast('Candidate profile preview opened.')">View candidate</button>
-            <button class="btn-candidate" onclick="showToast('Resume preview opened in the live dashboard.')">Resume</button>
-          </div>
-        </div>
-
-        <div class="candidate-card" data-candidate-search="james t product manager agile roadmapping hybrid">
+        <article class="candidate-card">
           <div class="candidate-top">
             <div class="candidate-avatar">JT</div>
             <div>
-              <div class="candidate-name">James T.</div>
-              <div class="candidate-role">Product Manager · 81% match</div>
+              <div class="candidate-name">Jordan Taylor</div>
+              <div class="candidate-role">HR Coordinator · Albany, NY</div>
             </div>
           </div>
-          <div class="candidate-headline">Product leader with experience owning roadmaps, launches, and cross-functional teams.</div>
-          <div class="candidate-tags">
-            <span class="tag match">Agile</span>
-            <span class="tag match">Roadmapping</span>
-            <span class="tag">7 yrs exp</span>
-            <span class="tag">Hybrid</span>
+          <div class="candidate-copy">People-operations candidate with onboarding, scheduling, and HRIS experience.</div>
+          <div class="candidate-bottom">
+            <span class="match-score">87% match</span>
+            <button class="btn-view" onclick="demoAction('Candidate profiles are preview-only in the demo.')">View profile</button>
           </div>
-          <div class="candidate-actions">
-            <button class="btn-candidate primary" onclick="showToast('Candidate profile preview opened.')">View candidate</button>
-            <button class="btn-candidate" onclick="showToast('Resume preview opened in the live dashboard.')">Resume</button>
+        </article>
+
+        <article class="candidate-card">
+          <div class="candidate-top">
+            <div class="candidate-avatar">AR</div>
+            <div>
+              <div class="candidate-name">Alex Rivera</div>
+              <div class="candidate-role">Sales Coordinator · Durham, NC</div>
+            </div>
           </div>
-        </div>
-
-      </div>
-
-      <div class="empty-state" id="candidate-no-results" style="display:none;grid-column:1/-1">
-        <div class="empty-icon">👥</div>
-        <div class="empty-title">No candidates match that search</div>
-        Try a different name or skill.
+          <div class="candidate-copy">Customer-facing professional with CRM, scheduling, and account support experience.</div>
+          <div class="candidate-bottom">
+            <span class="match-score">84% match</span>
+            <button class="btn-view" onclick="demoAction('Candidate profiles are preview-only in the demo.')">View profile</button>
+          </div>
+        </article>
       </div>
     </section>
 
-
-    <!-- POST JOB: current 5-step wizard instead of the old one-page form -->
-    <section class="panel" id="panel-post">
+    <!-- MESSAGES -->
+    <section class="panel" id="panel-messages">
       <div class="page-header">
-        <div class="page-title">Post a Job</div>
-        <div class="page-sub">Fill in the details and start finding candidates</div>
+        <div class="page-title">Messages</div>
+        <div class="page-sub">Continue conversations with candidates you contacted</div>
       </div>
 
-      <div class="wizard-wrap">
-        <div class="wizard-progress-row">
-          <span class="wizard-step-label" id="wizard-step-label">Step 1 of 5</span>
-          <span class="wizard-step-name" id="wizard-step-name">Basics</span>
+      <div class="messages-shell">
+        <div class="thread-list">
+          <div class="thread active">
+            <div class="thread-name">Maya Chen</div>
+            <div class="thread-preview">Thanks — Tuesday afternoon works for me.</div>
+            <div class="thread-time">10 min ago</div>
+          </div>
+          <div class="thread">
+            <div class="thread-name">Jordan Taylor</div>
+            <div class="thread-preview">I'd be happy to learn more about the role.</div>
+            <div class="thread-time">Yesterday</div>
+          </div>
         </div>
 
-        <div class="wizard-progress-track">
-          <div class="wizard-progress-fill" id="wizard-progress-fill"></div>
-        </div>
+        <div class="conversation">
+          <div class="conversation-title">Maya Chen · Accountant</div>
 
-        <div class="form-card">
-
-          <div class="wizard-step active" id="wizard-step-1">
-            <div class="wizard-title">What's the role?</div>
-            <div class="wizard-sub">Start with the job title and how it's classified.</div>
-
-            <div class="form-group">
-              <label class="form-label">Job title</label>
-              <input class="form-input" id="f-title" placeholder="e.g. Senior Designer">
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Company name</label>
-              <input class="form-input" value="Demo Corp" readonly style="background:var(--bg);color:var(--text-muted)">
-            </div>
-
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Job type</label>
-                <select class="form-input">
-                  <option>Full-time</option>
-                  <option>Part-time</option>
-                  <option>Contract</option>
-                  <option>Internship</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Job location type</label>
-                <select class="form-input">
-                  <option>Remote</option>
-                  <option>Hybrid</option>
-                  <option>In person</option>
-                </select>
-              </div>
-            </div>
+          <div class="chat-area">
+            <div class="bubble them">Hi, thank you for reaching out about the Accountant role.</div>
+            <div class="bubble me">Thanks for applying. Are you available Tuesday afternoon for a quick conversation?</div>
+            <div class="bubble them">Thanks — Tuesday afternoon works for me.</div>
           </div>
 
-          <div class="wizard-step" id="wizard-step-2">
-            <div class="wizard-title">Where's this based?</div>
-            <div class="wizard-sub">This is what candidates will see and filter by.</div>
-
-            <div class="form-group">
-              <label class="form-label">Location</label>
-              <input class="form-input" placeholder="Start typing a city, like Raleigh, NC">
-            </div>
-          </div>
-
-          <div class="wizard-step" id="wizard-step-3">
-            <div class="wizard-title">What does this role pay?</div>
-            <div class="wizard-sub">Clear pay information helps candidates make better decisions.</div>
-
-            <div class="pay-row">
-              <select class="form-input">
-                <option>Range</option>
-                <option>Exact amount</option>
-                <option>Starting amount</option>
-                <option>Maximum amount</option>
-              </select>
-
-              <select class="form-input">
-                <option>Per year</option>
-                <option>Per hour</option>
-                <option>Per month</option>
-                <option>Per week</option>
-              </select>
-            </div>
-
-            <div class="pay-amounts">
-              <input class="form-input" type="number" placeholder="Minimum">
-              <input class="form-input" type="number" placeholder="Maximum">
-            </div>
-          </div>
-
-          <div class="wizard-step" id="wizard-step-4">
-            <div class="wizard-title">Describe the role</div>
-            <div class="wizard-sub">Let AI draft it from what you've entered so far, or write your own.</div>
-
-            <div class="form-group full">
-              <label class="form-label">Job description</label>
-              <textarea class="form-input" placeholder="Describe the role, responsibilities, and what you're looking for..."></textarea>
-            </div>
-          </div>
-
-          <div class="wizard-step" id="wizard-step-5">
-            <div class="wizard-title">Requirements & benefits</div>
-            <div class="wizard-sub">Select at least 1 requirement. Benefits are optional.</div>
-
-            <div class="form-group">
-              <label class="form-label">Requirements</label>
-
-              <div class="requirement-options">
-                <button class="requirement-chip selected" type="button" onclick="toggleChip(this)">1+ years of experience</button>
-                <button class="requirement-chip" type="button" onclick="toggleChip(this)">Bachelor's degree</button>
-                <button class="requirement-chip" type="button" onclick="toggleChip(this)">Customer service</button>
-                <button class="requirement-chip" type="button" onclick="toggleChip(this)">Spanish</button>
-              </div>
-
-              <input class="form-input" placeholder="Search requirements, e.g. Forklift, Spanish, CPR">
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Benefits <span style="text-transform:none;font-weight:400">(optional)</span></label>
-              <input class="form-input" placeholder="Search benefits, e.g. Gym, 401k, PTO">
-            </div>
-          </div>
-
-          <div class="wizard-nav">
-            <button class="btn-wizard-back" id="wizard-back-btn" type="button" onclick="wizardBack()" style="display:none">Back</button>
-            <button class="btn-wizard-continue" id="wizard-continue-btn" type="button" onclick="wizardContinue()">Continue</button>
-          </div>
-
+          <div class="message-input">Messaging is read-only in the public demo.</div>
         </div>
       </div>
     </section>
@@ -976,122 +1017,53 @@ select.form-input{cursor:pointer}
 <div class="toast" id="toast"></div>
 
 <script>
-const WIZARD_NAMES=['Basics','Location','Pay','Description','Requirements'];
-let wizardStep=1;
-let toastTimer;
+  function showPanel(name, trigger) {
+    document.querySelectorAll('.panel').forEach(panel => {
+      panel.classList.toggle('active', panel.id === 'panel-' + name);
+    });
 
-function showPanel(name,trigger){
-  document.querySelectorAll('.panel').forEach(panel=>panel.classList.remove('active'));
-  document.querySelectorAll('.sidebar .nav-item').forEach(item=>item.classList.remove('active'));
+    document.querySelectorAll('.sidebar .nav-item[data-panel]').forEach(item => {
+      item.classList.toggle('active', item.dataset.panel === name);
+    });
 
-  const panel=document.getElementById('panel-'+name);
-  if(panel) panel.classList.add('active');
-
-  let nav=trigger;
-  if(!nav){
-    nav=document.querySelector(`.sidebar .nav-item[data-panel="${name}"]`);
-  }
-  if(nav) nav.classList.add('active');
-
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
-function openPostJob(trigger){
-  wizardStep=1;
-  renderWizard();
-  showPanel('post',trigger || document.querySelector('[data-panel="post"]'));
-}
-
-function openCandidates(jobTitle){
-  document.getElementById('candidate-page-title').textContent=`Candidates · ${jobTitle}`;
-  document.getElementById('candidate-page-sub').textContent='Job seekers who applied to this listing';
-  document.getElementById('candidate-search-input').value='';
-  filterCandidates();
-  showPanel('candidates');
-}
-
-function filterJobs(){
-  const q=document.getElementById('jobs-search-input').value.trim().toLowerCase();
-  const rows=[...document.querySelectorAll('#jobs-list .job-row')];
-  let visible=0;
-
-  rows.forEach(row=>{
-    const show=!q || row.dataset.jobSearch.includes(q);
-    row.style.display=show?'flex':'none';
-    if(show) visible++;
-  });
-
-  document.getElementById('jobs-no-results').style.display=visible?'none':'block';
-}
-
-function filterCandidates(){
-  const q=document.getElementById('candidate-search-input').value.trim().toLowerCase();
-  const cards=[...document.querySelectorAll('#candidate-grid .candidate-card')];
-  let visible=0;
-
-  cards.forEach(card=>{
-    const show=!q || card.dataset.candidateSearch.includes(q);
-    card.style.display=show?'block':'none';
-    if(show) visible++;
-  });
-
-  document.getElementById('candidate-no-results').style.display=visible?'none':'block';
-}
-
-function renderWizard(){
-  for(let i=1;i<=5;i++){
-    document.getElementById('wizard-step-'+i).classList.toggle('active',i===wizardStep);
-  }
-
-  document.getElementById('wizard-step-label').textContent=`Step ${wizardStep} of 5`;
-  document.getElementById('wizard-step-name').textContent=WIZARD_NAMES[wizardStep-1];
-  document.getElementById('wizard-progress-fill').style.width=`${wizardStep*20}%`;
-
-  const back=document.getElementById('wizard-back-btn');
-  const next=document.getElementById('wizard-continue-btn');
-
-  back.style.display=wizardStep===1?'none':'block';
-  next.textContent=wizardStep===5?'Post job →':'Continue';
-}
-
-function wizardBack(){
-  wizardStep=Math.max(1,wizardStep-1);
-  renderWizard();
-}
-
-function wizardContinue(){
-  if(wizardStep===1){
-    const title=document.getElementById('f-title').value.trim();
-    if(!title){
-      showToast('Enter a job title to continue.');
-      return;
+    if (trigger && trigger.dataset && trigger.dataset.panel) {
+      trigger.classList.add('active');
     }
+
+    if (name === 'candidates') {
+      document.getElementById('candidate-page-sub').textContent =
+        'Review applicants across your active jobs';
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  if(wizardStep===5){
-    showToast('Demo only — create an employer account to publish a real job.');
-    setTimeout(()=>showPanel('jobs'),1200);
-    return;
+  function openJobCandidates(jobTitle) {
+    showPanel('candidates');
+    document.getElementById('candidate-page-sub').textContent =
+      'Showing example applicants for ' + jobTitle;
   }
 
-  wizardStep=Math.min(5,wizardStep+1);
-  renderWizard();
-}
+  function filterJobs() {
+    const q = document.getElementById('jobs-search-input').value.trim().toLowerCase();
+    document.querySelectorAll('#jobs-list .job-row').forEach(row => {
+      const text = String(row.dataset.jobSearch || '').toLowerCase();
+      row.style.display = !q || text.includes(q) ? 'flex' : 'none';
+    });
+  }
 
-function toggleChip(button){
-  button.classList.toggle('selected');
-}
+  let toastTimer;
 
-function showToast(message){
-  const toast=document.getElementById('toast');
-  toast.textContent=message;
-  toast.classList.add('show');
+  function demoAction(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
 
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>toast.classList.remove('show'),2200);
-}
-
-renderWizard();
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 2200);
+  }
 </script>
 
 </body>
