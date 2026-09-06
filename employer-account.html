@@ -197,6 +197,16 @@
   .avatar:hover::after{ opacity:1; transform:translateY(0); }
   .avatar img{ width:100%; height:100%; object-fit:cover; }
 
+  .company-logo-required{
+    display:none;
+    margin-top:8px;
+    text-align:center;
+    color:#a05858;
+    font-size:10px;
+    font-weight:700;
+  }
+  .company-logo-required.show{ display:block; }
+
   .profile-info{ min-width:0; flex:1; }
 
   .company-eyebrow{
@@ -862,7 +872,8 @@
           <span id="avatar-initials">C</span>
           <img id="avatar-img" style="display:none;">
         </div>
-        <input type="file" id="photo-input" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)">
+        <div class="company-logo-required" id="company-logo-required">Logo required</div>
+        <input type="file" id="photo-input" accept="image/png,image/jpeg,image/webp" style="display:none;" onchange="handlePhotoUpload(event)">
       </div>
 
       <div class="profile-info">
@@ -1394,16 +1405,61 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   }
 
-  function handlePhotoUpload(event){
+  async function handlePhotoUpload(event){
     const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e){
-      const dataUrl = e.target.result;
-      localStorage.setItem('companyLogo:' + currentUserId, dataUrl);
-      showPhoto(dataUrl);
-    };
-    reader.readAsDataURL(file);
+    if (!file || !currentUserId) return;
+
+    const allowed = ['image/png','image/jpeg','image/webp'];
+    if (!allowed.includes(file.type)) {
+      alert('Use a PNG, JPG, or WEBP company logo.');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Company logo must be 5 MB or smaller.');
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+      const storagePath = `${currentUserId}/company-logo-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await sb.storage
+        .from('company-logos')
+        .upload(storagePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: file.type
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicData } = sb.storage
+        .from('company-logos')
+        .getPublicUrl(storagePath);
+
+      const logoUrl = publicData?.publicUrl || '';
+      if (!logoUrl) throw new Error('Could not create the company logo URL.');
+
+      const saved = await saveEmployerProfile({ company_logo_url: logoUrl });
+      if (!saved) throw new Error('Could not save the company logo.');
+
+      currentProfile = { ...(currentProfile || {}), company_logo_url: logoUrl };
+      localStorage.setItem('companyLogo:' + currentUserId, logoUrl);
+      showPhoto(logoUrl);
+
+      const requiredNote = document.getElementById('company-logo-required');
+      if (requiredNote) requiredNote.classList.remove('show');
+
+      updateVerificationBanner();
+    } catch (error) {
+      console.error('Company logo upload failed:', error);
+      alert('We could not save your company logo. Please try again.');
+    } finally {
+      event.target.value = '';
+    }
   }
 
   function showPhoto(dataUrl){
@@ -1681,6 +1737,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     const fields = [
       { label: 'Company name', done: isValidCompanyName(profile.company_name) },
+      { label: 'Company logo', done: !!String(currentProfile?.company_logo_url || '').trim() },
       { label: 'Website', done: isValidWebsite(profile.company_website) },
       { label: 'Phone number', done: isValidPhone(profile.company_phone) },
       { label: 'Business email', done: isValidBusinessEmail(profile.business_email) },
@@ -2671,7 +2728,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     const { data: profile, error } = await sb
       .from('profiles')
-      .select('role, company_name, company_headline, company_website, company_phone, business_email, business_address, verification_status, employer_verified, full_name, public_website_url, linkedin_url, instagram_url, facebook_url, media_kit_url')
+      .select('role, company_name, company_headline, company_website, company_phone, business_email, business_address, verification_status, employer_verified, full_name, public_website_url, linkedin_url, instagram_url, facebook_url, media_kit_url, company_logo_url')
       .eq('id', currentUserId)
       .single();
 
@@ -2756,6 +2813,16 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if (instagramEl) instagramEl.value = profile?.instagram_url || '';
     if (facebookEl) facebookEl.value = profile?.facebook_url || '';
     if (mediaKitEl) mediaKitEl.value = profile?.media_kit_url || '';
+
+    const persistedLogoUrl = String(profile?.company_logo_url || '').trim();
+    const requiredLogoNote = document.getElementById('company-logo-required');
+    if (persistedLogoUrl) {
+      showPhoto(persistedLogoUrl);
+      localStorage.setItem('companyLogo:' + currentUserId, persistedLogoUrl);
+      if (requiredLogoNote) requiredLogoNote.classList.remove('show');
+    } else if (requiredLogoNote) {
+      requiredLogoNote.classList.add('show');
+    }
 
     document.getElementById('nav-name').textContent = displayName;
 
