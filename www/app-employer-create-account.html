@@ -228,6 +228,10 @@ input::placeholder{color:#98A2AD}
     class="message"
     aria-live="polite">
   </div>
+
+  <p style="margin:14px 4px 0;color:var(--muted);font-size:11px;line-height:1.5;">
+    Didn’t receive it? Check Spam or Junk. You can request another code after 45 seconds.
+  </p>
 </section>
 </main>
 <script>
@@ -242,6 +246,38 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
 });
 
 let pendingEmployerEmail='';
+
+const RESEND_COOLDOWN_SECONDS=45;
+let resendCooldownRemaining=0;
+let resendCooldownTimer=null;
+
+function startResendCooldown(){
+  const button=document.getElementById('resend-btn');
+
+  clearInterval(resendCooldownTimer);
+  resendCooldownRemaining=RESEND_COOLDOWN_SECONDS;
+
+  const render=()=>{
+    if(!button)return;
+
+    if(resendCooldownRemaining>0){
+      button.disabled=true;
+      button.textContent=`Resend code in ${resendCooldownRemaining}s`;
+    }else{
+      button.disabled=false;
+      button.textContent='Resend code';
+      clearInterval(resendCooldownTimer);
+      resendCooldownTimer=null;
+    }
+  };
+
+  render();
+
+  resendCooldownTimer=setInterval(()=>{
+    resendCooldownRemaining=Math.max(0,resendCooldownRemaining-1);
+    render();
+  },1000);
+}
 
 function showVerificationMessage(text,type){
   const box=
@@ -287,6 +323,8 @@ function showVerificationStep(email){
   document
     .getElementById('verification-code')
     .focus();
+
+  startResendCooldown();
 }
 
 async function verifyEmployerEmailCode(){
@@ -433,6 +471,10 @@ async function resendEmployerVerificationCode(){
       'resend-btn'
     );
 
+  if(resendCooldownRemaining>0){
+    return;
+  }
+
   if(!pendingEmployerEmail){
     showVerificationMessage(
       'Please create your account again.',
@@ -463,6 +505,8 @@ async function resendEmployerVerificationCode(){
       'A new 6-digit verification code was sent.',
       'success'
     );
+
+    startResendCooldown();
 
   }catch(error){
     console.error(
