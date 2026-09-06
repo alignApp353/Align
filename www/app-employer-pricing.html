@@ -477,6 +477,48 @@ let jobs=[];
 
 const $=id=>document.getElementById(id);
 
+function withTimeout(promise,ms=5000,label='Request'){
+  let timer;
+
+  const timeout=new Promise((_,reject)=>{
+    timer=setTimeout(
+      ()=>reject(
+        new Error(
+          `${label} timed out after ${ms}ms`
+        )
+      ),
+      ms
+    );
+  });
+
+  return Promise.race([
+    Promise.resolve(promise),
+    timeout
+  ]).finally(()=>{
+    clearTimeout(timer);
+  });
+}
+
+function hideCapacityLoading(){
+  const loading=$('loading');
+
+  if(loading){
+    loading.hidden=true;
+  }
+}
+
+function fallbackPostingAccess(){
+  if(!SLOT_GATE_REASON){
+    return null;
+  }
+
+  return{
+    active_job_count:SLOT_GATE_USED,
+    slot_limit:SLOT_GATE_LIMIT,
+    can_post:SLOT_GATE_USED<SLOT_GATE_LIMIT
+  };
+}
+
 function showMessage(text){
   $('message').textContent=text;
   $('message').hidden=false;
@@ -1248,118 +1290,381 @@ async function queryPricingJobs(userId,companyId){
 
   const addRows=rows=>{
     (rows||[]).forEach(job=>{
-      const key=String(job?.id||[job?.status,job?.employer_id,job?.company_id].join('|'));
+      const key=String(
+        job?.id||
+        [
+          job?.status,
+          job?.employer_id,
+          job?.company_id
+        ].join('|')
+      );
+
       if(seen.has(key))return;
+
       seen.add(key);
       collected.push(job);
     });
   };
 
-  for(const column of ['employer_id','created_by','user_id','owner_id']){
-    const result=await sb
-      .from('jobs')
-      .select('*')
-      .eq(column,userId);
-
-    if(!result.error)addRows(result.data);
-  }
+  const requests=[
+    ...['employer_id','created_by','user_id','owner_id']
+      .map(column=>
+        withTimeout(
+          sb
+            .from('jobs')
+            .select('*')
+            .eq(column,userId),
+          4500,
+          `Jobs ${column} lookup`
+        )
+      )
+  ];
 
   if(companyId){
-    const result=await sb
-      .from('jobs')
-      .select('*')
-      .eq('company_id',companyId);
-
-    if(!result.error)addRows(result.data);
+    requests.push(
+      withTimeout(
+        sb
+          .from('jobs')
+          .select('*')
+          .eq('company_id',companyId),
+        4500,
+        'Company jobs lookup'
+      )
+    );
   }
+
+  const results=
+    await Promise.allSettled(
+      requests
+    );
+
+  results.forEach(result=>{
+    if(result.status!=='fulfilled'){
+      console.warn(
+        'Alygnn pricing job lookup timed out:',
+        result.reason
+      );
+      return;
+    }
+
+    const response=
+      result.value;
+
+    if(response?.error){
+      console.warn(
+        'Alygnn pricing job lookup unavailable:',
+        response.error
+      );
+      return;
+    }
+
+    addRows(
+      response?.data
+    );
+  });
 
   return collected;
 }
 
 async function loadPostingAccess(){
   try{
-    const {data,error}=await sb.rpc('get_employer_posting_access');
-    if(error) throw error;
-    postingAccess=data||null;
+    const {data,error}=await withTimeout(
+      sb.rpc(
+        'get_employer_posting_access'
+      ),
+      5000,
+      'Hiring capacity check'
+    );
+
+    if(error)throw error;
+
+    postingAccess=
+      data||
+      fallbackPostingAccess();
   }catch(error){
-    console.warn('Could not load authoritative posting access:',error);
-    postingAccess=null;
+    console.warn(
+      'Could not load authoritative posting access:',
+      error
+    );
+
+    /*
+     * If Post Job redirected here because capacity was full,
+     * the redirect already carries the last verified used/limit values.
+     * Use those instead of trapping the employer on a loading screen.
+     */
+    postingAccess=
+      fallbackPostingAccess();
   }
 }
 
 async function loadAccount(){
-  const {data:{session:active},error}=await sb.auth.getSession();
-  if(error||!active){
-    location.replace('app-employer-login.html');
-    return;
-  }
-  session=active;
-
-  await loadPostingAccess();
-
-  let role='';
   try{
-    const {data:profile}=await sb.from('profiles').select('role').eq('id',session.user.id).maybeSingle();
-    role=String(profile?.role||'').toLowerCase();
-  }catch(_){}
+    const sessionResponse=
+      await withTimeout(
+        sb.auth.getSession(),
+        5000,
+        'Session check'
+      );
 
-  role=String(
-    role ||
-    session.user.user_metadata?.account_type ||
-    session.user.user_metadata?.role ||
-    session.user.app_metadata?.account_type ||
-    session.user.app_metadata?.role ||
-    ''
-  ).toLowerCase();
+    const active=
+      sessionResponse?.data?.session||
+      null;
 
-  if(role && role!=='employer'){
-    location.replace('app-account.html');
-    return;
-  }
+    const sessionError=
+      sessionResponse?.error||
+      null;
 
-  let entResult=await sb
-    .from('employer_entitlements')
-    .select('*')
-    .eq('employer_id',session.user.id)
-    .maybeSingle();
+    if(sessionError||!active){
+      location.replace(
+        'app-employer-login.html'
+      );
+      return;
+    }
 
-  entitlement=entResult.error?null:entResult.data;
+    session=active;
 
-  let companyId='';
-  const membershipResult=await sb
-    .from('company_members')
-    .select('company_id')
-    .eq('user_id',session.user.id)
-    .eq('membership_status','active')
-    .limit(1)
-    .maybeSingle();
+    /*
+     * Start independent lookups together.
+     * Pricing should not wait on each request sequentially.
+     */
+    const [
+      postingResult,
+      profileResult,
+      entitlementResult,
+      membershipResult
+    ]=await Promise.allSettled([
+      loadPostingAccess(),
 
-  if(!membershipResult.error){
-    companyId=membershipResult.data?.company_id||'';
-  }
+      withTimeout(
+        sb
+          .from('profiles')
+          .select('role')
+          .eq('id',session.user.id)
+          .maybeSingle(),
+        4500,
+        'Employer role lookup'
+      ),
 
-  if(!companyId){
-    companyId=String(
-      session.user.user_metadata?.company_id||
-      localStorage.getItem('alygnn_company_id')||
-      localStorage.getItem(`alygnn_company_id_${session.user.id}`)||
+      withTimeout(
+        sb
+          .from('employer_entitlements')
+          .select('*')
+          .eq(
+            'employer_id',
+            session.user.id
+          )
+          .maybeSingle(),
+        5000,
+        'Plan entitlement lookup'
+      ),
+
+      withTimeout(
+        sb
+          .from('company_members')
+          .select('company_id')
+          .eq(
+            'user_id',
+            session.user.id
+          )
+          .eq(
+            'membership_status',
+            'active'
+          )
+          .limit(1)
+          .maybeSingle(),
+        4500,
+        'Company membership lookup'
+      )
+    ]);
+
+    if(postingResult.status==='rejected'){
+      console.warn(
+        'Posting access task failed:',
+        postingResult.reason
+      );
+
+      postingAccess=
+        postingAccess||
+        fallbackPostingAccess();
+    }
+
+    let role='';
+
+    if(profileResult.status==='fulfilled'){
+      if(profileResult.value?.error){
+        console.warn(
+          'Role lookup unavailable:',
+          profileResult.value.error
+        );
+      }else{
+        role=String(
+          profileResult.value?.data?.role||
+          ''
+        ).toLowerCase();
+      }
+    }else{
+      console.warn(
+        'Role lookup timed out:',
+        profileResult.reason
+      );
+    }
+
+    role=String(
+      role ||
+      session.user.user_metadata?.account_type ||
+      session.user.user_metadata?.role ||
+      session.user.app_metadata?.account_type ||
+      session.user.app_metadata?.role ||
       ''
-    ).trim();
+    ).toLowerCase();
+
+    if(role&&role!=='employer'){
+      location.replace(
+        'app-account.html'
+      );
+      return;
+    }
+
+    if(entitlementResult.status==='fulfilled'){
+      if(entitlementResult.value?.error){
+        console.warn(
+          'Entitlement lookup unavailable:',
+          entitlementResult.value.error
+        );
+
+        entitlement=null;
+      }else{
+        entitlement=
+          entitlementResult.value?.data||
+          null;
+      }
+    }else{
+      console.warn(
+        'Entitlement lookup timed out:',
+        entitlementResult.reason
+      );
+
+      entitlement=null;
+    }
+
+    let companyId='';
+
+    if(membershipResult.status==='fulfilled'){
+      if(membershipResult.value?.error){
+        console.warn(
+          'Company membership lookup unavailable:',
+          membershipResult.value.error
+        );
+      }else{
+        companyId=
+          membershipResult.value?.data?.company_id||
+          '';
+      }
+    }else{
+      console.warn(
+        'Company membership lookup timed out:',
+        membershipResult.reason
+      );
+    }
+
+    if(!companyId){
+      companyId=String(
+        session.user.user_metadata?.company_id||
+        localStorage.getItem(
+          'alygnn_company_id'
+        )||
+        localStorage.getItem(
+          `alygnn_company_id_${session.user.id}`
+        )||
+        ''
+      ).trim();
+    }
+
+    try{
+      jobs=
+        await withTimeout(
+          queryPricingJobs(
+            session.user.id,
+            companyId
+          ),
+          6000,
+          'Current job usage lookup'
+        );
+    }catch(jobError){
+      console.warn(
+        'Current job usage lookup timed out:',
+        jobError
+      );
+
+      jobs=[];
+    }
+
+    /*
+     * If the live access RPC was unavailable, retain the capacity values
+     * that came from the Post Job redirect.
+     */
+    postingAccess=
+      postingAccess||
+      fallbackPostingAccess();
+
+    console.log(
+      'Alygnn pricing slot usage:',
+      {
+        employer_id:
+          session.user.id,
+        company_id:
+          companyId||null,
+        jobs:
+          jobs.map(job=>({
+            id:job?.id,
+            status:job?.status,
+            employer_id:job?.employer_id,
+            company_id:job?.company_id
+          })),
+        used:usedSlots(),
+        limit:effectiveSlotLimit(),
+        gate_used:SLOT_GATE_USED,
+        gate_limit:SLOT_GATE_LIMIT
+      }
+    );
+
+    renderCurrent();
+
+  }catch(error){
+    console.error(
+      'Alygnn pricing initialization failed:',
+      error
+    );
+
+    /*
+     * Last-resort fallback:
+     * render the screen using the capacity values already supplied in the
+     * URL instead of leaving the employer trapped behind the spinner.
+     */
+    postingAccess=
+      postingAccess||
+      fallbackPostingAccess();
+
+    try{
+      renderCurrent();
+
+      showMessage(
+        'Alygnn could not refresh every live billing detail. Your last verified hiring capacity is shown so you can continue.'
+      );
+    }catch(renderError){
+      console.error(
+        'Pricing fallback render failed:',
+        renderError
+      );
+
+      showMessage(
+        'Alygnn could not refresh hiring capacity. Return to Jobs and try again.'
+      );
+    }
+
+  }finally{
+    hideCapacityLoading();
   }
-
-  jobs=await queryPricingJobs(session.user.id,companyId);
-
-  console.log('Alygnn pricing slot usage:',{
-    employer_id:session.user.id,
-    company_id:companyId||null,
-    jobs:jobs.map(job=>({id:job?.id,status:job?.status,employer_id:job?.employer_id,company_id:job?.company_id})),
-    used:usedSlots(),
-    limit:effectiveSlotLimit(),
-    gate_used:SLOT_GATE_USED,
-    gate_limit:SLOT_GATE_LIMIT
-  });
-  renderCurrent();
-  $('loading').hidden=true;
 }
 
 $('back-btn').addEventListener('click',()=>{
@@ -1419,7 +1724,55 @@ $('additional-slot-btn').addEventListener('click',()=>{
 });
 
 switchBilling(billing);
-loadAccount();
+
+/*
+ * Hard safety net:
+ * no employer should ever stare at "Checking your hiring capacity"
+ * indefinitely. If an unexpected request hangs outside the protected
+ * lookups above, reveal the pricing page after 9 seconds using the last
+ * verified capacity values.
+ */
+const capacityLoadingWatchdog=
+  setTimeout(
+    ()=>{
+      const loading=$('loading');
+
+      if(
+        loading &&
+        !loading.hidden
+      ){
+        console.warn(
+          'Capacity loading watchdog released the pricing screen.'
+        );
+
+        postingAccess=
+          postingAccess||
+          fallbackPostingAccess();
+
+        try{
+          renderCurrent();
+        }catch(error){
+          console.warn(
+            'Watchdog fallback render unavailable:',
+            error
+          );
+        }
+
+        hideCapacityLoading();
+
+        showMessage(
+          'Live capacity is taking longer than expected. Alygnn is showing your last verified hiring capacity so you can continue.'
+        );
+      }
+    },
+    9000
+  );
+
+loadAccount().finally(()=>{
+  clearTimeout(
+    capacityLoadingWatchdog
+  );
+});
 </script>
 </body>
 </html>
