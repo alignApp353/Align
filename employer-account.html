@@ -197,15 +197,6 @@
   .avatar:hover::after{ opacity:1; transform:translateY(0); }
   .avatar img{ width:100%; height:100%; object-fit:cover; }
 
-  .company-logo-required{
-    display:none;
-    margin-top:8px;
-    text-align:center;
-    color:#a05858;
-    font-size:10px;
-    font-weight:700;
-  }
-  .company-logo-required.show{ display:block; }
 
   .profile-info{ min-width:0; flex:1; }
 
@@ -872,7 +863,6 @@
           <span id="avatar-initials">C</span>
           <img id="avatar-img" style="display:none;">
         </div>
-        <div class="company-logo-required" id="company-logo-required">Logo required</div>
         <input type="file" id="photo-input" accept="image/png,image/jpeg,image/webp" style="display:none;" onchange="handlePhotoUpload(event)">
       </div>
 
@@ -1450,9 +1440,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       localStorage.setItem('companyLogo:' + currentUserId, logoUrl);
       showPhoto(logoUrl);
 
-      const requiredNote = document.getElementById('company-logo-required');
-      if (requiredNote) requiredNote.classList.remove('show');
-
       updateVerificationBanner();
     } catch (error) {
       console.error('Company logo upload failed:', error);
@@ -1737,7 +1724,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     const fields = [
       { label: 'Company name', done: isValidCompanyName(profile.company_name) },
-      { label: 'Company logo', done: !!String(currentProfile?.company_logo_url || '').trim() },
       { label: 'Website', done: isValidWebsite(profile.company_website) },
       { label: 'Phone number', done: isValidPhone(profile.company_phone) },
       { label: 'Business email', done: isValidBusinessEmail(profile.business_email) },
@@ -2815,13 +2801,9 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if (mediaKitEl) mediaKitEl.value = profile?.media_kit_url || '';
 
     const persistedLogoUrl = String(profile?.company_logo_url || '').trim();
-    const requiredLogoNote = document.getElementById('company-logo-required');
     if (persistedLogoUrl) {
       showPhoto(persistedLogoUrl);
       localStorage.setItem('companyLogo:' + currentUserId, persistedLogoUrl);
-      if (requiredLogoNote) requiredLogoNote.classList.remove('show');
-    } else if (requiredLogoNote) {
-      requiredLogoNote.classList.add('show');
     }
 
     document.getElementById('nav-name').textContent = displayName;
