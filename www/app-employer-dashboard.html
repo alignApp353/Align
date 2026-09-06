@@ -2288,6 +2288,84 @@
       line-height:1.7;
       white-space:pre-wrap;
     }
+    .company-links-public-list{
+      display:flex;
+      flex-wrap:wrap;
+      gap:9px;
+      margin-top:4px;
+    }
+
+    .company-links-public-empty{
+      margin:0;
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.6;
+    }
+
+    .company-links-public-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      min-height:38px;
+      padding:0 12px 0 9px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:var(--card-bg);
+      color:var(--text);
+      text-decoration:none;
+      font-size:11px;
+      font-weight:800;
+      max-width:100%;
+    }
+
+    .company-links-public-icon{
+      width:24px;
+      height:24px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      flex:0 0 auto;
+      background:#EDF3F8;
+      color:var(--brand);
+      font-size:10px;
+      font-weight:900;
+    }
+
+    .company-links-public-copy{
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      max-width:210px;
+    }
+
+    .company-links-helper{
+      margin:14px 0 0;
+      color:var(--muted);
+      font-size:10px;
+      line-height:1.55;
+    }
+
+    .company-edit-field[data-company-edit-group][hidden]{
+      display:none!important;
+    }
+
+    .company-editor-section-note{
+      display:none;
+      margin:0 0 15px;
+      padding:12px 14px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:var(--soft);
+      color:var(--muted);
+      font-size:10px;
+      line-height:1.5;
+    }
+
+    .company-editor-section-note.show{
+      display:block;
+    }
+
 
     .hiring-profile-row{
       padding:12px 0;
@@ -4038,6 +4116,38 @@
             Private verification documents and EIN details are not shown on candidate-facing job listings.
           </p>
         </section>
+
+        <section class="company-management-section" id="company-links-section">
+          <div class="company-section-heading">
+            <div>
+              <div class="company-section-kicker">Public links</div>
+              <h2>Company links</h2>
+            </div>
+
+            <button
+              class="company-text-action"
+              id="edit-company-links"
+              type="button">
+              Edit
+            </button>
+          </div>
+
+          <div
+            class="company-links-public-list"
+            id="company-links-public-list">
+          </div>
+
+          <p
+            class="company-links-public-empty"
+            id="company-links-public-empty">
+            Add your website and social media so candidates can learn more about your company.
+          </p>
+
+          <p class="company-links-helper">
+            Alygnn automatically recognizes Facebook, Instagram, LinkedIn, X,
+            TikTok, YouTube, and other company websites.
+          </p>
+        </section>
       </section>
 
       <section class="view" id="settings-view" hidden>
@@ -4110,14 +4220,19 @@
         <button class="company-edit-close" id="close-company-editor" type="button" aria-label="Close">×</button>
       </div>
 
+      <p
+        class="company-editor-section-note"
+        id="company-editor-section-note">
+      </p>
+
       <div class="company-edit-grid">
-        <div class="company-edit-field full">
+        <div class="company-edit-field full" data-company-edit-group="identity">
           <label for="edit-company-name">Company name</label>
           <input class="locked-company-name" id="edit-company-name" type="text" readonly aria-readonly="true">
           <div class="locked-field-note">Company names are locked after the workspace is created.</div>
         </div>
 
-        <div class="company-edit-field full">
+        <div class="company-edit-field full" data-company-edit-group="identity">
           <label>Company logo *</label>
           <div class="company-logo-editor">
             <div class="company-logo-preview" id="edit-company-logo-preview">CO</div>
@@ -4129,32 +4244,32 @@
           </div>
         </div>
 
-        <div class="company-edit-field">
+        <div class="company-edit-field" data-company-edit-group="info">
           <label for="edit-company-industry">Industry</label>
           <input id="edit-company-industry" type="text" maxlength="120" placeholder="Business consulting">
         </div>
 
-        <div class="company-edit-field">
+        <div class="company-edit-field" data-company-edit-group="info">
           <label for="edit-company-size">Company size</label>
           <input id="edit-company-size" type="text" maxlength="80" placeholder="11–50 employees">
         </div>
 
-        <div class="company-edit-field">
+        <div class="company-edit-field" data-company-edit-group="info">
           <label for="edit-company-location">Headquarters</label>
           <input id="edit-company-location" type="text" maxlength="160" placeholder="Raleigh, NC">
         </div>
 
-        <div class="company-edit-field">
+        <div class="company-edit-field" data-company-edit-group="info">
           <label for="edit-company-website">Website</label>
           <input id="edit-company-website" type="url" maxlength="240" placeholder="https://company.com">
         </div>
 
-        <div class="company-edit-field full">
+        <div class="company-edit-field full" data-company-edit-group="about">
           <label for="edit-company-about">About the company</label>
           <textarea id="edit-company-about" maxlength="2500" placeholder="Describe what your company does and what makes it different."></textarea>
         </div>
 
-        <div class="company-edit-field full">
+        <div class="company-edit-field full" data-company-edit-group="links">
           <label for="edit-company-link-input">Company links</label>
 
           <div class="company-link-adder">
@@ -4190,7 +4305,7 @@
           </div>
         </div>
 
-        <div class="company-edit-field full">
+        <div class="company-edit-field full" data-company-edit-group="culture">
           <label for="edit-company-benefits">Benefits &amp; culture</label>
           <input id="edit-company-benefits" type="text" maxlength="600" placeholder="Paid training, flexible schedule, career advancement">
           <div class="company-edit-note">Separate each benefit with a comma.</div>
@@ -4576,7 +4691,8 @@
       verificationStatus:'pending_review',
       entitlement:null,
       pendingCompanyLogoFile:null,
-      pendingCompanyLinks:[]
+      pendingCompanyLinks:[],
+      companyEditorMode:'all'
     };
 
     const THEME_STORAGE_KEY = 'alygnnEmployerTheme';
@@ -7978,7 +8094,94 @@
       };
     }
 
-    function openCompanyEditor(){
+    function configureCompanyEditor(mode='all'){
+      const normalized=
+        ['all','info','about','links','culture']
+          .includes(mode)
+            ?mode
+            :'all';
+
+      state.companyEditorMode=
+        normalized;
+
+      const config={
+        all:{
+          title:'Edit Company',
+          subtitle:'Update the information candidates see on your company profile.',
+          note:'',
+          groups:['identity','info','about','links','culture']
+        },
+
+        info:{
+          title:'Edit business details',
+          subtitle:'Update your core company information.',
+          note:'These details appear across your employer profile and job listings.',
+          groups:['info']
+        },
+
+        about:{
+          title:'Edit about your company',
+          subtitle:'Update the public company description candidates see.',
+          note:'Tell candidates what your company does, what you believe in, and what makes your team different.',
+          groups:['about']
+        },
+
+        links:{
+          title:'Edit company links',
+          subtitle:'Connect your company website and social media.',
+          note:'Add links one at a time. Alygnn identifies the platform automatically. Job-board competitor links are blocked.',
+          groups:['links']
+        },
+
+        culture:{
+          title:'Edit benefits & culture',
+          subtitle:'Update the benefits and culture candidates see.',
+          note:'Separate each benefit with a comma.',
+          groups:['culture']
+        }
+      }[normalized];
+
+      $('company-edit-title').textContent=
+        config.title;
+
+      const headerCopy=
+        document.querySelector(
+          '.company-edit-head p'
+        );
+
+      if(headerCopy){
+        headerCopy.textContent=
+          config.subtitle;
+      }
+
+      const note=
+        $('company-editor-section-note');
+
+      if(note){
+        note.textContent=
+          config.note||'';
+
+        note.classList.toggle(
+          'show',
+          Boolean(config.note)
+        );
+      }
+
+      document
+        .querySelectorAll(
+          '[data-company-edit-group]'
+        )
+        .forEach(field=>{
+          field.hidden=
+            !config.groups.includes(
+              field.dataset.companyEditGroup
+            );
+        });
+    }
+
+    function openCompanyEditor(mode='all'){
+      configureCompanyEditor(mode);
+
       const company=companyMetadata();
 
       $('edit-company-name').value=company.name==='Your Company'?'':company.name;
@@ -8038,6 +8241,7 @@
     function closeCompanyEditor(){
       $('company-edit-modal').hidden=true;
       document.body.style.overflow='';
+      configureCompanyEditor('all');
     }
 
     async function saveCompanyEditor(){
@@ -8171,7 +8375,7 @@
               ...aiProfile,
               company_name:companyName,
               industry,
-              website,
+              website:normalizedWebsite,
               company_description:description,
               company_benefits:benefits,
               company_logo:logoUrl,
@@ -8291,6 +8495,60 @@
       $('company-about').textContent =
         company.about ||
         'Tell candidates what your company does, what you believe in, and what makes your team different.';
+
+      const linksList=
+        $('company-links-public-list');
+
+      const linksEmpty=
+        $('company-links-public-empty');
+
+      if(linksList){
+        const links=
+          Array.isArray(company.links)
+            ?company.links
+            :[];
+
+        linksList.innerHTML=
+          links.map(url=>{
+            const type=
+              companyLinkType(url);
+
+            const label=
+              companyLinkLabel(url);
+
+            const display=
+              type==='website'
+                ?(
+                    linkHostname(url)||
+                    label
+                  )
+                :label;
+
+            return `
+              <a
+                class="company-links-public-chip"
+                href="${escapeHtml(url)}"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="${escapeHtml(label)}">
+                <span
+                  class="company-links-public-icon"
+                  aria-hidden="true">
+                  ${escapeHtml(companyLinkIcon(url))}
+                </span>
+
+                <span class="company-links-public-copy">
+                  ${escapeHtml(display)}
+                </span>
+              </a>
+            `;
+          }).join('');
+
+        if(linksEmpty){
+          linksEmpty.hidden=
+            links.length>0;
+        }
+      }
 
       const accountText = account
         ? `Account • ${account}`
@@ -10256,7 +10514,10 @@
         if(requestedView==='company'){
           setView('company');
           if(initialParams.get('edit')==='1'||initialParams.get('reason')==='logo_required'){
-            setTimeout(openCompanyEditor,0);
+            setTimeout(
+              ()=>openCompanyEditor('all'),
+              0
+            );
           }
         }
 
@@ -10596,7 +10857,9 @@
       location.href='app-employer-ai-profile.html';
     };
 
-    $('open-company-page').onclick = openCompanyEditor;
+    $('open-company-page').onclick = () => {
+      openCompanyEditor('all');
+    };
 
     $('add-company-link').onclick=
       addCompanyLinkFromInput;
@@ -10652,11 +10915,21 @@
 
     $('company-account-number').onclick = copyCompanyAccountNumber;
 
-    $('edit-company-info').onclick = openCompanyEditor;
-    $('edit-company-about-shortcut').onclick = openCompanyEditor;
+    $('edit-company-info').onclick = () => {
+      openCompanyEditor('info');
+    };
+
+    $('edit-company-about-shortcut').onclick = () => {
+      openCompanyEditor('about');
+    };
+
+    $('edit-company-links').onclick = () => {
+      openCompanyEditor('links');
+    };
 
     $('edit-hiring-profile').onclick = () => {
-      location.href = 'app-employer-ai-profile.html';
+      location.href =
+        'app-employer-ai-profile.html?section=hiring';
     };
     $('notification-settings').onclick = () => {
       renderNotifications();
