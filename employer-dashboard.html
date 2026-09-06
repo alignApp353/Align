@@ -214,6 +214,72 @@
   .form-input { background: white; border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 16px; font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--text); outline: none; transition: border-color 0.2s; width: 100%; }
   .form-input:focus { border-color: var(--brand); }
   .form-input::placeholder { color: #aab4bc; }
+
+  /* Company logo is required only when creating a new job. */
+  .posting-logo-card{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:14px;
+    border:1.5px solid var(--border);
+    border-radius:14px;
+    background:white;
+  }
+  .posting-logo-card.missing{
+    border-color:rgba(215,154,154,.65);
+    background:rgba(215,154,154,.055);
+  }
+  .posting-logo-preview{
+    width:64px;
+    height:64px;
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    border:1px solid var(--border);
+    border-radius:16px;
+    background:var(--brand-light);
+    color:var(--brand);
+    font-family:'DM Serif Display',serif;
+    font-size:21px;
+  }
+  .posting-logo-preview img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    background:white;
+  }
+  .posting-logo-copy{
+    min-width:0;
+    flex:1;
+  }
+  .posting-logo-copy strong{
+    display:block;
+    color:var(--text);
+    font-size:13px;
+    margin-bottom:3px;
+  }
+  .posting-logo-copy p{
+    color:var(--text-muted);
+    font-size:11px;
+    line-height:1.45;
+    margin:0 0 8px;
+  }
+  .posting-logo-file{
+    width:100%;
+    font-family:'DM Sans',sans-serif;
+    font-size:11px;
+    color:var(--text-muted);
+  }
+  .posting-logo-status{
+    margin-top:6px;
+    font-size:11px;
+    color:var(--text-muted);
+  }
+  .posting-logo-status.ready{ color:#2d8a57; }
+  .posting-logo-status.error{ color:#a05858; }
+
   textarea.form-input { resize: vertical; min-height: 120px; }
   select.form-input { cursor: pointer; }
   .btn-post { background: var(--brand); color: white; border: none; border-radius: 12px; padding: 14px 32px; font-size: 15px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
@@ -699,6 +765,20 @@
               <input type="text" class="form-input" id="f-company" placeholder="Your company" oninput="updatePreview()" readonly style="background: var(--bg); color: var(--text-muted); cursor: not-allowed;">
               <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Matches your verified company profile. <a href="employer-account.html" style="color: var(--brand);">Edit in account settings</a>.</p>
             </div>
+
+            <div class="form-group full" id="posting-logo-group">
+              <label class="form-label">Company logo <span style="text-transform:none; font-weight:400;">(required to post a new job)</span></label>
+              <div class="posting-logo-card" id="posting-logo-card">
+                <div class="posting-logo-preview" id="posting-logo-preview">CO</div>
+                <div class="posting-logo-copy">
+                  <strong id="posting-logo-title">Add your company logo</strong>
+                  <p>Shown to candidates on your job listings and company profile. PNG, JPG, or WEBP up to 5 MB.</p>
+                  <input class="posting-logo-file" id="posting-logo-input" type="file" accept="image/png,image/jpeg,image/webp" onchange="handlePostingCompanyLogoUpload(event)">
+                  <div class="posting-logo-status" id="posting-logo-status"></div>
+                </div>
+              </div>
+            </div>
+
             <div class="form-grid">
               <div class="form-group">
                 <label class="form-label">Job type</label>
@@ -966,6 +1046,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   let currentProfile = null;
   let currentUser = null;
   let editingJobId = null;
+  let companyLogoUploading = false;
 
   // Billing is server-owned. The browser may READ this row, but paid access
   // should only be changed by your payment webhook/service-role backend.
@@ -1931,7 +2012,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     const { data: profile, error: profileError } = await sb
       .from('profiles')
-      .select('role, company_name, full_name, employer_verified, verification_status')
+      .select('role, company_name, full_name, employer_verified, verification_status, company_logo_url')
       .eq('id', authedUser.id)
       .maybeSingle();
 
@@ -1970,6 +2051,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if (companyInput && profile?.company_name) {
       companyInput.value = profile.company_name;
     }
+
+    renderPostingCompanyLogo(profile?.company_logo_url || '');
 
     renderSelectedChips('req');
     renderSelectedChips('benefit');
@@ -2529,6 +2612,145 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if (typeof renderWizardStep === 'function') renderWizardStep();
   }
 
+  function postingCompanyInitials(){
+    const name = String(
+      currentProfile?.company_name ||
+      document.getElementById('f-company')?.value ||
+      'Company'
+    ).trim();
+
+    return name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0,2)
+      .map(part => part.charAt(0).toUpperCase())
+      .join('') || 'CO';
+  }
+
+  function renderPostingCompanyLogo(logoUrl){
+    const preview = document.getElementById('posting-logo-preview');
+    const card = document.getElementById('posting-logo-card');
+    const title = document.getElementById('posting-logo-title');
+    const status = document.getElementById('posting-logo-status');
+    if (!preview || !card || !title || !status) return;
+
+    const url = String(logoUrl || '').trim();
+    preview.innerHTML = '';
+
+    if (url) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Company logo';
+      img.onerror = () => {
+        preview.innerHTML = '';
+        preview.textContent = postingCompanyInitials();
+      };
+      preview.appendChild(img);
+
+      card.classList.remove('missing');
+      title.textContent = 'Company logo added';
+      status.textContent = 'Ready to use on this job.';
+      status.className = 'posting-logo-status ready';
+    } else {
+      preview.textContent = postingCompanyInitials();
+      card.classList.add('missing');
+      title.textContent = 'Add your company logo';
+      status.textContent = 'Required before a new job can be posted.';
+      status.className = 'posting-logo-status error';
+    }
+  }
+
+  async function handlePostingCompanyLogoUpload(event){
+    const input = event.target;
+    const file = input.files && input.files[0];
+    const status = document.getElementById('posting-logo-status');
+
+    if (!file || !currentUser) return;
+
+    const allowed = ['image/png','image/jpeg','image/webp'];
+    if (!allowed.includes(file.type)) {
+      if (status) {
+        status.textContent = 'Use a PNG, JPG, or WEBP company logo.';
+        status.className = 'posting-logo-status error';
+      }
+      input.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      if (status) {
+        status.textContent = 'Company logo must be 5 MB or smaller.';
+        status.className = 'posting-logo-status error';
+      }
+      input.value = '';
+      return;
+    }
+
+    companyLogoUploading = true;
+    if (status) {
+      status.textContent = 'Uploading logo…';
+      status.className = 'posting-logo-status';
+    }
+
+    const continueBtn = document.getElementById('wizard-continue-btn');
+    if (continueBtn && currentWizardStep === 1) continueBtn.disabled = true;
+
+    try {
+      const ext =
+        file.type === 'image/png'
+          ? 'png'
+          : file.type === 'image/webp'
+            ? 'webp'
+            : 'jpg';
+
+      const storagePath =
+        `${currentUser.id}/company-logo-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await sb.storage
+        .from('company-logos')
+        .upload(storagePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: file.type
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicData } = sb.storage
+        .from('company-logos')
+        .getPublicUrl(storagePath);
+
+      const logoUrl = publicData?.publicUrl || '';
+      if (!logoUrl) throw new Error('Could not create the company logo URL.');
+
+      const { error: saveError } = await sb
+        .from('profiles')
+        .update({ company_logo_url: logoUrl })
+        .eq('id', currentUser.id);
+
+      if (saveError) throw saveError;
+
+      currentProfile = {
+        ...(currentProfile || {}),
+        company_logo_url: logoUrl
+      };
+
+      renderPostingCompanyLogo(logoUrl);
+      showToast('Company logo saved.');
+    } catch (error) {
+      console.error('Company logo upload failed:', error);
+      if (status) {
+        status.textContent = 'Could not save the logo. Please try again.';
+        status.className = 'posting-logo-status error';
+      }
+      showToast('Could not save your company logo.');
+    } finally {
+      companyLogoUploading = false;
+      input.value = '';
+      renderWizardStep();
+    }
+  }
+
   // ---- Post Job wizard (5 steps, matches the mobile app's step-by-step
   // flow) — Basics, Location, Pay, Description, Requirements & Benefits.
   const TOTAL_WIZARD_STEPS = 5;
@@ -2578,6 +2800,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       const company = document.getElementById('f-company').value.trim();
       if (!isValidJobTitle(title)) return 'Enter a real job title, like "Customer Service Representative" or "Sales Account Manager".';
       if (!isValidCompanyName(company)) return 'Enter a real company name.';
+      if (!editingJobId) {
+        if (companyLogoUploading) return 'Wait for your company logo to finish uploading.';
+        if (!String(currentProfile?.company_logo_url || '').trim()) {
+          return 'Upload your company logo before posting a new job.';
+        }
+      }
       return '';
     }
     if (step === 2) {
@@ -4145,6 +4373,23 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   async function postJob() {
     // Verification determines whether a NEW listing is active or pending.
     // It no longer sends the employer back through onboarding.
+
+    // A company logo is required only for NEW job postings.
+    // Existing jobs can still be edited without forcing a logo upload.
+    if (!editingJobId) {
+      if (companyLogoUploading) {
+        showToast('Wait for your company logo to finish uploading.');
+        return;
+      }
+
+      if (!String(currentProfile?.company_logo_url || '').trim()) {
+        currentWizardStep = 1;
+        renderWizardStep();
+        renderPostingCompanyLogo('');
+        showToast('Upload your company logo before posting a new job.');
+        return;
+      }
+    }
 
     // Editing keeps the same slot. Creating a new listing requires an available slot.
     if (!editingJobId) {
