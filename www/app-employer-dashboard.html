@@ -3602,6 +3602,81 @@
       margin:14px 0 0;
     }
 
+
+    .jobs-primary-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:9px;
+      align-items:center;
+    }
+
+    .jobs-all-applicants-btn{
+      min-height:47px;
+      padding:0 14px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:var(--card-bg);
+      color:var(--text);
+      font-size:11px;
+      font-weight:900;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .jobs-all-applicants-btn:active{
+      transform:scale(.985);
+    }
+
+    .jobs-all-applicants-count{
+      min-width:22px;
+      height:22px;
+      padding:0 6px;
+      border-radius:999px;
+      background:var(--blue-bg);
+      color:var(--brand-dark);
+      display:grid;
+      place-items:center;
+      font-size:9px;
+      font-weight:900;
+    }
+
+    .applicants-back-jobs{
+      margin:0 0 12px;
+      border:0;
+      background:transparent;
+      color:var(--brand-dark);
+      font-size:10px;
+      font-weight:900;
+      padding:0;
+    }
+
+    @media(max-width:620px){
+      .jobs-toolbar-row{
+        align-items:stretch;
+        flex-direction:column;
+      }
+
+      .jobs-primary-actions{
+        width:100%;
+      }
+
+      .jobs-primary-actions .primary-btn,
+      .jobs-all-applicants-btn{
+        flex:1;
+        justify-content:center;
+      }
+
+      .jobs-sort-wrap{
+        margin-left:0;
+        width:100%;
+      }
+
+      .jobs-sort{
+        flex:1;
+        width:100%;
+      }
+    }
     .jobs-sort-wrap{
       display:flex;
       align-items:center;
@@ -3855,7 +3930,7 @@
   </style>
 
 <style id="alygnn-messaging-employer-nav">
-.bottom-nav{grid-template-columns:repeat(6,1fr)!important}
+.bottom-nav{grid-template-columns:repeat(5,1fr)!important}
 .messaging-nav-badge{
   position:absolute;top:2px;right:calc(50% - 19px);min-width:15px;height:15px;padding:0 4px;
   border-radius:999px;background:#E64141;color:#fff;font-size:8px;font-weight:900;
@@ -3913,7 +3988,7 @@
             </div>
           </div>
           <div class="hero-actions">
-            <button class="hero-btn primary" data-view="applicants" type="button">Review applicants</button>
+            <button class="hero-btn primary" data-view="applicants" data-applicants-scope="all" type="button">Review applicants</button>
             <button class="hero-btn" id="hero-post-job" type="button">Post a job</button>
           </div>
         </section>
@@ -3928,7 +4003,7 @@
             </div>
           </button>
 
-          <button class="metric" data-view="applicants" type="button">
+          <button class="metric" data-view="applicants" data-applicants-scope="all" type="button">
             <div class="metric-icon people">◉</div>
             <div>
               <div class="metric-label">New Applications</div>
@@ -3967,7 +4042,7 @@
         <section class="section">
           <div class="section-head">
             <h2 class="section-title">Best Fits</h2>
-            <button class="section-link" data-view="applicants" type="button">View all</button>
+            <button class="section-link" data-view="applicants" data-applicants-scope="all" type="button">View all</button>
           </div>
           <div id="best-fits"></div>
         </section>
@@ -4222,8 +4297,24 @@
         <h1 class="page-title">My Jobs</h1>
         <p class="page-sub">Manage every opening, track performance, and move faster from one place.</p>
         <div class="jobs-toolbar-row">
-          <div class="toolbar" style="margin:0">
-            <button class="primary-btn" id="post-job-btn-2" type="button">Post a Job</button>
+          <div class="jobs-primary-actions">
+            <button class="primary-btn" id="post-job-btn-2" type="button">
+              Post a Job
+            </button>
+
+            <button
+              class="jobs-all-applicants-btn"
+              id="jobs-all-applicants-btn"
+              data-view="applicants"
+              data-applicants-scope="all"
+              type="button">
+              All Applicants
+              <span
+                class="jobs-all-applicants-count"
+                id="jobs-all-applicants-count">
+                0
+              </span>
+            </button>
           </div>
 
           <div class="jobs-sort-wrap">
@@ -4282,7 +4373,14 @@
       </section>
 
       <section class="view" id="applicants-view" hidden>
-        <div class="eyebrow">Employer workspace</div>
+        <button
+          class="applicants-back-jobs"
+          data-view="jobs"
+          type="button">
+          ← Back to Jobs
+        </button>
+
+        <div class="eyebrow">Hiring workspace</div>
 
         <div class="applicants-title-row">
           <h1 class="page-title">Applicants</h1>
@@ -4803,18 +4901,6 @@
       <span>Jobs</span>
     </button>
 
-    <button class="nav-item" data-view="applicants" type="button" aria-label="Applicants">
-      <span class="nav-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-          <circle cx="9" cy="7" r="4"></circle>
-          <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-        </svg>
-      </span>
-      <span>Applicants</span>
-    </button>
-
     <button class="nav-item" id="employer-messages-nav" type="button" aria-label="Messages" onclick="location.href='app-messages.html?role=employer'">
       <span class="nav-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -5185,6 +5271,7 @@
       applicantsJobFilter:$('applicants-job-filter'),
       applicantsJobFilterLabel:$('applicants-job-filter-label'),
       applicantsTotalCount:$('applicants-total-count'),
+      jobsAllApplicantsCount:$('jobs-all-applicants-count'),
       applicantJobSelect:$('applicant-job-select'),
       candidateSearch:$('candidate-search'),
       candidateSort:$('candidate-sort'),
@@ -6359,7 +6446,17 @@
       });
 
       document.querySelectorAll('.nav-item').forEach(button => {
-        button.classList.toggle('active',button.dataset.view === name);
+        const active=
+          button.dataset.view===name||
+          (
+            name==='applicants'&&
+            button.dataset.view==='jobs'
+          );
+
+        button.classList.toggle(
+          'active',
+          active
+        );
       });
 
       const view = $(name + '-view');
@@ -7450,6 +7547,13 @@
       const closedCount=
         $('jobs-closed-count');
 
+      if(els.jobsAllApplicantsCount){
+        els.jobsAllApplicantsCount.textContent=
+          String(
+            (state.applications||[]).length
+          );
+      }
+
       if(openCount){
         openCount.textContent=
           String(openJobs.length);
@@ -7817,7 +7921,7 @@
             );
 
       return `
-        <article class="applicant-card candidate-row">
+        <article class="applicant-card">
           <div class="applicant-card-main">
             <div class="avatar">
               ${escapeHtml(initials(data.name))}
@@ -7956,7 +8060,7 @@
           jobFor(application);
 
         return `
-          <article class="applicant-card candidate-row">
+          <article class="applicant-card">
             <div class="applicant-card-main">
               <div class="avatar">
                 ${escapeHtml(initials(name))}
@@ -10391,7 +10495,17 @@
       }
 
       if(action === 'applicants'){
-        state.selectedApplicantJobId = String(id);
+        state.selectedApplicantJobId=String(id);
+        state.applicantPipelineFilter='all';
+
+        if(els.candidateSearch){
+          els.candidateSearch.value='';
+        }
+
+        if(els.candidateSort){
+          els.candidateSort.value='score';
+        }
+
         setView('applicants');
         return;
       }
@@ -11692,11 +11806,19 @@
       const nav = event.target.closest('[data-view]');
       if(nav){
         if(
-          nav.dataset.view === 'applicants' &&
-          nav.classList.contains('nav-item')
+          nav.dataset.view==='applicants' &&
+          nav.dataset.applicantsScope==='all'
         ){
           state.selectedApplicantJobId=null;
           state.applicantPipelineFilter='all';
+
+          if(els.candidateSearch){
+            els.candidateSearch.value='';
+          }
+
+          if(els.candidateSort){
+            els.candidateSort.value='score';
+          }
         }
 
         setView(nav.dataset.view);
