@@ -8459,9 +8459,14 @@
 
       const stored=(()=>{
         try{
+          const userId=
+            state.currentUser?.id||
+            state.session?.user?.id||
+            '';
+
           return (
             localStorage.getItem(
-              'alygnn_company_account_number'
+              `alygnn_company_account_number_${userId}`
             )||
             ''
           );
@@ -10920,14 +10925,21 @@
       }
 
       /*
-       * Fall back to company_id saved on verification / local storage.
+       * Fall back only to company data belonging to the CURRENT user.
+       * Never use the legacy device-wide alygnn_company_id here because
+       * another employer account on the same phone may have created it.
        */
       if(!companyId){
         companyId=String(
           state.employerVerification?.company_id||
           (()=> {
             try{
-              return localStorage.getItem('alygnn_company_id')||'';
+              return (
+                localStorage.getItem(
+                  `alygnn_company_id_${userId}`
+                )||
+                ''
+              );
             }catch(_){
               return '';
             }
@@ -11091,6 +11103,11 @@
         try{
           localStorage.setItem(
             'alygnn_company_id',
+            companyId
+          );
+
+          localStorage.setItem(
+            `alygnn_company_id_${userId}`,
             companyId
           );
         }catch(_){}
@@ -11688,6 +11705,61 @@
         state.session = data.session;
         await refreshCurrentUser();
         await loadEmployerCompanyData();
+
+        /*
+         * A brand-new employer must complete company onboarding before
+         * entering the employer workspace.
+         *
+         * This guard prevents stale localStorage from a previous employer
+         * account from making a new signup look onboarded.
+         */
+        const currentUserId=
+          String(
+            state.currentUser?.id||
+            state.session?.user?.id||
+            ''
+          ).trim();
+
+        let scopedCompanyId='';
+
+        try{
+          scopedCompanyId=
+            String(
+              localStorage.getItem(
+                `alygnn_company_id_${currentUserId}`
+              )||
+              ''
+            ).trim();
+        }catch(_){}
+
+        const hasRealCompany=
+          Boolean(
+            state.companyRecord?.id||
+            state.employerVerification?.company_id||
+            scopedCompanyId
+          );
+
+        if(!hasRealCompany){
+          try{
+            localStorage.removeItem(
+              'alygnn_company_id'
+            );
+
+            localStorage.removeItem(
+              'alygnn_company_account_number'
+            );
+
+            localStorage.removeItem(
+              'alygnn_employer_verification_status'
+            );
+          }catch(_){}
+
+          location.replace(
+            'app-employer-onboarding.html'
+          );
+
+          return;
+        }
 
         try{
           state.entitlement=await loadDashboardEntitlement();
