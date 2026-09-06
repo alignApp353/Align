@@ -62,23 +62,24 @@ button{
 
 .top{
   display:grid;
-  grid-template-columns:52px 1fr 52px;
+  grid-template-columns:46px 1fr 46px;
   align-items:center;
   min-height:78px;
 }
 .back{
-  width:46px;
-  height:46px;
+  width:42px;
+  height:42px;
   border:1px solid var(--border);
   border-radius:50%;
   background:var(--card);
   color:var(--text);
-  font-size:22px;
+  font-size:19px;
 }
 .logo{
   text-align:center;
   font-family:'DM Serif Display',Georgia,serif!important;
-  font-size:38px;
+  font-size:29px;
+  letter-spacing:-.2px;
   color:var(--brand);
 }
 .logo span{
@@ -453,13 +454,67 @@ button{
 .bottom-nav.candidate{
   grid-template-columns:repeat(5,1fr);
 }
+
 .bottom-nav.employer{
+  min-height:72px;
+  padding:7px 12px calc(8px + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.96);
+  border-top:1px solid rgba(221,227,232,.9);
   grid-template-columns:repeat(5,minmax(50px,62px));
   justify-content:center;
   column-gap:clamp(6px,2.5vw,16px);
-  min-height:72px;
-  padding-left:12px;
-  padding-right:12px;
+  backdrop-filter:blur(22px);
+  -webkit-backdrop-filter:blur(22px);
+}
+
+.employer .nav-item{
+  border:none;
+  background:transparent;
+  color:#748190;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  min-width:0;
+  padding:2px 0;
+  font-size:8px;
+  font-weight:900;
+  position:relative;
+}
+
+.employer .nav-icon{
+  width:21px;
+  height:21px;
+  display:grid;
+  place-items:center;
+  line-height:1;
+}
+
+.employer .nav-icon svg{
+  width:21px;
+  height:21px;
+  display:block;
+  overflow:visible;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.employer .nav-item.active{
+  color:#345F91;
+}
+
+.employer .nav-item.active:before{
+  content:'';
+  position:absolute;
+  top:-7px;
+  width:28px;
+  height:3px;
+  border-radius:999px;
+  background:#345F91;
 }
 .nav{
   border:0;
@@ -473,11 +528,6 @@ button{
   font-size:8px;
   font-weight:900;
 }
-body:has(.bottom-nav.employer) .nav{
-  gap:3px;
-  padding:2px 0;
-}
-
 .nav.active{
   color:var(--brand-dark);
 }
@@ -603,17 +653,104 @@ function navButton(name,label,url,active=false){
   `;
 }
 
+function employerNavButton(label,url,svg,active=false){
+  return `
+    <button
+      class="nav-item ${active?'active':''}"
+      type="button"
+      aria-label="${label}"
+      onclick="location.href='${url}'">
+
+      <span class="nav-icon" aria-hidden="true">
+        ${svg}
+      </span>
+
+      <span>${label}</span>
+    </button>
+  `;
+}
+
+const EMPLOYER_NAV_ICONS={
+  dashboard:`
+    <svg viewBox="0 0 24 24">
+      <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+      <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+      <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+      <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+    </svg>
+  `,
+
+  jobs:`
+    <svg viewBox="0 0 24 24">
+      <rect x="3" y="7" width="18" height="13" rx="2"></rect>
+      <path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7"></path>
+      <path d="M3 12h18"></path>
+      <path d="M10 12v2h4v-2"></path>
+    </svg>
+  `,
+
+  messages:`
+    <svg viewBox="0 0 24 24">
+      <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"></path>
+      <path d="M8 9h8"></path>
+      <path d="M8 13h5"></path>
+    </svg>
+  `,
+
+  company:`
+    <svg viewBox="0 0 24 24">
+      <path d="M3 21h18"></path>
+      <path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"></path>
+      <path d="M9 7h2"></path>
+      <path d="M13 7h2"></path>
+      <path d="M9 11h2"></path>
+      <path d="M13 11h2"></path>
+      <path d="M9 15h2"></path>
+      <path d="M13 15h2"></path>
+    </svg>
+  `,
+
+  settings:`
+    <svg viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.14.36.36.7.64.96.3.27.68.42 1.08.43H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51.61Z"></path>
+    </svg>
+  `
+};
+
 function renderNav(){
   const nav=$('nav');
 
   if(role==='employer'){
     nav.className='bottom-nav employer';
+
     nav.innerHTML=
-      navButton('dashboard','Dashboard','app-employer-dashboard.html?view=dashboard')+
-      navButton('jobs','Jobs','app-employer-dashboard.html?view=jobs')+
-      navButton('messages','Messages','app-messages.html?role=employer',true)+
-      navButton('company','Company','app-employer-dashboard.html?view=company')+
-      navButton('settings','Settings','app-employer-dashboard.html?view=settings');
+      employerNavButton(
+        'Dashboard',
+        'app-employer-dashboard.html?view=dashboard',
+        EMPLOYER_NAV_ICONS.dashboard
+      )+
+      employerNavButton(
+        'Jobs',
+        'app-employer-dashboard.html?view=jobs',
+        EMPLOYER_NAV_ICONS.jobs
+      )+
+      employerNavButton(
+        'Messages',
+        'app-messages.html?role=employer',
+        EMPLOYER_NAV_ICONS.messages,
+        true
+      )+
+      employerNavButton(
+        'Company',
+        'app-employer-dashboard.html?view=company',
+        EMPLOYER_NAV_ICONS.company
+      )+
+      employerNavButton(
+        'Settings',
+        'app-employer-dashboard.html?view=settings',
+        EMPLOYER_NAV_ICONS.settings
+      );
   }else{
     nav.className='bottom-nav candidate';
     nav.innerHTML=
