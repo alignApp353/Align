@@ -2562,9 +2562,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   async function fetchNotifications() {
+    if (!currentUserId) return [];
+
     const { data, error } = await sb
       .from('notifications')
       .select('id, type, title, body, link, read_at, created_at')
+      .eq('recipient_id', currentUserId)
       .order('created_at', { ascending: false })
       .limit(20);
 
@@ -2602,7 +2605,13 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   async function markNotificationRead(id) {
-    await sb.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', id);
+    if (!currentUserId) return;
+
+    await sb
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('recipient_id', currentUserId);
   }
 
   async function refreshNotifications() {
