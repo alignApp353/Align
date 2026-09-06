@@ -4,111 +4,507 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#F6F8F7">
-<title>Create Employer Account | Alygnn</title>
+<title>Create Account | Alygnn</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:'DM Sans',Arial,sans-serif!important}
-:root{--brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--text:#172333;--muted:#59697A;--border:#DDE3E8;--accent:#3568C0;--accent-dark:#2857A8;--accent-bg:#EDF3FC;--danger:#B64040;--danger-bg:#FCEDED;--success:#18794E;--success-bg:#E8F6EE}
-html,body{width:100%;min-height:100%}
-body{min-height:100vh;background:radial-gradient(circle at 12% 8%,rgba(140,182,155,.12),transparent 28%),radial-gradient(circle at 90% 85%,rgba(93,127,163,.14),transparent 31%),var(--bg);color:var(--text)}
-button,input,a{font:inherit}
-.page{width:100%;max-width:540px;min-height:100vh;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 20px calc(30px + env(safe-area-inset-bottom))}
-.topbar{min-height:51px;display:grid;grid-template-columns:48px 1fr 48px;align-items:center}
-.back-btn{width:44px;height:44px;border:1px solid var(--border);border-radius:50%;background:#fff;color:var(--text);font-size:21px;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 16px rgba(23,35,51,.06)}
-.brand{text-align:center;font-family:'DM Serif Display',Georgia,serif!important;font-size:31px;color:var(--brand)}
-.brand span{color:var(--sage)}
-.hero{padding:26px 0 10px;text-align:center}
-.hero-icon{width:72px;height:72px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--accent);background:var(--accent-bg)}
-.hero-icon svg{width:35px;height:35px}
-h1{margin-top:18px;font-size:29px;line-height:1.12;letter-spacing:-.5px;font-weight:900}
-.hero p{max-width:360px;margin:9px auto 0;color:var(--muted);font-size:14px;line-height:1.5}
-.form{margin-top:25px}
-.field{margin-top:16px}
-.field:first-child{margin-top:0}
-label{display:block;margin-bottom:8px;font-size:13px;font-weight:900}
-.input-wrap{min-height:56px;padding:0 15px;border:1px solid var(--border);border-radius:17px;background:rgba(255,255,255,.95);display:flex;align-items:center;gap:11px}
-.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px rgba(53,104,192,.11)}
-.field-icon{width:20px;height:20px;color:#7A8794;flex:0 0 20px}
-input{width:100%;min-width:0;border:none;outline:none;background:transparent;color:var(--text);font-size:15px}
-input::placeholder{color:#98A2AD}
-.show-btn{border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:900}
-.password-help{margin-top:7px;color:#7E8A96;font-size:11px;line-height:1.45}
-.check-row{margin-top:18px;display:flex;align-items:flex-start;gap:10px}
-.check-row input{width:18px;height:18px;margin-top:1px;accent-color:var(--accent);flex:0 0 18px}
-.check-row label{margin:0;color:var(--muted);font-size:12px;line-height:1.5;font-weight:600}
-.check-row a{color:var(--accent-dark);text-decoration:none;font-weight:900}
-.message{display:none;margin-top:16px;padding:12px 14px;border-radius:14px;font-size:12px;line-height:1.45;font-weight:700}
-.message.error{display:block;color:var(--danger);background:var(--danger-bg)}
-.message.success{display:block;color:var(--success);background:var(--success-bg)}
-.primary{width:100%;min-height:56px;margin-top:22px;border:none;border-radius:17px;background:var(--accent);color:#fff;font-size:15px;font-weight:900;box-shadow:0 9px 24px rgba(53,104,192,.22)}
-.primary:disabled,.social:disabled{opacity:.65}
-.divider{margin:25px 0 15px;display:flex;align-items:center;gap:13px;color:#8995A1;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px}
-.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--border)}
-.social{width:100%;min-height:54px;border:1px solid var(--border);border-radius:17px;background:#fff;color:var(--text);display:flex;align-items:center;justify-content:center;gap:12px;font-size:14px;font-weight:900}
-.google-mark{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#4285F4;font-size:16px;font-weight:900}
-.signin{margin-top:24px;text-align:center;color:var(--muted);font-size:13px}
-.signin a{color:var(--accent-dark);text-decoration:none;font-weight:900}
 
-.verify-panel{
-  display:none;
-  margin-top:26px;
-  padding:24px;
-  border:1px solid var(--border);
-  border-radius:24px;
-  background:rgba(255,255,255,.96);
-  box-shadow:0 18px 50px rgba(31,51,70,.08);
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+(function(){
+  const preference=
+    localStorage.getItem('alygnn_candidate_theme') ||
+    localStorage.getItem('alygnn-theme') ||
+    'system';
+
+  const effective=
+    preference==='dark'
+      ?'dark'
+      :preference==='light'
+        ?'light'
+        :(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+
+  document.documentElement.dataset.effectiveTheme=effective;
+})();
+</script>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+:root{
+  --brand:#5D7FA3;
+  --brand-dark:#35679A;
+  --sage:#8CB69B;
+  --bg:#F6F8F7;
+  --surface:#FFFFFF;
+  --surface-soft:#FBFCFC;
+  --text:#172333;
+  --muted:#687B8E;
+  --muted-2:#8B9AA8;
+  --border:#DDE5EB;
+  --border-strong:#CBD8E2;
+  --success:#27855A;
+  --success-bg:#E9F6EE;
+  --danger:#B34848;
+  --danger-bg:#FCECEC;
+  --shadow:0 18px 50px rgba(31,51,70,.08);
+}
+
+html,
+body{
+  width:100%;
+  min-height:100%;
+}
+
+body{
+  margin:0;
+  background:
+    radial-gradient(circle at 14% 6%,rgba(140,182,155,.11),transparent 25%),
+    radial-gradient(circle at 91% 87%,rgba(93,127,163,.11),transparent 30%),
+    var(--bg);
+  color:var(--text);
+  font-family:'DM Sans',Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+button,
+input,
+a{
+  font:inherit;
+}
+
+button{
+  -webkit-tap-highlight-color:transparent;
+}
+
+.page{
+  width:100%;
+  max-width:540px;
+  min-height:100vh;
+  margin:0 auto;
+  padding:
+    calc(28px + env(safe-area-inset-top))
+    22px
+    calc(28px + env(safe-area-inset-bottom));
+}
+
+.brand-wrap{
   text-align:center;
 }
 
-.verify-panel.show{
-  display:block;
+.brand{
+  display:inline-flex;
+  align-items:flex-end;
+  justify-content:center;
+  font-family:'DM Serif Display',Georgia,serif;
+  font-size:55px;
+  line-height:.95;
+  font-weight:400;
+  letter-spacing:-1.8px;
+  color:var(--brand);
 }
 
-.verify-icon{
-  width:66px;
-  height:66px;
-  margin:0 auto 15px;
+.brand-dot{
+  width:8px;
+  height:8px;
+  margin:0 0 5px 3px;
   border-radius:50%;
-  display:grid;
-  place-items:center;
-  background:var(--accent-bg);
-  color:var(--accent);
+  background:var(--sage);
 }
 
-.verify-icon svg{
-  width:31px;
-  height:31px;
+.hero{
+  padding:34px 0 24px;
+  text-align:center;
 }
 
-.verify-panel h2{
+.hero h1{
   margin:0;
-  font-size:27px;
-  line-height:1.12;
+  color:var(--text);
+  font-size:34px;
+  line-height:1.08;
+  letter-spacing:-1px;
   font-weight:900;
 }
 
-.verify-copy{
-  margin:10px auto 18px;
-  max-width:380px;
+.hero p{
+  max-width:360px;
+  margin:11px auto 0;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.55;
+}
+
+.form-card,
+.state-card{
+  width:100%;
+  padding:24px;
+  border:1px solid rgba(221,229,235,.94);
+  border-radius:28px;
+  background:rgba(255,255,255,.94);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+
+.name-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.field{
+  margin-top:17px;
+}
+
+.field:first-child{
+  margin-top:0;
+}
+
+.name-grid .field{
+  margin-top:0;
+}
+
+.field-label{
+  display:block;
+  margin:0 0 8px 2px;
+  color:var(--text);
+  font-size:12px;
+  font-weight:800;
+}
+
+.input-shell{
+  position:relative;
+  min-height:58px;
+  display:flex;
+  align-items:center;
+  border:1px solid var(--border-strong);
+  border-radius:18px;
+  background:var(--surface-soft);
+  transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;
+}
+
+.input-shell:focus-within{
+  border-color:var(--brand-dark);
+  background:var(--surface);
+  box-shadow:0 0 0 3px rgba(53,103,154,.10);
+}
+
+.field-icon{
+  position:absolute;
+  left:17px;
+  top:50%;
+  width:21px;
+  height:21px;
+  transform:translateY(-50%);
+  color:#708396;
+  pointer-events:none;
+}
+
+.input-shell input{
+  width:100%;
+  height:56px;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:var(--text);
+  padding:0 47px 0 50px;
+  font-size:15px;
+  font-weight:600;
+}
+
+.input-shell input::placeholder{
+  color:#9AA8B5;
+  font-weight:500;
+}
+
+.eye-btn{
+  position:absolute;
+  right:8px;
+  top:50%;
+  width:42px;
+  height:42px;
+  transform:translateY(-50%);
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  color:#718397;
+  cursor:pointer;
+}
+
+.eye-btn:active{
+  background:rgba(93,127,163,.10);
+}
+
+.eye-btn svg{
+  width:21px;
+  height:21px;
+}
+
+.password-eye .eye-slash{
+  display:none;
+}
+
+.eye-btn.is-visible .password-eye .eye-slash{
+  display:block;
+}
+
+.password-help{
+  margin:8px 2px 0;
+  color:var(--muted-2);
+  font-size:10px;
+  line-height:1.5;
+  font-weight:650;
+}
+
+.message{
+  display:none;
+  margin:15px 0 0;
+  padding:12px 14px;
+  border-radius:14px;
+  font-size:12px;
+  line-height:1.45;
+  font-weight:750;
+}
+
+.message.show{
+  display:block;
+}
+
+.message.error{
+  color:var(--danger);
+  background:var(--danger-bg);
+}
+
+.message.success{
+  color:var(--success);
+  background:var(--success-bg);
+}
+
+.primary-btn,
+.social-btn,
+.secondary-btn{
+  width:100%;
+  min-height:56px;
+  border-radius:17px;
+  cursor:pointer;
+  font-weight:900;
+}
+
+.primary-btn{
+  margin-top:20px;
+  border:0;
+  background:linear-gradient(135deg,#4B78A6,#35679A);
+  color:#fff;
+  font-size:15px;
+  box-shadow:0 10px 24px rgba(53,103,154,.22);
+}
+
+.primary-btn:disabled{
+  opacity:.62;
+}
+
+.divider{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin:22px 0 14px;
+  color:#8A98A7;
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+}
+
+.divider::before,
+.divider::after{
+  content:'';
+  flex:1;
+  height:1px;
+  background:var(--border);
+}
+
+.social-stack{
+  display:grid;
+  gap:10px;
+}
+
+.social-btn{
+  position:relative;
+  border:1px solid var(--border-strong);
+  background:#fff;
+  color:var(--text);
+  font-size:14px;
+}
+
+.social-icon{
+  position:absolute;
+  left:19px;
+  top:50%;
+  transform:translateY(-50%);
+  width:22px;
+  height:22px;
+  display:grid;
+  place-items:center;
+}
+
+.google-g{
+  font-size:21px;
+  line-height:1;
+  font-weight:900;
+  color:#4285F4;
+}
+
+
+.signin{
+  margin-top:22px;
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.signin a{
+  color:var(--brand-dark);
+  text-decoration:none;
+  font-weight:900;
+}
+
+.legal{
+  max-width:370px;
+  margin:20px auto 0;
+  text-align:center;
+  color:#8292A2;
+  font-size:10px;
+  line-height:1.55;
+}
+
+.legal a{
+  color:var(--brand-dark);
+  text-decoration:none;
+  font-weight:800;
+}
+
+.existing-account-card{
+  margin-top:16px;
+  padding:18px;
+  border:1px solid #CFE0ED;
+  border-radius:20px;
+  background:#F2F7FB;
+}
+
+.existing-account-top{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+}
+
+.existing-account-icon{
+  width:38px;
+  height:38px;
+  flex:0 0 38px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:var(--success-bg);
+  color:var(--success);
+  font-size:18px;
+  font-weight:900;
+}
+
+.existing-account-copy strong{
+  display:block;
+  color:var(--text);
+  font-size:14px;
+  line-height:1.3;
+}
+
+.existing-account-copy span{
+  display:block;
+  margin-top:4px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.5;
+}
+
+.existing-account-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+  margin-top:14px;
+}
+
+.existing-account-actions .primary-btn,
+.existing-account-actions .secondary-btn{
+  margin:0;
+  min-height:46px;
+  font-size:12px;
+  box-shadow:none;
+}
+
+.secondary-btn{
+  border:1px solid var(--border-strong);
+  background:#fff;
+  color:var(--brand-dark);
+}
+
+.state-card{
+  display:none;
+}
+
+.state-card.show{
+  display:block;
+}
+
+.state-icon{
+  width:62px;
+  height:62px;
+  margin:0 auto 16px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#EAF2F9;
+  color:var(--brand-dark);
+}
+
+.state-icon svg{
+  width:30px;
+  height:30px;
+}
+
+.state-title{
+  margin:0;
+  text-align:center;
+  color:var(--text);
+  font-size:27px;
+  line-height:1.1;
+  font-weight:900;
+  letter-spacing:-.6px;
+}
+
+.state-copy{
+  margin:10px 0 18px;
+  text-align:center;
   color:var(--muted);
   font-size:13px;
   line-height:1.55;
 }
 
-.verify-copy strong{
+.state-copy strong{
   color:var(--text);
 }
 
-.verify-code{
+.code-input{
   width:100%;
   min-height:62px;
-  border:1px solid var(--border);
+  border:1px solid var(--border-strong);
   border-radius:18px;
-  outline:none;
-  background:#fff;
+  outline:0;
+  background:var(--surface-soft);
   color:var(--text);
   text-align:center;
   font-size:25px;
@@ -116,239 +512,524 @@ input::placeholder{color:#98A2AD}
   letter-spacing:7px;
 }
 
-.verify-code:focus{
-  border-color:var(--accent);
-  box-shadow:0 0 0 4px rgba(53,104,192,.11);
+.code-input:focus{
+  border-color:var(--brand-dark);
+  box-shadow:0 0 0 3px rgba(53,103,154,.10);
 }
 
 .verify-actions{
   display:grid;
   gap:10px;
-  margin-top:15px;
+  margin-top:16px;
 }
 
-.verify-actions .primary{
-  margin-top:0;
+.verify-actions .primary-btn{
+  margin:0;
 }
 
-.verify-secondary{
-  width:100%;
+.verify-actions .secondary-btn{
   min-height:52px;
-  border:1px solid var(--border);
-  border-radius:17px;
-  background:#fff;
-  color:var(--accent-dark);
-  font-size:13px;
-  font-weight:900;
 }
 
 .form-hidden{
   display:none!important;
 }
-@media(max-height:760px){.hero{padding-top:14px}.hero-icon{width:60px;height:60px}h1{font-size:26px;margin-top:13px}.form{margin-top:19px}.field{margin-top:12px}.input-wrap{min-height:51px}.primary{min-height:52px;margin-top:17px}}
+
+/* Dark mode */
+html[data-effective-theme="dark"]{
+  --bg:#081721;
+  --surface:#101E28;
+  --surface-soft:#0E1B25;
+  --text:#F3F7FA;
+  --muted:#A6B4C0;
+  --muted-2:#8999A6;
+  --border:#263845;
+  --border-strong:#314552;
+  --shadow:0 18px 52px rgba(0,0,0,.28);
+}
+
+html[data-effective-theme="dark"] body{
+  background:
+    radial-gradient(circle at 14% 6%,rgba(140,182,155,.08),transparent 25%),
+    radial-gradient(circle at 91% 87%,rgba(93,127,163,.10),transparent 30%),
+    var(--bg);
+}
+
+html[data-effective-theme="dark"] .form-card,
+html[data-effective-theme="dark"] .state-card{
+  background:rgba(13,27,37,.96);
+  border-color:var(--border);
+}
+
+html[data-effective-theme="dark"] .social-btn,
+html[data-effective-theme="dark"] .secondary-btn{
+  background:#101E28;
+  border-color:var(--border-strong);
+  color:var(--text);
+}
+
+
+html[data-effective-theme="dark"] .existing-account-card{
+  background:#102331;
+  border-color:#294356;
+}
+
+@media(max-width:390px){
+  .page{
+    padding-left:17px;
+    padding-right:17px;
+  }
+
+  .brand{
+    font-size:49px;
+  }
+
+  .hero{
+    padding-top:28px;
+  }
+
+  .hero h1{
+    font-size:30px;
+  }
+
+  .form-card,
+  .state-card{
+    padding:19px;
+    border-radius:24px;
+  }
+
+  .name-grid{
+    grid-template-columns:1fr;
+  }
+
+  .name-grid .field + .field{
+    margin-top:17px;
+  }
+}
+
+@media(max-height:760px){
+  .page{
+    padding-top:calc(18px + env(safe-area-inset-top));
+  }
+
+  .brand{
+    font-size:46px;
+  }
+
+  .hero{
+    padding:23px 0 18px;
+  }
+
+  .hero h1{
+    font-size:29px;
+  }
+
+  .form-card,
+  .state-card{
+    padding:20px;
+  }
+
+  .input-shell{
+    min-height:54px;
+  }
+
+  .input-shell input{
+    height:52px;
+  }
+
+  .field{
+    margin-top:13px;
+  }
+
+  .primary-btn,
+  .social-btn{
+    min-height:51px;
+  }
+}
 </style>
 </head>
+
 <body>
+
 <main class="page">
-<header class="topbar">
-<button class="back-btn" id="back-btn" type="button" aria-label="Go back">←</button>
-<div class="brand">Alygnn<span>.</span></div><div></div>
-</header>
-<section class="hero" id="signup-hero">
-<div class="hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"></path><path d="M3 12h18"></path><path d="M10 12v2h4v-2"></path></svg></div>
-<h1>Create your employer account</h1>
-<p>Employer accounts require a verified company email domain. Personal email providers are not accepted.</p>
-</section>
-<section class="form" id="signup-fields">
-<div class="field"><label for="full-name">Your full name</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 21c.7-4.1 3.2-6.2 7.5-6.2s6.8 2.1 7.5 6.2"></path></svg><input id="full-name" type="text" placeholder="Enter your full name" autocomplete="name"></div></div>
-<div class="field"><label for="company-name">Company name</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21V4h11v17"></path><path d="M15 9h5v12"></path><path d="M8 8h3M8 12h3M8 16h3"></path></svg><input id="company-name" type="text" placeholder="Enter your company name" autocomplete="organization"></div></div>
-<div class="field"><label for="email">Verified company email</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg><input id="email" type="email" placeholder="you@yourcompany.com" autocomplete="email" inputmode="email"></div></div>
-<div id="email-domain-error" class="message" aria-live="polite">
-  Employer accounts require a company email domain. Personal email providers are not accepted.
-</div>
-<div class="field"><label for="password">Create password</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg><input id="password" type="password" placeholder="At least 8 characters" autocomplete="new-password"><button class="show-btn" id="show-password" type="button">Show</button></div><div class="password-help">Use at least 8 characters with a mix of letters and numbers.</div></div>
-<div class="field"><label for="confirm-password">Confirm password</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg><input id="confirm-password" type="password" placeholder="Re-enter your password" autocomplete="new-password"></div></div>
-<div class="check-row"><input id="terms" type="checkbox"><label for="terms">I agree to Alygnn’s <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.</label></div>
-<div id="message" class="message" aria-live="polite"></div>
-<button class="primary" id="create-btn" type="button">Create employer account</button>
 
-<div class="signin">Already have an employer account? <a href="app-employer-login.html">Sign in</a></div>
-</section>
-
-<section
-  class="verify-panel"
-  id="verification-panel"
-  aria-live="polite">
-
-  <div class="verify-icon">
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.9"
-      aria-hidden="true">
-      <rect x="3.5" y="5" width="17" height="14" rx="2.2"></rect>
-      <path d="m4.5 7 7.5 5.5L19.5 7"></path>
-    </svg>
+  <div class="brand-wrap" aria-label="Alygnn">
+    <div class="brand">Alygnn<span class="brand-dot" aria-hidden="true"></span></div>
   </div>
 
-  <h2>Check your email</h2>
+  <section class="hero" id="signup-hero">
+    <h1>Create your account</h1>
+    <p>Start finding better job matches.</p>
+  </section>
 
-  <p class="verify-copy">
-    We sent a 6-digit verification code to
-    <strong id="verification-email"></strong>.
-    Enter it below to verify your employer account.
-  </p>
+  <section class="form-card" id="signup-fields">
 
-  <input
-    id="verification-code"
-    class="verify-code"
-    type="text"
-    inputmode="numeric"
-    autocomplete="one-time-code"
-    maxlength="6"
-    placeholder="000000"
-    aria-label="6-digit verification code">
+    <div class="name-grid">
+      <div class="field">
+        <label class="field-label" for="firstName">First name</label>
+        <div class="input-shell">
+          <svg class="field-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8"></circle>
+            <path d="M5.5 20c.6-4 2.8-6 6.5-6s5.9 2 6.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+          <input id="firstName" type="text" placeholder="First name" autocomplete="given-name">
+        </div>
+      </div>
 
-  <div class="verify-actions">
-    <button
-      class="primary"
-      id="verify-btn"
-      type="button">
-      Verify email
-    </button>
+      <div class="field">
+        <label class="field-label" for="lastName">Last name</label>
+        <div class="input-shell">
+          <svg class="field-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8"></circle>
+            <path d="M5.5 20c.6-4 2.8-6 6.5-6s5.9 2 6.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+          <input id="lastName" type="text" placeholder="Last name" autocomplete="family-name">
+        </div>
+      </div>
+    </div>
 
-    <button
-      class="verify-secondary"
-      id="resend-btn"
-      type="button">
-      Resend code
-    </button>
+    <div class="field">
+      <label class="field-label" for="email">Email</label>
+      <div class="input-shell">
+        <svg class="field-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="3.5" y="5" width="17" height="14" rx="2.2" stroke="currentColor" stroke-width="1.8"></rect>
+          <path d="m4.5 7 7.5 5.5L19.5 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="password">Password</label>
+      <div class="input-shell">
+        <svg class="field-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.8"></rect>
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+        </svg>
+        <input id="password" type="password" placeholder="Create a password" autocomplete="new-password">
+        <button class="eye-btn" id="toggle-password" type="button" aria-label="Show password" aria-pressed="false">
+          <svg class="password-eye" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+            <circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.8"></circle>
+            <path class="eye-slash" d="M4 4l16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="password-help">Use at least 8 characters with a mix of letters and numbers.</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="confirm-password">Confirm password</label>
+      <div class="input-shell">
+        <svg class="field-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.8"></rect>
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+        </svg>
+        <input id="confirm-password" type="password" placeholder="Confirm your password" autocomplete="new-password">
+        <button class="eye-btn" id="toggle-confirm-password" type="button" aria-label="Show confirm password" aria-pressed="false">
+          <svg class="password-eye" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+            <circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.8"></circle>
+            <path class="eye-slash" d="M4 4l16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="signup-message" class="message" aria-live="polite"></div>
+
+    <div id="existing-account-card" class="existing-account-card" hidden>
+      <div class="existing-account-top">
+        <div class="existing-account-icon">✓</div>
+        <div class="existing-account-copy">
+          <strong>You already have an Alygnn account.</strong>
+          <span>Sign in with this email, or reset your password if you don’t remember it.</span>
+        </div>
+      </div>
+
+      <div class="existing-account-actions">
+        <button type="button" class="primary-btn" id="existing-signin-btn">Sign in</button>
+        <button type="button" class="secondary-btn" id="existing-reset-btn">Reset password</button>
+      </div>
+    </div>
+
+    <button id="create-account-btn" class="primary-btn" type="button">Create Account</button>
+
+    <div class="divider">or</div>
+
+    <div class="social-stack">
+      <button class="social-btn" id="google-btn" type="button">
+        <span class="social-icon google-g">G</span>
+        Continue with Google
+      </button>
+    </div>
+  </section>
+
+  <section id="verify-card" class="state-card" aria-live="polite">
+    <div class="state-icon">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="3.5" y="5" width="17" height="14" rx="2.2" stroke="currentColor" stroke-width="1.8"></rect>
+        <path d="m4.5 7 7.5 5.5L19.5 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    </div>
+
+    <h2 class="state-title">Check your email</h2>
+
+    <p class="state-copy">
+      We sent a verification code to
+      <strong id="verify-email"></strong>.
+      Enter it below to confirm your Alygnn account.
+    </p>
+
+    <input
+      id="verification-code"
+      class="code-input"
+      type="text"
+      inputmode="numeric"
+      autocomplete="one-time-code"
+      placeholder="Code"
+      maxlength="6"
+    >
+
+    <div class="verify-actions">
+      <button id="verify-btn" class="primary-btn" type="button">Verify email</button>
+      <button id="resend-btn" class="secondary-btn" type="button">Resend code</button>
+    </div>
+
+    <div id="verify-message" class="message" aria-live="polite"></div>
+  </section>
+
+  <div class="signin" id="signin-row">
+    Already have an account?
+    <a href="app-login.html">Sign in</a>
   </div>
 
-  <div
-    id="verification-message"
-    class="message"
-    aria-live="polite">
+  <div class="legal" id="legal-row">
+    By creating an account, you agree to Alygnn’s
+    <a href="terms.html">Terms</a> and
+    <a href="privacy.html">Privacy Policy</a>.
   </div>
-</section>
+
 </main>
+
 <script>
-const SUPABASE_URL='https://auth.alygnn.com';
-const SUPABASE_ANON_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
-  auth:{
-    persistSession:true,
-    autoRefreshToken:true,
-    detectSessionInUrl:true
+const SUPABASE_URL="https://auth.alygnn.com";
+const SUPABASE_KEY="sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG";
+
+const sb=supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  {
+    auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true
+    }
   }
-});
+);
 
-let pendingEmployerEmail='';
+let pendingSignupEmail="";
 
-function showVerificationMessage(text,type){
-  const box=
-    document.getElementById(
-      'verification-message'
-    );
+function setSignupMessage(text,type){
+  const box=document.getElementById("signup-message");
+  box.textContent=text||"";
+  box.className=text?"message show "+type:"message";
+}
 
-  box.textContent=
-    text||'';
+function setVerifyMessage(text,type){
+  const box=document.getElementById("verify-message");
+  box.textContent=text||"";
+  box.className=text?"message show "+type:"message";
+}
 
-  box.className=
-    text
-      ?'message '+type
-      :'message';
+function hideExistingAccountCard(){
+  document.getElementById("existing-account-card").hidden=true;
+}
+
+function showExistingAccountCard(email){
+  pendingSignupEmail=String(email||"").trim().toLowerCase();
+  setSignupMessage("","");
+  document.getElementById("existing-account-card").hidden=false;
+
+  const button=document.getElementById("create-account-btn");
+  button.disabled=false;
+  button.textContent="Create Account";
+}
+
+function signupLooksLikeExistingAccount(data){
+  const user=data?.user;
+  if(!user)return false;
+
+  if(Array.isArray(user.identities) && user.identities.length===0){
+    return true;
+  }
+
+  const createdAt=Date.parse(user.created_at||"");
+  if(Number.isFinite(createdAt)){
+    const ageMs=Date.now()-createdAt;
+    if(ageMs>90*1000){
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function showVerificationStep(email){
-  pendingEmployerEmail=
-    String(email||'')
-      .trim()
-      .toLowerCase();
+  pendingSignupEmail=String(email||"").trim().toLowerCase();
 
-  document
-    .getElementById('signup-fields')
-    .classList
-    .add('form-hidden');
+  document.getElementById("signup-fields").classList.add("form-hidden");
+  document.getElementById("signup-hero").classList.add("form-hidden");
+  document.getElementById("verify-card").classList.add("show");
+  document.getElementById("signin-row").classList.add("form-hidden");
+  document.getElementById("legal-row").classList.add("form-hidden");
 
-  document
-    .getElementById('signup-hero')
-    .classList
-    .add('form-hidden');
-
-  document
-    .getElementById('verification-panel')
-    .classList
-    .add('show');
-
-  document
-    .getElementById('verification-email')
-    .textContent=
-      pendingEmployerEmail;
-
-  document
-    .getElementById('verification-code')
-    .focus();
+  document.getElementById("verify-email").textContent=pendingSignupEmail;
+  document.getElementById("verification-code").focus();
 }
 
-async function verifyEmployerEmailCode(){
-  const token=
-    document
-      .getElementById(
-        'verification-code'
-      )
-      .value
-      .replace(/\D/g,'')
-      .trim();
+function togglePasswordField(inputId,buttonId){
+  const input=document.getElementById(inputId);
+  const button=document.getElementById(buttonId);
+  const willShow=input.type==="password";
 
-  const button=
-    document.getElementById(
-      'verify-btn'
-    );
+  input.type=willShow?"text":"password";
+  button.classList.toggle("is-visible",willShow);
+  button.setAttribute("aria-pressed",String(willShow));
+  button.setAttribute(
+    "aria-label",
+    willShow?"Hide password":"Show password"
+  );
+}
 
-  if(!pendingEmployerEmail){
-    showVerificationMessage(
-      'Please create your account again.',
-      'error'
+async function signup(){
+  const firstName=document.getElementById("firstName").value.trim();
+  const lastName=document.getElementById("lastName").value.trim();
+  const email=document.getElementById("email").value.trim().toLowerCase();
+  const password=document.getElementById("password").value;
+  const confirmPassword=document.getElementById("confirm-password").value;
+  const button=document.getElementById("create-account-btn");
+
+  hideExistingAccountCard();
+  setSignupMessage("","");
+
+  if(!firstName || !lastName || !email || !password || !confirmPassword){
+    setSignupMessage("Please complete all fields.","error");
+    return;
+  }
+
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){
+    setSignupMessage("Please enter a valid email address.","error");
+    return;
+  }
+
+  if(password.length<8){
+    setSignupMessage("Password must be at least 8 characters.","error");
+    return;
+  }
+
+  if(!/[A-Za-z]/.test(password) || !/\d/.test(password)){
+    setSignupMessage("Use at least one letter and one number in your password.","error");
+    return;
+  }
+
+  if(password!==confirmPassword){
+    setSignupMessage("Your passwords do not match.","error");
+    return;
+  }
+
+  button.disabled=true;
+  button.textContent="Creating account…";
+
+  try{
+    const {data,error}=await sb.auth.signUp({
+      email,
+      password,
+      options:{
+        data:{
+          first_name:firstName,
+          last_name:lastName,
+          full_name:`${firstName} ${lastName}`.trim(),
+          name:`${firstName} ${lastName}`.trim(),
+          account_type:"candidate",
+          EmailFlow:"app"
+        }
+      }
+    });
+
+    if(error){
+      const raw=String(error.message||"").toLowerCase();
+
+      if(
+        raw.includes("already registered") ||
+        raw.includes("already exists") ||
+        raw.includes("user already")
+      ){
+        showExistingAccountCard(email);
+        return;
+      }
+
+      throw error;
+    }
+
+    if(signupLooksLikeExistingAccount(data)){
+      showExistingAccountCard(email);
+      return;
+    }
+
+    if(data?.session){
+      window.location.href="app-account.html";
+      return;
+    }
+
+    showVerificationStep(email);
+
+  }catch(error){
+    setSignupMessage(
+      error?.message || "Unable to create your Alygnn account.",
+      "error"
     );
+  }finally{
+    button.disabled=false;
+    button.textContent="Create Account";
+  }
+}
+
+async function verifyEmailCode(){
+  const token=document
+    .getElementById("verification-code")
+    .value
+    .replace(/\s+/g,"")
+    .trim();
+
+  const button=document.getElementById("verify-btn");
+
+  if(!pendingSignupEmail){
+    setVerifyMessage("Please create your account again.","error");
     return;
   }
 
   if(!/^\d{6}$/.test(token)){
-    showVerificationMessage(
-      'Enter the 6-digit verification code from your email.',
-      'error'
-    );
+    setVerifyMessage("Enter the 6-digit verification code from your email.","error");
     return;
   }
 
-  setLoading(
-    button,
-    true,
-    'Verifying…',
-    'Verify email'
-  );
+  button.disabled=true;
+  button.textContent="Verifying…";
 
   try{
-    const {
-      data,
-      error
-    }=await sb.auth.verifyOtp({
-      email:
-        pendingEmployerEmail,
+    const {data,error}=await sb.auth.verifyOtp({
+      email:pendingSignupEmail,
       token,
-      type:'signup'
+      type:"signup"
     });
 
-    if(error){
-      throw error;
-    }
+    if(error)throw error;
 
     /*
-     * Never send a newly verified employer back to Login.
-     * Recover the session first, and if Supabase did not return one,
-     * sign in automatically with the password they just created.
+     * A successful signup OTP should normally return a session.
+     * If it does not, recover the session before navigating instead
+     * of throwing the user back to Login.
      */
     let verifiedSession=
       data?.session||
@@ -366,16 +1047,13 @@ async function verifyEmployerEmailCode(){
     if(!verifiedSession){
       const password=
         document
-          .getElementById(
-            'password'
-          )
+          .getElementById("password")
           .value;
 
       if(password){
         const signIn=
           await sb.auth.signInWithPassword({
-            email:
-              pendingEmployerEmail,
+            email:pendingSignupEmail,
             password
           });
 
@@ -391,310 +1069,165 @@ async function verifyEmployerEmailCode(){
 
     if(!verifiedSession){
       throw new Error(
-        'Your email was verified, but Alygnn could not start your session. Please try again.'
+        "Your email was verified, but Alygnn could not start your session. Please try again."
       );
     }
 
-    showVerificationMessage(
-      'Email verified. Continuing to company setup…',
-      'success'
+    setVerifyMessage(
+      "Email verified. Continuing to your Alygnn account…",
+      "success"
     );
 
-    setTimeout(
-      ()=>{
-        location.replace(
-          'app-employer-onboarding.html'
-        );
-      },
-      700
-    );
+    setTimeout(()=>{
+      window.location.replace(
+        "app-account.html"
+      );
+    },600);
 
   }catch(error){
-    console.error(
-      'Employer code verification failed:',
-      error
+    setVerifyMessage(
+      "That code is invalid or expired. Check the email and try again.",
+      "error"
     );
-
-    showVerificationMessage(
-      'That code is invalid or expired. Check the email and try again.',
-      'error'
-    );
-
   }finally{
-    setLoading(
-      button,
-      false,
-      'Verifying…',
-      'Verify email'
-    );
+    button.disabled=false;
+    button.textContent="Verify email";
   }
 }
 
-async function resendEmployerVerificationCode(){
-  const button=
-    document.getElementById(
-      'resend-btn'
-    );
-
-  if(!pendingEmployerEmail){
-    showVerificationMessage(
-      'Please create your account again.',
-      'error'
-    );
+async function resendVerificationCode(){
+  if(!pendingSignupEmail){
+    setVerifyMessage("Please create your account again.","error");
     return;
   }
 
-  setLoading(
-    button,
-    true,
-    'Sending…',
-    'Resend code'
-  );
+  const button=document.getElementById("resend-btn");
+  button.disabled=true;
+  button.textContent="Sending…";
 
   try{
     const {error}=await sb.auth.resend({
-      type:'signup',
-      email:
-        pendingEmployerEmail
+      type:"signup",
+      email:pendingSignupEmail
     });
 
-    if(error){
-      throw error;
-    }
+    if(error)throw error;
 
-    showVerificationMessage(
-      'A new 6-digit verification code was sent.',
-      'success'
-    );
-
+    setVerifyMessage("A new verification code was sent.","success");
   }catch(error){
-    console.error(
-      'Employer code resend failed:',
-      error
+    setVerifyMessage(
+      error?.message || "Unable to resend the verification code.",
+      "error"
     );
-
-    showVerificationMessage(
-      friendlyError(error?.message),
-      'error'
-    );
-
   }finally{
-    setLoading(
-      button,
-      false,
-      'Sending…',
-      'Resend code'
-    );
+    button.disabled=false;
+    button.textContent="Resend code";
   }
 }
 
-// Company creation is handled later by the Vercel endpoint:
-// /api/company/create-company
-// after the employer verifies their email, signs in, and completes onboarding.
+async function googleSignup(){
+  setSignupMessage("","");
 
-const BLOCKED_DOMAINS=new Set([
-  'gmail.com','googlemail.com','yahoo.com','ymail.com','rocketmail.com',
-  'outlook.com','hotmail.com','live.com','msn.com',
-  'icloud.com','me.com','mac.com','aol.com',
-  'proton.me','protonmail.com','pm.me','zoho.com',
-  'gmx.com','gmx.us','mail.com','yandex.com','hey.com',
-  'fastmail.com','tutanota.com','tuta.com'
-]);
-
-function showMessage(text,type){
-  const message=document.getElementById('message');
-  message.textContent=text;
-  message.className='message '+type;
-}
-
-function showEmailDomainError(){
-  const error=document.getElementById('email-domain-error');
-  error.className='message error';
-}
-
-function hideEmailDomainError(){
-  const error=document.getElementById('email-domain-error');
-  error.className='message';
-}
-function setLoading(button,on,loadingText,normalText){
-  button.disabled=on;
-  button.textContent=on?loadingText:normalText;
-}
-function getDomain(email){
-  return String(email||'').trim().toLowerCase().split('@')[1]||'';
-}
-function validBusinessEmail(email){
-  const clean=String(email||'').trim().toLowerCase();
-  const domain=getDomain(clean);
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clean)) return {ok:false,type:'invalid',message:'Please enter a valid company email address.'};
-  if(BLOCKED_DOMAINS.has(domain)) return {ok:false,type:'personal',message:'Employer accounts require a company email domain. Personal email providers are not accepted.'};
-  if(domain.endsWith('.local')||domain.includes('example.')) return {ok:false,message:'Please enter a real company email domain.'};
-  return {ok:true,domain};
-}
-function friendlyError(message){
-  const raw=String(message||'').toLowerCase();
-  if(raw.includes('already')) return 'An account already exists with this email. Try signing in instead.';
-  if(raw.includes('domain')) return 'Employer accounts require a verified company email domain.';
-  if(raw.includes('rate')) return 'Too many attempts. Please wait and try again.';
-  return message||'Unable to create your employer account.';
-}
-
-async function createEmployerAccount(){
-  const fullName=document.getElementById('full-name').value.trim();
-  const companyName=document.getElementById('company-name').value.trim();
-  const email=document.getElementById('email').value.trim().toLowerCase();
-  const password=document.getElementById('password').value;
-  const confirmPassword=document.getElementById('confirm-password').value;
-  const accepted=document.getElementById('terms').checked;
-  const button=document.getElementById('create-btn');
-
-  if(fullName.length<2) return showMessage('Please enter your full name.','error');
-  if(companyName.length<2) return showMessage('Please enter your company name.','error');
-
-  const emailCheck=validBusinessEmail(email);
-  if(!emailCheck.ok){
-    if(emailCheck.type==='personal'){
-      showEmailDomainError();
-      document.getElementById('email').focus();
-      return;
-    }
-    return showMessage(emailCheck.message,'error');
-  }
-  hideEmailDomainError();
-
-  if(password.length<8) return showMessage('Your password must be at least 8 characters.','error');
-  if(!/[A-Za-z]/.test(password)||!/\d/.test(password)) return showMessage('Your password must include at least one letter and one number.','error');
-  if(password!==confirmPassword) return showMessage('Your passwords do not match.','error');
-  if(!accepted) return showMessage('Please agree to the Terms and Privacy Policy.','error');
-
-  setLoading(button,true,'Creating account…','Create employer account');
-
-  try{
-    const {data,error}=await sb.auth.signUp({
-      email,
-      password,
-      options:{
-        data:{
-          full_name:fullName,
-          company_name:companyName,
-          account_type:'employer',
-          employer_domain:emailCheck.domain,
-          accepted_terms:true,
-
-          /*
-           * The Supabase Confirm sign up template uses this flag.
-           * App signup => show {{ .Token }} as a 6-digit code.
-           * Website signup => keep the normal confirmation link.
-           */
-          EmailFlow:'app'
-        }
+  const {error}=await sb.auth.signInWithOAuth({
+    provider:"google",
+    options:{
+      redirectTo:"https://alygnn.com/app-account.html",
+      queryParams:{
+        prompt:"select_account"
       }
-    });
-
-    if(error) throw error;
-
-    localStorage.setItem('alygnn_account_type','employer');
-    localStorage.setItem('alygnn_employer_domain',emailCheck.domain);
-    localStorage.setItem('alygnn_pending_company_name',companyName);
-    localStorage.setItem('alygnn_pending_full_name',fullName);
-
-    if(data.session){
-      showMessage('Account created. Continue to complete your company setup.','success');
-      button.textContent='Continue to company setup';
-      setTimeout(()=>location.href='app-employer-onboarding.html',1200);
-    }else{
-      pendingEmployerEmail=
-        email;
-
-      showVerificationStep(
-        email
-      );
-
-      showVerificationMessage(
-        'Enter the 6-digit code from your company email.',
-        'success'
-      );
-
-      setLoading(
-        button,
-        false,
-        'Creating account…',
-        'Create employer account'
-      );
     }
-  }catch(error){
-    showMessage(friendlyError(error.message),'error');
-    setLoading(button,false,'Creating account…','Create employer account');
+  });
+
+  if(error){
+    setSignupMessage(error.message||"Unable to continue with Google.","error");
   }
 }
 
-document.getElementById('back-btn').addEventListener('click',()=>location.href='app-employer-login.html');
-document.getElementById('show-password').addEventListener('click',event=>{
-  const password=document.getElementById('password');
-  const confirm=document.getElementById('confirm-password');
-  const showing=password.type==='text';
-  password.type=showing?'password':'text';
-  confirm.type=showing?'password':'text';
-  event.currentTarget.textContent=showing?'Show':'Hide';
-});
-const emailInput=document.getElementById('email');
 
-emailInput.addEventListener('input',()=>{
-  const email=emailInput.value.trim().toLowerCase();
-  const domain=getDomain(email);
+document
+  .getElementById("create-account-btn")
+  .addEventListener("click",signup);
 
-  if(BLOCKED_DOMAINS.has(domain)){
-    showEmailDomainError();
-  }else{
-    hideEmailDomainError();
-  }
-});
+document
+  .getElementById("toggle-password")
+  .addEventListener(
+    "click",
+    ()=>togglePasswordField("password","toggle-password")
+  );
 
-emailInput.addEventListener('blur',()=>{
-  const email=emailInput.value.trim().toLowerCase();
-  const domain=getDomain(email);
+document
+  .getElementById("toggle-confirm-password")
+  .addEventListener(
+    "click",
+    ()=>togglePasswordField("confirm-password","toggle-confirm-password")
+  );
 
-  if(email && BLOCKED_DOMAINS.has(domain)){
-    showEmailDomainError();
-  }else{
-    hideEmailDomainError();
-  }
-});
+document
+  .getElementById("google-btn")
+  .addEventListener("click",googleSignup);
 
-document.getElementById('create-btn').addEventListener('click',createEmployerAccount);
 
-document.getElementById('verify-btn').addEventListener(
-  'click',
-  verifyEmployerEmailCode
-);
+document
+  .getElementById("verify-btn")
+  .addEventListener("click",verifyEmailCode);
 
-document.getElementById('resend-btn').addEventListener(
-  'click',
-  resendEmployerVerificationCode
-);
+document
+  .getElementById("resend-btn")
+  .addEventListener("click",resendVerificationCode);
 
-document.getElementById('verification-code').addEventListener(
-  'input',
-  event=>{
-    event.target.value=
-      event.target.value
-        .replace(/\D/g,'')
-        .slice(0,6);
-  }
-);
-
-document.getElementById('verification-code').addEventListener(
-  'keydown',
-  event=>{
-    if(event.key==='Enter'){
-      verifyEmployerEmailCode();
+document
+  .getElementById("existing-signin-btn")
+  .addEventListener("click",()=>{
+    if(pendingSignupEmail){
+      try{
+        sessionStorage.setItem(
+          "alygnn_prefill_login_email",
+          pendingSignupEmail
+        );
+      }catch(_){}
     }
-  }
-);
 
-document.getElementById('confirm-password').addEventListener('keydown',event=>{
-  if(event.key==='Enter') createEmployerAccount();
-});
+    window.location.href="app-login.html";
+  });
+
+document
+  .getElementById("existing-reset-btn")
+  .addEventListener("click",()=>{
+    if(pendingSignupEmail){
+      try{
+        sessionStorage.setItem(
+          "alygnn_prefill_reset_email",
+          pendingSignupEmail
+        );
+      }catch(_){}
+    }
+
+    window.location.href="app-forgot-password.html";
+  });
+
+document
+  .getElementById("email")
+  .addEventListener("input",()=>{
+    hideExistingAccountCard();
+    setSignupMessage("","");
+  });
+
+document
+  .getElementById("confirm-password")
+  .addEventListener("keydown",event=>{
+    if(event.key==="Enter"){
+      signup();
+    }
+  });
+
+document
+  .getElementById("verification-code")
+  .addEventListener("keydown",event=>{
+    if(event.key==="Enter"){
+      verifyEmailCode();
+    }
+  });
 </script>
+
 </body>
 </html>
