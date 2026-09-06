@@ -214,101 +214,8 @@
     font-size: 12px; font-weight: 500; color: var(--brand);
     text-decoration: none; background: var(--brand-light);
     padding: 5px 12px; border-radius: 100px; transition: opacity 0.2s;
-    border: 0; font-family: 'DM Sans', sans-serif; cursor: pointer;
   }
   .view-details-link:hover { opacity: 0.8; }
-
-  /* INLINE JOB DETAILS — keep the candidate on swipe.html instead of opening
-     job-details.html in another browser tab. */
-  .card-expanded-details {
-    display: none;
-    border-top: 1px solid var(--border);
-    margin-top: 4px;
-    padding-top: 18px;
-  }
-  .expanded-section { margin-bottom: 20px; }
-  .expanded-section:last-child { margin-bottom: 4px; }
-  .expanded-section-title {
-    font-size: 10px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 10px;
-    font-weight: 500;
-  }
-  .expanded-list {
-    list-style: none;
-    display: grid;
-    gap: 8px;
-  }
-  .expanded-list li {
-    position: relative;
-    padding-left: 14px;
-    font-size: 13px;
-    line-height: 1.55;
-    color: var(--text-muted);
-  }
-  .expanded-list li::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: .62em;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: var(--brand);
-  }
-  .expanded-benefits {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
-  }
-  .expanded-benefits .benefit-tag {
-    font-size: 11px;
-    padding: 5px 10px;
-  }
-
-  body.details-expanded {
-    overflow-y: auto;
-    overscroll-behavior-y: auto;
-  }
-  body.details-expanded .swipe-area {
-    justify-content: flex-start;
-    padding-top: 28px;
-    padding-bottom: 48px;
-  }
-  body.details-expanded .card-stack {
-    height: auto;
-    min-height: 520px;
-    max-width: 620px;
-  }
-  body.details-expanded .job-card:not(:first-child) {
-    display: none;
-  }
-  body.details-expanded .job-card:first-child {
-    position: relative;
-    inset: auto;
-    min-height: 520px;
-    height: auto;
-    cursor: default;
-    touch-action: auto;
-    user-select: text;
-    -webkit-user-select: text;
-    scroll-margin-top: 18px;
-  }
-  body.details-expanded .job-card:first-child .card-desc {
-    display: block;
-    -webkit-line-clamp: unset;
-    overflow: visible;
-    white-space: pre-line;
-  }
-  body.details-expanded .job-card:first-child .card-highlights,
-  body.details-expanded .job-card:first-child .card-benefits {
-    display: none;
-  }
-  body.details-expanded .job-card:first-child .card-expanded-details {
-    display: block;
-  }
 
   /* ACTION BUTTONS */
   .action-buttons {
@@ -880,8 +787,7 @@
       job.salary ? `<span class="pill salary">${escapeHtml(job.salary)}</span>` : '',
     ].filter(Boolean).join('');
 
-    const allRequirements = (job.requirements || '').split('\n').map(r => r.trim()).filter(Boolean);
-    const requirements = allRequirements.slice(0, 4);
+    const requirements = (job.requirements || '').split('\n').map(r => r.trim()).filter(Boolean).slice(0, 4);
     const highlightsHTML = requirements.length
       ? `<div class="card-highlights">
           <div class="highlights-label">Requirements</div>
@@ -889,29 +795,9 @@
         </div>`
       : '';
 
-    const allBenefits = (job.benefits || '').split('\n').map(b => b.trim()).filter(Boolean);
-    const benefits = allBenefits.slice(0, 5);
+    const benefits = (job.benefits || '').split('\n').map(b => b.trim()).filter(Boolean).slice(0, 5);
     const benefitsHTML = benefits.length
       ? `<div class="card-benefits">${benefits.map(b => `<span class="benefit-tag">${escapeHtml(b)}</span>`).join('')}</div>`
-      : '';
-
-    const expandedDetailsHTML = (allRequirements.length || allBenefits.length)
-      ? `<div class="card-expanded-details">
-          ${allRequirements.length ? `
-            <section class="expanded-section">
-              <div class="expanded-section-title">Requirements</div>
-              <ul class="expanded-list">
-                ${allRequirements.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
-              </ul>
-            </section>` : ''}
-          ${allBenefits.length ? `
-            <section class="expanded-section">
-              <div class="expanded-section-title">Benefits</div>
-              <div class="expanded-benefits">
-                ${allBenefits.map(b => `<span class="benefit-tag">${escapeHtml(b)}</span>`).join('')}
-              </div>
-            </section>` : ''}
-        </div>`
       : '';
 
     const description = job.description || 'No description available.';
@@ -940,10 +826,9 @@
       <div class="card-desc">${escapeHtml(description)}</div>
       ${highlightsHTML}
       ${benefitsHTML}
-      ${expandedDetailsHTML}
       <div class="card-bottom">
         <div class="posted-time">${timeAgo(job.created_at)}</div>
-        <button type="button" class="view-details-link" aria-expanded="false" onclick="toggleJobDetails(event, ${index})">View details ↓</button>
+        <a class="view-details-link" href="job-details.html?job=${encodeURIComponent(job.id)}&from=swipe">View details →</a>
       </div>
     `;
 
@@ -951,49 +836,7 @@
     return card;
   }
 
-  function toggleJobDetails(event, index) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (swipeLocked || isDragging) return;
-
-    const card = event.currentTarget.closest('.job-card');
-    if (!card || Number.parseInt(card.dataset.index, 10) !== Number(index)) return;
-
-    const expanding = !card.classList.contains('expanded');
-
-    // Only the visible/top card can be expanded. Keeping the stacked cards
-    // out of the document flow prevents them from overlapping the long ad.
-    document.querySelectorAll('.job-card.expanded').forEach(other => {
-      if (other !== card) other.classList.remove('expanded');
-    });
-
-    card.classList.toggle('expanded', expanding);
-    document.body.classList.toggle('details-expanded', expanding);
-
-    const button = card.querySelector('.view-details-link');
-    if (button) {
-      button.setAttribute('aria-expanded', expanding ? 'true' : 'false');
-      button.textContent = expanding ? 'Hide details ↑' : 'View details ↓';
-    }
-
-    // Clear any stale transform left by a very short drag before expanding.
-    if (expanding) {
-      clearTimeout(snapBackTimer);
-      snapBackTimer = null;
-      currentX = 0;
-      card.style.transform = '';
-      card.style.transition = '';
-      requestAnimationFrame(() => {
-        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }
-
   function renderCards() {
-    document.body.classList.remove('details-expanded');
     const stack = document.getElementById('card-stack');
 
     // Every render begins from a clean interaction state. This prevents a
@@ -1115,8 +958,7 @@
 
   function dragStart(e) {
     if (swipeLocked || isDragging) return;
-    if (e.currentTarget.classList.contains('expanded')) return;
-    if (e.target.closest('a, button')) return;
+    if (e.target.closest('a')) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
 
     // A previous short drag may still have a snap-back timer pending.
