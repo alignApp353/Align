@@ -462,6 +462,90 @@
   }
   .verification-help:hover{ text-decoration:underline; }
 
+  /* Public company links — editable anytime and shown to candidates. */
+  .company-public-links{
+    margin-top:18px;
+    padding:18px;
+    border:1px solid var(--border);
+    border-radius:16px;
+    background:var(--card-bg);
+  }
+  .company-public-links-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:14px;
+  }
+  .company-public-links-title{
+    font-size:14px;
+    font-weight:500;
+    color:var(--text);
+  }
+  .company-public-links-note{
+    margin-top:3px;
+    font-size:11.5px;
+    line-height:1.5;
+    color:var(--text-muted);
+  }
+  .company-public-links-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+  }
+  .company-public-link-field{
+    min-width:0;
+  }
+  .company-public-link-field.media-kit{
+    grid-column:1 / -1;
+  }
+  .company-public-link-field label{
+    display:block;
+    margin-bottom:6px;
+    font-size:10px;
+    font-weight:500;
+    letter-spacing:.8px;
+    text-transform:uppercase;
+    color:#7F8B97;
+  }
+  .company-public-link-input{
+    width:100%;
+    height:42px;
+    padding:0 12px;
+    border:1px solid var(--border);
+    border-radius:11px;
+    background:white;
+    color:var(--text);
+    font:400 12.5px 'DM Sans',sans-serif;
+    outline:none;
+  }
+  .company-public-link-input:focus{
+    border-color:var(--brand);
+    box-shadow:0 0 0 3px rgba(93,127,163,.08);
+  }
+  .company-public-links-actions{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-top:14px;
+  }
+  .company-public-links-save{
+    border:0;
+    border-radius:100px;
+    padding:9px 16px;
+    background:var(--brand);
+    color:white;
+    font:500 12px 'DM Sans',sans-serif;
+    cursor:pointer;
+  }
+  .company-public-links-save:hover{ opacity:.9; }
+  .company-public-links-message{
+    font-size:11.5px;
+    color:var(--text-muted);
+  }
+  .company-public-links-message.success{ color:#2d8a57; }
+  .company-public-links-message.error{ color:#a05858; }
+
   @media (max-width:640px){
     .company-profile-top{ padding:24px 20px 20px; }
     .company-details-zone{ padding:18px 20px 20px; }
@@ -470,6 +554,8 @@
     .profile-info h1{ font-size:1.65rem; }
     .company-eyebrow{ align-items:flex-start; flex-direction:column; }
     .company-fields{ grid-template-columns:1fr; }
+    .company-public-links-grid{ grid-template-columns:1fr; }
+    .company-public-link-field.media-kit{ grid-column:auto; }
     .verification-footer{ align-items:flex-start; flex-direction:column; }
   }
 
@@ -859,6 +945,47 @@
         <a href="#" class="verification-help" onclick="openProfileUpdateModal(event)">Need to change something?</a>
       </div>
       <div class="profile-update-status" id="profile-update-status" style="display:none"></div>
+
+      <div class="company-public-links">
+        <div class="company-public-links-head">
+          <div>
+            <div class="company-public-links-title">Company links</div>
+            <div class="company-public-links-note">Shown to candidates. You can update these links anytime.</div>
+          </div>
+        </div>
+
+        <div class="company-public-links-grid">
+          <div class="company-public-link-field">
+            <label for="public-website-url">Website</label>
+            <input class="company-public-link-input" type="url" id="public-website-url" placeholder="https://yourcompany.com">
+          </div>
+
+          <div class="company-public-link-field">
+            <label for="linkedin-url">LinkedIn</label>
+            <input class="company-public-link-input" type="url" id="linkedin-url" placeholder="https://linkedin.com/company/...">
+          </div>
+
+          <div class="company-public-link-field">
+            <label for="instagram-url">Instagram</label>
+            <input class="company-public-link-input" type="url" id="instagram-url" placeholder="https://instagram.com/...">
+          </div>
+
+          <div class="company-public-link-field">
+            <label for="facebook-url">Facebook</label>
+            <input class="company-public-link-input" type="url" id="facebook-url" placeholder="https://facebook.com/...">
+          </div>
+
+          <div class="company-public-link-field media-kit">
+            <label for="media-kit-url">Media kit / company overview</label>
+            <input class="company-public-link-input" type="url" id="media-kit-url" placeholder="https://...">
+          </div>
+        </div>
+
+        <div class="company-public-links-actions">
+          <button type="button" class="company-public-links-save" onclick="saveCompanyPublicLinks()">Save company links</button>
+          <span class="company-public-links-message" id="company-public-links-message"></span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1375,6 +1502,67 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     }
 
     return true;
+  }
+
+  function normalizeOptionalCompanyLink(value){
+    const cleaned = String(value || '').trim();
+    if (!cleaned) return '';
+
+    try {
+      const url = new URL(cleaned);
+      if (url.protocol !== 'https:') return null;
+      return url.toString();
+    } catch {
+      return null;
+    }
+  }
+
+  async function saveCompanyPublicLinks(){
+    if (!currentUserId) return;
+
+    const messageEl = document.getElementById('company-public-links-message');
+    const fieldMap = {
+      public_website_url: document.getElementById('public-website-url'),
+      linkedin_url: document.getElementById('linkedin-url'),
+      instagram_url: document.getElementById('instagram-url'),
+      facebook_url: document.getElementById('facebook-url'),
+      media_kit_url: document.getElementById('media-kit-url')
+    };
+
+    const payload = {};
+    for (const [column, input] of Object.entries(fieldMap)) {
+      const normalized = normalizeOptionalCompanyLink(input?.value);
+      if (normalized === null) {
+        if (messageEl) {
+          messageEl.textContent = 'Please use a valid https:// link.';
+          messageEl.className = 'company-public-links-message error';
+        }
+        input?.focus();
+        return;
+      }
+      payload[column] = normalized;
+    }
+
+    if (messageEl) {
+      messageEl.textContent = 'Saving…';
+      messageEl.className = 'company-public-links-message';
+    }
+
+    const saved = await saveEmployerProfile(payload);
+    if (!saved) {
+      if (messageEl) {
+        messageEl.textContent = 'Could not save company links.';
+        messageEl.className = 'company-public-links-message error';
+      }
+      return;
+    }
+
+    currentProfile = { ...(currentProfile || {}), ...payload };
+
+    if (messageEl) {
+      messageEl.textContent = 'Saved';
+      messageEl.className = 'company-public-links-message success';
+    }
   }
 
   // Checks all fields, decides approval, and writes verification status to Supabase
@@ -2483,7 +2671,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     const { data: profile, error } = await sb
       .from('profiles')
-      .select('role, company_name, company_headline, company_website, company_phone, business_email, business_address, verification_status, employer_verified, full_name')
+      .select('role, company_name, company_headline, company_website, company_phone, business_email, business_address, verification_status, employer_verified, full_name, public_website_url, linkedin_url, instagram_url, facebook_url, media_kit_url')
       .eq('id', currentUserId)
       .single();
 
@@ -2536,6 +2724,11 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const phoneEl       = document.getElementById('company-phone');
     const businessEmailEl = document.getElementById('business-email');
     const businessAddressEl = document.getElementById('business-address');
+    const publicWebsiteEl = document.getElementById('public-website-url');
+    const linkedInEl = document.getElementById('linkedin-url');
+    const instagramEl = document.getElementById('instagram-url');
+    const facebookEl = document.getElementById('facebook-url');
+    const mediaKitEl = document.getElementById('media-kit-url');
 
     const companyName = profile?.company_name || session.user.user_metadata?.company_name || '';
     const displayName = companyName || profile?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
@@ -2557,6 +2750,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if (profile?.company_phone)   phoneEl.value   = profile.company_phone;
     if (profile?.business_email) businessEmailEl.value = profile.business_email;
     if (profile?.business_address) businessAddressEl.value = profile.business_address;
+
+    if (publicWebsiteEl) publicWebsiteEl.value = profile?.public_website_url || '';
+    if (linkedInEl) linkedInEl.value = profile?.linkedin_url || '';
+    if (instagramEl) instagramEl.value = profile?.instagram_url || '';
+    if (facebookEl) facebookEl.value = profile?.facebook_url || '';
+    if (mediaKitEl) mediaKitEl.value = profile?.media_kit_url || '';
 
     document.getElementById('nav-name').textContent = displayName;
 
