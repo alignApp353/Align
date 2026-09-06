@@ -6,656 +6,378 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <title>Alygnn — Employer Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --brand: #5D7FA3;
-    --sage: #8CB69B;
-    --bg: #F0F3F2;
-    --card-bg: #FCFCFA;
-    --text: #1A2530;
-    --border: #DDE3E8;
-    --mint: #6FBF8F;
-    --rose: #D79A9A;
-    --text-muted: #4A5968;
-    --brand-light: rgba(93,127,163,0.08);
-    --mint-light: rgba(111,191,143,0.10);
-  }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    font-family: 'DM Sans', Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-  }
-
-  button, input { font: inherit; }
-
-  /* ----- TOP NAV: same shell as live employer dashboard ----- */
-  nav {
-    background: rgba(246,248,247,0.95);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 5%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 64px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    z-index: 1000;
-  }
-
-  .logo {
-    font-family: 'DM Serif Display', serif;
-    font-size: 22px;
-    color: var(--brand);
-    letter-spacing: -0.5px;
-    text-decoration: none;
-  }
-
-  .logo span { color: var(--sage); }
-
-  .nav-right {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .demo-pill {
-    font-size: 12px;
-    color: var(--text-muted);
-    background: var(--brand-light);
-    padding: 5px 12px;
-    border-radius: 100px;
-    white-space: nowrap;
-  }
-
-  .btn-back {
-    font-size: 13px;
-    color: var(--text-muted);
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 7px 14px;
-    cursor: pointer;
-    transition: all .2s;
-    text-decoration: none;
-    white-space: nowrap;
-  }
-
-  .btn-back:hover {
-    border-color: var(--brand);
-    color: var(--brand);
-  }
-
-  /* ----- FIXED EMPLOYER SHELL ----- */
-  .layout {
-    min-height: 100vh;
-    padding-top: 64px;
-  }
-
-  .sidebar {
-    background: var(--card-bg);
-    border-right: 1px solid var(--border);
-    padding: 32px 20px;
-    position: fixed;
-    top: 64px;
-    left: 0;
-    width: 240px;
-    height: calc(100vh - 64px);
-    overflow: hidden;
-  }
-
-  .main {
-    margin-left: 240px;
-    padding: 40px 5%;
-  }
-
-  .sidebar-label {
-    font-size: 10px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    font-weight: 500;
-    margin-bottom: 10px;
-    padding: 0 8px;
-  }
-
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all .2s;
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-bottom: 2px;
-    border: none;
-    background: none;
-    width: 100%;
-    text-align: left;
-    text-decoration: none;
-  }
-
-  .nav-item:hover {
-    background: var(--brand-light);
-    color: var(--text);
-  }
-
-  .nav-item.active {
-    background: var(--brand-light);
-    color: var(--brand);
-    font-weight: 500;
-  }
-
-  .nav-icon {
-    width: 20px;
-    height: 20px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .nav-icon svg {
-    width: 18px;
-    height: 18px;
-    display: block;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .nav-divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 12px 0;
-  }
-
-  /* ----- PANELS ----- */
-  .panel {
-    display: none;
-    animation: fadeUp .3s ease both;
-  }
-
-  .panel.active { display: block; }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .page-header { margin-bottom: 32px; }
-
-  .page-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 32px;
-    color: var(--text);
-    letter-spacing: -0.5px;
-    margin-bottom: 6px;
-  }
-
-  .page-sub {
-    font-size: 14px;
-    color: var(--text-muted);
-  }
-
-  .demo-plan-banner {
-    margin-top: 14px;
-    padding: 12px 14px;
-    border-radius: 12px;
-    border: 1px solid rgba(140,182,155,.55);
-    background: rgba(140,182,155,.12);
-    color: var(--text);
-    font-size: 12px;
-    line-height: 1.55;
-  }
-
-  .demo-plan-banner strong { color: #4F9568; }
-
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 16px;
-  }
-
-  .section-title {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text);
-  }
-
-  .slot-usage {
-    font-size: 12px;
-    font-weight: 400;
-    color: var(--text-muted);
-    margin-left: 8px;
-  }
-
-  .btn-primary {
-    background: var(--brand);
-    color: white;
-    border: none;
-    border-radius: 100px;
-    padding: 10px 22px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all .2s;
-    white-space: nowrap;
-  }
-
-  .btn-primary:hover {
-    opacity: .88;
-    transform: translateY(-1px);
-  }
-
-  .form-input {
-    background: white;
-    border: 1.5px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 16px;
-    font-size: 14px;
-    color: var(--text);
-    outline: none;
-    transition: border-color .2s;
-    width: 100%;
-    margin-bottom: 16px;
-  }
-
-  .form-input:focus { border-color: var(--brand); }
-  .form-input::placeholder { color: #aab4bc; }
-
-  /* ----- JOB ROWS: same style/actions as live dashboard ----- */
-  .job-row {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 18px 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 10px;
-    transition: box-shadow .2s;
-  }
-
-  .job-row:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,.06);
-  }
-
-  .job-status {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .job-status.active { background: var(--mint); }
-
-  .job-info {
-    flex: 1;
-    min-width: 270px;
-  }
-
-  .job-title-text {
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text);
-    margin-bottom: 3px;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 7px;
-  }
-
-  .job-meta {
-    font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.45;
-  }
-
-  .job-status-badge,
-  .boosted-pill,
-  .urgent-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    border-radius: 100px;
-    font-size: 10px;
-    font-weight: 600;
-    vertical-align: middle;
-  }
-
-  .job-status-badge.active {
-    color: #2d8a57;
-    background: var(--mint-light);
-  }
-
-  .boosted-pill {
-    color: #755b18;
-    background: rgba(231,184,109,.15);
-    border: 1px solid rgba(231,184,109,.35);
-  }
-
-  .urgent-pill {
-    color: #914848;
-    background: rgba(215,154,154,.15);
-    border: 1px solid rgba(215,154,154,.40);
-  }
-
-  .boost-until {
-    font-size: 10px;
-    color: var(--text-muted);
-    margin-left: -3px;
-    white-space: nowrap;
-  }
-
-  .job-stats {
-    display: flex;
-    gap: 20px;
-    text-align: center;
-    flex-shrink: 0;
-  }
-
-  .js-val {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text);
-  }
-
-  .js-label {
-    font-size: 10px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-
-  .job-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  .btn-view,
-  .btn-danger {
-    font-size: 12px;
-    border: none;
-    border-radius: 8px;
-    padding: 7px 14px;
-    cursor: pointer;
-    transition: all .2s;
-    white-space: nowrap;
-  }
-
-  .btn-view {
-    color: var(--brand);
-    background: var(--brand-light);
-  }
-
-  .btn-view:hover { opacity: .8; }
-
-  .btn-view.urgent-on {
-    color: #914848;
-    background: rgba(215,154,154,.12);
-  }
-
-  .btn-danger {
-    color: #a05858;
-    background: rgba(215,154,154,.15);
-  }
-
-  .btn-danger:hover { opacity: .8; }
-
-  /* ----- CANDIDATES ----- */
-  .candidate-toolbar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-  }
-
-  .filter-chip {
-    border: 1px solid var(--border);
-    background: var(--card-bg);
-    color: var(--text-muted);
-    border-radius: 999px;
-    padding: 7px 12px;
-    font-size: 12px;
-    cursor: pointer;
-  }
-
-  .filter-chip.active {
-    color: var(--brand);
-    border-color: rgba(93,127,163,.35);
-    background: var(--brand-light);
-  }
-
-  .candidates-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-  }
-
-  .candidate-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 22px;
-  }
-
-  .candidate-top {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
-  }
-
-  .candidate-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: var(--brand-light);
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'DM Serif Display', serif;
-    color: var(--brand);
-    font-size: 18px;
-  }
-
-  .candidate-name {
-    font-size: 15px;
-    font-weight: 500;
-    margin-bottom: 2px;
-  }
-
-  .candidate-role {
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-
-  .candidate-copy {
-    font-size: 13px;
-    color: var(--text-muted);
-    line-height: 1.6;
-    margin-bottom: 16px;
-  }
-
-  .candidate-bottom {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .match-score {
-    color: #2d8a57;
-    background: var(--mint-light);
-    border-radius: 999px;
-    padding: 5px 10px;
-    font-size: 11px;
-    font-weight: 600;
-  }
-
-  /* ----- MESSAGES ----- */
-  .messages-shell {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    min-height: 520px;
-  }
-
-  .thread-list {
-    border-right: 1px solid var(--border);
-  }
-
-  .thread {
-    padding: 16px 18px;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-  }
-
-  .thread.active { background: var(--brand-light); }
-
-  .thread-name {
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 3px;
-  }
-
-  .thread-preview,
-  .thread-time {
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-
-  .conversation {
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-
-  .conversation-title {
-    font-size: 15px;
-    font-weight: 600;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .chat-area {
-    padding: 26px 0;
-    flex: 1;
-  }
-
-  .bubble {
-    max-width: 72%;
-    padding: 11px 14px;
-    border-radius: 14px;
-    margin-bottom: 10px;
-    font-size: 13px;
-    line-height: 1.5;
-  }
-
-  .bubble.them {
-    background: #fff;
-    border: 1px solid var(--border);
-  }
-
-  .bubble.me {
-    background: var(--brand);
-    color: #fff;
-    margin-left: auto;
-  }
-
-  .message-input {
-    border: 1px solid var(--border);
-    background: #fff;
-    border-radius: 12px;
-    padding: 12px 14px;
-    font-size: 13px;
-    color: var(--text-muted);
-  }
-
-  /* ----- TOAST ----- */
-  .toast {
-    position: fixed;
-    bottom: 32px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: var(--text);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 100px;
-    font-size: 13px;
-    font-weight: 500;
-    transition: transform .3s ease;
-    z-index: 2000;
-    white-space: nowrap;
-  }
-
-  .toast.show {
-    transform: translateX(-50%) translateY(0);
-  }
-
-  .mini-footer {
-    text-align: center;
-    padding: 28px 6% 40px;
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-left: 240px;
-  }
-
-  .mini-footer a {
-    color: var(--text-muted);
-    text-decoration: none;
-  }
-
-  /* ----- RESPONSIVE ----- */
-  @media (max-width: 1180px) {
-    .job-row { align-items: flex-start; flex-wrap: wrap; }
-    .job-info { min-width: 55%; }
-    .job-actions { width: 100%; justify-content: flex-end; padding-left: 24px; }
-  }
-
-  @media (max-width: 860px) {
-    .sidebar { display: none; }
-    .main, .mini-footer { margin-left: 0; }
-    .main { padding: 28px 5%; }
-    .messages-shell { grid-template-columns: 1fr; }
-    .thread-list { border-right: none; border-bottom: 1px solid var(--border); }
-  }
-
-  @media (max-width: 680px) {
-    nav { padding: 0 4%; }
-    .demo-pill { display: none; }
-    .page-title { font-size: 28px; }
-    .section-header { align-items: flex-start; flex-direction: column; }
-    .job-stats { width: 100%; justify-content: flex-start; padding-left: 24px; }
-    .job-actions { justify-content: flex-start; padding-left: 24px; }
-    .btn-view, .btn-danger { padding: 7px 11px; }
-  }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--card:#FCFCFA;
+  --text:#1A2530;--muted:#4A5968;--border:#DDE3E8;--mint:#6FBF8F;
+  --rose:#D79A9A;--brand-light:rgba(93,127,163,.10);
+  --mint-light:rgba(111,191,143,.13);--rose-light:rgba(215,154,154,.13);
+}
+html,body{width:100%;max-width:100%;min-height:100%;overflow-x:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font-family:'DM Sans',sans-serif}
+
+/* ---------- EXACT EMPLOYER WORKSPACE SHELL ---------- */
+nav{
+  position:fixed;top:0;left:0;right:0;width:100%;height:64px;z-index:1000;
+  padding:0 5%;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);background:rgba(246,248,247,.95);
+  backdrop-filter:blur(12px);
+}
+.logo{font-family:'DM Serif Display',serif;font-size:22px;color:var(--brand);text-decoration:none}
+.logo span{color:var(--sage)}
+.nav-right{display:flex;align-items:center;gap:16px}
+.demo-pill{font-size:12px;color:var(--muted);background:var(--brand-light);padding:5px 12px;border-radius:999px}
+.notif-bell{
+  position:relative;display:flex;align-items:center;justify-content:center;width:36px;height:36px;
+  border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer
+}
+.notif-bell:hover{color:var(--brand);border-color:var(--brand)}
+.notif-bell svg{width:18px;height:18px}
+.notif-badge{
+  position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 4px;
+  background:var(--rose);color:#fff;font-size:10px;font-weight:700;border-radius:999px;
+  display:flex;align-items:center;justify-content:center;line-height:1
+}
+.nav-user{font-size:13px;color:var(--muted)}
+.btn-logout{
+  font-size:13px;color:var(--muted);background:none;border:1px solid var(--border);
+  border-radius:8px;padding:6px 14px;cursor:pointer;text-decoration:none
+}
+.btn-logout:hover{border-color:var(--brand);color:var(--brand)}
+
+.layout{display:block;min-height:100vh;padding-top:64px}
+.sidebar{
+  position:fixed;top:64px;left:0;width:240px;height:calc(100vh - 64px);padding:32px 20px;
+  overflow:hidden;background:var(--card);border-right:1px solid var(--border);z-index:90
+}
+.sidebar-label{
+  font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);
+  font-weight:500;margin-bottom:10px;padding:0 8px
+}
+.side-link{
+  display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;
+  border-radius:10px;color:var(--muted);background:transparent;text-decoration:none;
+  font-size:14px;font-weight:400;margin-bottom:2px;cursor:pointer;text-align:left
+}
+.side-link:hover{background:var(--brand-light);color:var(--text)}
+.side-link.active{background:var(--brand-light);color:var(--brand);font-weight:500}
+.side-icon{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.side-icon svg{
+  width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round
+}
+.sidebar hr{border:0;border-top:1px solid var(--border);margin:18px 0}
+
+main{
+  box-sizing:border-box;margin-left:240px;width:calc(100% - 240px);max-width:calc(100% - 240px);
+  min-width:0;padding:40px 5% 90px;overflow-x:hidden
+}
+.panel{display:none}
+.panel.active{display:block}
+
+/* ---------- SHARED PAGE TYPOGRAPHY ---------- */
+.page-header{margin-bottom:28px}
+.page-kicker{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--brand);font-weight:700;margin-bottom:6px}
+.page-title,h1{font-family:'DM Serif Display',serif;font-size:32px;line-height:1.05;letter-spacing:-.5px;margin-bottom:6px}
+.page-sub{font-size:13px;color:var(--muted);line-height:1.55;max-width:720px}
+
+/* ---------- MY JOBS: LIVE DASHBOARD MATCH ---------- */
+.demo-entitlement{
+  display:block;margin-top:14px;border:1px solid rgba(111,191,143,.42);
+  background:rgba(111,191,143,.08);border-radius:12px;padding:12px 14px;
+  color:var(--text);font-size:12px;line-height:1.55
+}
+.demo-entitlement strong{color:#4b9866}
+.section-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+.section-title{font-size:16px;font-weight:500}
+.slot-usage{font-size:12px;font-weight:400;color:var(--muted);margin-left:8px}
+.btn-primary{
+  background:var(--brand);color:#fff;border:0;border-radius:999px;padding:10px 22px;
+  font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap
+}
+.btn-primary:hover{opacity:.9}
+.jobs-search{
+  width:100%;border:1px solid var(--border);background:#fff;color:var(--text);
+  border-radius:12px;padding:13px 16px;font-size:13px;outline:none;margin-bottom:16px
+}
+.jobs-search:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,127,163,.08)}
+.jobs-search::placeholder{color:#aab4bc}
+.job-row{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;
+  display:flex;align-items:center;gap:16px;margin-bottom:10px
+}
+.job-row:hover{box-shadow:0 4px 16px rgba(0,0,0,.045)}
+.job-dot{width:8px;height:8px;border-radius:50%;background:var(--mint);flex-shrink:0}
+.job-info{flex:1;min-width:270px}
+.job-title-line{font-size:15px;font-weight:500;display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:3px}
+.job-meta{font-size:12px;color:var(--muted);line-height:1.45}
+.status-pill,.boosted-pill,.urgent-pill{
+  display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600
+}
+.status-pill{color:#2d8a57;background:var(--mint-light)}
+.boosted-pill{color:#755b18;background:rgba(231,184,109,.15);border:1px solid rgba(231,184,109,.35)}
+.urgent-pill{color:#914848;background:var(--rose-light);border:1px solid rgba(215,154,154,.40)}
+.boost-until{font-size:10px;color:var(--muted);margin-left:-3px;white-space:nowrap}
+.job-stats{display:flex;gap:20px;text-align:center;flex-shrink:0}
+.js-val{font-size:16px;font-weight:500}
+.js-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.job-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.btn-view,.btn-danger{
+  font-size:12px;border:0;border-radius:8px;padding:7px 14px;cursor:pointer;white-space:nowrap
+}
+.btn-view{color:var(--brand);background:var(--brand-light)}
+.btn-view:hover{opacity:.78}
+.btn-view.urgent-on{color:#914848;background:var(--rose-light)}
+.btn-danger{color:#a05858;background:var(--rose-light)}
+.btn-danger:hover{opacity:.8}
+
+/* ---------- CANDIDATES: COPIED STRUCTURE FROM LIVE CANDIDATES PAGE ---------- */
+.candidates-page-top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:28px}
+.candidate-toolbar{display:grid;grid-template-columns:minmax(260px,1fr) 190px;gap:10px;margin-bottom:22px}
+.field{
+  width:100%;border:1px solid var(--border);border-radius:12px;background:#fff;color:var(--text);
+  padding:11px 13px;font:13px 'DM Sans',sans-serif;outline:none
+}
+.field:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,127,163,.08)}
+.info-note{
+  border:1px solid rgba(93,127,163,.16);background:rgba(93,127,163,.055);
+  padding:12px 14px;border-radius:12px;color:var(--muted);font-size:11.5px;line-height:1.55;margin-bottom:24px
+}
+.info-note strong{color:var(--text)}
+.jobs-groups{display:grid;gap:16px}
+.job-group{
+  background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;
+  box-shadow:0 8px 28px rgba(38,54,70,.035)
+}
+.job-group-head{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;
+  background:transparent;border:0;padding:20px 22px;text-align:left;cursor:pointer
+}
+.job-group-head:hover{background:rgba(93,127,163,.025)}
+.job-head-left{min-width:0}
+.job-title-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:5px}
+.group-job-title{font-size:15px;font-weight:500}
+.group-job-status{
+  display:inline-flex;padding:3px 8px;border-radius:999px;font-size:9px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.35px;border:1px solid rgba(111,191,143,.3);
+  color:#2c7e50;background:var(--mint-light)
+}
+.group-job-meta{font-size:11.5px;color:var(--muted)}
+.job-head-right{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.count-badge{
+  min-width:34px;height:30px;padding:0 10px;border-radius:999px;background:var(--brand-light);
+  color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700
+}
+.chevron{font-size:16px;color:var(--muted);transition:transform .2s}
+.job-group.open .chevron{transform:rotate(180deg)}
+.job-group-body{display:none;border-top:1px solid var(--border);padding:18px 22px 22px}
+.job-group.open .job-group-body{display:block}
+.group-tools{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.group-label{font-size:11px;color:var(--muted)}
+.group-sort{
+  border:1px solid var(--border);background:#fff;border-radius:999px;padding:7px 10px;
+  color:var(--muted);font:11px 'DM Sans',sans-serif
+}
+.candidate-list{display:grid;gap:10px}
+.candidate-card{
+  display:grid;grid-template-columns:minmax(0,1fr) 118px auto;gap:18px;align-items:center;
+  border:1px solid var(--border);border-radius:14px;background:#fff;padding:16px 17px;
+  transition:border-color .2s,box-shadow .2s,transform .2s
+}
+.candidate-card:hover{border-color:rgba(93,127,163,.35);transform:translateY(-1px);box-shadow:0 8px 18px rgba(38,54,70,.04)}
+.candidate-main{min-width:0}
+.candidate-top{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+.candidate-avatar{
+  width:40px;height:40px;border-radius:12px;background:var(--brand-light);color:var(--brand);
+  display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:15px;flex-shrink:0
+}
+.candidate-name-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.candidate-name{font-size:14px;font-weight:700}
+.candidate-status{
+  display:inline-flex;padding:3px 8px;border-radius:999px;border:1px solid var(--border);
+  font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.25px;color:var(--muted)
+}
+.candidate-status.accepted{color:#2c7e50;background:var(--mint-light);border-color:rgba(111,191,143,.3)}
+.candidate-status.rejected{color:#995858;background:var(--rose-light);border-color:rgba(215,154,154,.3)}
+.new-label{display:inline-flex;padding:3px 8px;border-radius:999px;background:var(--brand-light);color:var(--brand);font-size:9px;font-weight:700;text-transform:uppercase}
+.applied-time{font-size:10.5px;color:#8794A0;margin-top:2px}
+.candidate-summary{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px;max-width:700px}
+.candidate-tags{display:flex;gap:5px;flex-wrap:wrap}
+.tag{font-size:9.5px;padding:3px 8px;border-radius:999px;background:rgba(111,191,143,.09);color:#397153}
+.match-box{text-align:center}
+.match-score{
+  width:72px;height:72px;margin:0 auto 5px;border-radius:50%;
+  background:conic-gradient(var(--brand) calc(var(--score) * 1%),#E8EDF0 0);
+  display:grid;place-items:center;position:relative
+}
+.match-score::after{content:'';position:absolute;inset:6px;border-radius:50%;background:#fff}
+.match-num{position:relative;z-index:1;font-size:17px;font-weight:700}
+.match-label{font-size:9px;text-transform:uppercase;letter-spacing:.55px;color:var(--muted);font-weight:700}
+.match-band{font-size:10px;color:var(--brand);font-weight:600;margin-top:2px}
+.candidate-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.candidate-btn{
+  border:1px solid var(--border);background:#fff;color:var(--text);border-radius:9px;
+  padding:8px 11px;font:600 11px 'DM Sans',sans-serif;cursor:pointer;white-space:nowrap
+}
+.candidate-btn:hover{border-color:var(--brand);color:var(--brand)}
+.candidate-btn.accept{background:var(--mint);border-color:var(--mint);color:#fff}
+.candidate-btn.pass:hover{border-color:var(--rose);color:#995858}
+
+/* ---------- CANDIDATE PROFILE MODAL ---------- */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(26,37,48,.45);z-index:3000;
+  align-items:center;justify-content:center;padding:88px 24px 24px 96px
+}
+.modal-overlay.show{display:flex}
+.modal{
+  background:var(--card);border-radius:20px;width:min(700px,100%);max-height:calc(100vh - 112px);
+  overflow-y:auto;padding:30px;position:relative
+}
+.modal-close{position:absolute;top:18px;right:18px;border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer}
+.profile-head{display:flex;gap:14px;align-items:center;padding-right:35px;margin-bottom:16px}
+.profile-avatar{width:58px;height:58px;border-radius:16px;background:var(--brand-light);color:var(--brand);display:grid;place-items:center;font-family:'DM Serif Display',serif;font-size:20px}
+.profile-name{font-family:'DM Serif Display',serif;font-size:24px}
+.profile-role{font-size:12px;color:var(--muted);margin-top:2px}
+.profile-match{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;border:1px solid rgba(93,127,163,.17);background:var(--brand-light);border-radius:12px;margin:16px 0}
+.profile-match strong{font-size:13px}.profile-match-score{font-size:22px;font-weight:700;color:var(--brand)}
+.breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:16px}
+.break-item{border:1px solid var(--border);border-radius:11px;padding:10px 11px;background:#fff}
+.break-name{font-size:10px;color:var(--muted);margin-bottom:4px}.break-value{font-size:13px;font-weight:700}
+.profile-section-title{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:18px 0 8px}
+.profile-text{font-size:13px;line-height:1.62}
+.profile-tags{display:flex;gap:6px;flex-wrap:wrap}
+.resume-btn{display:inline-flex;border:0;border-radius:10px;background:var(--brand);color:#fff;padding:10px 14px;font:600 12px 'DM Sans',sans-serif;cursor:pointer}
+.profile-actions{display:flex;gap:8px;margin-top:22px}
+.profile-actions .candidate-btn{flex:1;padding:10px 12px}
+
+/* ---------- MESSAGES: LIVE MESSAGES PAGE MATCH ---------- */
+#panel-messages.active{display:flex;flex-direction:column;height:calc(100vh - 64px - 80px);min-height:600px}
+.messages-head{flex:0 0 auto}
+.messages-page-title{font-family:'DM Serif Display',serif;font-size:34px;line-height:1.05;margin-bottom:6px}
+.messages-page-sub{font-size:13px;line-height:1.55;color:var(--muted);margin-bottom:14px}
+.chat-shell{
+  flex:1 1 auto;min-height:0;display:grid;grid-template-columns:320px minmax(0,1fr);
+  background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;
+  box-shadow:0 12px 32px rgba(38,54,70,.04)
+}
+.conversations{
+  border-right:1px solid var(--border);background:rgba(255,255,255,.7);
+  min-width:0;min-height:0;display:flex;flex-direction:column
+}
+.conversations-head{padding:18px;border-bottom:1px solid var(--border)}
+.conversations-title{font-size:14px;font-weight:700;margin-bottom:10px}
+.conversation-search{
+  width:100%;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:11px;
+  padding:10px 12px;font:12px 'DM Sans',sans-serif;outline:none
+}
+.conversation-search:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,127,163,.08)}
+.conversation-list{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none}
+.conversation-list::-webkit-scrollbar{width:0;height:0}
+.conversation-item{
+  width:100%;border:0;border-bottom:1px solid rgba(221,227,232,.75);background:transparent;
+  padding:15px 16px;display:flex;gap:11px;text-align:left;cursor:pointer
+}
+.conversation-item:hover{background:rgba(93,127,163,.04)}
+.conversation-item.active{background:var(--brand-light)}
+.chat-avatar{
+  width:42px;height:42px;border-radius:13px;background:var(--brand-light);color:var(--brand);
+  display:grid;place-items:center;font-family:'DM Serif Display',serif;font-size:16px;flex-shrink:0
+}
+.conversation-copy{min-width:0;flex:1}
+.conversation-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:3px}
+.conversation-name{font-size:15px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.conversation-time{font-size:12px;color:#8A96A0;flex-shrink:0}
+.conversation-job{font-size:10.5px;color:var(--brand);margin-bottom:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.conversation-preview{font-size:13px;line-height:1.4;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.unread-dot{width:7px;height:7px;border-radius:50%;background:var(--brand);margin-top:6px;flex-shrink:0}
+.chat-panel{min-width:0;min-height:0;overflow:hidden;display:flex;flex-direction:column;background:#fff}
+.chat-head{
+  height:78px;border-bottom:1px solid var(--border);display:flex;align-items:center;
+  justify-content:space-between;gap:16px;padding:0 20px;flex:0 0 auto
+}
+.chat-person{display:flex;align-items:center;gap:11px;min-width:0}
+.chat-head-name{font-size:13px;font-weight:700;margin-bottom:2px}
+.chat-head-job{font-size:10.5px;color:var(--muted)}
+.chat-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.context-pill{
+  display:inline-flex;align-items:center;min-height:30px;padding:0 11px;border-radius:999px;
+  background:var(--brand-light);color:var(--brand);font-size:10.5px;font-weight:700;
+  border:0;cursor:pointer;white-space:nowrap
+}
+.delete-chat-btn{
+  min-height:30px;padding:0 11px;border-radius:999px;border:1px solid rgba(215,154,154,.48);
+  background:rgba(215,154,154,.10);color:#a05858;font:700 10.5px 'DM Sans',sans-serif;
+  cursor:pointer;white-space:nowrap
+}
+.messages{
+  flex:1;min-height:0;overflow-y:auto;padding:22px 22px 14px;
+  background:radial-gradient(circle at top left,rgba(140,182,155,.055),transparent 34%),#fff
+}
+.date-divider{text-align:center;font-size:9px;color:#8A96A0;margin:2px 0 18px}
+.msg-row{display:flex;margin-bottom:11px}
+.msg-row.mine{justify-content:flex-end}
+.bubble{
+  max-width:min(72%,560px);border:1px solid var(--border);border-radius:15px 15px 15px 5px;
+  padding:10px 12px;background:#fff;font-size:12px;line-height:1.55;color:var(--text)
+}
+.mine .bubble{background:var(--brand);color:#fff;border-color:var(--brand);border-radius:15px 15px 5px 15px}
+.bubble-time{margin-top:5px;font-size:8.5px;color:#8A96A0}
+.mine .bubble-time{color:rgba(255,255,255,.72);text-align:right}
+.composer{
+  border-top:1px solid var(--border);padding:14px 16px;display:flex;gap:9px;align-items:flex-end;
+  background:var(--card);flex:0 0 auto
+}
+.composer textarea{
+  flex:1;min-width:0;min-height:46px;max-height:110px;resize:none;border:1px solid var(--border);
+  border-radius:13px;padding:12px 13px;font:15px/1.45 'DM Sans',sans-serif;outline:none;color:var(--text);background:#fff
+}
+.composer textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,127,163,.08)}
+.send-btn{min-width:78px;height:46px;border:0;border-radius:13px;background:var(--brand);color:#fff;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.messages-legal{
+  min-height:26px;display:flex;align-items:flex-end;justify-content:center;gap:7px;
+  padding-top:8px;font-size:11px;color:var(--muted);flex:0 0 auto
+}
+.messages-legal a{color:var(--muted);text-decoration:none}
+
+/* ---------- TOAST ---------- */
+.toast{
+  position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(70px);
+  background:var(--text);color:#fff;padding:10px 16px;border-radius:999px;font-size:12px;
+  opacity:0;transition:.25s;z-index:5000
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- RESPONSIVE ---------- */
+@media(max-width:1180px){
+  .job-row{align-items:flex-start;flex-wrap:wrap}
+  .job-info{min-width:55%}
+  .job-actions{width:100%;justify-content:flex-end;padding-left:24px}
+  .candidate-card{grid-template-columns:minmax(0,1fr) 100px}
+  .candidate-actions{grid-column:1/-1;justify-content:flex-start}
+}
+@media(max-width:900px){
+  .sidebar{display:none}
+  main{margin-left:0;width:100%;max-width:100%;padding:28px 5% 70px}
+  .candidate-card{grid-template-columns:1fr 96px}
+  #panel-messages.active{height:auto;min-height:720px}
+  .chat-shell{grid-template-columns:280px minmax(0,1fr);min-height:650px}
+  .modal-overlay{padding:24px}
+}
+@media(max-width:680px){
+  nav{padding:0 18px}.demo-pill,.nav-user{display:none}
+  .candidate-toolbar{grid-template-columns:1fr}
+  .candidate-card{grid-template-columns:1fr}
+  .match-box{text-align:left;display:flex;align-items:center;gap:10px}
+  .match-score{width:58px;height:58px;margin:0}
+  .chat-shell{grid-template-columns:1fr;height:auto;min-height:760px}
+  .conversations{max-height:280px;border-right:0;border-bottom:1px solid var(--border)}
+  .chat-panel{min-height:500px}
+  .context-pill{display:none}
+}
 </style>
 </head>
 
@@ -663,407 +385,563 @@
 
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
-
   <div class="nav-right">
-    <span class="demo-pill">Demo · hard-coded example data</span>
-    <a href="demo.html" class="btn-back">← Back to Alygnn</a>
+    <span class="demo-pill">Demo · example data</span>
+    <button class="notif-bell" type="button" aria-label="Demo notifications" onclick="demoToast('3 example notifications in this demo.')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="notif-badge">3</span>
+    </button>
+    <span class="nav-user">Demo Company</span>
+    <a href="demo.html" class="btn-logout">Back to Alygnn</a>
   </div>
 </nav>
 
 <div class="layout">
-
   <aside class="sidebar">
     <div class="sidebar-label">Employer</div>
 
-    <button class="nav-item active" data-panel="jobs" onclick="showPanel('jobs', this)">
-      <span class="nav-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="11" rx="1.5"/><path d="M9 7V5h6v2"/><path d="M5 11h14"/><path d="M10 11v2h4v-2"/></svg>
-      </span>
+    <button class="side-link active" data-panel="jobs" onclick="showPanel('jobs',this)">
+      <span class="side-icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7"/><path d="M3 11h18"/><path d="M10 11v2h4v-2"/></svg></span>
       My Jobs
     </button>
 
-    <button class="nav-item" data-panel="candidates" onclick="showPanel('candidates', this)">
-      <span class="nav-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 18a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.3"/><path d="M15.5 14.5a4.5 4.5 0 0 1 5 4.5"/></svg>
-      </span>
+    <button class="side-link" data-panel="candidates" onclick="showPanel('candidates',this)">
+      <span class="side-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.3"/><path d="M15.5 14.5a4.5 4.5 0 0 1 5 4.5"/></svg></span>
       Candidates
     </button>
 
-    <button class="nav-item" data-panel="messages" onclick="showPanel('messages', this)">
-      <span class="nav-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M4 5h16v12H8l-4 3V5z"/><path d="m7 9 5 4 5-4"/></svg>
-      </span>
+    <button class="side-link" data-panel="messages" onclick="showPanel('messages',this)">
+      <span class="side-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v12H8l-4 3V5z"/><path d="m7 9 5 4 5-4"/></svg></span>
       Messages
     </button>
 
-    <button class="nav-item" onclick="demoAction('Job-slot purchasing is disabled in the demo.')">
-      <span class="nav-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-      </span>
+    <button class="side-link" onclick="demoToast('Demo only — this would open your job-slot options.')">
+      <span class="side-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span>
       Add a job slot
     </button>
 
-    <hr class="nav-divider">
+    <hr>
 
-    <button class="nav-item" onclick="demoAction('My account is not available in demo mode.')">
-      <span class="nav-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M10 6 4 12l6 6"/><path d="M4 12h16"/></svg>
-      </span>
+    <button class="side-link" onclick="demoToast('Demo only — employer account settings are not connected.')">
+      <span class="side-icon"><svg viewBox="0 0 24 24"><path d="M10 6 4 12l6 6"/><path d="M4 12h16"/></svg></span>
       My account
     </button>
   </aside>
 
-  <main class="main">
+  <main>
 
-    <!-- MY JOBS -->
+    <!-- ======================= MY JOBS ======================= -->
     <section class="panel active" id="panel-jobs">
       <div class="page-header">
         <div class="page-title">My Jobs</div>
         <div class="page-sub">Manage your job listings</div>
-
-        <div class="demo-plan-banner">
-          <strong>DEMO ACCOUNT</strong> · Growth · Monthly · 6 total job slots · Urgently Hiring available<br>
-          Everything on this page is hard-coded example data. Nothing is connected to a real employer, candidate, payment, or database.
+        <div class="demo-entitlement">
+          <strong>DEMO PACKAGE ACTIVE</strong> · Growth · Monthly · 6 total job slots · Urgently Hiring available<br>
+          Example data only · Nothing on this page is connected to a real employer, candidate, payment, or database.
         </div>
       </div>
 
       <div class="section-header">
-        <div class="section-title">
-          Job listings
-          <span class="slot-usage">· 6 of 6 slots used</span>
-        </div>
-        <button class="btn-primary" onclick="demoAction('All demo job slots are in use. In the live dashboard this opens job-slot options.')">+ Add a job slot</button>
+        <div class="section-title">Job listings <span class="slot-usage">· 6 of 6 slots used</span></div>
+        <button class="btn-primary" onclick="demoToast('All 6 demo slots are in use. In the real dashboard this opens job-slot options.')">+ Add a job slot</button>
       </div>
 
-      <input
-        type="text"
-        class="form-input"
-        id="jobs-search-input"
-        placeholder="Search your posted jobs by title, location, or type…"
-        autocomplete="off"
-        oninput="filterJobs()"
-      >
+      <input id="jobs-search" class="jobs-search" type="text" placeholder="Search your posted jobs by title, location, or type…" oninput="filterDemoJobs()">
 
-      <div id="jobs-list">
-
-        <div class="job-row" data-job-search="junior account manager full-time in person raleigh nc urgent">
-          <div class="job-status active"></div>
+      <div id="demo-job-list">
+        <div class="job-row" data-search="junior account manager full-time in person raleigh nc urgent">
+          <div class="job-dot"></div>
           <div class="job-info">
-            <div class="job-title-text">
-              Junior Account Manager
-              <span class="job-status-badge active">Active</span>
-              <span class="urgent-pill">Urgently Hiring</span>
-            </div>
+            <div class="job-title-line">Junior Account Manager <span class="status-pill">Active</span><span class="urgent-pill">Urgently Hiring</span></div>
             <div class="job-meta">Full-time · In person · $48,000 – $62,000 per year · Raleigh, NC</div>
           </div>
-          <div class="job-stats">
-            <div><div class="js-val">126</div><div class="js-label">Views</div></div>
-            <div><div class="js-val">18</div><div class="js-label">Applied</div></div>
-          </div>
+          <div class="job-stats"><div><div class="js-val">126</div><div class="js-label">Views</div></div><div><div class="js-val">18</div><div class="js-label">Applied</div></div></div>
           <div class="job-actions">
-            <button class="btn-view" onclick="openJobCandidates('Junior Account Manager')">Candidates</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open the real job preview.')">View</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open Job Boost checkout.')">Boost</button>
-            <button class="btn-view urgent-on" onclick="demoAction('Demo only — Urgently Hiring is already active on this example job.')">Remove urgently hiring</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open the job editor.')">Edit</button>
-            <button class="btn-danger" onclick="demoAction('Demo data cannot be deleted.')">Delete</button>
+            <button class="btn-view" onclick="openCandidatesForJob('Junior Account Manager')">Candidates</button>
+            <button class="btn-view" onclick="demoToast('Demo job preview.')">View</button>
+            <button class="btn-view" onclick="demoToast('Demo only — Job Boost checkout is not connected.')">Boost</button>
+            <button class="btn-view urgent-on" onclick="demoToast('Demo only — Urgently Hiring is already active.')">Remove urgently hiring</button>
+            <button class="btn-view" onclick="demoToast('Demo only — job editing is not connected.')">Edit</button>
+            <button class="btn-danger" onclick="demoToast('Demo jobs cannot be deleted.')">Delete</button>
           </div>
         </div>
 
-        <div class="job-row" data-job-search="customer success specialist full-time hybrid cary nc boosted">
-          <div class="job-status active"></div>
+        <div class="job-row" data-search="customer success specialist full-time hybrid cary nc boosted">
+          <div class="job-dot"></div>
           <div class="job-info">
-            <div class="job-title-text">
-              Customer Success Specialist
-              <span class="job-status-badge active">Active</span>
-              <span class="boosted-pill">Boosted</span>
-              <span class="boost-until">until tomorrow, 3:30 PM</span>
-            </div>
+            <div class="job-title-line">Customer Success Specialist <span class="status-pill">Active</span><span class="boosted-pill">Boosted</span><span class="boost-until">until tomorrow, 3:30 PM</span></div>
             <div class="job-meta">Full-time · Hybrid · $52,000 – $68,000 per year · Cary, NC</div>
           </div>
-          <div class="job-stats">
-            <div><div class="js-val">94</div><div class="js-label">Views</div></div>
-            <div><div class="js-val">11</div><div class="js-label">Applied</div></div>
-          </div>
+          <div class="job-stats"><div><div class="js-val">94</div><div class="js-label">Views</div></div><div><div class="js-val">11</div><div class="js-label">Applied</div></div></div>
           <div class="job-actions">
-            <button class="btn-view" onclick="openJobCandidates('Customer Success Specialist')">Candidates</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open the real job preview.')">View</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this example job is already boosted.')">Boost again</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would enable Urgently Hiring.')">Urgently Hiring</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open the job editor.')">Edit</button>
-            <button class="btn-danger" onclick="demoAction('Demo data cannot be deleted.')">Delete</button>
+            <button class="btn-view" onclick="openCandidatesForJob('Customer Success Specialist')">Candidates</button>
+            <button class="btn-view" onclick="demoToast('Demo job preview.')">View</button>
+            <button class="btn-view" onclick="demoToast('Demo only — this example job is already boosted.')">Boost again</button>
+            <button class="btn-view" onclick="demoToast('Demo only — this would enable Urgently Hiring.')">Urgently Hiring</button>
+            <button class="btn-view" onclick="demoToast('Demo only — job editing is not connected.')">Edit</button>
+            <button class="btn-danger" onclick="demoToast('Demo jobs cannot be deleted.')">Delete</button>
           </div>
         </div>
 
-        <div class="job-row" data-job-search="sales trainee full-time in person durham nc urgent">
-          <div class="job-status active"></div>
+        <div class="job-row" data-search="sales trainee full-time in person durham nc urgent">
+          <div class="job-dot"></div>
           <div class="job-info">
-            <div class="job-title-text">
-              Sales Trainee
-              <span class="job-status-badge active">Active</span>
-              <span class="urgent-pill">Urgently Hiring</span>
-            </div>
+            <div class="job-title-line">Sales Trainee <span class="status-pill">Active</span><span class="urgent-pill">Urgently Hiring</span></div>
             <div class="job-meta">Full-time · In person · $45,000 – $58,000 per year · Durham, NC</div>
           </div>
-          <div class="job-stats">
-            <div><div class="js-val">71</div><div class="js-label">Views</div></div>
-            <div><div class="js-val">9</div><div class="js-label">Applied</div></div>
-          </div>
+          <div class="job-stats"><div><div class="js-val">71</div><div class="js-label">Views</div></div><div><div class="js-val">9</div><div class="js-label">Applied</div></div></div>
           <div class="job-actions">
-            <button class="btn-view" onclick="openJobCandidates('Sales Trainee')">Candidates</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open the real job preview.')">View</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open Job Boost checkout.')">Boost</button>
-            <button class="btn-view urgent-on" onclick="demoAction('Demo only — Urgently Hiring is already active on this example job.')">Remove urgently hiring</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open the job editor.')">Edit</button>
-            <button class="btn-danger" onclick="demoAction('Demo data cannot be deleted.')">Delete</button>
+            <button class="btn-view" onclick="openCandidatesForJob('Sales Trainee')">Candidates</button>
+            <button class="btn-view" onclick="demoToast('Demo job preview.')">View</button>
+            <button class="btn-view" onclick="demoToast('Demo only — Job Boost checkout is not connected.')">Boost</button>
+            <button class="btn-view urgent-on" onclick="demoToast('Demo only — Urgently Hiring is already active.')">Remove urgently hiring</button>
+            <button class="btn-view" onclick="demoToast('Demo only — job editing is not connected.')">Edit</button>
+            <button class="btn-danger" onclick="demoToast('Demo jobs cannot be deleted.')">Delete</button>
           </div>
         </div>
 
-        <div class="job-row" data-job-search="operations coordinator full-time remote charlotte nc">
-          <div class="job-status active"></div>
+        <div class="job-row" data-search="operations coordinator full-time remote charlotte nc">
+          <div class="job-dot"></div>
           <div class="job-info">
-            <div class="job-title-text">
-              Operations Coordinator
-              <span class="job-status-badge active">Active</span>
-            </div>
+            <div class="job-title-line">Operations Coordinator <span class="status-pill">Active</span></div>
             <div class="job-meta">Full-time · Remote · $50,000 – $64,000 per year · Charlotte, NC</div>
           </div>
-          <div class="job-stats">
-            <div><div class="js-val">58</div><div class="js-label">Views</div></div>
-            <div><div class="js-val">6</div><div class="js-label">Applied</div></div>
-          </div>
+          <div class="job-stats"><div><div class="js-val">58</div><div class="js-label">Views</div></div><div><div class="js-val">6</div><div class="js-label">Applied</div></div></div>
           <div class="job-actions">
-            <button class="btn-view" onclick="openJobCandidates('Operations Coordinator')">Candidates</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open the real job preview.')">View</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open Job Boost checkout.')">Boost</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would enable Urgently Hiring.')">Urgently Hiring</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open the job editor.')">Edit</button>
-            <button class="btn-danger" onclick="demoAction('Demo data cannot be deleted.')">Delete</button>
+            <button class="btn-view" onclick="openCandidatesForJob('Operations Coordinator')">Candidates</button>
+            <button class="btn-view" onclick="demoToast('Demo job preview.')">View</button>
+            <button class="btn-view" onclick="demoToast('Demo only — Job Boost checkout is not connected.')">Boost</button>
+            <button class="btn-view" onclick="demoToast('Demo only — this would enable Urgently Hiring.')">Urgently Hiring</button>
+            <button class="btn-view" onclick="demoToast('Demo only — job editing is not connected.')">Edit</button>
+            <button class="btn-danger" onclick="demoToast('Demo jobs cannot be deleted.')">Delete</button>
           </div>
         </div>
 
-        <div class="job-row" data-job-search="hr assistant full-time hybrid raleigh nc">
-          <div class="job-status active"></div>
+        <div class="job-row" data-search="hr assistant full-time hybrid raleigh nc">
+          <div class="job-dot"></div>
           <div class="job-info">
-            <div class="job-title-text">
-              HR Assistant
-              <span class="job-status-badge active">Active</span>
-            </div>
+            <div class="job-title-line">HR Assistant <span class="status-pill">Active</span></div>
             <div class="job-meta">Full-time · Hybrid · $42,000 – $54,000 per year · Raleigh, NC</div>
           </div>
-          <div class="job-stats">
-            <div><div class="js-val">43</div><div class="js-label">Views</div></div>
-            <div><div class="js-val">7</div><div class="js-label">Applied</div></div>
-          </div>
+          <div class="job-stats"><div><div class="js-val">43</div><div class="js-label">Views</div></div><div><div class="js-val">7</div><div class="js-label">Applied</div></div></div>
           <div class="job-actions">
-            <button class="btn-view" onclick="openJobCandidates('HR Assistant')">Candidates</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open the real job preview.')">View</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open Job Boost checkout.')">Boost</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would enable Urgently Hiring.')">Urgently Hiring</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open the job editor.')">Edit</button>
-            <button class="btn-danger" onclick="demoAction('Demo data cannot be deleted.')">Delete</button>
+            <button class="btn-view" onclick="openCandidatesForJob('HR Assistant')">Candidates</button>
+            <button class="btn-view" onclick="demoToast('Demo job preview.')">View</button>
+            <button class="btn-view" onclick="demoToast('Demo only — Job Boost checkout is not connected.')">Boost</button>
+            <button class="btn-view" onclick="demoToast('Demo only — this would enable Urgently Hiring.')">Urgently Hiring</button>
+            <button class="btn-view" onclick="demoToast('Demo only — job editing is not connected.')">Edit</button>
+            <button class="btn-danger" onclick="demoToast('Demo jobs cannot be deleted.')">Delete</button>
           </div>
         </div>
 
-        <div class="job-row" data-job-search="business development associate full-time in person wake forest nc boosted urgent">
-          <div class="job-status active"></div>
+        <div class="job-row" data-search="business development associate full-time in person wake forest nc boosted urgent">
+          <div class="job-dot"></div>
           <div class="job-info">
-            <div class="job-title-text">
-              Business Development Associate
-              <span class="job-status-badge active">Active</span>
-              <span class="boosted-pill">Boosted</span>
-              <span class="boost-until">until Friday, 1:15 PM</span>
-              <span class="urgent-pill">Urgently Hiring</span>
-            </div>
+            <div class="job-title-line">Business Development Associate <span class="status-pill">Active</span><span class="boosted-pill">Boosted</span><span class="boost-until">until Friday, 1:15 PM</span><span class="urgent-pill">Urgently Hiring</span></div>
             <div class="job-meta">Full-time · In person · $46,000 – $60,000 per year · Wake Forest, NC</div>
           </div>
-          <div class="job-stats">
-            <div><div class="js-val">109</div><div class="js-label">Views</div></div>
-            <div><div class="js-val">14</div><div class="js-label">Applied</div></div>
-          </div>
+          <div class="job-stats"><div><div class="js-val">109</div><div class="js-label">Views</div></div><div><div class="js-val">14</div><div class="js-label">Applied</div></div></div>
           <div class="job-actions">
-            <button class="btn-view" onclick="openJobCandidates('Business Development Associate')">Candidates</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open the real job preview.')">View</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this example job is already boosted.')">Boost again</button>
-            <button class="btn-view urgent-on" onclick="demoAction('Demo only — Urgently Hiring is already active on this example job.')">Remove urgently hiring</button>
-            <button class="btn-view" onclick="demoAction('Demo only — this would open the job editor.')">Edit</button>
-            <button class="btn-danger" onclick="demoAction('Demo data cannot be deleted.')">Delete</button>
+            <button class="btn-view" onclick="openCandidatesForJob('Business Development Associate')">Candidates</button>
+            <button class="btn-view" onclick="demoToast('Demo job preview.')">View</button>
+            <button class="btn-view" onclick="demoToast('Demo only — this example job is already boosted.')">Boost again</button>
+            <button class="btn-view urgent-on" onclick="demoToast('Demo only — Urgently Hiring is already active.')">Remove urgently hiring</button>
+            <button class="btn-view" onclick="demoToast('Demo only — job editing is not connected.')">Edit</button>
+            <button class="btn-danger" onclick="demoToast('Demo jobs cannot be deleted.')">Delete</button>
           </div>
         </div>
-
-      </div>
       </div>
     </section>
 
-    <!-- CANDIDATES -->
+    <!-- ======================= CANDIDATES ======================= -->
     <section class="panel" id="panel-candidates">
-      <div class="page-header">
-        <div class="page-title">Candidates</div>
-        <div class="page-sub" id="candidate-page-sub">Review applicants across your active jobs</div>
+      <div class="candidates-page-top">
+        <div>
+          <div class="page-kicker">Applicant workspace</div>
+          <h1 id="candidate-page-title">Candidates by job</h1>
+          <div class="page-sub" id="candidate-page-sub">Choose a job to review its candidates. Applicant lists stay separated by the role they applied to.</div>
+        </div>
       </div>
 
       <div class="candidate-toolbar">
-        <button class="filter-chip active">All candidates</button>
-        <button class="filter-chip">New</button>
-        <button class="filter-chip">Contacted</button>
+        <input class="field" id="candidate-search" type="text" placeholder="Search jobs…" oninput="filterCandidateGroups()">
+        <select class="field" id="candidate-sort" onchange="demoToast('Demo sort changed — example data only.')">
+          <option>Candidates: newest first</option>
+          <option>Candidates: match score</option>
+          <option>Candidates: name</option>
+        </select>
       </div>
 
-      <div class="candidates-grid">
-        <article class="candidate-card">
-          <div class="candidate-top">
-            <div class="candidate-avatar">AJ</div>
-            <div>
-              <div class="candidate-name">Avery Johnson</div>
-              <div class="candidate-role">Junior Account Manager · Raleigh, NC</div>
-            </div>
-          </div>
-          <div class="candidate-copy">Example candidate with customer service, account support, CRM, and team-lead experience.</div>
-          <div class="candidate-bottom">
-            <span class="match-score">94% match</span>
-            <button class="btn-view" onclick="demoAction('Demo only — candidate profiles are hard-coded example data.')">View profile</button>
-          </div>
-        </article>
-
-        <article class="candidate-card">
-          <div class="candidate-top">
-            <div class="candidate-avatar">SM</div>
-            <div>
-              <div class="candidate-name">Sofia Martinez</div>
-              <div class="candidate-role">Customer Success Specialist · Cary, NC</div>
-            </div>
-          </div>
-          <div class="candidate-copy">Example candidate with onboarding, customer retention, ticketing, and SaaS support experience.</div>
-          <div class="candidate-bottom">
-            <span class="match-score">89% match</span>
-            <button class="btn-view" onclick="demoAction('Demo only — candidate profiles are hard-coded example data.')">View profile</button>
-          </div>
-        </article>
-
-        <article class="candidate-card">
-          <div class="candidate-top">
-            <div class="candidate-avatar">DW</div>
-            <div>
-              <div class="candidate-name">Dylan Wright</div>
-              <div class="candidate-role">Business Development Associate · Wake Forest, NC</div>
-            </div>
-          </div>
-          <div class="candidate-copy">Example candidate with B2B outreach, appointment setting, pipeline management, and presentation experience.</div>
-          <div class="candidate-bottom">
-            <span class="match-score">86% match</span>
-            <button class="btn-view" onclick="demoAction('Demo only — candidate profiles are hard-coded example data.')">View profile</button>
-          </div>
-        </article>
-
-        <article class="candidate-card">
-          <div class="candidate-top">
-            <div class="candidate-avatar">KP</div>
-            <div>
-              <div class="candidate-name">Kai Parker</div>
-              <div class="candidate-role">HR Assistant · Raleigh, NC</div>
-            </div>
-          </div>
-          <div class="candidate-copy">Example candidate with scheduling, onboarding paperwork, recruiting coordination, and HRIS exposure.</div>
-          <div class="candidate-bottom">
-            <span class="match-score">82% match</span>
-            <button class="btn-view" onclick="demoAction('Demo only — candidate profiles are hard-coded example data.')">View profile</button>
-          </div>
-        </article>
+      <div class="info-note">
+        <strong>Alygnn Match</strong> compares job-related information from the posting with information available in the candidate’s resume, such as skills, experience, role history, and explicitly required education. It does not use protected traits and does not make the hiring decision for you.
       </div>
+
+      <div class="jobs-groups" id="candidate-groups">
+
+        <section class="job-group open" data-job-title="Junior Account Manager">
+          <button class="job-group-head" type="button" onclick="toggleGroup(this)">
+            <div class="job-head-left">
+              <div class="job-title-row"><span class="group-job-title">Junior Account Manager</span><span class="group-job-status">Active</span></div>
+              <div class="group-job-meta">Full-time · Raleigh, NC · 4 candidates</div>
+            </div>
+            <div class="job-head-right"><span class="count-badge">4</span><span class="chevron">⌄</span></div>
+          </button>
+          <div class="job-group-body">
+            <div class="group-tools"><span class="group-label">Candidates for this job</span><select class="group-sort" onchange="demoToast('Demo sort changed.')"><option>Newest first</option><option>Match score</option><option>Name</option></select></div>
+            <div class="candidate-list">
+
+              <article class="candidate-card" data-name="Avery Johnson">
+                <div class="candidate-main">
+                  <div class="candidate-top">
+                    <div class="candidate-avatar">AJ</div>
+                    <div>
+                      <div class="candidate-name-row"><span class="candidate-name">Avery Johnson</span><span class="new-label">New</span></div>
+                      <div class="applied-time">Applied 12 minutes ago</div>
+                    </div>
+                  </div>
+                  <div class="candidate-summary">Customer-facing professional with account support, CRM, training, and team-lead experience.</div>
+                  <div class="candidate-tags"><span class="tag">CRM</span><span class="tag">Account support</span><span class="tag">Leadership</span><span class="tag">Customer service</span></div>
+                </div>
+                <div class="match-box">
+                  <div class="match-score" style="--score:94"><span class="match-num">94%</span></div>
+                  <div class="match-label">Alygnn Match</div><div class="match-band">Strong match</div>
+                </div>
+                <div class="candidate-actions">
+                  <button class="candidate-btn" onclick="openProfile('avery')">View profile</button>
+                  <button class="candidate-btn" onclick="openMessageThread('avery')">Message</button>
+                  <button class="candidate-btn accept" onclick="demoDecision(this,'accepted')">Accept</button>
+                  <button class="candidate-btn pass" onclick="demoDecision(this,'rejected')">Pass</button>
+                </div>
+              </article>
+
+              <article class="candidate-card" data-name="Marcus Lee">
+                <div class="candidate-main">
+                  <div class="candidate-top">
+                    <div class="candidate-avatar">ML</div>
+                    <div><div class="candidate-name-row"><span class="candidate-name">Marcus Lee</span><span class="new-label">New</span></div><div class="applied-time">Applied 1 hour ago</div></div>
+                  </div>
+                  <div class="candidate-summary">Sales and operations candidate with client communication, scheduling, and pipeline management experience.</div>
+                  <div class="candidate-tags"><span class="tag">Sales</span><span class="tag">Pipeline</span><span class="tag">Scheduling</span></div>
+                </div>
+                <div class="match-box"><div class="match-score" style="--score:88"><span class="match-num">88%</span></div><div class="match-label">Alygnn Match</div><div class="match-band">Strong match</div></div>
+                <div class="candidate-actions">
+                  <button class="candidate-btn" onclick="openProfile('marcus')">View profile</button>
+                  <button class="candidate-btn" onclick="openMessageThread('marcus')">Message</button>
+                  <button class="candidate-btn accept" onclick="demoDecision(this,'accepted')">Accept</button>
+                  <button class="candidate-btn pass" onclick="demoDecision(this,'rejected')">Pass</button>
+                </div>
+              </article>
+
+            </div>
+          </div>
+        </section>
+
+        <section class="job-group" data-job-title="Customer Success Specialist">
+          <button class="job-group-head" type="button" onclick="toggleGroup(this)">
+            <div class="job-head-left"><div class="job-title-row"><span class="group-job-title">Customer Success Specialist</span><span class="group-job-status">Active</span></div><div class="group-job-meta">Full-time · Cary, NC · 3 candidates</div></div>
+            <div class="job-head-right"><span class="count-badge">3</span><span class="chevron">⌄</span></div>
+          </button>
+          <div class="job-group-body">
+            <div class="group-tools"><span class="group-label">Candidates for this job</span><select class="group-sort"><option>Newest first</option></select></div>
+            <div class="candidate-list">
+              <article class="candidate-card">
+                <div class="candidate-main">
+                  <div class="candidate-top"><div class="candidate-avatar">SM</div><div><div class="candidate-name-row"><span class="candidate-name">Sofia Martinez</span><span class="new-label">New</span></div><div class="applied-time">Applied today</div></div></div>
+                  <div class="candidate-summary">Customer success candidate with onboarding, retention, support ticketing, and SaaS account experience.</div>
+                  <div class="candidate-tags"><span class="tag">SaaS</span><span class="tag">Onboarding</span><span class="tag">Retention</span></div>
+                </div>
+                <div class="match-box"><div class="match-score" style="--score:91"><span class="match-num">91%</span></div><div class="match-label">Alygnn Match</div><div class="match-band">Strong match</div></div>
+                <div class="candidate-actions">
+                  <button class="candidate-btn" onclick="openProfile('sofia')">View profile</button>
+                  <button class="candidate-btn" onclick="openMessageThread('sofia')">Message</button>
+                  <button class="candidate-btn accept" onclick="demoDecision(this,'accepted')">Accept</button>
+                  <button class="candidate-btn pass" onclick="demoDecision(this,'rejected')">Pass</button>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="job-group" data-job-title="Sales Trainee">
+          <button class="job-group-head" type="button" onclick="toggleGroup(this)">
+            <div class="job-head-left"><div class="job-title-row"><span class="group-job-title">Sales Trainee</span><span class="group-job-status">Active</span></div><div class="group-job-meta">Full-time · Durham, NC · 2 candidates</div></div>
+            <div class="job-head-right"><span class="count-badge">2</span><span class="chevron">⌄</span></div>
+          </button>
+          <div class="job-group-body">
+            <div class="group-tools"><span class="group-label">Candidates for this job</span><select class="group-sort"><option>Newest first</option></select></div>
+            <div class="candidate-list">
+              <article class="candidate-card">
+                <div class="candidate-main">
+                  <div class="candidate-top"><div class="candidate-avatar">DW</div><div><div class="candidate-name-row"><span class="candidate-name">Dylan Wright</span><span class="new-label">New</span></div><div class="applied-time">Applied yesterday</div></div></div>
+                  <div class="candidate-summary">Early-career candidate with B2B outreach, appointment setting, presentation, and follow-up experience.</div>
+                  <div class="candidate-tags"><span class="tag">B2B outreach</span><span class="tag">Presentations</span><span class="tag">Follow-up</span></div>
+                </div>
+                <div class="match-box"><div class="match-score" style="--score:86"><span class="match-num">86%</span></div><div class="match-label">Alygnn Match</div><div class="match-band">Strong match</div></div>
+                <div class="candidate-actions">
+                  <button class="candidate-btn" onclick="openProfile('dylan')">View profile</button>
+                  <button class="candidate-btn" onclick="openMessageThread('dylan')">Message</button>
+                  <button class="candidate-btn accept" onclick="demoDecision(this,'accepted')">Accept</button>
+                  <button class="candidate-btn pass" onclick="demoDecision(this,'rejected')">Pass</button>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
       </div>
     </section>
 
-    <!-- MESSAGES -->
+    <!-- ======================= MESSAGES ======================= -->
     <section class="panel" id="panel-messages">
-      <div class="page-header">
-        <div class="page-title">Messages</div>
-        <div class="page-sub">Continue conversations with candidates you contacted</div>
+      <div class="messages-head">
+        <div class="page-kicker">Alygnn messages</div>
+        <div class="messages-page-title">Messages</div>
+        <div class="messages-page-sub">Conversations stay tied to the application and job that connected you.</div>
       </div>
 
-      <div class="messages-shell">
-        <div class="thread-list">
-          <div class="thread active">
-            <div class="thread-name">Avery Johnson</div>
-            <div class="thread-preview">Yes, Wednesday at 2:00 PM works great. Thank you!</div>
-            <div class="thread-time">10 min ago</div>
+      <section class="chat-shell">
+        <div class="conversations">
+          <div class="conversations-head">
+            <div class="conversations-title">Conversations</div>
+            <input class="conversation-search" id="conversation-search" type="text" placeholder="Search person or job…" oninput="renderConversations()">
           </div>
-          <div class="thread">
-            <div class="thread-name">Sofia Martinez</div>
-            <div class="thread-preview">Thanks! I’m definitely interested in learning more.</div>
-            <div class="thread-time">Yesterday</div>
-          </div>
+          <div class="conversation-list" id="conversation-list"></div>
         </div>
+        <div class="chat-panel" id="chat-panel"></div>
+      </section>
 
-        <div class="conversation">
-          <div class="conversation-title">Avery Johnson · Accountant</div>
-
-          <div class="chat-area">
-            <div class="bubble them">Hi, thanks for reaching out about the Junior Account Manager position.</div>
-            <div class="bubble me">Thanks for applying. Would Wednesday at 2:00 PM work for a quick phone interview?</div>
-            <div class="bubble them">Yes, Wednesday at 2:00 PM works great. Thank you!</div>
-          </div>
-
-          <div class="message-input">Messaging is read-only in the public demo.</div>
-        </div>
-      </div>
+      <div class="messages-legal"><a href="privacy.html">Privacy</a><span>·</span><a href="terms.html">Terms</a></div>
     </section>
 
   </main>
 </div>
 
-<div class="mini-footer">
-  <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>
+<div class="modal-overlay" id="profile-overlay" onclick="if(event.target===this) closeProfile()">
+  <div class="modal" id="profile-modal"></div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-  function showPanel(name, trigger) {
-    document.querySelectorAll('.panel').forEach(panel => {
-      panel.classList.toggle('active', panel.id === 'panel-' + name);
-    });
-
-    document.querySelectorAll('.sidebar .nav-item[data-panel]').forEach(item => {
-      item.classList.toggle('active', item.dataset.panel === name);
-    });
-
-    if (trigger && trigger.dataset && trigger.dataset.panel) {
-      trigger.classList.add('active');
-    }
-
-    if (name === 'candidates') {
-      document.getElementById('candidate-page-sub').textContent =
-        'Review applicants across your active jobs';
-    }
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+const profiles = {
+  avery:{
+    initials:'AJ',name:'Avery Johnson',role:'Junior Account Manager applicant',location:'Raleigh, NC',score:94,
+    summary:'Customer-facing professional with account support, CRM, training, and team-lead experience. Looking to grow into account management and leadership.',
+    skills:['CRM','Account support','Leadership','Customer service','Training'],
+    experience:'2+ years in customer-facing roles, including account support and team training.',
+    education:'B.A. Business Administration'
+  },
+  marcus:{
+    initials:'ML',name:'Marcus Lee',role:'Junior Account Manager applicant',location:'Raleigh, NC',score:88,
+    summary:'Sales and operations candidate with strong client communication, scheduling, and pipeline-management experience.',
+    skills:['Sales','Pipeline management','Scheduling','Client communication'],
+    experience:'Experience supporting a small sales team and maintaining CRM records.',
+    education:'A.A. Business'
+  },
+  sofia:{
+    initials:'SM',name:'Sofia Martinez',role:'Customer Success Specialist applicant',location:'Cary, NC',score:91,
+    summary:'Customer success candidate with onboarding, retention, support ticketing, and SaaS account experience.',
+    skills:['SaaS','Onboarding','Retention','Ticketing systems'],
+    experience:'3 years of customer support and onboarding experience.',
+    education:'B.S. Communications'
+  },
+  dylan:{
+    initials:'DW',name:'Dylan Wright',role:'Sales Trainee applicant',location:'Durham, NC',score:86,
+    summary:'Early-career candidate with B2B outreach, appointment setting, presentation, and follow-up experience.',
+    skills:['B2B outreach','Presentations','Follow-up','Prospecting'],
+    experience:'1 year of entry-level sales and customer outreach experience.',
+    education:'B.S. Marketing'
   }
+};
 
-  function openJobCandidates(jobTitle) {
-    showPanel('candidates');
-    document.getElementById('candidate-page-sub').textContent =
-      'Showing example applicants for ' + jobTitle;
+const demoThreads = [
+  {
+    id:'avery',initials:'AJ',name:'Avery Johnson',job:'Junior Account Manager',time:'10 min ago',unread:true,
+    messages:[
+      {mine:false,body:'Hi, thanks for reaching out about the Junior Account Manager position.',time:'2:01 PM'},
+      {mine:true,body:'Thanks for applying. Would Wednesday at 2:00 PM work for a quick phone interview?',time:'2:04 PM'},
+      {mine:false,body:'Yes, Wednesday at 2:00 PM works great. Thank you!',time:'2:10 PM'}
+    ]
+  },
+  {
+    id:'sofia',initials:'SM',name:'Sofia Martinez',job:'Customer Success Specialist',time:'Yesterday',unread:false,
+    messages:[
+      {mine:true,body:'Hi Sofia, your customer success background stood out to us. Would you be open to a short conversation this week?',time:'11:18 AM'},
+      {mine:false,body:'Absolutely. I’d be happy to learn more about the role.',time:'11:46 AM'}
+    ]
+  },
+  {
+    id:'marcus',initials:'ML',name:'Marcus Lee',job:'Junior Account Manager',time:'Mon',unread:false,
+    messages:[
+      {mine:true,body:'Hi Marcus, thanks for applying. I wanted to follow up about your availability.',time:'9:15 AM'},
+      {mine:false,body:'Thanks for reaching out. I’m available after 3 PM most weekdays.',time:'9:32 AM'}
+    ]
+  },
+  {
+    id:'dylan',initials:'DW',name:'Dylan Wright',job:'Sales Trainee',time:'Sep 4',unread:false,
+    messages:[
+      {mine:true,body:'Hi Dylan, we reviewed your application and would like to set up an introductory call.',time:'4:02 PM'},
+      {mine:false,body:'Sounds great. I’m available Thursday morning.',time:'4:21 PM'}
+    ]
   }
+];
+let activeThreadId='avery';
 
-  function filterJobs() {
-    const q = document.getElementById('jobs-search-input').value.trim().toLowerCase();
-    document.querySelectorAll('#jobs-list .job-row').forEach(row => {
-      const text = String(row.dataset.jobSearch || '').toLowerCase();
-      row.style.display = !q || text.includes(q) ? 'flex' : 'none';
-    });
-  }
+function showPanel(name,trigger){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));
+  document.querySelectorAll('.side-link[data-panel]').forEach(b=>b.classList.toggle('active',b.dataset.panel===name));
+  if(trigger && trigger.dataset?.panel) trigger.classList.add('active');
+  if(name==='messages'){renderConversations();renderChat();}
+  window.scrollTo({top:0,behavior:'auto'});
+}
 
-  let toastTimer;
+function filterDemoJobs(){
+  const q=document.getElementById('jobs-search').value.trim().toLowerCase();
+  document.querySelectorAll('#demo-job-list .job-row').forEach(row=>{
+    row.style.display=!q || (row.dataset.search||'').includes(q) ? 'flex' : 'none';
+  });
+}
 
-  function demoAction(message) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.classList.add('show');
+function openCandidatesForJob(title){
+  showPanel('candidates');
+  document.getElementById('candidate-page-title').textContent=title+' candidates';
+  document.getElementById('candidate-page-sub').textContent='Review the hard-coded example applicants for this job.';
+  document.querySelectorAll('.job-group').forEach(group=>{
+    const match=group.dataset.jobTitle===title;
+    group.style.display=match?'block':'none';
+    if(match) group.classList.add('open');
+  });
+}
 
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-      toast.classList.remove('show');
-    }, 2200);
-  }
+function resetCandidateGroups(){
+  document.getElementById('candidate-page-title').textContent='Candidates by job';
+  document.getElementById('candidate-page-sub').textContent='Choose a job to review its candidates. Applicant lists stay separated by the role they applied to.';
+  document.querySelectorAll('.job-group').forEach(group=>group.style.display='block');
+}
+
+function toggleGroup(button){button.closest('.job-group').classList.toggle('open')}
+
+function filterCandidateGroups(){
+  resetCandidateGroups();
+  const q=document.getElementById('candidate-search').value.trim().toLowerCase();
+  document.querySelectorAll('.job-group').forEach(group=>{
+    group.style.display=!q || (group.dataset.jobTitle||'').toLowerCase().includes(q)?'block':'none';
+  });
+}
+
+function demoDecision(button,status){
+  const card=button.closest('.candidate-card');
+  const row=card.querySelector('.candidate-name-row');
+  row.querySelectorAll('.candidate-status,.new-label').forEach(el=>el.remove());
+  const badge=document.createElement('span');
+  badge.className='candidate-status '+(status==='accepted'?'accepted':'rejected');
+  badge.textContent=status==='accepted'?'Accepted':'Passed';
+  row.appendChild(badge);
+  card.querySelectorAll('.candidate-btn.accept,.candidate-btn.pass').forEach(b=>b.disabled=true);
+  demoToast(status==='accepted'?'Example candidate accepted.':'Example candidate passed.');
+}
+
+function openProfile(id){
+  const p=profiles[id]||profiles.avery;
+  document.getElementById('profile-modal').innerHTML=`
+    <button class="modal-close" onclick="closeProfile()">✕</button>
+    <div class="profile-head">
+      <div class="profile-avatar">${p.initials}</div>
+      <div><div class="profile-name">${p.name}</div><div class="profile-role">${p.role} · ${p.location}</div></div>
+    </div>
+    <div class="profile-match"><strong>Alygnn Match</strong><span class="profile-match-score">${p.score}%</span></div>
+    <div class="breakdown">
+      <div class="break-item"><div class="break-name">Skills fit</div><div class="break-value">${Math.min(99,p.score+2)}%</div></div>
+      <div class="break-item"><div class="break-name">Experience fit</div><div class="break-value">${Math.max(75,p.score-4)}%</div></div>
+    </div>
+    <div class="profile-section-title">Summary</div><div class="profile-text">${p.summary}</div>
+    <div class="profile-section-title">Skills</div><div class="profile-tags">${p.skills.map(s=>`<span class="tag">${s}</span>`).join('')}</div>
+    <div class="profile-section-title">Experience</div><div class="profile-text">${p.experience}</div>
+    <div class="profile-section-title">Education</div><div class="profile-text">${p.education}</div>
+    <div class="profile-section-title">Resume</div><button class="resume-btn" onclick="demoToast('Example resume only — no real file is attached.')">Download resume</button>
+    <div class="profile-actions">
+      <button class="candidate-btn" onclick="closeProfile();openMessageThread('${id}')">Message</button>
+      <button class="candidate-btn accept" onclick="demoToast('Example candidate accepted.')">Accept</button>
+      <button class="candidate-btn pass" onclick="demoToast('Example candidate passed.')">Pass</button>
+    </div>`;
+  document.getElementById('profile-overlay').classList.add('show');
+}
+function closeProfile(){document.getElementById('profile-overlay').classList.remove('show')}
+
+function openMessageThread(id){
+  activeThreadId=id;
+  showPanel('messages');
+}
+
+function filteredThreads(){
+  const q=(document.getElementById('conversation-search')?.value||'').trim().toLowerCase();
+  return demoThreads.filter(t=>!q || `${t.name} ${t.job}`.toLowerCase().includes(q));
+}
+
+function renderConversations(){
+  const list=document.getElementById('conversation-list');
+  if(!list)return;
+  const threads=filteredThreads();
+  list.innerHTML=threads.map(t=>{
+    const last=t.messages[t.messages.length-1]?.body||'';
+    return `<button class="conversation-item ${t.id===activeThreadId?'active':''}" onclick="activeThreadId='${t.id}';renderConversations();renderChat()">
+      <div class="chat-avatar">${t.initials}</div>
+      <div class="conversation-copy">
+        <div class="conversation-top"><span class="conversation-name">${t.name}</span><span class="conversation-time">${t.time}</span></div>
+        <div class="conversation-job">${t.job}</div>
+        <div class="conversation-preview">${last}</div>
+      </div>
+      ${t.unread?'<span class="unread-dot"></span>':''}
+    </button>`;
+  }).join('');
+}
+
+function renderChat(){
+  const panel=document.getElementById('chat-panel');
+  if(!panel)return;
+  const t=demoThreads.find(x=>x.id===activeThreadId)||demoThreads[0];
+  panel.innerHTML=`
+    <div class="chat-head">
+      <div class="chat-person">
+        <div class="chat-avatar">${t.initials}</div>
+        <div><div class="chat-head-name">${t.name}</div><div class="chat-head-job">${t.job}</div></div>
+      </div>
+      <div class="chat-actions">
+        <button class="context-pill" onclick="demoToast('Demo application context.')">View application</button>
+        <button class="delete-chat-btn" onclick="demoToast('Demo conversations cannot be deleted.')">Delete conversation</button>
+      </div>
+    </div>
+    <div class="messages" id="messages">
+      <div class="date-divider">Example conversation</div>
+      ${t.messages.map(m=>`<div class="msg-row ${m.mine?'mine':''}"><div class="bubble">${m.body}<div class="bubble-time">${m.time}</div></div></div>`).join('')}
+    </div>
+    <div class="composer">
+      <textarea id="demo-message-input" maxlength="2000" placeholder="Write a message…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendDemoMessage()}"></textarea>
+      <button class="send-btn" onclick="sendDemoMessage()">Send</button>
+    </div>`;
+  requestAnimationFrame(()=>{const m=document.getElementById('messages');if(m)m.scrollTop=m.scrollHeight});
+}
+
+function sendDemoMessage(){
+  const input=document.getElementById('demo-message-input');
+  const body=(input?.value||'').trim();
+  if(!body){demoToast('Type an example message first.');return}
+  const t=demoThreads.find(x=>x.id===activeThreadId)||demoThreads[0];
+  t.messages.push({mine:true,body,time:'Now'});
+  input.value='';
+  renderConversations();renderChat();
+  demoToast('Sent locally in the demo only.');
+}
+
+let toastTimer;
+function demoToast(message){
+  const t=document.getElementById('toast');
+  t.textContent=message;t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+renderConversations();
+renderChat();
 </script>
 
 </body>
