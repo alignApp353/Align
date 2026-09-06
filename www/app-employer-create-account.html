@@ -338,11 +338,61 @@ async function verifyEmployerEmailCode(){
       email:
         pendingEmployerEmail,
       token,
-      type:'email'
+      type:'signup'
     });
 
     if(error){
       throw error;
+    }
+
+    /*
+     * Never send a newly verified employer back to Login.
+     * Recover the session first, and if Supabase did not return one,
+     * sign in automatically with the password they just created.
+     */
+    let verifiedSession=
+      data?.session||
+      null;
+
+    if(!verifiedSession){
+      const current=
+        await sb.auth.getSession();
+
+      verifiedSession=
+        current?.data?.session||
+        null;
+    }
+
+    if(!verifiedSession){
+      const password=
+        document
+          .getElementById(
+            'password'
+          )
+          .value;
+
+      if(password){
+        const signIn=
+          await sb.auth.signInWithPassword({
+            email:
+              pendingEmployerEmail,
+            password
+          });
+
+        if(signIn.error){
+          throw signIn.error;
+        }
+
+        verifiedSession=
+          signIn.data?.session||
+          null;
+      }
+    }
+
+    if(!verifiedSession){
+      throw new Error(
+        'Your email was verified, but Alygnn could not start your session. Please try again.'
+      );
     }
 
     showVerificationMessage(
@@ -352,10 +402,9 @@ async function verifyEmployerEmailCode(){
 
     setTimeout(
       ()=>{
-        location.href=
-          data?.session
-            ?'app-employer-onboarding.html'
-            :'app-employer-login.html';
+        location.replace(
+          'app-employer-onboarding.html'
+        );
       },
       700
     );
