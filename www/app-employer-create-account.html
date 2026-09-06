@@ -430,6 +430,29 @@ async function verifyEmployerEmailCode(){
       );
     }
 
+    /*
+     * A newly verified employer has not completed company onboarding yet.
+     * Remove any device-wide company cache left by an older account before
+     * opening onboarding.
+     */
+    try{
+      localStorage.removeItem(
+        'alygnn_company_id'
+      );
+
+      localStorage.removeItem(
+        'alygnn_company_account_number'
+      );
+
+      localStorage.removeItem(
+        'alygnn_employer_verification_status'
+      );
+
+      localStorage.removeItem(
+        'alygnn_employer_onboarding_draft'
+      );
+    }catch(_){}
+
     showVerificationMessage(
       'Email verified. Continuing to company setup…',
       'success'
