@@ -828,7 +828,7 @@ async function loadPublicEmployerProfile(employerId){
   return Array.isArray(data) ? (data[0] || null) : (data || null);
 }
 
-function renderPublicEmployerProfile(profile, fallbackCompanyName){
+function renderPublicEmployerProfile(profile, fallbackCompanyName, employerId, jobId){
   if(!profile) return;
 
   const section = document.getElementById('company-profile-section');
@@ -855,21 +855,20 @@ function renderPublicEmployerProfile(profile, fallbackCompanyName){
     verified.classList.remove('show');
   }
 
-  const links = [
-    { label: 'Website', url: profile.public_website_url || profile.company_website },
-    { label: 'LinkedIn', url: profile.linkedin_url },
-    { label: 'Instagram', url: profile.instagram_url },
-    { label: 'Facebook', url: profile.facebook_url },
-    { label: 'Media kit', url: profile.media_kit_url, cls: 'media-kit' }
-  ]
-    .map(item => ({ ...item, url: safeCompanyLink(item.url) }))
-    .filter(item => item.url);
+  if(employerId){
+    const params = new URLSearchParams({
+      employer: String(employerId),
+      from: 'job-details'
+    });
+    if(jobId) params.set('job', String(jobId));
 
-  linksWrap.innerHTML = links.map(item =>
-    `<a class="company-public-link ${item.cls || ''}" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.label)} ↗</a>`
-  ).join('');
+    linksWrap.innerHTML =
+      `<a class="company-public-link" href="company-profile.html?${params.toString()}" target="_blank" rel="noopener">View company profile →</a>`;
+  }else{
+    linksWrap.innerHTML = '';
+  }
 
-  if(aboutText || links.length || profile.employer_verified === true){
+  if(aboutText || employerId || profile.employer_verified === true){
     section.style.display = '';
   }
 }
@@ -1074,7 +1073,7 @@ async function initJobDetailsPage(){
   ]);
 
   renderJob(job, appInfo, interviewInfo);
-  renderPublicEmployerProfile(publicEmployerProfile, job.company);
+  renderPublicEmployerProfile(publicEmployerProfile, job.company, job.employer_id, job.id);
   showPage();
 
   if(!isEmployerView){
