@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<title>Alygnn — Candidate Demo</title>
+<title>Alygnn — Swipe Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -83,6 +83,18 @@
     padding: 12px 28px; font-size: 14px; font-weight: 500;
     font-family: 'DM Sans', sans-serif; cursor: pointer;
   }
+  .state-actions {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    margin-top: 8px;
+  }
+  .state-actions .btn-retry, .state-actions .btn-reload { margin-top: 0; }
+  .btn-preferences {
+    background: transparent; color: var(--brand);
+    border: 1.5px solid var(--brand); border-radius: 100px;
+    padding: 11px 24px; font-size: 14px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-preferences:hover { background: var(--brand-light); transform: translateY(-1px); }
 
   /* SWIPE AREA */
   .swipe-area {
@@ -115,6 +127,7 @@
   .job-card.is-dragging { transition: none; box-shadow: 0 16px 48px rgba(0,0,0,0.16); }
   .job-card.swipe-left { animation: swipeLeft 0.35s ease forwards; }
   .job-card.swipe-right { animation: swipeRight 0.35s ease forwards; }
+  .action-buttons button:disabled { pointer-events: none; }
 
   /* Behind cards */
   .job-card:nth-child(2) { transform: scale(0.96) translateY(8px); z-index: 1; }
@@ -141,10 +154,10 @@
     width: 52px; height: 52px; border-radius: 12px;
     background: var(--brand-light);
     display: flex; align-items: center; justify-content: center;
-    font-size: 20px; flex-shrink: 0; overflow: hidden;
+    font-size: 18px; font-weight: 500; color: var(--brand); flex-shrink: 0; overflow: hidden;
     border: 1px solid var(--border);
+    font-family: 'DM Serif Display', serif;
   }
-  .company-logo img { width: 100%; height: 100%; object-fit: contain; }
   .card-top-text { flex: 1; min-width: 0; }
   .job-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--text); letter-spacing: -0.3px; line-height: 1.2; margin-bottom: 3px; }
   .company-name { font-size: 14px; color: var(--text-muted); }
@@ -154,47 +167,186 @@
     font-size: 11px; padding: 4px 10px; border-radius: 100px;
     border: 1px solid var(--border); color: var(--text-muted);
   }
-  .pill.remote { background: var(--mint-light, rgba(111,191,143,0.1)); color: #2e7a52; border-color: rgba(111,191,143,0.3); }
+  .pill.remote { background: rgba(111,191,143,0.1); color: #2e7a52; border-color: rgba(111,191,143,0.3); }
   .pill.salary { background: var(--brand-light); color: var(--brand); border-color: rgba(93,127,163,0.2); }
+  .pill.urgent {
+    background: rgba(215,154,154,0.14);
+    color: #9a5151;
+    border-color: rgba(215,154,154,0.55);
+    font-weight: 700;
+  }
 
-  .card-desc { font-size: 13px; color: var(--text-muted); line-height: 1.65; margin-bottom: 16px; flex: 1; overflow: hidden; }
+  .pill.recommended {
+    background: rgba(93,127,163,0.10);
+    color: var(--brand);
+    border-color: rgba(93,127,163,0.35);
+    font-weight: 700;
+  }
+
+  .match-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(111,191,143,0.15); color: #3a9463;
+    font-size: 12px; font-weight: 500; padding: 4px 12px;
+    border-radius: 100px; margin-bottom: 12px;
+  }
+  .match-badge.pending { background: var(--border); color: var(--text-muted); }
+
+  .card-desc {
+    font-size: 13px; color: var(--text-muted); line-height: 1.65; margin-bottom: 16px;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 
   .card-highlights { margin-bottom: 16px; }
   .highlights-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
   .highlight-item { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; line-height: 1.4; }
   .highlight-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--brand); margin-top: 5px; flex-shrink: 0; }
 
+  .card-benefits { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .benefit-tag { font-size: 10px; padding: 3px 9px; border-radius: 100px; background: rgba(111,191,143,0.1); color: #2e7a52; }
+
   .card-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 14px; border-top: 1px solid var(--border); margin-top: auto; }
   .posted-time { font-size: 11px; color: var(--text-muted); }
-  .apply-link { font-size: 12px; color: var(--brand); text-decoration: none; font-weight: 500; }
-  .apply-link:hover { text-decoration: underline; }
+  .view-details-link {
+    font-size: 12px; font-weight: 500; color: var(--brand);
+    text-decoration: none; background: var(--brand-light);
+    padding: 5px 12px; border-radius: 100px; transition: opacity 0.2s;
+  }
+  .view-details-link:hover { opacity: 0.8; }
 
   /* ACTION BUTTONS */
-  .action-buttons { display: flex; align-items: center; gap: 16px; margin-top: 20px; }
-  .btn-skip {
-    width: 56px; height: 56px; border-radius: 50%;
-    background: white; border: 1.5px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 22px; transition: all 0.2s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  .action-buttons {
+    display:flex;
+    align-items:stretch;
+    justify-content:center;
+    gap:12px;
+    margin-top:20px;
+    width:min(100%, 520px);
+    flex-wrap:wrap;
   }
-  .btn-skip:hover { border-color: var(--rose); transform: scale(1.08); }
-  .btn-apply {
-    width: 64px; height: 64px; border-radius: 50%;
-    background: var(--brand); border: none;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 26px; transition: all 0.2s;
-    box-shadow: 0 4px 16px rgba(93,127,163,0.35);
+
+  .btn-undo,
+  .btn-skip,
+  .btn-apply{
+    border-radius:18px;
+    min-height:72px;
+    padding:12px 18px;
+    cursor:pointer;
+    transition:all .2s;
+    font-family:'DM Sans', sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
   }
-  .btn-apply:hover { transform: scale(1.08); opacity: 0.9; }
-  .btn-undo {
-    width: 44px; height: 44px; border-radius: 50%;
-    background: white; border: 1.5px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 16px; transition: all 0.2s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+
+  .btn-undo{
+    min-width:120px;
+    background:var(--card-bg);
+    border:1.5px solid var(--border);
+    color:var(--text);
+    box-shadow:0 6px 18px rgba(26,37,48,.08);
   }
-  .btn-undo:hover { border-color: var(--brand); }
+
+  .btn-skip{
+    min-width:150px;
+    background:var(--card-bg);
+    border:1.5px solid var(--border);
+    color:var(--text);
+    box-shadow:0 6px 18px rgba(26,37,48,.08);
+  }
+
+  .btn-apply{
+    min-width:170px;
+    background:var(--brand);
+    border:1.5px solid var(--brand);
+    box-shadow:0 8px 20px rgba(93,127,163,0.30);
+  }
+
+  .btn-undo:hover{
+    border-color:var(--brand);
+    transform:translateY(-1px);
+  }
+
+  .btn-skip:hover{
+    border-color:var(--rose);
+    color:#9a5151;
+    transform:translateY(-1px);
+  }
+
+  .btn-apply:hover{
+    transform:translateY(-1px);
+    opacity:.92;
+  }
+
+  .action-btn-stack{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:2px;
+  }
+
+  .action-btn-icon{
+    font-size:18px;
+    line-height:1;
+    font-weight:600;
+  }
+
+  .btn-apply .action-btn-icon{
+    color:white;
+  }
+
+  .btn-undo .action-btn-icon,
+  .btn-skip .action-btn-icon{
+    color:var(--text);
+  }
+
+  .action-btn-label{
+    font-size:16px;
+    line-height:1.1;
+    font-weight:700;
+  }
+
+  .btn-apply .action-btn-label{
+    color:white;
+  }
+
+  .btn-undo .action-btn-label,
+  .btn-skip .action-btn-label{
+    color:var(--text);
+  }
+
+  .action-btn-sub{
+    font-size:11px;
+    line-height:1.15;
+    font-weight:400;
+  }
+
+  .btn-apply .action-btn-sub{
+    color:rgba(255,255,255,.88);
+  }
+
+  .btn-undo .action-btn-sub,
+  .btn-skip .action-btn-sub{
+    color:var(--text-muted);
+  }
+
+  .action-buttons button:disabled{
+    pointer-events:none;
+    opacity:.55;
+  }
+
+  @media (max-width:640px){
+    .action-buttons{
+      width:100%;
+      gap:10px;
+    }
+
+    .btn-undo{ min-width:96px; }
+    .btn-skip{ min-width:132px; }
+    .btn-apply{ min-width:154px; }
+  }
 
   /* EMPTY STATE */
   .empty-screen {
@@ -235,6 +387,18 @@
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  .demo-nav-right { display:flex; align-items:center; gap:20px; }
+  .demo-badge {
+    font-size:12px; color:var(--text-muted); background:rgba(93,127,163,.07);
+    border:1px solid rgba(93,127,163,.06); border-radius:100px;
+    padding:5px 12px; white-space:nowrap;
+  }
+  @media (max-width:640px){
+    .demo-badge{ display:none; }
+    nav{ padding:0 4%; }
+    .nav-stats{ gap:12px; }
+  }
 </style>
 </head>
 <body>
@@ -244,430 +408,422 @@
   <div class="nav-stats">
     <div class="stat"><div class="stat-val" id="stat-applied">0</div><div class="stat-label">Applied</div></div>
     <div class="stat"><div class="stat-val" id="stat-skipped">0</div><div class="stat-label">Skipped</div></div>
-    <div class="stat"><div class="stat-val" id="stat-remaining">—</div><div class="stat-label">Left</div></div>
+    <div class="stat"><div class="stat-val" id="stat-remaining">5</div><div class="stat-label">Left</div></div>
   </div>
-  <div style="display:flex;align-items:center;gap:20px;">
-    <span style="font-size:12px;color:var(--text-muted);background:rgba(93,127,163,0.08);padding:4px 12px;border-radius:100px;">Demo · example data</span>
-    <a href="index.html" class="nav-back">← Back to Alygnn</a>
+  <div class="demo-nav-right">
+    <span class="demo-badge">Demo · example data</span>
+    <a href="demo.html" class="nav-back">← Back to Alygnn</a>
   </div>
 </nav>
 
-<!-- LOADING -->
-<div class="loading-screen" id="loading-screen">
+<div class="loading-screen" id="loading-screen" style="display:none;">
   <div class="loading-spinner"></div>
-  <div class="loading-text">Finding your matches...</div>
-  <div class="loading-sub">Searching jobs based on your preferences</div>
+  <div class="loading-text">Loading demo jobs...</div>
 </div>
 
-<!-- ERROR -->
 <div class="error-screen" id="error-screen">
-  <div class="error-icon">😕</div>
-  <div class="error-title">Couldn't load jobs</div>
-  <div class="error-sub" id="error-msg">Something went wrong fetching jobs. Check your internet connection and try again.</div>
-  <button class="btn-retry" onclick="loadJobs()">Try again</button>
+  <div class="error-icon">!</div>
+  <div class="error-title">Couldn't load demo</div>
+  <div class="error-sub" id="error-msg">Refresh the page and try again.</div>
 </div>
 
-<!-- SWIPE AREA -->
-<div class="swipe-area" id="swipe-area">
+<div class="swipe-area" id="swipe-area" style="display:flex;">
   <div class="card-stack" id="card-stack"></div>
+
   <div class="action-buttons">
-    <button class="btn-undo" onclick="undo()" title="Undo">↩</button>
-    <button class="btn-skip" onclick="skipCurrent()" title="Skip">✕</button>
-    <button class="btn-apply" onclick="applyCurrent()" title="Apply">✓</button>
+    <button class="btn-undo" onclick="undo()" title="Undo">
+      <span class="action-btn-stack">
+        <span class="action-btn-icon">↩</span>
+        <span class="action-btn-label">Undo</span>
+        <span class="action-btn-sub">Bring it back</span>
+      </span>
+    </button>
+
+    <button class="btn-skip" onclick="skipCurrent()" title="Pass">
+      <span class="action-btn-stack">
+        <span class="action-btn-icon">✕</span>
+        <span class="action-btn-label">Pass</span>
+        <span class="action-btn-sub">Skip this job</span>
+      </span>
+    </button>
+
+    <button class="btn-apply" onclick="applyCurrent()" title="Apply now">
+      <span class="action-btn-stack">
+        <span class="action-btn-icon">✓</span>
+        <span class="action-btn-label">Apply now</span>
+        <span class="action-btn-sub">Send my application</span>
+      </span>
+    </button>
   </div>
 </div>
 
-<!-- EMPTY -->
 <div class="empty-screen" id="empty-screen">
-  <div class="empty-icon">🎉</div>
+  <div class="empty-icon">✓</div>
   <div class="empty-title">You've seen them all!</div>
-  <div class="empty-sub">You went through all your matches. Load a fresh batch or update your preferences.</div>
-  <button class="btn-reload" onclick="loadJobs()">Load more jobs</button>
+  <div class="empty-sub">That was the candidate swipe demo. Reset it to try the flow again.</div>
+  <div class="state-actions">
+    <button class="btn-reload" onclick="resetDemo()">Reset demo</button>
+    <button class="btn-preferences" onclick="window.location.href='demo.html'">Back to demos</button>
+  </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
-  let jobs = [];
-  let currentIndex = 0;
-  let applied = 0;
-  let skipped = 0;
-  let history = [];
+const demoJobs = [{"id": "demo-designer", "title": "Senior Product Designer", "company": "Demo Co.", "location": "Remote", "job_type": "Full-time", "work_style": "Remote", "salary": "$145k\u2013$175k", "alygnn_recommended": true, "urgently_hiring": false, "match_score": 92, "description": "Lead end-to-end design for our core product, partnering closely with engineering and product to ship features used by thousands of customers.", "requirements": "5+ years of product design experience\nStrong portfolio in B2B SaaS\nProficiency in Figma and design systems", "benefits": "Health insurance\n401(k)\nFlexible PTO\nRemote work", "created_at": "2026-09-04T12:00:00Z"}, {"id": "demo-accountant", "title": "Accountant", "company": "NexEra", "location": "Raleigh, NC", "job_type": "Full-time", "work_style": "On-site", "salary": "$65k\u2013$82k", "alygnn_recommended": true, "urgently_hiring": true, "match_score": 88, "description": "Join a growing finance team and help maintain accurate records, support month-end close, reconcile accounts, and prepare reports for leadership.", "requirements": "Bachelor's degree\n2+ years of accounting experience\nStrong Excel skills", "benefits": "Medical\nDental\n401(k)\nPaid time off", "created_at": "2026-09-06T12:00:00Z"}, {"id": "demo-sdr", "title": "Sales Development Representative", "company": "LaunchWorks", "location": "Raleigh, NC", "job_type": "Full-time", "work_style": "On-site", "salary": "$55k\u2013$75k", "alygnn_recommended": true, "urgently_hiring": false, "match_score": 86, "description": "Join a fast-growing sales team helping local businesses find the right solutions while building strong communication and account-management skills.", "requirements": "Strong communication skills\nCompetitive and coachable mindset\nComfort speaking with business owners", "benefits": "Paid training\nPerformance bonuses\nCareer development", "created_at": "2026-09-03T12:00:00Z"}, {"id": "demo-product", "title": "Product Manager", "company": "Northline Labs", "location": "Remote", "job_type": "Full-time", "work_style": "Remote", "salary": "$105k\u2013$135k", "alygnn_recommended": false, "urgently_hiring": false, "match_score": 83, "description": "Own roadmap decisions, work closely with design and engineering, and help ship tools used by growing teams across the country.", "requirements": "3+ years in product management\nExperience with SaaS products\nExcellent cross-functional communication", "benefits": "Health insurance\nEquity\nRemote work\nFlexible PTO", "created_at": "2026-09-02T12:00:00Z"}, {"id": "demo-analyst", "title": "Data Analyst", "company": "BrightPath", "location": "Charlotte, NC", "job_type": "Full-time", "work_style": "Hybrid", "salary": "$75k\u2013$100k", "alygnn_recommended": false, "urgently_hiring": false, "match_score": 79, "description": "Analyze business data, build dashboards, and turn trends into clear recommendations for leadership and operations teams.", "requirements": "SQL proficiency\nExperience with BI tools\nStrong analytical communication", "benefits": "Medical\n401(k)\nHybrid schedule", "created_at": "2026-09-01T12:00:00Z"}];
 
-  let isDragging = false;
-  let isAnimating = false;
-  let startX = 0;
-  let startY = 0;
-  let currentX = 0;
-  let activeCard = null;
-  let activePointerId = null;
+let jobs = demoJobs.map(job => ({...job}));
+let currentIndex = 0;
+let applied = 0;
+let skipped = 0;
+let history = [];
 
-  const DEMO_JOBS = [
-    {
-      title: 'Senior Product Designer',
-      company: 'Demo Co.',
-      location: 'Remote',
-      remote: true,
-      type: 'full_time',
-      salary_min: 145000,
-      salary_max: 175000,
-      posted: new Date(Date.now() - 2 * 86400000).toISOString(),
-      description: 'Lead end-to-end design for our core product, partnering closely with engineering and product to ship features used by thousands of customers.',
-      highlights: ['5+ years of product design experience', 'Strong portfolio in B2B SaaS', 'Proficiency in Figma and design systems'],
-      apply_url: null
-    },
-    {
-      title: 'Backend Engineer',
-      company: 'Northline Labs',
-      location: 'Raleigh, NC',
-      remote: false,
-      type: 'full_time',
-      salary_min: 110000,
-      salary_max: 140000,
-      posted: new Date(Date.now() - 5 * 86400000).toISOString(),
-      description: 'Build and scale the APIs powering our matching engine. Work directly with our small, senior engineering team.',
-      highlights: ['Python or Node.js experience', 'Comfortable with PostgreSQL', 'Has shipped production services at scale'],
-      apply_url: null
-    },
-    {
-      title: 'Sales Development Rep',
-      company: 'LaunchWorks',
-      location: 'Remote',
-      remote: true,
-      type: 'full_time',
-      salary_min: 55000,
-      salary_max: 75000,
-      posted: new Date(Date.now() - 1 * 86400000).toISOString(),
-      description: 'Generate and qualify new business opportunities for our growing sales team. Great entry point into tech sales.',
-      highlights: ['1+ years in outbound sales or SDR role', 'Excellent written communication', 'Comfortable with cold outreach'],
-      apply_url: null
-    },
-    {
-      title: 'Data Analyst',
-      company: 'Oakstone',
-      location: 'Remote',
-      remote: true,
-      type: 'full_time',
-      salary_min: 80000,
-      salary_max: 100000,
-      posted: new Date(Date.now() - 7 * 86400000).toISOString(),
-      description: 'Turn raw data into clear insights for our leadership team. SQL-heavy role with room to grow into analytics engineering.',
-      highlights: ['Strong SQL skills', 'Experience with BI tools like Looker or Tableau', 'Comfortable presenting findings to non-technical stakeholders'],
-      apply_url: null
-    },
-    {
-      title: 'Marketing Coordinator',
-      company: 'Nova Group',
-      location: 'New York, NY',
-      remote: false,
-      type: 'full_time',
-      salary_min: 60000,
-      salary_max: 75000,
-      posted: new Date(Date.now() - 3 * 86400000).toISOString(),
-      description: 'Support campaign execution across email, social, and paid channels for a fast-growing consumer brand.',
-      highlights: ['1-2 years of marketing experience', 'Familiarity with email platforms', 'Detail-oriented and deadline-driven'],
-      apply_url: null
-    }
-  ];
+let isDragging = false;
+let startX = 0;
+let startY = 0;
+let currentX = 0;
+let activeCard = null;
+let activePointerId = null;
+let swipeLocked = false;
+let swipeFinishTimer = null;
+let snapBackTimer = null;
 
-  async function loadJobs() {
-    showScreen('loading');
+function setSwipeControlsLocked(locked) {
+  document.querySelectorAll('.btn-undo, .btn-skip, .btn-apply').forEach(btn => {
+    btn.disabled = locked;
+    btn.setAttribute('aria-disabled', locked ? 'true' : 'false');
+  });
+}
 
-    // Demo mode: no API call, no session/preferences read — pure hardcoded sample data.
-    setTimeout(() => {
-      jobs = DEMO_JOBS;
-      currentIndex = 0;
-      applied = 0;
-      skipped = 0;
-      history = [];
-      updateStats();
-      renderCards();
-      showScreen('swipe');
-    }, 500);
-  }
+function resetSwipeInteractionState() {
+  clearTimeout(swipeFinishTimer);
+  clearTimeout(snapBackTimer);
+  swipeFinishTimer = null;
+  snapBackTimer = null;
+  isDragging = false;
+  activePointerId = null;
+  currentX = 0;
+  activeCard = null;
+  swipeLocked = false;
+  setSwipeControlsLocked(false);
+}
 
-  function showScreen(name) {
-    document.getElementById('loading-screen').style.display = name === 'loading' ? 'flex' : 'none';
-    document.getElementById('error-screen').style.display = name === 'error' ? 'flex' : 'none';
-    document.getElementById('swipe-area').style.display = name === 'swipe' ? 'flex' : 'none';
-    document.getElementById('empty-screen').style.display = name === 'empty' ? 'flex' : 'none';
-  }
+function getInitials(name) {
+  if (!name) return 'D';
+  return name.trim().split(/\s+/).map(w => w[0]).join('').substring(0, 2).toUpperCase();
+}
 
-  function formatSalary(job) {
-    if (!job.salary_min && !job.salary_max) return null;
-    const fmt = n => n >= 1000 ? '$' + Math.round(n / 1000) + 'k' : '$' + n;
-    if (job.salary_min && job.salary_max) return fmt(job.salary_min) + '–' + fmt(job.salary_max);
-    if (job.salary_max) return 'Up to ' + fmt(job.salary_max);
-    return fmt(job.salary_min) + '+';
-  }
+function escapeHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
 
-  function timeAgo(dateStr) {
-    if (!dateStr) return '';
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const days = Math.floor(diff / 86400000);
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return days + ' days ago';
-    if (days < 30) return Math.floor(days / 7) + ' weeks ago';
-    return Math.floor(days / 30) + ' months ago';
-  }
+function timeAgo(dateString) {
+  if (!dateString) return 'Demo listing';
+  const then = new Date(dateString).getTime();
+  const now = Date.now();
+  const days = Math.max(0, Math.floor((now - then) / 86400000));
+  if (days <= 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return days + ' days ago';
+  return Math.floor(days / 7) + ' weeks ago';
+}
 
-  function buildCard(job, index) {
-    const card = document.createElement('div');
-    card.className = 'job-card';
-    card.dataset.index = index;
+function openDemoDetails(event, jobId) {
+  event.preventDefault();
+  event.stopPropagation();
+  const job = demoJobs.find(row => row.id === jobId);
+  if (!job) return;
+  sessionStorage.setItem('alygnn_demo_job', JSON.stringify(job));
+  window.location.href = 'job-details-demo.html';
+}
 
-    const salary = formatSalary(job);
-    const logoHTML = job.logo
-      ? `<img src="${job.logo}" alt="${job.company || 'Company'}" onerror="this.parentElement.textContent='🏢'">`
-      : '🏢';
+function buildCard(job, index) {
+  const card = document.createElement('div');
+  card.className = 'job-card';
+  card.dataset.index = index;
 
-    const pillsHTML = [
-      job.remote ? '<span class="pill remote">🌐 Remote</span>' : '',
-      job.location ? `<span class="pill">📍 ${job.location}</span>` : '',
-      job.type ? `<span class="pill">${job.type.replace(/_/g,' ')}</span>` : '',
-      salary ? `<span class="pill salary">${salary}</span>` : '',
-    ].filter(Boolean).join('');
+  const pillsHTML = [
+    job.alygnn_recommended === true ? '<span class="pill recommended">Alygnn Recommended</span>' : '',
+    job.urgently_hiring === true ? '<span class="pill urgent">Urgently Hiring</span>' : '',
+    job.work_style === 'Remote' ? '<span class="pill remote">🌐 Remote</span>' : '',
+    job.location ? `<span class="pill">📍 ${escapeHtml(job.location)}</span>` : '',
+    job.job_type ? `<span class="pill">${escapeHtml(job.job_type)}</span>` : '',
+    job.salary ? `<span class="pill salary">${escapeHtml(job.salary)}</span>` : '',
+  ].filter(Boolean).join('');
 
-    const highlights = Array.isArray(job.highlights) ? job.highlights : [];
-    const highlightsHTML = highlights.length
-      ? `<div class="card-highlights">
-          <div class="highlights-label">Requirements</div>
-          ${highlights.map(h => `<div class="highlight-item"><div class="highlight-dot"></div>${h}</div>`).join('')}
-        </div>`
-      : '';
+  const requirements = (job.requirements || '').split('\n').map(r => r.trim()).filter(Boolean).slice(0, 4);
+  const highlightsHTML = requirements.length
+    ? `<div class="card-highlights">
+        <div class="highlights-label">Requirements</div>
+        ${requirements.map(r => `<div class="highlight-item"><div class="highlight-dot"></div>${escapeHtml(r)}</div>`).join('')}
+      </div>`
+    : '';
 
-    const description = job.description || 'No description available.';
+  const benefits = (job.benefits || '').split('\n').map(b => b.trim()).filter(Boolean).slice(0, 5);
+  const benefitsHTML = benefits.length
+    ? `<div class="card-benefits">${benefits.map(b => `<span class="benefit-tag">${escapeHtml(b)}</span>`).join('')}</div>`
+    : '';
 
-    card.innerHTML = `
-      <div class="stamp stamp-apply">APPLY ✓</div>
-      <div class="stamp stamp-skip">SKIP ✕</div>
-      <div class="card-top">
-        <div class="company-logo">${logoHTML}</div>
-        <div class="card-top-text">
-          <div class="job-title">${job.title || 'Untitled Role'}</div>
-          <div class="company-name">${job.company || ''}</div>
-        </div>
+  card.innerHTML = `
+    <div class="stamp stamp-apply">APPLIED ✓</div>
+    <div class="stamp stamp-skip">PASSED ✕</div>
+    <div class="card-top">
+      <div class="company-logo">${getInitials(job.company)}</div>
+      <div class="card-top-text">
+        <div class="job-title">${escapeHtml(job.title)}</div>
+        <div class="company-name">${escapeHtml(job.company)}</div>
       </div>
-      <div class="card-pills">${pillsHTML}</div>
-      <div class="card-desc">${description}</div>
-      ${highlightsHTML}
-      <div class="card-bottom">
-        <div class="posted-time">${timeAgo(job.posted)}</div>
-        ${job.apply_url ? `<a class="apply-link" href="${job.apply_url}" target="_blank" onclick="event.stopPropagation()">View listing →</a>` : ''}
-      </div>
-    `;
+    </div>
 
-    setupDrag(card);
-    return card;
-  }
+    <div class="match-badge">✦ ${Number(job.match_score || 0)}% match</div>
 
-  function renderCards() {
-    const stack = document.getElementById('card-stack');
-    stack.innerHTML = '';
+    <div class="card-pills">${pillsHTML}</div>
+    <div class="card-desc">${escapeHtml(job.description)}</div>
+    ${highlightsHTML}
+    ${benefitsHTML}
 
-    const remaining = jobs.slice(currentIndex, currentIndex + 3);
-    if (!remaining.length) {
-      showScreen('empty');
-      return;
-    }
+    <div class="card-bottom">
+      <div class="posted-time">${timeAgo(job.created_at)}</div>
+      <a class="view-details-link" href="job-details-demo.html" onclick="openDemoDetails(event,'${job.id}')">View details →</a>
+    </div>
+  `;
 
-    // IMPORTANT: First card in the DOM is the visible top card because CSS uses .job-card:first-child.
-    remaining.forEach((job, i) => {
-      stack.appendChild(buildCard(job, currentIndex + i));
-    });
+  setupDrag(card);
+  return card;
+}
 
+function renderCards() {
+  const stack = document.getElementById('card-stack');
+  resetSwipeInteractionState();
+  stack.innerHTML = '';
+
+  const remaining = jobs.slice(currentIndex, currentIndex + 3);
+  if (!remaining.length) {
+    showScreen('empty');
     updateStats();
-    setupTopCard();
+    return;
   }
 
-  function setupTopCard() {
-    const stack = document.getElementById('card-stack');
-    activeCard = stack.querySelector('.job-card:first-child');
-  }
-
-  function setupDrag(card) {
-    card.addEventListener('pointerdown', dragStart, { passive: false });
-  }
-
-  function dragStart(e) {
-    if (e.target.closest('a')) return;
-    if (isAnimating) return;
-
-    setupTopCard();
-
-    if (!activeCard || activeCard !== e.currentTarget) return;
-
-    e.preventDefault();
-
-    isDragging = true;
-    activePointerId = e.pointerId;
-    startX = e.clientX;
-    startY = e.clientY;
-    currentX = 0;
-
-    activeCard.classList.add('is-dragging');
-    activeCard.style.transition = 'none';
-
-    try {
-      activeCard.setPointerCapture(e.pointerId);
-    } catch (err) {
-      console.warn('Pointer capture not supported:', err);
-    }
-
-    activeCard.addEventListener('pointermove', dragMove, { passive: false });
-    activeCard.addEventListener('pointerup', dragEnd);
-    activeCard.addEventListener('pointercancel', dragEnd);
-  }
-
-  function dragMove(e) {
-    if (!isDragging || !activeCard) return;
-    if (activePointerId !== null && e.pointerId !== activePointerId) return;
-
-    e.preventDefault();
-
-    currentX = e.clientX - startX;
-    const currentY = e.clientY - startY;
-    const rotate = currentX * 0.08;
-
-    activeCard.style.transform = `translate(${currentX}px, ${currentY * 0.25}px) rotate(${rotate}deg)`;
-
-    const applyStamp = activeCard.querySelector('.stamp-apply');
-    const skipStamp = activeCard.querySelector('.stamp-skip');
-    const ratio = Math.min(Math.abs(currentX) / 80, 1);
-
-    if (currentX > 20) {
-      applyStamp.style.opacity = ratio;
-      skipStamp.style.opacity = 0;
-    } else if (currentX < -20) {
-      skipStamp.style.opacity = ratio;
-      applyStamp.style.opacity = 0;
-    } else {
-      applyStamp.style.opacity = 0;
-      skipStamp.style.opacity = 0;
-    }
-  }
-
-  function dragEnd(e) {
-    if (!isDragging || !activeCard) return;
-    if (activePointerId !== null && e.pointerId !== activePointerId) return;
-
-    isDragging = false;
-
-    activeCard.removeEventListener('pointermove', dragMove);
-    activeCard.removeEventListener('pointerup', dragEnd);
-    activeCard.removeEventListener('pointercancel', dragEnd);
-
-    activeCard.classList.remove('is-dragging');
-
-    try {
-      activeCard.releasePointerCapture(e.pointerId);
-    } catch (err) {}
-
-    activePointerId = null;
-
-    const threshold = 70;
-
-    if (currentX > threshold) {
-      animateSwipe('right');
-    } else if (currentX < -threshold) {
-      animateSwipe('left');
-    } else {
-      activeCard.style.transition = 'transform 0.25s ease';
-      activeCard.style.transform = '';
-      const cardToReset = activeCard;
-      setTimeout(() => {
-        if (cardToReset) cardToReset.style.transition = '';
-      }, 250);
-    }
-  }
-
-  function animateSwipe(direction) {
-    if (isAnimating) return;
-    isAnimating = true;
-
-    setupTopCard();
-    if (!activeCard) { isAnimating = false; return; }
-
-    const job = jobs[parseInt(activeCard.dataset.index)];
-    activeCard.classList.add(direction === 'right' ? 'swipe-right' : 'swipe-left');
-
-    history.push({ job, direction, index: currentIndex });
-
-    if (direction === 'right') {
-      applied++;
-      showToast('✓ Added to applications!');
-    } else {
-      skipped++;
-      showToast('Skipped');
-    }
-
-    currentIndex++;
-
-    setTimeout(() => {
-      renderCards();
-      isAnimating = false;
-    }, 350);
-  }
-
-  function skipCurrent() {
-    setupTopCard();
-    if (activeCard) {
-      currentX = -150;
-      animateSwipe('left');
-    }
-  }
-
-  function applyCurrent() {
-    setupTopCard();
-    if (activeCard) {
-      currentX = 150;
-      animateSwipe('right');
-    }
-  }
-
-  function undo() {
-    if (!history.length) {
-      showToast('Nothing to undo');
-      return;
-    }
-
-    isAnimating = false;
-
-    const last = history.pop();
-
-    if (last.direction === 'right') applied = Math.max(0, applied - 1);
-    else skipped = Math.max(0, skipped - 1);
-
-    currentIndex = last.index;
-    renderCards();
-    showToast('↩ Undone');
-  }
-
-  function updateStats() {
-    document.getElementById('stat-applied').textContent = applied;
-    document.getElementById('stat-skipped').textContent = skipped;
-    document.getElementById('stat-remaining').textContent = Math.max(0, jobs.length - currentIndex);
-  }
-
-  let toastTimer;
-
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
-  }
-
-  document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowLeft') skipCurrent();
-    if (e.key === 'ArrowRight') applyCurrent();
-    if (e.key === 'z' && (e.metaKey || e.ctrlKey)) undo();
+  remaining.forEach((job, i) => {
+    stack.appendChild(buildCard(job, currentIndex + i));
   });
 
-  loadJobs();
+  updateStats();
+  setupTopCard();
+  showScreen('swipe');
+}
+
+function showScreen(name) {
+  document.getElementById('loading-screen').style.display = name === 'loading' ? 'flex' : 'none';
+  document.getElementById('error-screen').style.display = name === 'error' ? 'flex' : 'none';
+  document.getElementById('swipe-area').style.display = name === 'swipe' ? 'flex' : 'none';
+  document.getElementById('empty-screen').style.display = name === 'empty' ? 'flex' : 'none';
+}
+
+function setupTopCard() {
+  const stack = document.getElementById('card-stack');
+  activeCard = stack.querySelector('.job-card:first-child');
+}
+
+function setupDrag(card) {
+  card.addEventListener('pointerdown', dragStart, {passive:false});
+}
+
+function dragStart(e) {
+  if (e.target.closest('a,button')) return;
+  setupTopCard();
+  if (!activeCard || activeCard !== e.currentTarget || swipeLocked) return;
+
+  e.preventDefault();
+  isDragging = true;
+  activePointerId = e.pointerId;
+  startX = e.clientX;
+  startY = e.clientY;
+  currentX = 0;
+
+  activeCard.classList.add('is-dragging');
+  try { activeCard.setPointerCapture(e.pointerId); } catch (_) {}
+
+  activeCard.addEventListener('pointermove', dragMove, {passive:false});
+  activeCard.addEventListener('pointerup', dragEnd);
+  activeCard.addEventListener('pointercancel', dragEnd);
+}
+
+function dragMove(e) {
+  if (!isDragging || !activeCard) return;
+  if (activePointerId !== null && e.pointerId !== activePointerId) return;
+
+  e.preventDefault();
+  currentX = e.clientX - startX;
+  const currentY = e.clientY - startY;
+  const rotate = currentX * 0.06;
+
+  activeCard.style.transform = `translate(${currentX}px, ${currentY * .18}px) rotate(${rotate}deg)`;
+
+  const applyStamp = activeCard.querySelector('.stamp-apply');
+  const skipStamp = activeCard.querySelector('.stamp-skip');
+  const ratio = Math.min(Math.abs(currentX) / 100, 1);
+
+  if (currentX > 20) {
+    applyStamp.style.opacity = ratio;
+    skipStamp.style.opacity = 0;
+  } else if (currentX < -20) {
+    skipStamp.style.opacity = ratio;
+    applyStamp.style.opacity = 0;
+  } else {
+    applyStamp.style.opacity = 0;
+    skipStamp.style.opacity = 0;
+  }
+}
+
+function detachDragListeners(card) {
+  if (!card) return;
+  card.removeEventListener('pointermove', dragMove);
+  card.removeEventListener('pointerup', dragEnd);
+  card.removeEventListener('pointercancel', dragEnd);
+}
+
+function dragEnd(e) {
+  if (!isDragging || !activeCard) return;
+  if (activePointerId !== null && e.pointerId !== activePointerId) return;
+
+  const card = activeCard;
+  detachDragListeners(card);
+  card.classList.remove('is-dragging');
+  isDragging = false;
+  activePointerId = null;
+
+  if (currentX > 80) {
+    animateSwipe('right');
+  } else if (currentX < -80) {
+    animateSwipe('left');
+  } else {
+    card.style.transition = 'transform .25s ease';
+    card.style.transform = '';
+    const a = card.querySelector('.stamp-apply');
+    const s = card.querySelector('.stamp-skip');
+    if (a) a.style.opacity = 0;
+    if (s) s.style.opacity = 0;
+    snapBackTimer = setTimeout(() => {
+      if (card) card.style.transition = '';
+      snapBackTimer = null;
+    }, 260);
+  }
+  currentX = 0;
+}
+
+function animateSwipe(direction) {
+  if (swipeLocked) return;
+  setupTopCard();
+  if (!activeCard) return;
+
+  const cardToSwipe = activeCard;
+  const jobIndex = Number.parseInt(cardToSwipe.dataset.index, 10);
+  const job = jobs[jobIndex];
+  if (!job) return;
+
+  swipeLocked = true;
+  setSwipeControlsLocked(true);
+  detachDragListeners(cardToSwipe);
+  isDragging = false;
+  activePointerId = null;
+  currentX = 0;
+  cardToSwipe.style.transition = '';
+  cardToSwipe.style.pointerEvents = 'none';
+
+  const historyIndex = currentIndex;
+  cardToSwipe.classList.add(direction === 'right' ? 'swipe-right' : 'swipe-left');
+  history.push({ job, direction, index: historyIndex });
+
+  if (direction === 'right') {
+    applied++;
+    showToast('✓ Added to applications!');
+  } else {
+    skipped++;
+    showToast('Passed');
+  }
+
+  currentIndex = historyIndex + 1;
+  updateStats();
+
+  let finished = false;
+  const finishSwipe = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(swipeFinishTimer);
+    swipeFinishTimer = null;
+    renderCards();
+  };
+
+  cardToSwipe.addEventListener('animationend', finishSwipe, {once:true});
+  swipeFinishTimer = setTimeout(finishSwipe, 500);
+}
+
+function skipCurrent() {
+  if (swipeLocked || isDragging) return;
+  animateSwipe('left');
+}
+
+function applyCurrent() {
+  if (swipeLocked || isDragging) return;
+  animateSwipe('right');
+}
+
+function undo() {
+  if (swipeLocked || isDragging) return;
+
+  if (!history.length) {
+    showToast('Nothing to undo');
+    return;
+  }
+
+  const last = history.pop();
+  if (last.direction === 'right') applied = Math.max(0, applied - 1);
+  else skipped = Math.max(0, skipped - 1);
+
+  currentIndex = last.index;
+  renderCards();
+  showToast('↩ Undone');
+}
+
+function updateStats() {
+  document.getElementById('stat-applied').textContent = applied;
+  document.getElementById('stat-skipped').textContent = skipped;
+  document.getElementById('stat-remaining').textContent = Math.max(0, jobs.length - currentIndex);
+}
+
+function resetDemo() {
+  jobs = demoJobs.map(job => ({...job}));
+  currentIndex = 0;
+  applied = 0;
+  skipped = 0;
+  history = [];
+  renderCards();
+  showToast('Demo reset');
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.repeat || swipeLocked || isDragging) return;
+  if (e.key === 'ArrowLeft') skipCurrent();
+  if (e.key === 'ArrowRight') applyCurrent();
+  if (e.key === 'z' && (e.metaKey || e.ctrlKey)) undo();
+});
+
+renderCards();
 </script>
 </body>
 </html>
