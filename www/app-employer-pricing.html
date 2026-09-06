@@ -158,13 +158,108 @@ h1{font-family:'DM Serif Display',Georgia,serif;font-size:34px;line-height:1.05;
 .plan-context{margin:12px 0 14px;border:1px solid #BFD2E5;border-radius:16px;background:#F6FAFE;padding:14px 15px}
 .plan-context strong{display:block;font-size:12px;color:var(--text);margin-bottom:4px}
 .plan-context span{display:block;font-size:11px;line-height:1.5;color:var(--muted)}
-.urgent-addon{margin-top:16px;border:1px solid var(--border);border-radius:20px;background:var(--card);padding:18px}
-.urgent-addon.included{border-color:#B8DFC7;background:#F4FBF6}
-.urgent-addon-kicker{font-size:10px;font-weight:900;color:var(--brand);text-transform:uppercase;letter-spacing:1px}
-.urgent-addon h3{font-size:18px;margin:5px 0 7px}
-.urgent-addon p{font-size:11px;line-height:1.55;color:var(--muted);margin:0 0 13px}
-.urgent-addon-price{font-family:'DM Serif Display',Georgia,serif;font-size:34px;margin:8px 0 12px}
-.urgent-addon-price small{font-family:'DM Sans',Arial,sans-serif;font-size:11px;color:var(--muted)}
+.current-features{
+  margin-top:16px;
+  border:1px solid #BFD2E5;
+  border-radius:20px;
+  background:#F7FAFD;
+  padding:18px;
+}
+.current-features[hidden]{display:none}
+.current-features-kicker{
+  font-size:10px;
+  font-weight:900;
+  color:var(--brand);
+  text-transform:uppercase;
+  letter-spacing:1px;
+}
+.current-features-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:5px;
+}
+.current-features h3{
+  font-size:19px;
+  margin:0;
+}
+.current-features-plan{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:0 10px;
+  border-radius:999px;
+  background:#EAF2FA;
+  color:var(--brand);
+  font-size:9px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.7px;
+  white-space:nowrap;
+}
+.current-features-copy{
+  font-size:11px;
+  line-height:1.55;
+  color:var(--muted);
+  margin:8px 0 13px;
+}
+.current-features-list{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.current-feature{
+  min-height:48px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card);
+  padding:10px 11px;
+  display:flex;
+  gap:9px;
+  align-items:flex-start;
+}
+.current-feature-check{
+  width:21px;
+  height:21px;
+  border-radius:50%;
+  background:#EAF6EF;
+  color:#2F8E59;
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  font-size:11px;
+  font-weight:900;
+}
+.current-feature-copy{
+  min-width:0;
+}
+.current-feature-copy strong{
+  display:block;
+  color:var(--text);
+  font-size:10px;
+  line-height:1.35;
+}
+.current-feature-copy span{
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.4;
+  margin-top:2px;
+}
+.current-feature.premium{
+  border-color:#C9DCEC;
+  background:#FBFDFF;
+}
+.current-feature.premium .current-feature-check{
+  background:#EAF2FA;
+  color:var(--brand);
+}
+@media(max-width:560px){
+  .current-features-list{
+    grid-template-columns:1fr;
+  }
+}
 
 .plan-tag{position:absolute;right:14px;top:14px;padding:5px 9px;border-radius:999px;background:var(--brand-strong);color:#fff;font-size:9px;font-weight:900;text-transform:uppercase}
 .plan-kicker{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:900}
@@ -270,12 +365,19 @@ h1{font-family:'DM Serif Display',Georgia,serif;font-size:34px;line-height:1.05;
 
   <div class="plan-list" id="plan-list"></div>
 
-  <section class="urgent-addon" id="urgent-addon">
-    <div class="urgent-addon-kicker">Optional visibility add-on</div>
-    <h3>Urgently Hiring</h3>
-    <p id="urgent-addon-copy">Add an Urgently Hiring label to eligible active job listings.</p>
-    <div class="urgent-addon-price" id="urgent-addon-price">$49 <small>/ month</small></div>
-    <button class="btn secondary full" id="urgent-addon-btn" type="button">Add Urgently Hiring</button>
+  <section class="current-features" id="current-plan-features" hidden>
+    <div class="current-features-kicker">Included with your plan</div>
+
+    <div class="current-features-head">
+      <h3 id="current-features-title">Your plan features</h3>
+      <span class="current-features-plan" id="current-features-plan">Plan</span>
+    </div>
+
+    <p class="current-features-copy" id="current-features-copy">
+      These features are already active on your Alygnn employer account.
+    </p>
+
+    <div class="current-features-list" id="current-features-list"></div>
   </section>
 
   <section class="addon" id="additional-slot" hidden>
@@ -314,12 +416,12 @@ const CATALOG={
   quarterly:{
     launch:{name:'Launch',price:750,suffix:'/ 3 months',slots:3,features:['AI candidate matching','Candidate filtering','Applicant management','Resume access and downloads']},
     growth:{name:'Growth',price:1140,suffix:'/ 3 months',slots:5,popular:true,features:['Everything in Launch','Urgently Hiring badge on jobs','Advanced candidate filtering','Featured listings','Advanced hiring analytics']},
-    scale:{name:'Scale',price:1700,suffix:'/ 3 months',slots:8,features:['Everything in Growth','Urgently Hiring badge on jobs','High-volume hiring capacity','Advanced candidate tools','Team access and priority support']}
+    scale:{name:'Scale',price:1700,suffix:'/ 3 months',slots:8,features:['Everything in Growth','Urgently Hiring badge on jobs','Alygnn Recommended badge on eligible jobs','High-volume hiring capacity','Advanced candidate tools','Team access and priority support']}
   },
   monthly:{
     launch:{name:'Launch',price:299,suffix:'/ month',slots:3,features:['AI candidate matching','Candidate filtering','Applicant management','Resume access and downloads']},
     growth:{name:'Growth',price:449,suffix:'/ month',slots:5,popular:true,features:['Everything in Launch','Urgently Hiring badge on jobs','Advanced candidate filtering','Featured listings','Advanced hiring analytics']},
-    scale:{name:'Scale',price:649,suffix:'/ month',slots:8,features:['Everything in Growth','Urgently Hiring badge on jobs','High-volume hiring capacity','Advanced candidate tools','Team access and priority support']}
+    scale:{name:'Scale',price:649,suffix:'/ month',slots:8,features:['Everything in Growth','Urgently Hiring badge on jobs','Alygnn Recommended badge on eligible jobs','High-volume hiring capacity','Advanced candidate tools','Team access and priority support']}
   },
   weekly:{
     weekly_slot:{name:'Weekly Job Slot',price:99,suffix:'/ 7 days',slots:1,popular:true,features:['Adds 1 reusable job slot to your current capacity','Starts immediately after purchase','Expires 7 days after purchase','Close or pause a job and reuse the slot before expiration','Available with or without a monthly/quarterly plan']}
@@ -453,19 +555,6 @@ function displayPrice(value){
   return '$'+Number(value||0).toLocaleString('en-US');
 }
 
-function urgentlyHiringActive(){
-  if(
-    postingAccess?.urgently_hiring===true ||
-    entitlement?.urgently_hiring===true
-  ){
-    return true;
-  }
-
-  const plan=activePlanCode();
-  return basePaidPlanActive() &&
-    ['growth','scale'].includes(plan);
-}
-
 function renderPlanContext(){
   const box=$('plan-context');
   if(!box)return;
@@ -493,64 +582,148 @@ function renderPlanContext(){
     `${item.slots} plan job slots + 1 included free = ${item.slots+1} total.`;
 }
 
-function renderUrgentlyHiringAddon(){
-  const card=$('urgent-addon');
+const CURRENT_PLAN_FEATURES={
+  launch:[
+    {
+      title:'4 total reusable job slots',
+      detail:'3 Launch plan slots + 1 included free slot.'
+    },
+    {
+      title:'AI candidate matching',
+      detail:'Use Alygnn matching to surface stronger-fit candidates.'
+    },
+    {
+      title:'Candidate filtering',
+      detail:'Narrow applicants using the core employer filters.'
+    },
+    {
+      title:'Applicant management',
+      detail:'Review, shortlist, message, and manage candidates from Alygnn.'
+    },
+    {
+      title:'Resume access and downloads',
+      detail:'Open candidate resumes and download them when needed.'
+    }
+  ],
+
+  growth:[
+    {
+      title:'6 total reusable job slots',
+      detail:'5 Growth plan slots + 1 included free slot.'
+    },
+    {
+      title:'Everything in Launch',
+      detail:'Includes all Launch hiring tools and resume access.'
+    },
+    {
+      title:'Urgently Hiring',
+      detail:'Urgently Hiring badge is included on eligible Growth jobs.',
+      premium:true
+    },
+    {
+      title:'Featured listings',
+      detail:'Eligible listings receive enhanced visibility.',
+      premium:true
+    },
+    {
+      title:'Advanced candidate filtering',
+      detail:'Use deeper candidate filters to narrow your pipeline.'
+    },
+    {
+      title:'Advanced hiring analytics',
+      detail:'See stronger performance insights across your hiring activity.'
+    }
+  ],
+
+  scale:[
+    {
+      title:'9 total reusable job slots',
+      detail:'8 Scale plan slots + 1 included free slot.'
+    },
+    {
+      title:'Everything in Growth',
+      detail:'Includes every Growth feature and visibility benefit.'
+    },
+    {
+      title:'Urgently Hiring',
+      detail:'Urgently Hiring badge is included on eligible Scale jobs.',
+      premium:true
+    },
+    {
+      title:'Alygnn Recommended',
+      detail:'Scale-only premium recommendation label on eligible jobs.',
+      premium:true
+    },
+    {
+      title:'High-volume hiring capacity',
+      detail:'More reusable job capacity for larger hiring pipelines.'
+    },
+    {
+      title:'Advanced candidate tools',
+      detail:'Use Alygnn’s expanded candidate-management tools.'
+    },
+    {
+      title:'Team access and priority support',
+      detail:'Scale includes team-oriented access and priority support.'
+    }
+  ]
+};
+
+function renderCurrentPlanFeatures(){
+  const card=$('current-plan-features');
+
   if(!card)return;
 
-  const copy=$('urgent-addon-copy');
-  const price=$('urgent-addon-price');
-  const btn=$('urgent-addon-btn');
-
-  const current=activePlanCode();
-  const included=urgentlyHiringActive();
-
-  card.classList.toggle('included',included);
-
-  if(included){
-    price.textContent='Included';
-    copy.textContent=
-      `${current==='scale'?'Scale':'Growth'} already includes the Urgently Hiring label.`;
-    btn.disabled=true;
-    btn.textContent='Included with your plan';
-    return;
-  }
-
   if(!basePaidPlanActive()){
-    price.innerHTML='$49 <small>/ month</small>';
-    copy.textContent=
-      'Urgently Hiring is available as a Launch add-on. Growth and Scale include it automatically.';
-    btn.disabled=true;
-    btn.textContent='Available with Launch';
+    card.hidden=true;
     return;
   }
 
-  if(current!=='launch'){
-    price.textContent='Included';
-    copy.textContent=
-      'Your current plan already includes Urgently Hiring.';
-    btn.disabled=true;
-    btn.textContent='Included with your plan';
+  const plan=activePlanCode();
+
+  if(!['launch','growth','scale'].includes(plan)){
+    card.hidden=true;
     return;
   }
 
-  const period=activeBillingPeriod();
-  const amount=period==='quarterly'?129:49;
+  const item=
+    CATALOG[activeBillingPeriod()]?.[plan];
 
-  price.innerHTML=
-    `$${amount} <small>${period==='quarterly'?'/ 3 months':'/ month'}</small>`;
+  const features=
+    CURRENT_PLAN_FEATURES[plan]||
+    [];
 
-  copy.textContent=
-    'Add the Urgently Hiring label to your active Launch listings.';
+  if(!item||!features.length){
+    card.hidden=true;
+    return;
+  }
 
-  btn.disabled=false;
-  btn.textContent='Add Urgently Hiring';
+  card.hidden=false;
 
-  btn.onclick=()=>{
-    location.href=
-      'app-employer-payment.html?product=urgently_hiring_addon&billing='+
-      encodeURIComponent(period);
-  };
+  $('current-features-title').textContent=
+    `${item.name} features`;
+
+  $('current-features-plan').textContent=
+    item.name;
+
+  $('current-features-copy').textContent=
+    `${item.name} is active. These benefits are already included with your current plan — no separate activation is required.`;
+
+  $('current-features-list').innerHTML=
+    features
+      .map(feature=>`
+        <div class="current-feature ${feature.premium?'premium':''}">
+          <div class="current-feature-check">✓</div>
+
+          <div class="current-feature-copy">
+            <strong>${escapeHtml(feature.title)}</strong>
+            <span>${escapeHtml(feature.detail)}</span>
+          </div>
+        </div>
+      `)
+      .join('');
 }
+
 
 function activeBillingPeriod(){
   const raw=String(
@@ -854,7 +1027,7 @@ function renderPlans(){
   const currentLimit=effectiveSlotLimit();
 
   renderPlanContext();
-  renderUrgentlyHiringAddon();
+  renderCurrentPlanFeatures();
 
   if(billing==='weekly' && weeklyUpgradeRecommended()){
     const current=activePlanCode();
