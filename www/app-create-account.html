@@ -360,11 +360,6 @@ button{
   color:#4285F4;
 }
 
-.apple-icon{
-  width:21px;
-  height:23px;
-  color:#111;
-}
 
 .signin{
   margin-top:22px;
@@ -573,9 +568,6 @@ html[data-effective-theme="dark"] .secondary-btn{
   color:var(--text);
 }
 
-html[data-effective-theme="dark"] .apple-icon{
-  color:#fff;
-}
 
 html[data-effective-theme="dark"] .existing-account-card{
   background:#102331;
@@ -796,7 +788,7 @@ html[data-effective-theme="dark"] .existing-account-card{
       inputmode="numeric"
       autocomplete="one-time-code"
       placeholder="Code"
-      maxlength="8"
+      maxlength="6"
     >
 
     <div class="verify-actions">
@@ -835,120 +827,6 @@ const sb=supabase.createClient(
     }
   }
 );
-
-const ALYGNN_NATIVE_OAUTH_REDIRECT='alygnn://auth/callback';
-
-function isNativeCapacitor(){
-  try{
-    return !!(
-      window.Capacitor &&
-      typeof window.Capacitor.isNativePlatform==='function' &&
-      window.Capacitor.isNativePlatform()
-    );
-  }catch(_error){
-    return false;
-  }
-}
-
-function nativePlugin(name){
-  return window.Capacitor?.Plugins?.[name] || null;
-}
-
-function callbackParams(url){
-  const parsed=new URL(url);
-  const query=parsed.searchParams;
-  const hash=new URLSearchParams((parsed.hash||'').replace(/^#/,''));
-
-  return {
-    accessToken:hash.get('access_token')||query.get('access_token'),
-    refreshToken:hash.get('refresh_token')||query.get('refresh_token'),
-    code:query.get('code')||hash.get('code'),
-    error:query.get('error_description')||hash.get('error_description')||
-      query.get('error')||hash.get('error')
-  };
-}
-
-async function consumeNativeOAuthCallback(url){
-  if(!url || !url.startsWith(ALYGNN_NATIVE_OAUTH_REDIRECT)) return false;
-
-  const params=callbackParams(url);
-
-  if(params.error){
-    throw new Error(decodeURIComponent(params.error.replace(/\+/g,' ')));
-  }
-
-  if(params.accessToken && params.refreshToken){
-    const {error}=await sb.auth.setSession({
-      access_token:params.accessToken,
-      refresh_token:params.refreshToken
-    });
-    if(error) throw error;
-  }else if(params.code){
-    const {error}=await sb.auth.exchangeCodeForSession(params.code);
-    if(error) throw error;
-  }else{
-    throw new Error('Google sign-up returned to Alygnn without a session.');
-  }
-
-  try{
-    const Browser=nativePlugin('Browser');
-    if(Browser?.close) await Browser.close();
-  }catch(_error){}
-
-  return true;
-}
-
-async function waitForGoogleSession(){
-  for(let attempt=0;attempt<10;attempt++){
-    const {data}=await sb.auth.getSession();
-    if(data?.session) return data.session;
-    await new Promise(resolve=>setTimeout(resolve,180));
-  }
-  return null;
-}
-
-async function finishGoogleSignup(url){
-  try{
-    const handled=await consumeNativeOAuthCallback(url);
-    if(!handled) return;
-
-    localStorage.setItem('alygnn_account_type','candidate');
-    localStorage.setItem('alygnn_google_auth_mode','signup');
-
-    const session=await waitForGoogleSession();
-
-    if(!session){
-      throw new Error(
-        'Google sign-up returned to Alygnn, but the session was not saved. Please try Google sign-up again.'
-      );
-    }
-
-    location.replace('app-google-set-password.html');
-  }catch(error){
-    setSignupMessage(
-      error?.message || 'Unable to finish Google sign-up.',
-      'error'
-    );
-  }
-}
-
-async function setupNativeGoogleReturn(){
-  if(!isNativeCapacitor()) return;
-
-  const App=nativePlugin('App');
-  if(!App) return;
-
-  await App.addListener('appUrlOpen',({url})=>{
-    finishGoogleSignup(url);
-  });
-
-  const launch=await App.getLaunchUrl();
-
-  if(launch?.url){
-    await finishGoogleSignup(launch.url);
-  }
-}
-
 
 let pendingSignupEmail="";
 
@@ -1131,8 +1009,8 @@ async function verifyEmailCode(){
     return;
   }
 
-  if(token.length<6){
-    setVerifyMessage("Enter the verification code from your email.","error");
+  if(!/^\d{6}$/.test(token)){
+    setVerifyMessage("Enter the 6-digit verification code from your email.","error");
     return;
   }
 
@@ -1201,55 +1079,18 @@ async function resendVerificationCode(){
 async function googleSignup(){
   setSignupMessage("","");
 
-  localStorage.setItem('alygnn_account_type','candidate');
-  localStorage.setItem('alygnn_google_auth_mode','signup');
-
-  try{
-    if(isNativeCapacitor()){
-      const {data,error}=await sb.auth.signInWithOAuth({
-        provider:'google',
-        options:{
-          redirectTo:ALYGNN_NATIVE_OAUTH_REDIRECT,
-          skipBrowserRedirect:true,
-          queryParams:{
-            prompt:'select_account'
-          }
-        }
-      });
-
-      if(error) throw error;
-      if(!data?.url) throw new Error('Unable to open Google sign-up.');
-
-      const Browser=nativePlugin('Browser');
-
-      if(Browser?.open){
-        await Browser.open({
-          url:data.url,
-          toolbarColor:'#071722'
-        });
-      }else{
-        window.location.href=data.url;
+  const {error}=await sb.auth.signInWithOAuth({
+    provider:"google",
+    options:{
+      redirectTo:"https://alygnn.com/app-account.html",
+      queryParams:{
+        prompt:"select_account"
       }
-
-      return;
     }
+  });
 
-    const {error}=await sb.auth.signInWithOAuth({
-      provider:'google',
-      options:{
-        redirectTo:'https://alygnn.com/app-google-set-password.html',
-        queryParams:{
-          prompt:'select_account'
-        }
-      }
-    });
-
-    if(error) throw error;
-  }catch(error){
-    setSignupMessage(
-      error?.message || 'Unable to continue with Google.',
-      'error'
-    );
+  if(error){
+    setSignupMessage(error.message||"Unable to continue with Google.","error");
   }
 }
 
@@ -1275,8 +1116,6 @@ document
 document
   .getElementById("google-btn")
   .addEventListener("click",googleSignup);
-
-setupNativeGoogleReturn();
 
 
 document
