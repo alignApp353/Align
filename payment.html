@@ -54,6 +54,15 @@
   .authorization{font-size:11px;color:var(--muted);line-height:1.55;margin:9px 0 0 27px}
   .checkout-btn{width:100%;margin-top:16px;border:0;border-radius:999px;background:var(--brand);color:white;padding:14px 18px;font:600 14px 'DM Sans',sans-serif;cursor:pointer;transition:.2s}.checkout-btn:hover:not(:disabled){opacity:.9}.checkout-btn:disabled{opacity:.45;cursor:not-allowed}
   .message{display:none;margin-top:14px;padding:12px 14px;border-radius:12px;font-size:12px;line-height:1.5}.message.error{display:block;background:#FFF1F1;color:#8A4545;border:1px solid #F0CECE}.message.info{display:block;background:#EEF4F9;color:#466580;border:1px solid #D6E3EE}
+  .weekly-timing{display:none;margin-top:14px;padding:14px 16px;border:1px solid #D6E3EE;border-radius:14px;background:#F4F8FB}
+  .weekly-timing.show{display:block}
+  .weekly-timing-title{margin-bottom:8px;font-size:12px;font-weight:700;color:var(--text)}
+  .weekly-timing-row{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:7px 0;border-top:1px solid #DCE6EE;font-size:11.5px;line-height:1.45}
+  .weekly-timing-row:first-of-type{border-top:0}
+  .weekly-timing-label{flex:0 0 auto;color:var(--muted)}
+  .weekly-timing-value{text-align:right;font-weight:600;color:var(--text)}
+  .weekly-timing-note{margin-top:8px;color:var(--muted);font-size:10.5px;line-height:1.5}
+
   .fineprint{font-size:10px;color:var(--muted);line-height:1.55;text-align:center;margin-top:10px}
 
   .summary{position:static;top:auto;align-self:start}.summary-top{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--border);gap:12px}.summary-name{font-size:15px;font-weight:600}.pill{font-size:11px;padding:5px 9px;border-radius:999px;background:#EDF6F0;color:#4F9568;white-space:nowrap}
@@ -103,6 +112,22 @@
         <button type="button" class="billing-tab" id="billing-weekly" onclick="setBilling('weekly')">Weekly</button>
       </div>
       <div class="plan-options" id="plan-options"></div>
+
+      <div class="weekly-timing" id="weekly-timing">
+        <div class="weekly-timing-title">Weekly Job Slot timing</div>
+        <div class="weekly-timing-row">
+          <span class="weekly-timing-label">Starts</span>
+          <span class="weekly-timing-value" id="weekly-start-time">Immediately after successful payment</span>
+        </div>
+        <div class="weekly-timing-row">
+          <span class="weekly-timing-label">Ends</span>
+          <span class="weekly-timing-value" id="weekly-end-time">7 days after activation</span>
+        </div>
+        <div class="weekly-timing-note">
+          If activated now, the dates above show the expected 7-day window. When the Weekly Job Slot expires, the job using that temporary slot closes automatically. Applications, messages, and history stay saved.
+        </div>
+      </div>
+
       <div class="enterprise-note" id="enterprise-note">Need 15+ active job slots? <a href="contact.html?topic=enterprise">Contact sales for Enterprise.</a></div>
 
       <div class="panel-title">2. Employer account</div>
@@ -344,6 +369,39 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     document.getElementById('enterprise-note').style.display=selectedBilling==='weekly'?'none':'block';
   }
 
+  function formatWeeklySlotDate(date){
+    try{
+      return new Intl.DateTimeFormat('en-US',{
+        month:'short',
+        day:'numeric',
+        year:'numeric',
+        hour:'numeric',
+        minute:'2-digit',
+        timeZoneName:'short'
+      }).format(date);
+    }catch{
+      return date.toLocaleString();
+    }
+  }
+
+  function renderWeeklyTiming(){
+    const box=document.getElementById('weekly-timing');
+    if(!box) return;
+
+    const shouldShow=!isAddon() && selectedBilling==='weekly';
+    box.classList.toggle('show',shouldShow);
+    if(!shouldShow) return;
+
+    const start=new Date();
+    const end=new Date(start.getTime() + (7*24*60*60*1000));
+
+    document.getElementById('weekly-start-time').textContent=
+      `Immediately after payment · ${formatWeeklySlotDate(start)}`;
+
+    document.getElementById('weekly-end-time').textContent=
+      formatWeeklySlotDate(end);
+  }
+
   function slotLimitFor(plan,billing){
     if(billing==='weekly') return 1;
     if(plan==='growth') return 6;
@@ -393,6 +451,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     document.getElementById('summary-sub').textContent=p.slots;
     document.getElementById('summary-features').innerHTML=p.features.map(x=>`<li>${x}</li>`).join('');
     document.getElementById('subtotal').textContent=money(p.price);
+    renderWeeklyTiming();
 
     if(developerTestMode){
       document.getElementById('tax-row').style.display='none';
