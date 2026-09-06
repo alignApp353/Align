@@ -324,6 +324,60 @@ nav{
   margin-left:18px;
 }
 
+.company-profile-heading{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+.company-profile-heading h2{
+  margin-bottom:0;
+}
+.company-verified-badge{
+  display:none;
+  align-items:center;
+  gap:4px;
+  padding:4px 9px;
+  border-radius:100px;
+  background:rgba(111,191,143,.14);
+  color:#2d8a57;
+  font-size:10px;
+  font-weight:700;
+}
+.company-verified-badge.show{ display:inline-flex; }
+.company-about{
+  margin-bottom:14px;
+  color:var(--text-muted) !important;
+}
+.company-public-links{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.company-public-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:34px;
+  padding:7px 12px;
+  border:1px solid var(--border);
+  border-radius:100px;
+  background:white;
+  color:var(--brand);
+  text-decoration:none;
+  font-size:12px;
+  font-weight:500;
+}
+.company-public-link:hover{
+  border-color:var(--brand);
+  background:rgba(93,127,163,.05);
+}
+.company-public-link.media-kit{
+  border-color:rgba(93,127,163,.34);
+  background:rgba(93,127,163,.08);
+}
+
 .field-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -392,6 +446,14 @@ nav{
     <div class="applied-note" id="applied-note"></div>
   </div>
 
+  <div class="section" id="company-profile-section" style="display:none;">
+    <div class="company-profile-heading">
+      <h2 id="company-profile-title">About the company</h2>
+      <span class="company-verified-badge" id="company-verified-badge">✓ Verified business</span>
+    </div>
+    <p class="company-about" id="company-profile-about" style="display:none;"></p>
+    <div class="company-public-links" id="company-public-links"></div>
+  </div>
 
   <div class="section match-section" id="match-section">
     <h2>Your Alygnn match</h2>
@@ -738,6 +800,80 @@ async function loadInterviewInfo(jobId, candidateId){
   return (!error && data) ? data : null;
 }
 
+function safeCompanyLink(value){
+  const cleaned = String(value || '').trim();
+  if(!cleaned) return '';
+
+  try{
+    const url = new URL(cleaned);
+    if(url.protocol !== 'https:') return '';
+    return url.toString();
+  }catch{
+    return '';
+  }
+}
+
+async function loadPublicEmployerProfile(employerId){
+  if(!employerId) return null;
+
+  const { data, error } = await sb.rpc('get_public_employer_profile', {
+    target_employer: employerId
+  });
+
+  if(error){
+    console.warn('Could not load public employer profile:', error);
+    return null;
+  }
+
+  return Array.isArray(data) ? (data[0] || null) : (data || null);
+}
+
+function renderPublicEmployerProfile(profile, fallbackCompanyName){
+  if(!profile) return;
+
+  const section = document.getElementById('company-profile-section');
+  const title = document.getElementById('company-profile-title');
+  const about = document.getElementById('company-profile-about');
+  const verified = document.getElementById('company-verified-badge');
+  const linksWrap = document.getElementById('company-public-links');
+
+  const companyName = profile.company_name || fallbackCompanyName || 'Company';
+  title.textContent = `About ${companyName}`;
+
+  const aboutText = String(profile.company_headline || '').trim();
+  if(aboutText){
+    about.textContent = aboutText;
+    about.style.display = '';
+  }else{
+    about.textContent = '';
+    about.style.display = 'none';
+  }
+
+  if(profile.employer_verified === true){
+    verified.classList.add('show');
+  }else{
+    verified.classList.remove('show');
+  }
+
+  const links = [
+    { label: 'Website', url: profile.public_website_url || profile.company_website },
+    { label: 'LinkedIn', url: profile.linkedin_url },
+    { label: 'Instagram', url: profile.instagram_url },
+    { label: 'Facebook', url: profile.facebook_url },
+    { label: 'Media kit', url: profile.media_kit_url, cls: 'media-kit' }
+  ]
+    .map(item => ({ ...item, url: safeCompanyLink(item.url) }))
+    .filter(item => item.url);
+
+  linksWrap.innerHTML = links.map(item =>
+    `<a class="company-public-link ${item.cls || ''}" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.label)} ↗</a>`
+  ).join('');
+
+  if(aboutText || links.length || profile.employer_verified === true){
+    section.style.display = '';
+  }
+}
+
 // Known job-table fields we know how to present nicely, in display order.
 // Fields not in this list (e.g. internal ids, employer_id, view counters)
 // are simply skipped rather than dumped raw onto the page.
@@ -931,10 +1067,14 @@ async function initJobDetailsPage(){
   // has no application against it (or, if their account happens to also
   // have applied to a job as a candidate elsewhere, that status has
   // nothing to do with this preview and would be actively misleading).
-  const appInfo = isEmployerView ? null : await loadApplicationInfo(jobId, appId, session.user.id);
-  const interviewInfo = isEmployerView ? null : await loadInterviewInfo(jobId, session.user.id);
+  const [appInfo, interviewInfo, publicEmployerProfile] = await Promise.all([
+    isEmployerView ? Promise.resolve(null) : loadApplicationInfo(jobId, appId, session.user.id),
+    isEmployerView ? Promise.resolve(null) : loadInterviewInfo(jobId, session.user.id),
+    loadPublicEmployerProfile(job.employer_id)
+  ]);
 
   renderJob(job, appInfo, interviewInfo);
+  renderPublicEmployerProfile(publicEmployerProfile, job.company);
   showPage();
 
   if(!isEmployerView){
