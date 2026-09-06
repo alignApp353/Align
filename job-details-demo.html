@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>Alygnn — Demo Job Details</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--brand:#5D7FA3;--sage:#8CB69B;--bg:#F0F3F2;--card:#FCFCFA;--text:#1A2530;--muted:#4A5968;--border:#DDE3E8;--mint:#6FBF8F;--brand-light:rgba(93,127,163,.08)}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+nav{height:64px;background:rgba(246,248,247,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 5%;display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:'DM Serif Display',serif;font-size:22px;color:var(--brand);text-decoration:none}.logo span{color:var(--sage)}
+.nav-right{display:flex;align-items:center;gap:18px}.demo-badge{font-size:12px;color:var(--muted);background:var(--brand-light);padding:5px 12px;border-radius:999px}.back{font-size:14px;color:var(--muted);text-decoration:none}
+main{max-width:820px;margin:0 auto;padding:56px 22px 90px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:36px;box-shadow:0 6px 28px rgba(0,0,0,.06)}
+.top{display:flex;gap:16px;align-items:flex-start}.logo-box{width:58px;height:58px;border-radius:14px;border:1px solid var(--border);background:var(--brand-light);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;color:var(--brand);font-size:20px}
+h1{font-family:'DM Serif Display',serif;font-size:30px;line-height:1.15}.company{color:var(--muted);margin-top:4px}
+.match{display:inline-flex;margin:22px 0 12px;background:rgba(111,191,143,.15);color:#3a9463;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600}
+.pills{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:26px}.pill{font-size:12px;padding:5px 11px;border:1px solid var(--border);border-radius:999px;color:var(--muted)}.salary{background:var(--brand-light);color:var(--brand)}.recommended{background:rgba(93,127,163,.10);color:var(--brand);font-weight:700}.urgent{background:rgba(215,154,154,.14);color:#9a5151;font-weight:700}
+section{padding:24px 0;border-top:1px solid var(--border)}section:first-of-type{border-top:0}.label{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px}.copy{font-size:15px;line-height:1.75;color:var(--muted)}
+ul{padding-left:20px;color:var(--muted);font-size:14px;line-height:1.8}
+.benefits{display:flex;flex-wrap:wrap;gap:8px}.benefit{font-size:12px;padding:6px 11px;border-radius:999px;background:rgba(111,191,143,.1);color:#2e7a52}
+.actions{display:flex;gap:12px;margin-top:28px}.btn{border:0;border-radius:999px;padding:13px 22px;font:600 14px 'DM Sans';cursor:pointer}.primary{background:var(--brand);color:#fff}.secondary{background:transparent;border:1px solid var(--border);color:var(--text)}
+@media(max-width:640px){.demo-badge{display:none}.card{padding:24px}h1{font-size:26px}}
+</style>
+</head>
+<body>
+<nav>
+<a class="logo" href="index.html">Alygnn<span>.</span></a>
+<div class="nav-right"><span class="demo-badge">Demo · example data</span><a class="back" href="swipe-demo.html">← Keep swiping</a></div>
+</nav>
+<main>
+<div class="card" id="job-card">
+  <div class="top"><div class="logo-box" id="initials">D</div><div><h1 id="title">Demo job</h1><div class="company" id="company"></div></div></div>
+  <div class="match" id="match"></div>
+  <div class="pills" id="pills"></div>
+  <section><div class="label">About the role</div><div class="copy" id="description"></div></section>
+  <section><div class="label">Requirements</div><ul id="requirements"></ul></section>
+  <section><div class="label">Benefits</div><div class="benefits" id="benefits"></div></section>
+  <div class="actions"><button class="btn primary" onclick="demoApply()">Apply now</button><button class="btn secondary" onclick="window.location.href='swipe-demo.html'">Keep swiping</button></div>
+</div>
+</main>
+<script>
+function esc(v){return String(v||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
+function initials(n){return String(n||'D').trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()}
+const raw=sessionStorage.getItem('alygnn_demo_job');
+const job=raw?JSON.parse(raw):null;
+if(!job){window.location.replace('swipe-demo.html')}
+else{
+ document.getElementById('initials').textContent=initials(job.company);
+ document.getElementById('title').textContent=job.title;
+ document.getElementById('company').textContent=job.company;
+ document.getElementById('match').textContent='✦ '+job.match_score+'% match';
+ const pills=[];
+ if(job.alygnn_recommended)pills.push('<span class="pill recommended">Alygnn Recommended</span>');
+ if(job.urgently_hiring)pills.push('<span class="pill urgent">Urgently Hiring</span>');
+ if(job.location)pills.push('<span class="pill">📍 '+esc(job.location)+'</span>');
+ if(job.job_type)pills.push('<span class="pill">'+esc(job.job_type)+'</span>');
+ if(job.salary)pills.push('<span class="pill salary">'+esc(job.salary)+'</span>');
+ document.getElementById('pills').innerHTML=pills.join('');
+ document.getElementById('description').textContent=job.description||'';
+ document.getElementById('requirements').innerHTML=String(job.requirements||'').split('\n').filter(Boolean).map(x=>'<li>'+esc(x)+'</li>').join('');
+ document.getElementById('benefits').innerHTML=String(job.benefits||'').split('\n').filter(Boolean).map(x=>'<span class="benefit">'+esc(x)+'</span>').join('');
+}
+function demoApply(){
+ sessionStorage.setItem('alygnn_demo_applied_from_details','1');
+ window.location.href='swipe-demo.html';
+}
+</script>
+</body>
+</html>
