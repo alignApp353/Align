@@ -336,7 +336,19 @@ main{
   border-radius:13px;padding:12px 13px;font:15px/1.45 'DM Sans',sans-serif;outline:none;color:var(--text);background:#fff
 }
 .composer textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,127,163,.08)}
+.composer textarea:disabled{
+  background:#F5F7F8;
+  color:#8A96A0;
+  cursor:not-allowed;
+  opacity:1;
+}
 .send-btn{min-width:78px;height:46px;border:0;border-radius:13px;background:var(--brand);color:#fff;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.send-btn:disabled{
+  background:#AEBBC7;
+  color:#fff;
+  cursor:not-allowed;
+  opacity:.72;
+}
 .messages-legal{
   min-height:26px;display:flex;align-items:flex-end;justify-content:center;gap:7px;
   padding-top:8px;font-size:11px;color:var(--muted);flex:0 0 auto
@@ -916,21 +928,15 @@ function renderChat(){
       ${t.messages.map(m=>`<div class="msg-row ${m.mine?'mine':''}"><div class="bubble">${m.body}<div class="bubble-time">${m.time}</div></div></div>`).join('')}
     </div>
     <div class="composer">
-      <textarea id="demo-message-input" maxlength="2000" placeholder="Write a message…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendDemoMessage()}"></textarea>
-      <button class="send-btn" onclick="sendDemoMessage()">Send</button>
+      <textarea id="demo-message-input" maxlength="2000" placeholder="Messaging is disabled in demo mode." disabled aria-disabled="true"></textarea>
+      <button class="send-btn" type="button" disabled aria-disabled="true" title="Messaging is disabled in demo mode">Send</button>
     </div>`;
   requestAnimationFrame(()=>{const m=document.getElementById('messages');if(m)m.scrollTop=m.scrollHeight});
 }
 
 function sendDemoMessage(){
-  const input=document.getElementById('demo-message-input');
-  const body=(input?.value||'').trim();
-  if(!body){demoToast('Type an example message first.');return}
-  const t=demoThreads.find(x=>x.id===activeThreadId)||demoThreads[0];
-  t.messages.push({mine:true,body,time:'Now'});
-  input.value='';
-  renderConversations();renderChat();
-  demoToast('Sent locally in the demo only.');
+  demoToast('Messaging is disabled in demo mode.');
+  return;
 }
 
 let toastTimer;
