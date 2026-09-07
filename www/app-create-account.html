@@ -978,7 +978,7 @@ async function signup(){
     }
 
     if(data?.session){
-      window.location.href="app-account.html";
+      window.location.href="app-workspaces.html?after_login=1&preferred=candidate";
       return;
     }
 
@@ -1021,67 +1021,18 @@ async function verifyEmailCode(){
     const {data,error}=await sb.auth.verifyOtp({
       email:pendingSignupEmail,
       token,
-      type:"signup"
+      type:"email"
     });
 
     if(error)throw error;
 
-    /*
-     * A successful signup OTP should normally return a session.
-     * If it does not, recover the session before navigating instead
-     * of throwing the user back to Login.
-     */
-    let verifiedSession=
-      data?.session||
-      null;
-
-    if(!verifiedSession){
-      const current=
-        await sb.auth.getSession();
-
-      verifiedSession=
-        current?.data?.session||
-        null;
-    }
-
-    if(!verifiedSession){
-      const password=
-        document
-          .getElementById("password")
-          .value;
-
-      if(password){
-        const signIn=
-          await sb.auth.signInWithPassword({
-            email:pendingSignupEmail,
-            password
-          });
-
-        if(signIn.error){
-          throw signIn.error;
-        }
-
-        verifiedSession=
-          signIn.data?.session||
-          null;
-      }
-    }
-
-    if(!verifiedSession){
-      throw new Error(
-        "Your email was verified, but Alygnn could not start your session. Please try again."
-      );
-    }
-
-    setVerifyMessage(
-      "Email verified. Continuing to your Alygnn account…",
-      "success"
-    );
+    setVerifyMessage("Email confirmed. Continuing…","success");
 
     setTimeout(()=>{
-      window.location.replace(
-        "app-account.html"
-      );
+      window.location.href=
+        data?.session
+          ?"app-workspaces.html?after_login=1&preferred=candidate"
+          :"app-login.html";
     },600);
 
   }catch(error){
@@ -1131,7 +1082,7 @@ async function googleSignup(){
   const {error}=await sb.auth.signInWithOAuth({
     provider:"google",
     options:{
-      redirectTo:"https://alygnn.com/app-account.html",
+      redirectTo:"https://alygnn.com/app-workspaces.html?after_login=1&preferred=candidate",
       queryParams:{
         prompt:"select_account"
       }
