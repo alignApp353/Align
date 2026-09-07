@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Alygnn Workspaces</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{--brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--card:#FCFCFA;--text:#1A2530;--muted:#607185;--border:#DDE3E8;--danger:#B54747;--success:#26815A}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:'DM Sans',Arial,sans-serif;background:var(--bg);color:var(--text)}
+body{background:radial-gradient(circle at 20% 0,rgba(140,182,155,.14),transparent 30%),var(--bg)}
+.shell{max-width:520px;margin:auto;min-height:100vh;padding:calc(26px + env(safe-area-inset-top)) 22px calc(36px + env(safe-area-inset-bottom))}
+.brand{font-family:'DM Serif Display',Georgia,serif;font-size:48px;color:var(--brand);text-align:center}.brand span{color:var(--sage)}
+.eyebrow{margin-top:32px;color:#356699;font-size:12px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase}
+h1{font-size:34px;line-height:1.05;margin:10px 0}.lead{margin:0;color:var(--muted);font-size:15px;line-height:1.65}
+.notice{display:none;margin-top:16px;padding:13px 14px;border-radius:14px;font-size:12px;font-weight:800;line-height:1.5}.notice.show{display:block}.notice.success{background:#EAF7F0;color:#176844;border:1px solid #CBE8D7}.notice.error{background:#FFF1F0;color:#A83838;border:1px solid #F0CDCA}
+.section-title{margin:26px 2px 10px;color:#68788B;font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase}
+.card{background:var(--card);border:1px solid var(--border);border-radius:21px;padding:18px;margin-top:10px;box-shadow:0 18px 44px rgba(34,56,76,.08)}
+.card-top{display:flex;gap:13px}.icon{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:#EAF1F7;color:#356699;font-weight:900;flex:none}
+.card-copy{flex:1;min-width:0}.card-copy strong{display:block;font-size:16px;font-weight:900}.card-copy span{display:block;color:var(--muted);font-size:12px;line-height:1.45;margin-top:4px}
+.badge{display:inline-block!important;width:max-content;margin-top:8px!important;padding:5px 8px;border-radius:999px;background:#EDF6F1;color:#26734F!important;font-size:9px!important;font-weight:900;text-transform:uppercase}
+.invite-note{margin-top:12px;padding:11px 12px;border-radius:13px;background:#EEF4F8;color:#48667F;font-size:11px;line-height:1.55}
+.actions{display:flex;gap:9px;margin-top:15px}.btn{flex:1;min-height:48px;border-radius:14px;border:1px solid var(--border);font:900 12px 'DM Sans';background:white;color:var(--text)}.btn.primary{background:var(--brand);border-color:var(--brand);color:white}.btn.danger{color:var(--danger);background:#FFF8F7;border-color:#EBCFCD}.btn:disabled{opacity:.55}
+.loading{text-align:center;padding:56px 0;color:var(--muted);font-weight:800}.footer{margin-top:28px;text-align:center}.footer button{border:0;background:none;color:var(--muted);font:800 12px 'DM Sans'}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main class="shell">
+<div class="brand">Alygnn<span>.</span></div>
+<div class="eyebrow">Your Alygnn account</div>
+<h1>Choose your workspace</h1>
+<p class="lead">One login can keep your candidate profile separate from the company workspace you are allowed to use.</p>
+<div class="notice" id="message"></div>
+<div class="loading" id="loading">Checking your workspaces…</div>
+<section id="content" hidden>
+  <div id="invites-wrap" hidden><div class="section-title">Invitations</div><div id="invites"></div></div>
+  <div id="workspaces-wrap" hidden><div class="section-title">Workspaces</div><div id="workspaces"></div></div>
+  <div class="footer"><button id="sign-out" type="button">Sign out</button></div>
+</section>
+</main>
+<script>
+const sb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const $=id=>document.getElementById(id);
+const params=new URLSearchParams(location.search);
+const manual=params.get('manual')==='1';
+const preferred=String(params.get('preferred')||'').toLowerCase();
+let context=null;
+
+function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;")}
+function initials(v){const p=String(v||'').trim().split(/\s+/).filter(Boolean);return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():(p[0]?.slice(0,2).toUpperCase()||'A')}
+function roleLabel(r){return({owner:'Owner',admin:'Admin',hiring_manager:'Hiring Manager',recruiter:'Recruiter',member:'Team Member'})[String(r||'').toLowerCase()]||'Team Member'}
+function showMessage(m,t='success'){const e=$('message');e.textContent=m;e.className='notice show '+t}
+function employerDestination(w){return String(w?.verification_status||'pending_review').toLowerCase()==='approved'?'app-employer-dashboard.html':'app-employer-verification-status.html'}
+function rememberWorkspace(type,companyId=''){const v=type==='candidate'?'candidate':`employer:${companyId}`;localStorage.setItem('alygnn_last_workspace',v);localStorage.setItem('alygnn_account_type',type==='candidate'?'candidate':'employer');if(companyId){localStorage.setItem('alygnn_company_id',companyId);if(context?.user_id)localStorage.setItem(`alygnn_company_id_${context.user_id}`,companyId)}}
+function openCandidate(){rememberWorkspace('candidate');location.replace('app-account.html')}
+function openEmployer(w){rememberWorkspace('employer',String(w.company_id||''));location.replace(employerDestination(w))}
+
+function renderInvites(){
+  const invites=Array.isArray(context?.pending_invites)?context.pending_invites:[];
+  $('invites-wrap').hidden=!invites.length;
+  $('invites').innerHTML=invites.map(i=>`
+    <article class="card">
+      <div class="card-top"><div class="icon">${esc(initials(i.company_name))}</div><div class="card-copy"><strong>${esc(i.company_name||'Company')}</strong><span>You were invited as ${esc(roleLabel(i.team_role))}.</span><span class="badge">Awaiting your decision</span></div></div>
+      <div class="invite-note">Accepting adds employer access to this same Alygnn login. Your candidate resume, preferences, saved jobs, and applications stay separate.</div>
+      <div class="actions"><button class="btn danger" type="button" data-decline="${esc(i.id)}">Decline</button><button class="btn primary" type="button" data-accept="${esc(i.id)}">Accept invitation</button></div>
+    </article>`).join('');
+}
+
+function renderWorkspaces(){
+  const employers=Array.isArray(context?.employer_workspaces)?context.employer_workspaces:[];
+  const cards=[];
+  if(context?.has_candidate===true){
+    cards.push(`<article class="card"><div class="card-top"><div class="icon">C</div><div class="card-copy"><strong>Candidate</strong><span>Resume, preferences, saved jobs, applications, and job matching.</span><span class="badge">Personal workspace</span></div></div><div class="actions"><button class="btn primary" id="open-candidate" type="button">Continue as Candidate</button></div></article>`);
+  }
+  for(const w of employers){
+    cards.push(`<article class="card"><div class="card-top"><div class="icon">${esc(initials(w.company_name))}</div><div class="card-copy"><strong>${esc(w.company_name||'Employer workspace')}</strong><span>${esc(roleLabel(w.team_role))} · Employer workspace</span><span class="badge">${w.verification_status==='approved'?'Active':'Verification pending'}</span></div></div><div class="actions"><button class="btn primary" type="button" data-open-employer="${esc(w.company_id)}">Continue to Company</button></div></article>`);
+  }
+  $('workspaces-wrap').hidden=!cards.length;
+  $('workspaces').innerHTML=cards.join('');
+  $('open-candidate')?.addEventListener('click',openCandidate);
+  document.querySelectorAll('[data-open-employer]').forEach(b=>b.addEventListener('click',()=>{const w=employers.find(x=>String(x.company_id)===String(b.dataset.openEmployer));if(w)openEmployer(w)}));
+}
+
+async function refreshContext(autoRoute=false){
+  const {data,error}=await sb.rpc('get_my_workspace_context');
+  if(error)throw error;
+  context=data||{};
+  const invites=Array.isArray(context.pending_invites)?context.pending_invites:[];
+  const employers=Array.isArray(context.employer_workspaces)?context.employer_workspaces:[];
+
+  if(autoRoute&&!manual&&!invites.length){
+    if(context.has_candidate===true&&employers.length===0&&preferred!=='employer'){openCandidate();return}
+    if(context.has_candidate!==true&&employers.length===1){openEmployer(employers[0]);return}
+    if(context.has_candidate!==true&&employers.length===0&&context.account_type==='employer'){location.replace('app-employer-onboarding.html');return}
+  }
+
+  renderInvites();renderWorkspaces();
+  if(!invites.length&&context.has_candidate!==true&&employers.length===0){
+    $('workspaces-wrap').hidden=false;
+    $('workspaces').innerHTML=`<article class="card"><div class="card-copy"><strong>No workspace access found</strong><span>This account is not connected to a candidate profile or employer workspace.</span></div></article>`;
+  }
+  $('loading').hidden=true;$('content').hidden=false;
+}
+
+async function acceptInvite(id,button){
+  button.disabled=true;const old=button.textContent;button.textContent='Accepting…';
+  try{
+    const {data,error}=await sb.rpc('accept_company_team_invite',{p_invite_id:id});
+    if(error)throw error;
+    if(data?.company_id)rememberWorkspace('employer',String(data.company_id));
+    showMessage(`You now have access to ${data?.company_name||'the company workspace'}. Your candidate profile was not changed.`,'success');
+    await refreshContext(false);
+  }catch(e){showMessage(e?.message||'Could not accept this invitation.','error')}
+  finally{button.disabled=false;button.textContent=old}
+}
+async function declineInvite(id,button){
+  if(!confirm('Decline this company invitation?'))return;
+  button.disabled=true;
+  try{const {error}=await sb.rpc('decline_company_team_invite',{p_invite_id:id});if(error)throw error;showMessage('Invitation declined.','success');await refreshContext(false)}
+  catch(e){showMessage(e?.message||'Could not decline this invitation.','error')}
+  finally{button.disabled=false}
+}
+$('invites').addEventListener('click',e=>{const a=e.target.closest('[data-accept]');if(a){acceptInvite(a.dataset.accept,a);return}const d=e.target.closest('[data-decline]');if(d)declineInvite(d.dataset.decline,d)});
+$('sign-out').onclick=async()=>{await sb.auth.signOut();location.replace('app-login.html?logout=1')};
+
+(async()=>{try{const {data,error}=await sb.auth.getSession();if(error||!data?.session){location.replace('app-login.html');return}await refreshContext(true)}catch(e){$('loading').hidden=true;$('content').hidden=false;showMessage(e?.message||'Could not load your Alygnn workspaces.','error')}})();
+</script>
+</body>
+</html>
