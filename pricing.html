@@ -364,8 +364,8 @@
 <div class="free-offer">
   <div class="free-offer-card">
     <div class="free-offer-copy">
-      <strong>Your first job slot is free</strong>
-      <p>1 active reusable job slot with access to up to 25 candidates total. No credit card required. After the 25-candidate limit is reached, add another job slot when you need more hiring capacity.</p>
+      <strong>Your first job slot is always free</strong>
+      <p>Your first active job always uses your permanent free slot first — even if you already have Launch, Growth, or Scale. It includes access to up to 25 candidates total. Paid plan slots are used after the free slot.</p>
     </div>
     <button class="plan-cta" id="free-plan-btn" onclick="choosePlan('free')">Use free job slot</button>
   </div>
@@ -415,6 +415,7 @@
         <li>Everything in Launch</li>
         <li>Urgently Hiring badge on jobs</li>
         <li>Advanced candidate filtering</li>
+        <li>Alygnn Recommended</li>
         <li>Advanced hiring analytics</li>
       </ul>
       <button class="plan-cta" data-plan-button="growth" data-plan-billing="quarterly" onclick="choosePlan('growth','quarterly')">Choose Growth</button>
@@ -473,6 +474,7 @@
         <li>Everything in Launch</li>
         <li>Urgently Hiring badge on jobs</li>
         <li>Advanced candidate filtering</li>
+        <li>Alygnn Recommended</li>
         <li>Advanced hiring analytics</li>
       </ul>
       <button class="plan-cta" data-plan-button="growth" data-plan-billing="monthly" onclick="choosePlan('growth','monthly')">Choose Growth</button>
@@ -718,13 +720,9 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       applyAccountPricingRules();
       updatePaidPlanCardState();
 
-      const freeBtn = document.getElementById('free-plan-btn');
-      if(freeBtn && freeJobUsed){
-        freeBtn.textContent = 'Free job slot used';
-        freeBtn.disabled = true;
-        freeBtn.style.opacity = '.55';
-        freeBtn.style.cursor = 'not-allowed';
-      }
+      // First active job always occupies the permanent Free slot,
+      // even if the employer bought a paid plan before posting anything.
+      updateFreeSlotButton();
 
       const authLink = document.getElementById('nav-auth-link');
       const ctaBtn = document.getElementById('nav-cta-btn');
@@ -782,6 +780,31 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
   function planDisplayName(plan){
     return ({launch:'Launch',growth:'Growth',scale:'Scale'})[String(plan||'').toLowerCase()] || titleCasePlan(plan);
+  }
+
+  // The permanent Free slot is always the FIRST active job slot.
+  // Paid plans add their plan slots after it:
+  // Launch = 1 Free + 3 paid, Growth = 1 Free + 5 paid, Scale = 1 Free + 8 paid.
+  function freeSlotOccupied(){
+    return Math.max(0, Number(currentAccess?.active_job_count || 0)) > 0;
+  }
+
+  function updateFreeSlotButton(){
+    const freeBtn=document.getElementById('free-plan-btn');
+    if(!freeBtn) return;
+
+    if(freeSlotOccupied()){
+      freeBtn.textContent='Free job slot in use';
+      freeBtn.disabled=true;
+      freeBtn.style.opacity='.55';
+      freeBtn.style.cursor='not-allowed';
+      return;
+    }
+
+    freeBtn.textContent='Use free job slot';
+    freeBtn.disabled=false;
+    freeBtn.style.opacity='';
+    freeBtn.style.cursor='';
   }
 
   function showPlanChangeMessage(text,type=''){
@@ -852,6 +875,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       if(!accessError) currentAccess=access||currentAccess;
       applyAccountPricingRules();
       updatePaidPlanCardState();
+      updateFreeSlotButton();
     }catch(error){
       console.warn('Could not refresh pricing access:',error);
     }
@@ -926,11 +950,15 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     if(!paid){
       if(currentAccess.second_slot_active===true){
-        guidanceCopy.textContent='You have the Free slot + Second Job Slot = 2 total. If you need more ongoing capacity, Launch gives you 4 total slots.';
+        guidanceCopy.textContent=used>0
+          ? 'Your first active job uses the permanent Free slot. Your Second Job Slot adds 1 paid slot for 2 total.'
+          : 'Your first job will use the permanent Free slot. Your Second Job Slot adds 1 paid slot after it for 2 total.';
         guidanceBtn.textContent='Compare Launch';
         guidanceBtn.onclick=()=>switchView('monthly');
       }else{
-        guidanceCopy.textContent='Your permanent Free slot is available. If you only need one more job, add the $150/month Second Job Slot; for more capacity, compare Launch.';
+        guidanceCopy.textContent=used>0
+          ? 'Your first active job is using the permanent Free slot. If you need a second job, add the $150/month Second Job Slot; for more capacity, compare Launch.'
+          : 'Your first job always uses the permanent Free slot. If you need a second job, add the $150/month Second Job Slot; for more capacity, compare Launch.';
         guidanceBtn.textContent='View Second Job Slot';
         guidanceBtn.onclick=()=>document.getElementById('single-job-slot')?.scrollIntoView({behavior:'smooth'});
       }
@@ -947,7 +975,11 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     }
 
     if(currentAccess.weekly_purchase_allowed===true){
-      guidanceCopy.textContent=`Your paid plan includes ${limit-weeklyCount} base slots including the permanent free slot. Need one temporary opening? Add +1 slot for $99 for 7 days.`;
+      const baseTotal=Math.max(1,limit-weeklyCount);
+      const paidPlanSlots=Math.max(0,baseTotal-1);
+      guidanceCopy.textContent=used>0
+        ? `Your first active job uses the permanent Free slot first. ${activePlanName} then gives you ${paidPlanSlots} paid plan slots after it, for ${baseTotal} base slots total. Need one temporary opening? Add +1 slot for $99 for 7 days.`
+        : `Your first job will use the permanent Free slot first. ${activePlanName} then gives you ${paidPlanSlots} paid plan slots after it, for ${baseTotal} base slots total. Need one temporary opening? Add +1 slot for $99 for 7 days.`;
       guidanceBtn.textContent='Add Weekly Job Slot';
       guidanceBtn.onclick=()=>switchView('weekly');
       return;
@@ -966,7 +998,9 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   function choosePlan(plan, billing){
     if(plan === 'free'){
       if(currentSession && currentRole === 'employer'){
-        if(freeJobUsed) return;
+        // The first active job always uses the permanent Free slot,
+        // regardless of whether the employer already has Launch, Growth, or Scale.
+        if(freeSlotOccupied()) return;
         window.location.href = 'employer-dashboard.html#post';
       }else{
         loginForPlan('free');
