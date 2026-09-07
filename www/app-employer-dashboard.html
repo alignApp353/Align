@@ -5531,7 +5531,8 @@
       companyEditorMode:'all',
       teamAccess:null,
       teamRoster:null,
-      editingTeamMember:null
+      editingTeamMember:null,
+      editingTeamInvite:null
     };
 
     const THEME_STORAGE_KEY = 'alygnnEmployerTheme';
@@ -10703,6 +10704,13 @@
               <button
                 class="team-mini-btn"
                 type="button"
+                data-team-edit-invite="${escapeHtml(String(invite.id||''))}">
+                Edit
+              </button>
+
+              <button
+                class="team-mini-btn"
+                type="button"
                 data-team-resend="${escapeHtml(String(invite.id||''))}">
                 Resend
               </button>
@@ -10842,6 +10850,7 @@
       }
 
       state.editingTeamMember=null;
+      state.editingTeamInvite=null;
 
       $('team-form-title').textContent=
         'Invite team member';
@@ -10878,6 +10887,7 @@
       if(!member)return;
 
       state.editingTeamMember=member;
+      state.editingTeamInvite=null;
 
       $('team-form-title').textContent=
         `Access for ${
@@ -10916,6 +10926,66 @@
       $('team-member-form').hidden=false;
     }
 
+
+    function openEditTeamInvite(inviteId){
+      if(
+        !requireTeamPermission(
+          'team_manage',
+          'You do not have permission to manage team invitations.'
+        )
+      ){
+        return;
+      }
+
+      const invite=
+        (state.teamRoster?.invites||[])
+          .find(item=>
+            String(item.id)===String(inviteId)
+          );
+
+      if(!invite){
+        toast('Could not find this pending invitation.');
+        return;
+      }
+
+      state.editingTeamMember=null;
+      state.editingTeamInvite=invite;
+
+      $('team-form-title').textContent=
+        'Edit pending invitation';
+
+      $('team-member-name').value=
+        invite.name||'';
+
+      $('team-member-email').value=
+        invite.email||'';
+
+      $('team-member-email').readOnly=false;
+
+      const role=
+        String(invite.team_role||'recruiter').toLowerCase();
+
+      $('team-member-role').value=
+        ['admin','hiring_manager','recruiter'].includes(role)
+          ?role
+          :'recruiter';
+
+      $('team-remove-member').hidden=true;
+      $('team-save-member').textContent=
+        'Save & resend invite';
+
+      renderPermissionEditor(
+        invite.permissions
+      );
+
+      $('team-member-form').hidden=false;
+
+      setTimeout(
+        ()=>$('team-member-email').focus(),
+        60
+      );
+    }
+
     async function saveTeamMemberForm(){
       if(
         !requireTeamPermission(
@@ -10928,8 +10998,7 @@
 
       const button=$('team-save-member');
       const role=$('team-member-role').value;
-      const permissions=
-        currentPermissionFormValue();
+      const permissions=currentPermissionFormValue();
 
       button.disabled=true;
 
@@ -10955,8 +11024,7 @@
               .toLowerCase();
 
           const name=
-            $('team-member-name').value
-              .trim();
+            $('team-member-name').value.trim();
 
           if(
             !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
@@ -10966,17 +11034,39 @@
             );
           }
 
-          const {data:invite,error}=await sb.rpc(
-            'create_company_team_invite',
-            {
-              p_email:email,
-              p_member_name:name||null,
-              p_team_role:role,
-              p_permissions:permissions
-            }
-          );
+          let invite=null;
+          const editingInvite=
+            Boolean(state.editingTeamInvite);
 
-          if(error)throw error;
+          if(editingInvite){
+            const {data,error}=await sb.rpc(
+              'update_company_team_invite',
+              {
+                p_invite_id:
+                  state.editingTeamInvite.id,
+                p_email:email,
+                p_member_name:name||null,
+                p_team_role:role,
+                p_permissions:permissions
+              }
+            );
+
+            if(error)throw error;
+            invite=data;
+          }else{
+            const {data,error}=await sb.rpc(
+              'create_company_team_invite',
+              {
+                p_email:email,
+                p_member_name:name||null,
+                p_team_role:role,
+                p_permissions:permissions
+              }
+            );
+
+            if(error)throw error;
+            invite=data;
+          }
 
           let emailed=false;
 
@@ -11005,13 +11095,22 @@
 
           toast(
             emailed
-              ?'Invitation sent.'
-              :'Invitation saved. Email delivery is not connected yet.'
+              ?(
+                  editingInvite
+                    ?'Invitation updated and resent.'
+                    :'Invitation sent.'
+                )
+              :(
+                  editingInvite
+                    ?'Invitation updated, but the email could not be resent.'
+                    :'Invitation saved. Email delivery is not connected yet.'
+                )
           );
         }
 
         $('team-member-form').hidden=true;
         state.editingTeamMember=null;
+        state.editingTeamInvite=null;
 
         await loadTeamRoster();
         renderTeamWorkspace();
@@ -13932,6 +14031,7 @@
       $('team-sheet').hidden=true;
       $('team-member-form').hidden=true;
       state.editingTeamMember=null;
+      state.editingTeamInvite=null;
     };
 
     $('team-sheet').addEventListener('click',event=>{
@@ -13939,6 +14039,17 @@
         $('team-sheet').hidden=true;
         $('team-member-form').hidden=true;
         state.editingTeamMember=null;
+        state.editingTeamInvite=null;
+        return;
+      }
+
+      const editInvite=
+        event.target.closest('[data-team-edit-invite]');
+
+      if(editInvite){
+        openEditTeamInvite(
+          editInvite.dataset.teamEditInvite
+        );
         return;
       }
 
@@ -13990,6 +14101,7 @@
     $('team-form-close').onclick=()=>{
       $('team-member-form').hidden=true;
       state.editingTeamMember=null;
+      state.editingTeamInvite=null;
     };
 
     $('team-member-role').addEventListener(
