@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin sign in — Alygnn</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -172,13 +173,10 @@
     line-height:1.55;
     text-align:center;
   }
-
-  /* Do not flash the admin-login screen for an already authenticated admin. */
-  body.admin-session-checking .card{ visibility:hidden; }
 </style>
 </head>
 
-<body class="admin-session-checking">
+<body>
 <main class="card">
   <div class="logo">Alygnn<span>.</span></div>
   <div class="pill">ADMIN ACCESS</div>
@@ -187,7 +185,7 @@
   <p class="sub">Sign in with an Alygnn administrator account to review and manually verify employer businesses.</p>
 
   <label for="email">Admin email</label>
-  <input id="email" type="email" autocomplete="off" placeholder="Enter admin email" data-lpignore="true" data-1p-ignore="true">
+  <input id="email" type="email" autocomplete="username" placeholder="admin@alygnn.com">
 
   <label for="password">Password</label>
   <div class="password-wrap">
@@ -290,28 +288,19 @@ async function signIn(){
 }
 
 async function redirectIfAlreadyAdmin(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session) return;
+
   try{
-    const {data:{session},error}=await sb.auth.getSession();
-    if(error) throw error;
-
-    if(session){
-      const isAdmin=await checkAdmin(session.user.id);
-
-      if(isAdmin){
-        // Already authenticated: go straight to the existing verification page.
-        // The admin-login screen never becomes visible.
-        location.replace(DESTINATION);
-        return;
-      }
-
-      await sb.auth.signOut().catch(()=>{});
+    const isAdmin=await checkAdmin(session.user.id);
+    if(isAdmin){
+      location.replace(DESTINATION);
+      return;
     }
+    await sb.auth.signOut();
   }catch(error){
     console.error('Admin session check failed:',error);
   }
-
-  // Only show this page when there is no valid admin session.
-  document.body.classList.remove('admin-session-checking');
 }
 
 document.getElementById('show-password').addEventListener('click',()=>{
