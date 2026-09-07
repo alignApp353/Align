@@ -78,6 +78,29 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
   transform:scale(.98);
 }
 
+.strength-typeahead{
+  margin-top:8px;
+  display:grid;
+  gap:6px;
+}
+
+.strength-typeahead[hidden]{
+  display:none;
+}
+
+.strength-typeahead-option{
+  width:100%;
+  min-height:42px;
+  padding:0 12px;
+  border:1px solid #D7E0E8;
+  border-radius:12px;
+  background:#fff;
+  color:var(--text);
+  text-align:left;
+  font-size:11px;
+  font-weight:800;
+}
+
 
 .strength-replacement-title{
   margin-bottom:10px;
@@ -285,8 +308,7 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
   <h1>What makes your company stand out?</h1>
 
   <p class="intro">
-    We started you with 5 common company strengths. Reorder them from strongest to weakest,
-    or remove one and replace it with your own.
+    We started you with exactly 5 company strengths. Reorder them from strongest to weakest, or remove one and replace it with your own.
   </p>
 
   <div class="strength-builder">
@@ -327,6 +349,12 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
           type="button">
           Add
         </button>
+      </div>
+
+      <div
+        class="strength-typeahead"
+        id="company-strength-typeahead"
+        hidden>
       </div>
 
       <p class="strength-limit-note">
@@ -396,7 +424,35 @@ const COMPANY_STRENGTH_REPLACEMENTS=[
   'Job Stability',
   'Strong Customer Reputation',
   'Collaborative Environment',
-  'Learning Opportunities'
+  'Learning Opportunities',
+  'Career Advancement',
+  'Professional Development',
+  'Competitive Pay',
+  'Growth Opportunities',
+  'Supportive Leadership',
+  'Strong Brand Reputation',
+  'Customer Impact',
+  'Industry Leadership',
+  'Inclusive Culture',
+  'Employee Ownership',
+  'Purpose-Driven Work',
+  'Modern Technology',
+  'Creative Environment',
+  'Autonomy & Ownership',
+  'Internal Mobility',
+  'Global Opportunities',
+  'Local Community Presence',
+  'Established Company',
+  'Fast-Growing Company',
+  'High-Quality Products',
+  'Strong Client Relationships',
+  'Team Collaboration',
+  'Recognition & Rewards',
+  'Learning & Development',
+  'Career Pathing',
+  'Leadership Opportunities',
+  'Professional Mentorship',
+  'Employee Support'
 ];
 const DEFAULT_CANDIDATE=['Technical Skills','Soft Skills','Experience','Communication','Culture Fit','Reliability','Leadership','Availability'];
 const INDUSTRIES=["Accounting", "Actuarial Services", "Advertising", "Advertising and Marketing", "Aerospace", "Aerospace Manufacturing", "Agriculture", "Agricultural Equipment", "Agricultural Services", "Airlines", "Airports and Aviation", "Alternative Energy", "Ambulance Services", "Amusement Parks", "Animal Health", "Animation", "Apparel and Fashion", "Appliance Manufacturing", "Architecture", "Architecture and Design", "Art Galleries", "Artificial Intelligence", "Asset Management", "Assisted Living", "Audio Production", "Auto Parts", "Automotive", "Automotive Dealerships", "Automotive Manufacturing", "Automotive Repair", "Aviation", "Bakeries", "Banking", "Bars and Nightclubs", "Beauty and Cosmetics", "Beverage Manufacturing", "Big Data", "Biotechnology", "Book Publishing", "Breweries", "Broadcast Media", "Building Materials", "Business Consulting", "Business Process Outsourcing", "Business Services", "Cafes and Coffee Shops", "Call Centers", "Cannabis", "Car Rental", "Car Washes", "Casinos and Gaming", "Catering", "Chemical Manufacturing", "Child Care", "Civil Engineering", "Cleaning Services", "Cloud Computing", "Commercial Construction", "Commercial Real Estate", "Computer Hardware", "Computer Networking", "Computer Software", "Construction", "Construction Equipment", "Consumer Electronics", "Consumer Goods", "Consumer Services", "Content Creation", "Courier Services", "Cybersecurity", "Dairy", "Data Analytics", "Data Centers", "Dental", "Digital Marketing", "Distribution", "E-Commerce", "Education", "Electrical Contracting", "Electrical Equipment Manufacturing", "Electronics Manufacturing", "Emergency Services", "Energy", "Energy and Utilities", "Engineering", "Entertainment", "Entertainment and Media", "Environmental Consulting", "Environmental Services", "Event Management", "Facilities Management", "Farming", "Fashion", "Film and Television", "Financial Services", "FinTech", "Fire Protection", "Fitness", "Food and Beverage", "Food Delivery", "Food Manufacturing", "Food Processing", "Food Service", "Forestry", "Freight and Logistics", "Funeral Services", "Furniture Manufacturing", "Gaming", "Gas Utilities", "Government", "Graphic Design", "Green Energy", "Grocery Stores", "Healthcare", "Healthcare Services", "Home Health Care", "Home Improvement", "Hospital and Health Care", "Hospitality", "Hotels", "Human Resources", "Human Resources and Staffing", "HVAC", "Import and Export", "Industrial Automation", "Industrial Equipment", "Industrial Manufacturing", "Information Services", "Information Technology", "Insurance", "Interior Design", "Internet", "Internet Service Provider", "Investment Banking", "Investment Management", "IT Consulting", "Janitorial Services", "Jewelry", "Landscaping", "Law Enforcement", "Legal Services", "Leisure and Recreation", "Logistics", "Logistics and Transportation", "Luxury Goods", "Machine Shops", "Machinery Manufacturing", "Management Consulting", "Manufacturing", "Marine", "Market Research", "Marketing", "Mechanical Engineering", "Medical Devices", "Medical Practice", "Mental Health Care", "Mining", "Mobile Applications", "Mortgage Lending", "Motion Pictures", "Museums and Cultural Institutions", "Music", "Network Infrastructure", "Nonprofit", "Nursing Homes", "Oil and Gas", "Online Media", "Packaging", "Paper Manufacturing", "Payroll Services", "Pest Control", "Pet Care", "Pet Products", "Pharmaceuticals", "Photography", "Plastics Manufacturing", "Plumbing", "Printing", "Private Equity", "Professional Services", "Property Management", "Public Relations", "Publishing", "Railroad", "Real Estate", "Recruiting", "Recycling", "Renewable Energy", "Research", "Residential Construction", "Restaurant", "Restaurants", "Retail", "Retail Apparel", "Retail Banking", "Retail Grocery", "Robotics", "Roofing", "Security Services", "Semiconductors", "Senior Living", "Shipping", "Social Media", "Software", "Software and Technology", "Solar Energy", "Sports", "Sports and Recreation", "Staffing and Recruiting", "Storage and Warehousing", "Supermarkets", "Supply Chain", "Technology", "Telecommunications", "Telecommunications Equipment", "Textiles", "Tourism", "Transportation", "Travel", "Travel and Tourism", "Trucking", "Utilities", "Venture Capital", "Veterinary", "Warehousing", "Waste Management", "Water Utilities", "Web Development", "Wholesale", "Wireless Services", "Wine and Spirits", "Accounting Firms", "Ad Agencies", "Aerospace Defense", "Agribusiness", "Air Conditioning", "Airport Operations", "App Development", "Architecture Firms", "Auto Body Shops", "Auto Dealerships", "Auto Repair Shops", "B2B Services", "B2B Sales", "B2C Services", "Banking Services", "Barber Shops", "Beauty Salons", "Bicycle Shops", "Boat Dealers", "Bookstores", "Building Maintenance", "Business Development", "Cable and Internet", "Car Dealerships", "Carpet Cleaning", "Cement and Concrete", "Charities", "Churches and Religious Organizations", "Commercial Cleaning", "Commercial Landscaping", "Commercial Printing", "Community Services", "Computer Repair", "Concrete Contractors", "Convenience Stores", "Corporate Training", "Credit Unions", "Customer Service Outsourcing", "Defense and Space", "Delivery Services", "Dental Laboratories", "Dental Practices", "Dermatology", "Direct Sales", "Dry Cleaning", "Electric Utilities", "Electrical Services", "Employee Benefits", "Employment Services", "Equipment Rental", "Event Planning", "Executive Search", "Fast Food", "Fast Casual Restaurants", "Fine Dining", "Flooring", "Florists", "Food Trucks", "Franchising", "Freight Brokerage", "General Contractors", "Glass and Glazing", "Golf Courses", "Government Contracting", "Grocery Delivery", "Gyms and Fitness Centers", "Hair Salons", "Hardware Stores", "Health Insurance", "Heating and Cooling", "Home Builders", "Home Services", "Hospice", "Hospitality Management", "Hotels and Resorts", "Housekeeping", "Industrial Construction", "Industrial Services", "Insurance Agencies", "Insurance Brokerage", "Internet Marketing", "Land Development", "Laundry Services", "Life Insurance", "Local Government", "Luxury Retail", "Maintenance Services", "Medical Billing", "Medical Laboratories", "Medical Staffing", "Merchant Services", "Metal Fabrication", "Moving Companies", "Municipal Government", "Office Supplies", "Optometry", "Orthodontics", "Outpatient Care", "Painting Contractors", "Parking Services", "Personal Care Services", "Personal Training", "Pet Grooming", "Physical Therapy", "Plumbing Contractors", "Pool Services", "Postal Services", "Property and Casualty Insurance", "Quick Service Restaurants", "Real Estate Brokerage", "Real Estate Development", "Rehabilitation Services", "Residential Services", "Resorts", "Restaurant Groups", "Restaurant Management", "Roofing Contractors", "Sales Consulting", "School Districts", "Schools", "Security Systems", "Self Storage", "Sign Manufacturing", "Skilled Trades", "Solar Installation", "Specialty Retail", "Telecom Sales", "Telemedicine", "Temporary Staffing", "Tire Shops", "Title and Escrow", "Towing", "Trade Shows", "Tree Services", "Uniform Services", "University", "Vehicle Rentals", "Warehouse Distribution", "Waste Collection", "Water Treatment", "Web Design", "Wedding Services", "Welding", "Window and Door", "Wireless Retail", "Wood Products", "Accounting Software", "AdTech", "AgTech", "BioTech", "CleanTech", "Construction Tech", "EdTech", "HealthTech", "HR Tech", "InsurTech", "LegalTech", "MarTech", "PropTech", "Retail Tech", "SaaS", "Telecom Technology", "Cloud Services", "Managed IT Services", "Managed Security Services", "Network Security", "Data Security", "IT Support", "IT Services", "IT Staffing", "Systems Integration", "Enterprise Software", "Consumer Software", "Mobile Software", "Web Hosting", "Domain Services", "Data Science", "Machine Learning", "Generative AI", "Computer Vision", "Blockchain", "Cryptocurrency", "Payments", "Payment Processing", "Point of Sale", "Financial Technology", "Accounting Services", "Tax Services", "Bookkeeping", "Audit Services", "Wealth Management", "Financial Planning", "Credit Services", "Lending", "Consumer Lending", "Commercial Lending", "Mortgage", "Real Estate Investment", "REIT", "Property Insurance", "Claims Management", "Benefits Administration", "Pension Administration", "Retirement Services", "Hospital Systems", "Clinics", "Urgent Care", "Primary Care", "Pediatrics", "Cardiology", "Radiology", "Surgery Centers", "Pharmacies", "Pharmacy Services", "Medical Distribution", "Medical Equipment", "Behavioral Health", "Substance Abuse Treatment", "Counseling Services", "Social Work", "Home Care", "Disability Services", "Elder Care", "Rehabilitation", "Occupational Therapy", "Speech Therapy", "Diagnostics", "Laboratory Services", "Clinical Research", "Contract Research Organizations", "Life Sciences", "Genomics", "Medical Research", "Drug Development", "Veterinary Clinics", "Animal Hospitals", "Pet Boarding", "Animal Shelters", "Food Production", "Food Distribution", "Wholesale Food", "Restaurant Supply", "Hospitality Supply", "Coffee Roasting", "Distilleries", "Wineries", "Soft Drinks", "Bottling", "Dairy Products", "Meat Processing", "Seafood", "Produce Distribution", "Organic Food", "Meal Kits", "School Food Service", "Institutional Food Service", "Hotel Operations", "Vacation Rentals", "Travel Agencies", "Tour Operators", "Cruise Lines", "Theme Parks", "Recreation Centers", "Country Clubs", "Fitness Studios", "Yoga Studios", "Martial Arts", "Sports Teams", "Sports Management", "Ticketing", "Live Events", "Concert Promotion", "Performing Arts", "Theater", "Radio", "Television", "Streaming Media", "Podcasting", "News Media", "Newspapers", "Magazines", "Digital Publishing", "Content Marketing", "Influencer Marketing", "Creative Agencies", "Branding Agencies", "Media Buying", "SEO", "Search Engine Marketing", "Email Marketing", "Marketing Technology", "Public Affairs", "Government Relations", "Political Consulting", "Fundraising", "Nonprofit Management", "Foundations", "Associations", "Membership Organizations", "Religious Institutions", "Higher Education", "K-12 Education", "Preschools", "Vocational Education", "Trade Schools", "Online Education", "Tutoring", "Test Preparation", "Educational Services", "Education Management", "Research Universities", "Community Colleges", "Libraries", "Municipal Services", "Public Administration", "Federal Government", "State Government", "County Government", "Military", "Defense Contractors", "Public Safety", "Fire Departments", "Police Departments", "Emergency Management", "Corrections", "Courts", "Public Works", "Water and Sewer", "Electric Power", "Natural Gas", "Power Generation", "Power Transmission", "Power Distribution", "Renewable Power", "Wind Energy", "Hydroelectric Power", "Nuclear Energy", "Energy Services", "Energy Consulting", "Oilfield Services", "Petroleum Refining", "Pipeline Transportation", "Mining Services", "Metals and Mining", "Steel Manufacturing", "Aluminum Manufacturing", "Foundries", "Fabricated Metal Products", "Industrial Machinery", "Heavy Equipment", "Automotive Suppliers", "Aerospace Components", "Electronics", "Semiconductor Manufacturing", "Consumer Products Manufacturing", "Food Equipment Manufacturing", "Packaging Manufacturing", "Paper and Pulp", "Printing and Packaging", "Chemical Processing", "Specialty Chemicals", "Industrial Chemicals", "Pharmaceutical Manufacturing", "Medical Device Manufacturing", "Furniture", "Cabinetry", "Textile Manufacturing", "Apparel Manufacturing", "Footwear", "Jewelry Manufacturing", "Plastics", "Rubber Products", "Glass Manufacturing", "Ceramics", "Building Products", "Lumber", "Forestry Products", "Residential Real Estate", "Commercial Property", "Industrial Real Estate", "Multifamily Housing", "Property Leasing", "Real Estate Services", "Real Estate Appraisal", "Home Inspection", "Mortgage Services", "Title Services", "Escrow Services", "Construction Management", "Engineering Services", "General Construction", "Specialty Contractors", "Carpentry", "Masonry", "Drywall", "Electrical Contractors", "Mechanical Contractors", "Civil Construction", "Road Construction", "Infrastructure Construction", "Utility Construction", "Heavy Civil Construction", "Excavation", "Demolition", "Concrete", "Paving", "Surveying", "Geotechnical Engineering", "Environmental Engineering", "Architecture Services", "Urban Planning", "Interior Architecture", "Facilities Services", "Building Operations", "Commercial Property Management", "Residential Property Management", "Transportation Services", "Public Transportation", "Bus Transportation", "Rail Transportation", "Air Freight", "Ocean Freight", "Freight Forwarding", "Third Party Logistics", "3PL", "Last Mile Delivery", "Fleet Management", "Transportation Brokerage", "Warehousing and Fulfillment", "Fulfillment Centers", "Cold Storage", "Distribution Centers", "Supply Chain Consulting", "Procurement", "Purchasing", "Wholesale Distribution", "Industrial Distribution", "Technology Distribution", "Consumer Retail", "Department Stores", "Discount Retail", "Home Improvement Retail", "Furniture Retail", "Electronics Retail", "Sporting Goods Retail", "Auto Parts Retail", "Pharmacy Retail", "Convenience Retail", "Fuel Stations", "Gas Stations", "Specialty Stores", "Online Retail", "Marketplace", "Subscription Commerce", "Direct to Consumer", "DTC", "Customer Support", "Contact Centers", "Business Services Outsourcing", "Back Office Services", "Document Management", "Records Management", "Translation Services", "Language Services", "Office Services", "Coworking", "Business Centers", "Corporate Services", "Professional Training", "Leadership Development", "Coaching", "Recruitment Process Outsourcing", "Executive Coaching", "Sales Training", "Security Guard Services", "Private Security", "Alarm Services", "Cybersecurity Services", "Fire and Safety Services", "Workplace Safety", "Occupational Health", "Environmental Health and Safety", "EHS", "Legal Practices", "Law Firms", "Corporate Law", "Litigation", "Personal Injury Law", "Family Law", "Immigration Law", "Criminal Defense", "Employment Law", "Intellectual Property", "Patent Services", "Legal Support Services", "Court Reporting", "Compliance Services", "Regulatory Affairs", "Risk Management", "Quality Assurance", "Quality Control", "Certification Services", "Testing Laboratories", "Inspection Services", "Engineering Testing", "Calibration Services", "Scientific Instruments", "Research and Development", "Product Development", "Industrial Design", "Product Design", "UX Design", "UI Design", "Graphic Arts", "Photography Studios", "Video Production", "Post Production", "Recording Studios", "Music Production", "Talent Agencies", "Modeling Agencies", "Creator Economy", "Digital Media", "Online Communities", "Social Networks", "Gaming Studios", "Esports", "Video Games", "Mobile Games", "Console Games", "Virtual Reality", "Augmented Reality", "Metaverse", "Consumer Internet", "Internet Platforms", "Search", "Online Advertising", "Online Marketplaces", "Delivery Platforms", "Ride Sharing", "Mobility", "Electric Vehicles", "EV Charging", "Autonomous Vehicles", "Fleet Services", "Truck Repair", "Diesel Repair", "Collision Repair", "Auto Detailing", "Motorcycle Dealers", "Marine Dealers", "Boat Services", "Aircraft Maintenance", "Aviation Maintenance", "Charter Aviation", "Private Aviation", "Ground Handling", "Airport Services", "Travel Technology", "Hotel Technology", "Restaurant Technology", "Food Technology", "FoodTech", "Agricultural Technology", "Precision Agriculture", "Farm Equipment", "Seed and Crop", "Crop Protection", "Livestock", "Poultry", "Aquaculture", "Forestry Services", "Landscaping Services", "Lawn Care", "Nurseries", "Garden Centers", "Pest Management", "Waste and Recycling", "Recycling Services", "Hazardous Waste", "Environmental Remediation", "Water Management", "Water Treatment Services", "Wastewater Treatment", "Sustainability Consulting", "ESG Consulting", "Carbon Management", "Solar", "Wind", "Battery Storage", "Energy Storage", "EV Infrastructure", "Renewable Energy Development", "Industrial Automation Systems", "Robotics Automation", "Control Systems", "Process Automation", "Instrumentation", "Internet of Things", "IoT", "Smart Buildings", "Smart Home", "Building Automation", "Security Technology", "Telecommunications Services", "Wireless Communications", "Cable Television", "Fiber Internet", "Broadband", "Network Services", "Telecom Infrastructure", "Cell Towers", "Satellite Communications", "Unified Communications", "VoIP", "Cloud Communications", "Data Communications", "Telecom Equipment", "Network Equipment", "Human Capital Management", "Payroll", "Benefits", "HR Consulting", "Recruiting Agencies", "Staffing Agencies", "Temporary Employment", "Professional Staffing", "Healthcare Staffing", "Technology Staffing", "Light Industrial Staffing", "Executive Recruitment", "Workforce Management", "Background Screening", "Employee Screening", "Employment Verification", "People Analytics", "Workplace Consulting", "Organizational Development", "Diversity and Inclusion Consulting", "Employee Engagement", "Corporate Wellness", "Workplace Benefits", "Franchise Restaurants", "Independent Restaurants", "Casual Dining", "Full Service Restaurants", "Limited Service Restaurants", "Pizza Restaurants", "Burger Restaurants", "Coffee Shops", "Dessert Shops", "Ice Cream Shops", "Juice Bars", "Smoothie Shops", "Bistros", "Delis", "Food Courts", "Bars", "Pubs", "Nightclubs", "Breweries and Taprooms", "Catering Services", "Food Catering", "Corporate Catering", "Event Catering", "Institutional Catering", "Restaurant Equipment", "Kitchen Equipment", "Hospitality Staffing"];
@@ -448,10 +504,15 @@ function restoreDraft(){
 
   if(
     Array.isArray(draft.company_priorities)&&
-    draft.company_priorities.length
+    draft.company_priorities.length===
+      COMPANY_STRENGTH_LIMIT
   ){
     renderCompanyStrengths(
       draft.company_priorities
+    );
+  }else{
+    renderCompanyStrengths(
+      DEFAULT_COMPANY_STRENGTHS
     );
   }
   if(Array.isArray(draft.candidate_priorities)&&draft.candidate_priorities.length){
@@ -539,6 +600,82 @@ function companyStrengthTemplate(name,index){
   `;
 }
 
+function normalizeStrengthSearch(value){
+  return String(value||'')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g,' ')
+    .trim();
+}
+
+function strengthSearchScore(value,query){
+  const v=normalizeStrengthSearch(value);
+  const q=normalizeStrengthSearch(query);
+
+  if(!q)return 9999;
+  if(v===q)return 0;
+  if(v.startsWith(q))return 1;
+  if(v.includes(q))return 2;
+
+  const words=v.split(' ');
+  if(words.some(word=>word.startsWith(q)))return 3;
+  if(words.some(word=>word.includes(q)))return 4;
+
+  return 9999;
+}
+
+function renderStrengthTypeahead(){
+  const input=document.getElementById('company-strength-input');
+  const box=document.getElementById('company-strength-typeahead');
+
+  if(!input||!box)return;
+
+  const query=input.value.trim();
+
+  if(query.length<2){
+    box.hidden=true;
+    box.innerHTML='';
+    return;
+  }
+
+  const selected=new Set(
+    companyStrengths().map(value=>value.toLowerCase())
+  );
+
+  const matches=COMPANY_STRENGTH_REPLACEMENTS
+    .map(value=>({
+      value,
+      score:strengthSearchScore(value,query)
+    }))
+    .filter(item=>
+      item.score<9999 &&
+      !selected.has(item.value.toLowerCase())
+    )
+    .sort((a,b)=>
+      a.score-b.score ||
+      a.value.localeCompare(b.value)
+    )
+    .slice(0,4);
+
+  if(!matches.length){
+    box.hidden=true;
+    box.innerHTML='';
+    return;
+  }
+
+  box.innerHTML=matches
+    .map(item=>`
+      <button
+        class="strength-typeahead-option"
+        type="button"
+        data-typeahead-strength="${escapeHtml(item.value)}">
+        ${escapeHtml(item.value)}
+      </button>
+    `)
+    .join('');
+
+  box.hidden=false;
+}
+
 function renderReplacementRecommendations(){
   const box=
     document.getElementById(
@@ -562,7 +699,7 @@ function renderReplacementRecommendations(){
           value.toLowerCase()
         )
       )
-      .slice(0,8);
+      .slice(0,4);
 
   box.innerHTML=
     available
@@ -605,6 +742,14 @@ function updateCompanyStrengthUI(){
 
   if(count<COMPANY_STRENGTH_LIMIT){
     renderReplacementRecommendations();
+    renderStrengthTypeahead();
+  }else{
+    const typeahead=document.getElementById('company-strength-typeahead');
+
+    if(typeahead){
+      typeahead.hidden=true;
+      typeahead.innerHTML='';
+    }
   }
 }
 
@@ -1109,6 +1254,15 @@ document.getElementById(
 document.getElementById(
   'company-strength-input'
 ).addEventListener(
+  'input',
+  ()=>{
+    renderStrengthTypeahead();
+  }
+);
+
+document.getElementById(
+  'company-strength-input'
+).addEventListener(
   'keydown',
   event=>{
     if(event.key==='Enter'){
@@ -1118,6 +1272,23 @@ document.getElementById(
         event.currentTarget.value
       );
     }
+  }
+);
+
+document.getElementById(
+  'company-strength-typeahead'
+).addEventListener(
+  'click',
+  event=>{
+    const button=event.target.closest(
+      '[data-typeahead-strength]'
+    );
+
+    if(!button)return;
+
+    addCompanyStrength(
+      button.dataset.typeaheadStrength
+    );
   }
 );
 
