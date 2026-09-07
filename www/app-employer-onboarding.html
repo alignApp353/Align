@@ -1753,8 +1753,29 @@ async function submit(){
       }
     },650);
   }catch(error){
-    console.error(error);
-    showMessage(error.message||'Unable to finish setup.');
+    console.error(
+      'Employer setup failed:',
+      error
+    );
+
+    const rawMessage=
+      String(
+        error?.message||
+        ''
+      );
+
+    const message=
+      /failed to fetch|networkerror|load failed/i.test(
+        rawMessage
+      )
+        ? 'Alygnn could not reach the company setup server. Please try again. If this continues, the create-company API needs to be redeployed.'
+        : (
+            rawMessage||
+            'Unable to finish setup.'
+          );
+
+    showMessage(message);
+
     nextButton.disabled=false;
     nextButton.textContent='Finish Setup';
   }
