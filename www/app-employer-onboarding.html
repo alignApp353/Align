@@ -2143,42 +2143,19 @@ window.addEventListener('beforeunload',saveDraft);
   }
 
   /*
-   * Invited teammates should join the existing company instead of being
-   * forced through owner/company onboarding.
+   * Team invitations require an explicit Accept / Decline decision.
    */
   try{
-    const {data:teamInvite,error:teamInviteError}=await sb.rpc(
-      'accept_my_pending_team_invite'
-    );
-
-    if(teamInviteError){
-      console.warn(
-        'Team invitation acceptance is not available:',
-        teamInviteError
-      );
-    }else if(teamInvite?.accepted===true){
-      try{
-        localStorage.setItem(
-          `alygnn_company_id_${session.user.id}`,
-          String(teamInvite.company_id||'')
-        );
-        localStorage.setItem(
-          'alygnn_company_id',
-          String(teamInvite.company_id||'')
-        );
-      }catch(_){}
-
-      location.replace(
-        'app-employer-dashboard.html'
-      );
-
-      return;
+    const {data:workspaceContext,error:workspaceError}=await sb.rpc('get_my_workspace_context');
+    if(!workspaceError){
+      const pending=Array.isArray(workspaceContext?.pending_invites)?workspaceContext.pending_invites:[];
+      if(pending.length){
+        location.replace('app-workspaces.html?after_login=1&preferred=employer');
+        return;
+      }
     }
   }catch(error){
-    console.warn(
-      'Could not check pending team invitation:',
-      error
-    );
+    console.warn('Could not check team invitations:',error);
   }
 
   const userId=
