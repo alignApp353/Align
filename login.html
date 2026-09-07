@@ -327,7 +327,11 @@ const { createClient } = supabase;
     document.addEventListener('DOMContentLoaded', () => switchRole('employer'));
   }
 
-  const redirectFor = r => window.location.origin + (r === 'employer' ? '/employer-account.html' : '/account.html');
+  // Every employer sign-in enters through onboarding first. The onboarding page
+  // itself immediately forwards employers who have truly completed setup to
+  // the dashboard. This prevents a brand-new employer from skipping setup just
+  // because profiles.verification_status has a default/premature value.
+  const redirectFor = r => window.location.origin + (r === 'employer' ? '/employer-onboarding.html' : '/account.html');
 
   function normalizeRole(value) {
     const role = String(value || '').toLowerCase();
