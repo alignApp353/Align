@@ -1772,13 +1772,18 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   function accountPaidLimit(entitlement) {
-    const serverLimit = Math.max(0, Number(entitlement?.slot_limit || 0));
-    if (serverLimit > 0) return serverLimit;
-
     const plan = String(entitlement?.test_plan || entitlement?.plan || '').toLowerCase();
+
+    // Current Alygnn plan capacity always wins over stale saved values.
+    // Launch = 3 paid + 1 permanent free = 4
+    // Growth = 5 paid + 1 permanent free = 6
+    // Scale  = 8 paid + 1 permanent free = 9
     if (plan === 'launch' || plan === 'business') return 4;
     if (plan === 'growth' || plan === 'enterprise') return 6;
     if (plan === 'scale') return 9;
+
+    const serverLimit = Math.max(0, Number(entitlement?.slot_limit || 0));
+    if (serverLimit > 0) return serverLimit;
     return 1;
   }
 
@@ -1820,7 +1825,14 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     let serverAllowed = null;
     let serverReason = null;
     if (!accessResult.error && accessResult.data) {
-      limit = Math.max(0, Number(accessResult.data.slot_limit || limit));
+      const serverLimit = Math.max(0, Number(accessResult.data.slot_limit || limit));
+
+      // Test packages must reflect the current canonical plan, not stale
+      // temporary/add-on capacity from an older test configuration.
+      limit = ent.test_mode === true && ['launch','growth','scale','business','enterprise'].includes(plan)
+        ? accountPaidLimit(ent)
+        : serverLimit;
+
       serverAllowed = typeof accessResult.data.can_post === 'boolean' ? accessResult.data.can_post : null;
       serverReason = accessResult.data.reason || null;
       accountCandidateAccessLocked = accessResult.data.candidate_access_locked === true;
@@ -2140,11 +2152,24 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       const secondActive=!paidPlan && ['active','trialing','past_due'].includes(String(second.subscription_status||'').toLowerCase());
       const displayPlan=secondActive && plan==='Free' ? 'Free + Second Job Slot' : plan;
       const status=String(summary.subscription_status||'free').toLowerCase();
+      const testMode=summary.test_mode===true;
       const lock=accountCandidateAccessLocked || status==='past_due';
-      const statusLabel=lock?'Payment past due':paidPlan?'Active plan':secondActive?'Second slot active':'Free account';
+      const statusLabel=lock
+        ? 'Payment past due'
+        : testMode && paidPlan
+          ? 'Test plan active'
+          : paidPlan
+            ? 'Active plan'
+            : secondActive
+              ? 'Second slot active'
+              : 'Free account';
       const statusClass=lock?'warning':(paidPlan||secondActive)?'':'neutral';
       const billing=String(summary.billing_period||'').toLowerCase();
-      const slots=accountPostingAccess?.limit || Number(summary.slot_limit||1);
+
+      // The API summary is the canonical base-plan total. Do not let an old
+      // posting-access value (for example Scale=14 from a prior test package)
+      // override the current Scale=9 plan capacity in Billing & plan.
+      const slots=Number(summary.slot_limit||accountPostingAccess?.limit||1);
       const renewal=summary.current_period_end?billingDate(summary.current_period_end):'';
       const amount=Number(summary.amount_cents||0);
       const recurringMeta=paidPlan
@@ -2181,10 +2206,11 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           <span class="billing-status ${statusClass}">${escapeHtml(statusLabel)}</span>
         </div>
         ${lock ? `<div class="billing-alert"><strong>Candidate access is paused.</strong> We couldn’t process your latest plan payment. Your jobs, applications, messages, and history are preserved. Update your payment method to restore candidate profiles, resumes, matching details, and hiring actions.</div>` : ''}
+        ${testMode ? `<div class="billing-message">Developer test entitlement is active. No Stripe payment method or invoice is attached to this test plan.</div>` : ''}
         ${summary.pending_plan ? `<div class="billing-meta" style="margin-top:14px">Scheduled change: ${escapeHtml(billingPlanName(summary.pending_plan))}${summary.pending_plan_effective_at ? ' on '+escapeHtml(billingDate(summary.pending_plan_effective_at)) : ''}.</div>` : ''}
         ${planChoices ? `<div class="billing-plan-actions">${planChoices}</div>` : ''}
         <div class="billing-actions">
-          ${(paidPlan||secondActive||summary.billing_account?.stripe_customer_count>0) ? `<button class="billing-btn primary" type="button" onclick="openAccountBillingPortal(this)">${lock?'Update payment method':'Payment method & invoices'}</button>` : ''}
+          ${!testMode && (paidPlan||secondActive||summary.billing_account?.stripe_customer_count>0) ? `<button class="billing-btn primary" type="button" onclick="openAccountBillingPortal(this)">${lock?'Update payment method':'Payment method & invoices'}</button>` : ''}
           ${paidPlan ? (summary.cancel_at_period_end ? `<button class="billing-btn secondary" type="button" onclick="resumeAccountPlan(this)">Keep current plan</button>` : `<button class="billing-btn secondary" type="button" onclick="cancelAccountPlan(this)">Cancel at renewal</button>`) : ''}
           ${secondActive ? (second.cancel_at_period_end ? `<button class="billing-btn secondary" type="button" onclick="resumeSecondSlot(this)">Keep Second Job Slot</button>` : `<button class="billing-btn secondary" type="button" onclick="cancelSecondSlot(this)">Cancel Second Job Slot</button>`) : ''}
           <a class="billing-btn secondary" href="pricing.html">Compare plans</a>
