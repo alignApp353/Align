@@ -2184,18 +2184,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           : `${displayPlan} · ${slots} total job slot${slots===1?'':'s'}`;
       }
 
-      const currentKey=String(summary.current_plan||'').toLowerCase();
-      const planChoices=paidPlan && !lock && ACCOUNT_PLAN_PRICES[billing]
-        ? Object.keys(ACCOUNT_PLAN_PRICES[billing])
-            .filter(key=>key!==currentKey)
-            .map(key=>{
-              const isUpgrade=ACCOUNT_PLAN_RANK[key]>ACCOUNT_PLAN_RANK[currentKey];
-              const price=ACCOUNT_PLAN_PRICES[billing][key];
-              const diff=Math.max(0,price-(ACCOUNT_PLAN_PRICES[billing][currentKey]||0));
-              return `<button class="billing-plan-choice" type="button" onclick="changeAccountPlan('${key}',this)"><strong>${isUpgrade?'Upgrade':'Downgrade'} to ${escapeHtml(billingPlanName(key))}</strong><span>${isUpgrade?`${escapeHtml(billingMoney(diff))} fixed difference now · then ${escapeHtml(billingMoney(price))} at renewal`:`Takes effect at renewal · ${escapeHtml(billingMoney(price))}`}</span></button>`;
-            }).join('')
-        : '';
-
       card.innerHTML=`
         <div class="billing-top">
           <div>
@@ -2208,9 +2196,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         ${lock ? `<div class="billing-alert"><strong>Candidate access is paused.</strong> We couldn’t process your latest plan payment. Your jobs, applications, messages, and history are preserved. Update your payment method to restore candidate profiles, resumes, matching details, and hiring actions.</div>` : ''}
         ${testMode ? `<div class="billing-message">Developer test entitlement is active. No Stripe payment method or invoice is attached to this test plan.</div>` : ''}
         ${summary.pending_plan ? `<div class="billing-meta" style="margin-top:14px">Scheduled change: ${escapeHtml(billingPlanName(summary.pending_plan))}${summary.pending_plan_effective_at ? ' on '+escapeHtml(billingDate(summary.pending_plan_effective_at)) : ''}.</div>` : ''}
-        ${planChoices ? `<div class="billing-plan-actions">${planChoices}</div>` : ''}
         <div class="billing-actions">
-          ${!testMode && (paidPlan||secondActive||summary.billing_account?.stripe_customer_count>0) ? `<button class="billing-btn primary" type="button" onclick="openAccountBillingPortal(this)">${lock?'Update payment method':'Payment method & invoices'}</button>` : ''}
+          ${(paidPlan||secondActive||testMode||summary.billing_account?.stripe_customer_count>0) ? `<a class="billing-btn primary" href="employer-billing.html">${lock?'Update payment method':'Payment method & invoices'}</a>` : ''}
           ${paidPlan ? (summary.cancel_at_period_end ? `<button class="billing-btn secondary" type="button" onclick="resumeAccountPlan(this)">Keep current plan</button>` : `<button class="billing-btn secondary" type="button" onclick="cancelAccountPlan(this)">Cancel at renewal</button>`) : ''}
           ${secondActive ? (second.cancel_at_period_end ? `<button class="billing-btn secondary" type="button" onclick="resumeSecondSlot(this)">Keep Second Job Slot</button>` : `<button class="billing-btn secondary" type="button" onclick="cancelSecondSlot(this)">Cancel Second Job Slot</button>`) : ''}
           <a class="billing-btn secondary" href="pricing.html">Compare plans</a>
@@ -2833,11 +2820,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     await loadEmployerJobs();
     await loadAccountPostingAccess();
     await loadBillingSummary();
-    const requestedPlan=new URLSearchParams(location.search).get('target_plan');
-    if(requestedPlan && ['launch','growth','scale'].includes(requestedPlan)){
-      document.getElementById('billing-section')?.scrollIntoView({behavior:'smooth',block:'start'});
-      billingActionMessage(`Choose the ${billingPlanName(requestedPlan)} option below to continue.`);
-    }
     await loadCandidates();
     initNotifications();
   }
