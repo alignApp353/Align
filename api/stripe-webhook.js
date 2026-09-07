@@ -318,32 +318,53 @@ async function fulfillSubscription(subscription, forceStatus) {
   const product = String(meta.product || '').toLowerCase();
   if (!meta.employer_id) return;
 
+  const actualStatus = String(
+    forceStatus ||
+    (subscription.status === 'trialing' ? 'trialing' : subscription.status || 'active')
+  ).toLowerCase();
+
   if (product === 'additional_slot' || product === 'single_job') {
-    const status = forceStatus || (subscription.status === 'trialing' ? 'trialing' : subscription.status);
     await rpc('sync_second_job_slot_subscription', {
       p_employer_id: meta.employer_id,
-      p_status: status,
+      p_status: actualStatus,
       p_expires_at: subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toISOString()
         : null,
       p_payment_reference: null,
       p_amount_cents: 15000
     });
+
+    if (['canceled','unpaid','incomplete_expired'].includes(actualStatus)) {
+      await rpc('alygnn_apply_second_slot_end', {
+        p_employer_id: meta.employer_id
+      });
+    }
     return;
   }
 
   if (product !== 'job_plan') return;
+
   await upsertPlan({
     employerId: meta.employer_id,
     plan: meta.plan,
     billing: meta.billing || 'monthly',
-    status: forceStatus || (subscription.status === 'trialing' ? 'trialing' : 'active'),
+    status: actualStatus,
     periodEnd: subscription.current_period_end,
     subscriptionId: subscription.id,
     customerId: typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id,
     scheduleId: typeof subscription.schedule === 'string' ? subscription.schedule : subscription.schedule?.id
   });
+
   await clearPendingIfApplied(meta.employer_id, meta.plan);
+
+  // This is the production enforcement point:
+  // when Stripe says the paid subscription has actually ended, paid-capacity
+  // jobs are closed automatically and the permanent Free-slot job remains.
+  if (['canceled','unpaid','incomplete_expired'].includes(actualStatus)) {
+    await rpc('alygnn_apply_free_fallback_after_plan_end', {
+      p_employer_id: meta.employer_id
+    });
+  }
 }
 
 async function fulfillExactUpgradeInvoice(
