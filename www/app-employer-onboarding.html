@@ -374,16 +374,78 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
 </div>
 
 <div class="step" data-title="Hiring Priorities">
-  <div class="eyebrow">Hiring priorities</div><h1>What matters most when hiring?</h1>
-  <p class="intro">Rank what your hiring team values most when evaluating candidates. Alygnn will turn this order into matching weights automatically.</p>
-  <div class="rank-list" id="candidate-priorities"></div><p class="rank-note">Put the most important factor at the top.</p>
-</div>
+  <div class="eyebrow">Hiring priorities</div>
 
-<div class="step" data-title="Overview">
-  <div class="eyebrow">Overview</div><h1>Review your hiring preferences.</h1>
-  <p class="intro">Confirm the information below before creating your company workspace.</p>
-  <div class="overview-grid">
-    <div class="overview-card"><div class="overview-head"><h2>Company Voice</h2><button class="edit" type="button" data-go="2">Edit</button></div><div class="overview-content" id="overview-voice"></div></div>
+  <h1>What matters most when hiring?</h1>
+
+  <p class="intro">
+    We started you with exactly 5 common hiring priorities.
+    Reorder them from most important to least important,
+    or remove one and replace it with your own.
+  </p>
+
+  <div class="strength-builder">
+    <div class="strength-builder-head">
+      <strong>Your top 5 hiring priorities</strong>
+      <span class="strength-counter" id="candidate-priority-counter">5 / 5</span>
+    </div>
+
+    <div
+      class="rank-list"
+      id="candidate-priorities">
+    </div>
+
+    <p class="rank-note">
+      Drag the cards to reorder them. You can also use the Up and Down buttons.
+      Alygnn will use this order when weighting candidate matches.
+    </p>
+
+    <div
+      class="company-strength-replacement"
+      id="candidate-priority-replacement"
+      hidden>
+
+      <div class="strength-replacement-title">
+        Add your replacement
+      </div>
+
+      <div class="strength-add-row">
+        <input
+          id="candidate-priority-input"
+          type="text"
+          maxlength="60"
+          autocomplete="off"
+          placeholder="Type your own hiring priority">
+
+        <button
+          class="strength-add-btn"
+          id="add-candidate-priority"
+          type="button">
+          Add
+        </button>
+      </div>
+
+      <div
+        class="strength-typeahead"
+        id="candidate-priority-typeahead"
+        hidden>
+      </div>
+
+      <p class="strength-limit-note">
+        You need exactly 5 hiring priorities before continuing.
+      </p>
+
+      <div class="replacement-recommendations-title">
+        Recommended replacements
+      </div>
+
+      <div
+        class="replacement-recommendations"
+        id="candidate-priority-recommendations">
+      </div>
+    </div>
+  </div>
+</div>
     <div class="overview-card"><div class="overview-head"><h2>Why Candidates Should Choose You</h2><button class="edit" type="button" data-go="3">Edit</button></div><ol class="overview-content ordered" id="overview-company"></ol></div>
     <div class="overview-card"><div class="overview-head"><h2>What Matters Most When Hiring</h2><button class="edit" type="button" data-go="4">Edit</button></div><ol class="overview-content ordered" id="overview-candidate"></ol></div>
     <div class="ai-summary"><h2>AI Summary</h2><p id="ai-summary"></p></div>
@@ -454,7 +516,58 @@ const COMPANY_STRENGTH_REPLACEMENTS=[
   'Professional Mentorship',
   'Employee Support'
 ];
-const DEFAULT_CANDIDATE=['Technical Skills','Soft Skills','Experience','Communication','Culture Fit','Reliability','Leadership','Availability'];
+const CANDIDATE_PRIORITY_LIMIT=5;
+
+const DEFAULT_CANDIDATE=[
+  'Role-Specific Skills',
+  'Relevant Experience',
+  'Communication',
+  'Reliability',
+  'Problem-Solving'
+];
+
+const CANDIDATE_PRIORITY_REPLACEMENTS=[
+  'Teamwork',
+  'Adaptability',
+  'Leadership Potential',
+  'Attention to Detail',
+  'Customer Service',
+  'Technical Knowledge',
+  'Industry Experience',
+  'Education',
+  'Certifications',
+  'Time Management',
+  'Critical Thinking',
+  'Decision-Making',
+  'Organization',
+  'Initiative',
+  'Creativity',
+  'Coachability',
+  'Professionalism',
+  'Interpersonal Skills',
+  'Project Management',
+  'Sales Ability',
+  'Writing Skills',
+  'Presentation Skills',
+  'Analytical Skills',
+  'Conflict Resolution',
+  'Dependability',
+  'Learning Agility',
+  'Strategic Thinking',
+  'Data Literacy',
+  'Digital Skills',
+  'Bilingual Skills',
+  'Management Experience',
+  'Client Relationship Skills',
+  'Negotiation Skills',
+  'Process Improvement',
+  'Quality Focus',
+  'Safety Awareness',
+  'Remote Work Readiness',
+  'Schedule Flexibility',
+  'Travel Availability',
+  'Physical Requirements'
+];
 const INDUSTRIES=["Accounting", "Actuarial Services", "Advertising", "Advertising and Marketing", "Aerospace", "Aerospace Manufacturing", "Agriculture", "Agricultural Equipment", "Agricultural Services", "Airlines", "Airports and Aviation", "Alternative Energy", "Ambulance Services", "Amusement Parks", "Animal Health", "Animation", "Apparel and Fashion", "Appliance Manufacturing", "Architecture", "Architecture and Design", "Art Galleries", "Artificial Intelligence", "Asset Management", "Assisted Living", "Audio Production", "Auto Parts", "Automotive", "Automotive Dealerships", "Automotive Manufacturing", "Automotive Repair", "Aviation", "Bakeries", "Banking", "Bars and Nightclubs", "Beauty and Cosmetics", "Beverage Manufacturing", "Big Data", "Biotechnology", "Book Publishing", "Breweries", "Broadcast Media", "Building Materials", "Business Consulting", "Business Process Outsourcing", "Business Services", "Cafes and Coffee Shops", "Call Centers", "Cannabis", "Car Rental", "Car Washes", "Casinos and Gaming", "Catering", "Chemical Manufacturing", "Child Care", "Civil Engineering", "Cleaning Services", "Cloud Computing", "Commercial Construction", "Commercial Real Estate", "Computer Hardware", "Computer Networking", "Computer Software", "Construction", "Construction Equipment", "Consumer Electronics", "Consumer Goods", "Consumer Services", "Content Creation", "Courier Services", "Cybersecurity", "Dairy", "Data Analytics", "Data Centers", "Dental", "Digital Marketing", "Distribution", "E-Commerce", "Education", "Electrical Contracting", "Electrical Equipment Manufacturing", "Electronics Manufacturing", "Emergency Services", "Energy", "Energy and Utilities", "Engineering", "Entertainment", "Entertainment and Media", "Environmental Consulting", "Environmental Services", "Event Management", "Facilities Management", "Farming", "Fashion", "Film and Television", "Financial Services", "FinTech", "Fire Protection", "Fitness", "Food and Beverage", "Food Delivery", "Food Manufacturing", "Food Processing", "Food Service", "Forestry", "Freight and Logistics", "Funeral Services", "Furniture Manufacturing", "Gaming", "Gas Utilities", "Government", "Graphic Design", "Green Energy", "Grocery Stores", "Healthcare", "Healthcare Services", "Home Health Care", "Home Improvement", "Hospital and Health Care", "Hospitality", "Hotels", "Human Resources", "Human Resources and Staffing", "HVAC", "Import and Export", "Industrial Automation", "Industrial Equipment", "Industrial Manufacturing", "Information Services", "Information Technology", "Insurance", "Interior Design", "Internet", "Internet Service Provider", "Investment Banking", "Investment Management", "IT Consulting", "Janitorial Services", "Jewelry", "Landscaping", "Law Enforcement", "Legal Services", "Leisure and Recreation", "Logistics", "Logistics and Transportation", "Luxury Goods", "Machine Shops", "Machinery Manufacturing", "Management Consulting", "Manufacturing", "Marine", "Market Research", "Marketing", "Mechanical Engineering", "Medical Devices", "Medical Practice", "Mental Health Care", "Mining", "Mobile Applications", "Mortgage Lending", "Motion Pictures", "Museums and Cultural Institutions", "Music", "Network Infrastructure", "Nonprofit", "Nursing Homes", "Oil and Gas", "Online Media", "Packaging", "Paper Manufacturing", "Payroll Services", "Pest Control", "Pet Care", "Pet Products", "Pharmaceuticals", "Photography", "Plastics Manufacturing", "Plumbing", "Printing", "Private Equity", "Professional Services", "Property Management", "Public Relations", "Publishing", "Railroad", "Real Estate", "Recruiting", "Recycling", "Renewable Energy", "Research", "Residential Construction", "Restaurant", "Restaurants", "Retail", "Retail Apparel", "Retail Banking", "Retail Grocery", "Robotics", "Roofing", "Security Services", "Semiconductors", "Senior Living", "Shipping", "Social Media", "Software", "Software and Technology", "Solar Energy", "Sports", "Sports and Recreation", "Staffing and Recruiting", "Storage and Warehousing", "Supermarkets", "Supply Chain", "Technology", "Telecommunications", "Telecommunications Equipment", "Textiles", "Tourism", "Transportation", "Travel", "Travel and Tourism", "Trucking", "Utilities", "Venture Capital", "Veterinary", "Warehousing", "Waste Management", "Water Utilities", "Web Development", "Wholesale", "Wireless Services", "Wine and Spirits", "Accounting Firms", "Ad Agencies", "Aerospace Defense", "Agribusiness", "Air Conditioning", "Airport Operations", "App Development", "Architecture Firms", "Auto Body Shops", "Auto Dealerships", "Auto Repair Shops", "B2B Services", "B2B Sales", "B2C Services", "Banking Services", "Barber Shops", "Beauty Salons", "Bicycle Shops", "Boat Dealers", "Bookstores", "Building Maintenance", "Business Development", "Cable and Internet", "Car Dealerships", "Carpet Cleaning", "Cement and Concrete", "Charities", "Churches and Religious Organizations", "Commercial Cleaning", "Commercial Landscaping", "Commercial Printing", "Community Services", "Computer Repair", "Concrete Contractors", "Convenience Stores", "Corporate Training", "Credit Unions", "Customer Service Outsourcing", "Defense and Space", "Delivery Services", "Dental Laboratories", "Dental Practices", "Dermatology", "Direct Sales", "Dry Cleaning", "Electric Utilities", "Electrical Services", "Employee Benefits", "Employment Services", "Equipment Rental", "Event Planning", "Executive Search", "Fast Food", "Fast Casual Restaurants", "Fine Dining", "Flooring", "Florists", "Food Trucks", "Franchising", "Freight Brokerage", "General Contractors", "Glass and Glazing", "Golf Courses", "Government Contracting", "Grocery Delivery", "Gyms and Fitness Centers", "Hair Salons", "Hardware Stores", "Health Insurance", "Heating and Cooling", "Home Builders", "Home Services", "Hospice", "Hospitality Management", "Hotels and Resorts", "Housekeeping", "Industrial Construction", "Industrial Services", "Insurance Agencies", "Insurance Brokerage", "Internet Marketing", "Land Development", "Laundry Services", "Life Insurance", "Local Government", "Luxury Retail", "Maintenance Services", "Medical Billing", "Medical Laboratories", "Medical Staffing", "Merchant Services", "Metal Fabrication", "Moving Companies", "Municipal Government", "Office Supplies", "Optometry", "Orthodontics", "Outpatient Care", "Painting Contractors", "Parking Services", "Personal Care Services", "Personal Training", "Pet Grooming", "Physical Therapy", "Plumbing Contractors", "Pool Services", "Postal Services", "Property and Casualty Insurance", "Quick Service Restaurants", "Real Estate Brokerage", "Real Estate Development", "Rehabilitation Services", "Residential Services", "Resorts", "Restaurant Groups", "Restaurant Management", "Roofing Contractors", "Sales Consulting", "School Districts", "Schools", "Security Systems", "Self Storage", "Sign Manufacturing", "Skilled Trades", "Solar Installation", "Specialty Retail", "Telecom Sales", "Telemedicine", "Temporary Staffing", "Tire Shops", "Title and Escrow", "Towing", "Trade Shows", "Tree Services", "Uniform Services", "University", "Vehicle Rentals", "Warehouse Distribution", "Waste Collection", "Water Treatment", "Web Design", "Wedding Services", "Welding", "Window and Door", "Wireless Retail", "Wood Products", "Accounting Software", "AdTech", "AgTech", "BioTech", "CleanTech", "Construction Tech", "EdTech", "HealthTech", "HR Tech", "InsurTech", "LegalTech", "MarTech", "PropTech", "Retail Tech", "SaaS", "Telecom Technology", "Cloud Services", "Managed IT Services", "Managed Security Services", "Network Security", "Data Security", "IT Support", "IT Services", "IT Staffing", "Systems Integration", "Enterprise Software", "Consumer Software", "Mobile Software", "Web Hosting", "Domain Services", "Data Science", "Machine Learning", "Generative AI", "Computer Vision", "Blockchain", "Cryptocurrency", "Payments", "Payment Processing", "Point of Sale", "Financial Technology", "Accounting Services", "Tax Services", "Bookkeeping", "Audit Services", "Wealth Management", "Financial Planning", "Credit Services", "Lending", "Consumer Lending", "Commercial Lending", "Mortgage", "Real Estate Investment", "REIT", "Property Insurance", "Claims Management", "Benefits Administration", "Pension Administration", "Retirement Services", "Hospital Systems", "Clinics", "Urgent Care", "Primary Care", "Pediatrics", "Cardiology", "Radiology", "Surgery Centers", "Pharmacies", "Pharmacy Services", "Medical Distribution", "Medical Equipment", "Behavioral Health", "Substance Abuse Treatment", "Counseling Services", "Social Work", "Home Care", "Disability Services", "Elder Care", "Rehabilitation", "Occupational Therapy", "Speech Therapy", "Diagnostics", "Laboratory Services", "Clinical Research", "Contract Research Organizations", "Life Sciences", "Genomics", "Medical Research", "Drug Development", "Veterinary Clinics", "Animal Hospitals", "Pet Boarding", "Animal Shelters", "Food Production", "Food Distribution", "Wholesale Food", "Restaurant Supply", "Hospitality Supply", "Coffee Roasting", "Distilleries", "Wineries", "Soft Drinks", "Bottling", "Dairy Products", "Meat Processing", "Seafood", "Produce Distribution", "Organic Food", "Meal Kits", "School Food Service", "Institutional Food Service", "Hotel Operations", "Vacation Rentals", "Travel Agencies", "Tour Operators", "Cruise Lines", "Theme Parks", "Recreation Centers", "Country Clubs", "Fitness Studios", "Yoga Studios", "Martial Arts", "Sports Teams", "Sports Management", "Ticketing", "Live Events", "Concert Promotion", "Performing Arts", "Theater", "Radio", "Television", "Streaming Media", "Podcasting", "News Media", "Newspapers", "Magazines", "Digital Publishing", "Content Marketing", "Influencer Marketing", "Creative Agencies", "Branding Agencies", "Media Buying", "SEO", "Search Engine Marketing", "Email Marketing", "Marketing Technology", "Public Affairs", "Government Relations", "Political Consulting", "Fundraising", "Nonprofit Management", "Foundations", "Associations", "Membership Organizations", "Religious Institutions", "Higher Education", "K-12 Education", "Preschools", "Vocational Education", "Trade Schools", "Online Education", "Tutoring", "Test Preparation", "Educational Services", "Education Management", "Research Universities", "Community Colleges", "Libraries", "Municipal Services", "Public Administration", "Federal Government", "State Government", "County Government", "Military", "Defense Contractors", "Public Safety", "Fire Departments", "Police Departments", "Emergency Management", "Corrections", "Courts", "Public Works", "Water and Sewer", "Electric Power", "Natural Gas", "Power Generation", "Power Transmission", "Power Distribution", "Renewable Power", "Wind Energy", "Hydroelectric Power", "Nuclear Energy", "Energy Services", "Energy Consulting", "Oilfield Services", "Petroleum Refining", "Pipeline Transportation", "Mining Services", "Metals and Mining", "Steel Manufacturing", "Aluminum Manufacturing", "Foundries", "Fabricated Metal Products", "Industrial Machinery", "Heavy Equipment", "Automotive Suppliers", "Aerospace Components", "Electronics", "Semiconductor Manufacturing", "Consumer Products Manufacturing", "Food Equipment Manufacturing", "Packaging Manufacturing", "Paper and Pulp", "Printing and Packaging", "Chemical Processing", "Specialty Chemicals", "Industrial Chemicals", "Pharmaceutical Manufacturing", "Medical Device Manufacturing", "Furniture", "Cabinetry", "Textile Manufacturing", "Apparel Manufacturing", "Footwear", "Jewelry Manufacturing", "Plastics", "Rubber Products", "Glass Manufacturing", "Ceramics", "Building Products", "Lumber", "Forestry Products", "Residential Real Estate", "Commercial Property", "Industrial Real Estate", "Multifamily Housing", "Property Leasing", "Real Estate Services", "Real Estate Appraisal", "Home Inspection", "Mortgage Services", "Title Services", "Escrow Services", "Construction Management", "Engineering Services", "General Construction", "Specialty Contractors", "Carpentry", "Masonry", "Drywall", "Electrical Contractors", "Mechanical Contractors", "Civil Construction", "Road Construction", "Infrastructure Construction", "Utility Construction", "Heavy Civil Construction", "Excavation", "Demolition", "Concrete", "Paving", "Surveying", "Geotechnical Engineering", "Environmental Engineering", "Architecture Services", "Urban Planning", "Interior Architecture", "Facilities Services", "Building Operations", "Commercial Property Management", "Residential Property Management", "Transportation Services", "Public Transportation", "Bus Transportation", "Rail Transportation", "Air Freight", "Ocean Freight", "Freight Forwarding", "Third Party Logistics", "3PL", "Last Mile Delivery", "Fleet Management", "Transportation Brokerage", "Warehousing and Fulfillment", "Fulfillment Centers", "Cold Storage", "Distribution Centers", "Supply Chain Consulting", "Procurement", "Purchasing", "Wholesale Distribution", "Industrial Distribution", "Technology Distribution", "Consumer Retail", "Department Stores", "Discount Retail", "Home Improvement Retail", "Furniture Retail", "Electronics Retail", "Sporting Goods Retail", "Auto Parts Retail", "Pharmacy Retail", "Convenience Retail", "Fuel Stations", "Gas Stations", "Specialty Stores", "Online Retail", "Marketplace", "Subscription Commerce", "Direct to Consumer", "DTC", "Customer Support", "Contact Centers", "Business Services Outsourcing", "Back Office Services", "Document Management", "Records Management", "Translation Services", "Language Services", "Office Services", "Coworking", "Business Centers", "Corporate Services", "Professional Training", "Leadership Development", "Coaching", "Recruitment Process Outsourcing", "Executive Coaching", "Sales Training", "Security Guard Services", "Private Security", "Alarm Services", "Cybersecurity Services", "Fire and Safety Services", "Workplace Safety", "Occupational Health", "Environmental Health and Safety", "EHS", "Legal Practices", "Law Firms", "Corporate Law", "Litigation", "Personal Injury Law", "Family Law", "Immigration Law", "Criminal Defense", "Employment Law", "Intellectual Property", "Patent Services", "Legal Support Services", "Court Reporting", "Compliance Services", "Regulatory Affairs", "Risk Management", "Quality Assurance", "Quality Control", "Certification Services", "Testing Laboratories", "Inspection Services", "Engineering Testing", "Calibration Services", "Scientific Instruments", "Research and Development", "Product Development", "Industrial Design", "Product Design", "UX Design", "UI Design", "Graphic Arts", "Photography Studios", "Video Production", "Post Production", "Recording Studios", "Music Production", "Talent Agencies", "Modeling Agencies", "Creator Economy", "Digital Media", "Online Communities", "Social Networks", "Gaming Studios", "Esports", "Video Games", "Mobile Games", "Console Games", "Virtual Reality", "Augmented Reality", "Metaverse", "Consumer Internet", "Internet Platforms", "Search", "Online Advertising", "Online Marketplaces", "Delivery Platforms", "Ride Sharing", "Mobility", "Electric Vehicles", "EV Charging", "Autonomous Vehicles", "Fleet Services", "Truck Repair", "Diesel Repair", "Collision Repair", "Auto Detailing", "Motorcycle Dealers", "Marine Dealers", "Boat Services", "Aircraft Maintenance", "Aviation Maintenance", "Charter Aviation", "Private Aviation", "Ground Handling", "Airport Services", "Travel Technology", "Hotel Technology", "Restaurant Technology", "Food Technology", "FoodTech", "Agricultural Technology", "Precision Agriculture", "Farm Equipment", "Seed and Crop", "Crop Protection", "Livestock", "Poultry", "Aquaculture", "Forestry Services", "Landscaping Services", "Lawn Care", "Nurseries", "Garden Centers", "Pest Management", "Waste and Recycling", "Recycling Services", "Hazardous Waste", "Environmental Remediation", "Water Management", "Water Treatment Services", "Wastewater Treatment", "Sustainability Consulting", "ESG Consulting", "Carbon Management", "Solar", "Wind", "Battery Storage", "Energy Storage", "EV Infrastructure", "Renewable Energy Development", "Industrial Automation Systems", "Robotics Automation", "Control Systems", "Process Automation", "Instrumentation", "Internet of Things", "IoT", "Smart Buildings", "Smart Home", "Building Automation", "Security Technology", "Telecommunications Services", "Wireless Communications", "Cable Television", "Fiber Internet", "Broadband", "Network Services", "Telecom Infrastructure", "Cell Towers", "Satellite Communications", "Unified Communications", "VoIP", "Cloud Communications", "Data Communications", "Telecom Equipment", "Network Equipment", "Human Capital Management", "Payroll", "Benefits", "HR Consulting", "Recruiting Agencies", "Staffing Agencies", "Temporary Employment", "Professional Staffing", "Healthcare Staffing", "Technology Staffing", "Light Industrial Staffing", "Executive Recruitment", "Workforce Management", "Background Screening", "Employee Screening", "Employment Verification", "People Analytics", "Workplace Consulting", "Organizational Development", "Diversity and Inclusion Consulting", "Employee Engagement", "Corporate Wellness", "Workplace Benefits", "Franchise Restaurants", "Independent Restaurants", "Casual Dining", "Full Service Restaurants", "Limited Service Restaurants", "Pizza Restaurants", "Burger Restaurants", "Coffee Shops", "Dessert Shops", "Ice Cream Shops", "Juice Bars", "Smoothie Shops", "Bistros", "Delis", "Food Courts", "Bars", "Pubs", "Nightclubs", "Breweries and Taprooms", "Catering Services", "Food Catering", "Corporate Catering", "Event Catering", "Institutional Catering", "Restaurant Equipment", "Kitchen Equipment", "Hospitality Staffing"];
 const US_CITIES=['Albuquerque, NM','Alexandria, VA','Anaheim, CA','Anchorage, AK','Arlington, TX','Arlington, VA','Atlanta, GA','Augusta, GA','Austin, TX','Baltimore, MD','Baton Rouge, LA','Birmingham, AL','Boise, ID','Boston, MA','Buffalo, NY','Burlington, VT','Cary, NC','Charleston, SC','Charlotte, NC','Chattanooga, TN','Chicago, IL','Cincinnati, OH','Cleveland, OH','Colorado Springs, CO','Columbia, SC','Columbus, OH','Dallas, TX','Denver, CO','Des Moines, IA','Detroit, MI','Durham, NC','El Paso, TX','Fayetteville, NC','Fort Lauderdale, FL','Fort Worth, TX','Fresno, CA','Greensboro, NC','Greenville, SC','Hartford, CT','Henderson, NV','Honolulu, HI','Houston, TX','Indianapolis, IN','Irvine, CA','Jackson, MS','Jacksonville, FL','Kansas City, MO','Knoxville, TN','Las Vegas, NV','Lexington, KY','Little Rock, AR','Long Beach, CA','Los Angeles, CA','Louisville, KY','Madison, WI','Memphis, TN','Mesa, AZ','Miami, FL','Milwaukee, WI','Minneapolis, MN','Nashville, TN','New Orleans, LA','New York, NY','Newark, NJ','Norfolk, VA','Oakland, CA','Oklahoma City, OK','Omaha, NE','Orlando, FL','Philadelphia, PA','Phoenix, AZ','Pittsburgh, PA','Plano, TX','Portland, ME','Portland, OR','Providence, RI','Raleigh, NC','Reno, NV','Richmond, VA','Rochester, NY','Sacramento, CA','Salt Lake City, UT','San Antonio, TX','San Diego, CA','San Francisco, CA','San Jose, CA','Savannah, GA','Seattle, WA','St. Louis, MO','St. Petersburg, FL','Syracuse, NY','Tallahassee, FL','Tampa, FL','Toledo, OH','Tucson, AZ','Tulsa, OK','Virginia Beach, VA','Washington, DC','Wilmington, NC','Winston-Salem, NC'];
 const steps=[...document.querySelectorAll('.step')];let current=0;const selectedVoices=new Set();
@@ -515,8 +628,18 @@ function restoreDraft(){
       DEFAULT_COMPANY_STRENGTHS
     );
   }
-  if(Array.isArray(draft.candidate_priorities)&&draft.candidate_priorities.length){
-    renderRankList('candidate-priorities',draft.candidate_priorities);
+  if(
+    Array.isArray(draft.candidate_priorities)&&
+    draft.candidate_priorities.length===
+      CANDIDATE_PRIORITY_LIMIT
+  ){
+    renderCandidatePriorities(
+      draft.candidate_priorities
+    );
+  }else{
+    renderCandidatePriorities(
+      DEFAULT_CANDIDATE
+    );
   }
 
   const requestedStep=new URLSearchParams(location.search).get('step');
@@ -877,6 +1000,398 @@ async function confirmRemoveCompanyStrength(name){
   return Boolean(second);
 }
 
+
+let candidatePrioritySortable=null;
+
+function cleanCandidatePriority(value){
+  return String(value||'')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+function candidatePriorities(){
+  return getRanking(
+    'candidate-priorities'
+  );
+}
+
+function candidatePriorityExists(value){
+  const normalized=
+    cleanCandidatePriority(value)
+      .toLowerCase();
+
+  return candidatePriorities()
+    .some(item=>
+      item.toLowerCase()===
+      normalized
+    );
+}
+
+function candidatePriorityTemplate(name,index){
+  return `
+    <div
+      class="rank-item company-strength-item"
+      data-value="${escapeHtml(name)}">
+
+      <div class="rank-number">
+        ${index+1}
+      </div>
+
+      <div class="rank-name">
+        ${escapeHtml(name)}
+      </div>
+
+      <div class="rank-tools">
+        <button
+          class="move"
+          type="button"
+          data-dir="up">
+          Up
+        </button>
+
+        <button
+          class="move"
+          type="button"
+          data-dir="down">
+          Down
+        </button>
+
+        <button
+          class="drag-handle"
+          type="button"
+          aria-label="Drag ${escapeHtml(name)}">
+        </button>
+      </div>
+
+      <button
+        class="remove-strength"
+        type="button"
+        aria-label="Remove ${escapeHtml(name)}"
+        data-remove-candidate-priority>
+        ×
+      </button>
+    </div>
+  `;
+}
+
+function renderCandidatePriorityRecommendations(){
+  const box=
+    document.getElementById(
+      'candidate-priority-recommendations'
+    );
+
+  if(!box)return;
+
+  const selected=
+    new Set(
+      candidatePriorities()
+        .map(value=>
+          value.toLowerCase()
+        )
+    );
+
+  const available=
+    CANDIDATE_PRIORITY_REPLACEMENTS
+      .filter(value=>
+        !selected.has(
+          value.toLowerCase()
+        )
+      )
+      .slice(0,4);
+
+  box.innerHTML=
+    available
+      .map(value=>`
+        <button
+          class="replacement-recommendation"
+          type="button"
+          data-candidate-priority-replacement="${escapeHtml(value)}">
+          + ${escapeHtml(value)}
+        </button>
+      `)
+      .join('');
+}
+
+function candidatePrioritySearchScore(value,query){
+  const v=normalizeStrengthSearch(value);
+  const q=normalizeStrengthSearch(query);
+
+  if(!q)return 9999;
+  if(v===q)return 0;
+  if(v.startsWith(q))return 1;
+  if(v.includes(q))return 2;
+
+  const words=v.split(' ');
+  if(words.some(word=>word.startsWith(q)))return 3;
+  if(words.some(word=>word.includes(q)))return 4;
+
+  return 9999;
+}
+
+function renderCandidatePriorityTypeahead(){
+  const input=
+    document.getElementById(
+      'candidate-priority-input'
+    );
+
+  const box=
+    document.getElementById(
+      'candidate-priority-typeahead'
+    );
+
+  if(!input||!box)return;
+
+  const query=
+    input.value.trim();
+
+  if(query.length<2){
+    box.hidden=true;
+    box.innerHTML='';
+    return;
+  }
+
+  const selected=
+    new Set(
+      candidatePriorities()
+        .map(value=>
+          value.toLowerCase()
+        )
+    );
+
+  const matches=
+    CANDIDATE_PRIORITY_REPLACEMENTS
+      .map(value=>({
+        value,
+        score:candidatePrioritySearchScore(
+          value,
+          query
+        )
+      }))
+      .filter(item=>
+        item.score<9999 &&
+        !selected.has(
+          item.value.toLowerCase()
+        )
+      )
+      .sort((a,b)=>
+        a.score-b.score ||
+        a.value.localeCompare(b.value)
+      )
+      .slice(0,4);
+
+  if(!matches.length){
+    box.hidden=true;
+    box.innerHTML='';
+    return;
+  }
+
+  box.innerHTML=
+    matches
+      .map(item=>`
+        <button
+          class="strength-typeahead-option"
+          type="button"
+          data-candidate-priority-typeahead="${escapeHtml(item.value)}">
+          ${escapeHtml(item.value)}
+        </button>
+      `)
+      .join('');
+
+  box.hidden=false;
+}
+
+function updateCandidatePriorityUI(){
+  const count=
+    candidatePriorities().length;
+
+  const counter=
+    document.getElementById(
+      'candidate-priority-counter'
+    );
+
+  if(counter){
+    counter.textContent=
+      `${count} / ${CANDIDATE_PRIORITY_LIMIT}`;
+  }
+
+  const replacement=
+    document.getElementById(
+      'candidate-priority-replacement'
+    );
+
+  if(replacement){
+    replacement.hidden=
+      count>=CANDIDATE_PRIORITY_LIMIT;
+  }
+
+  const addButton=
+    document.getElementById(
+      'add-candidate-priority'
+    );
+
+  if(addButton){
+    addButton.disabled=
+      count>=CANDIDATE_PRIORITY_LIMIT;
+  }
+
+  if(count<CANDIDATE_PRIORITY_LIMIT){
+    renderCandidatePriorityRecommendations();
+    renderCandidatePriorityTypeahead();
+  }else{
+    const typeahead=
+      document.getElementById(
+        'candidate-priority-typeahead'
+      );
+
+    if(typeahead){
+      typeahead.hidden=true;
+      typeahead.innerHTML='';
+    }
+  }
+}
+
+function renderCandidatePriorities(items=[]){
+  const unique=[];
+
+  for(const raw of items){
+    const value=
+      cleanCandidatePriority(raw);
+
+    if(!value)continue;
+
+    if(
+      unique.some(item=>
+        item.toLowerCase()===
+        value.toLowerCase()
+      )
+    ){
+      continue;
+    }
+
+    unique.push(value);
+
+    if(
+      unique.length>=
+      CANDIDATE_PRIORITY_LIMIT
+    ){
+      break;
+    }
+  }
+
+  const list=
+    document.getElementById(
+      'candidate-priorities'
+    );
+
+  list.innerHTML=
+    unique
+      .map((name,index)=>
+        candidatePriorityTemplate(
+          name,
+          index
+        )
+      )
+      .join('');
+
+  if(candidatePrioritySortable){
+    candidatePrioritySortable.destroy();
+  }
+
+  candidatePrioritySortable=
+    new Sortable(
+      list,
+      {
+        animation:180,
+        handle:'.drag-handle',
+        ghostClass:'sortable-ghost',
+        chosenClass:'sortable-chosen',
+        onEnd:()=>{
+          renumber(list);
+          updateCandidatePriorityUI();
+          saveDraft();
+        }
+      }
+    );
+
+  updateCandidatePriorityUI();
+}
+
+function addCandidatePriority(raw){
+  const value=
+    cleanCandidatePriority(raw);
+
+  if(!value){
+    showMessage(
+      'Type a hiring priority first.'
+    );
+    return false;
+  }
+
+  if(value.length<2){
+    showMessage(
+      'Enter a more descriptive hiring priority.'
+    );
+    return false;
+  }
+
+  const existing=
+    candidatePriorities();
+
+  if(
+    existing.length>=
+    CANDIDATE_PRIORITY_LIMIT
+  ){
+    showMessage(
+      'You already have 5 hiring priorities.'
+    );
+    return false;
+  }
+
+  if(candidatePriorityExists(value)){
+    showMessage(
+      'That hiring priority is already on your list.'
+    );
+    return false;
+  }
+
+  clearMessage();
+
+  renderCandidatePriorities([
+    ...existing,
+    value
+  ]);
+
+  const input=
+    document.getElementById(
+      'candidate-priority-input'
+    );
+
+  if(input){
+    input.value='';
+  }
+
+  saveDraft();
+  return true;
+}
+
+async function confirmRemoveCandidatePriority(name){
+  const first=
+    window.confirm(
+      `Remove "${name}" from your top 5 hiring priorities?`
+    );
+
+  if(!first){
+    return false;
+  }
+
+  const second=
+    window.confirm(
+      'Are you sure? You will need to add another hiring priority before continuing.'
+    );
+
+  return Boolean(second);
+}
+
 function renderRankList(id,items){const list=document.getElementById(id);list.innerHTML=items.map((name,i)=>rankTemplate(name,i)).join('');new Sortable(list,{animation:180,handle:'.drag-handle',ghostClass:'sortable-ghost',chosenClass:'sortable-chosen',onEnd:()=>renumber(list)});list.addEventListener('click',e=>{const btn=e.target.closest('.move');if(!btn)return;const item=btn.closest('.rank-item');if(btn.dataset.dir==='up'&&item.previousElementSibling)list.insertBefore(item,item.previousElementSibling);if(btn.dataset.dir==='down'&&item.nextElementSibling)list.insertBefore(item.nextElementSibling,item);renumber(list)})}
 function rankTemplate(name,i){return `<div class="rank-item" data-value="${escapeHtml(name)}"><div class="rank-number">${i+1}</div><div class="rank-name">${escapeHtml(name)}</div><div class="rank-tools"><button class="move" type="button" data-dir="up">Up</button><button class="move" type="button" data-dir="down">Down</button><button class="drag-handle" type="button" aria-label="Drag ${escapeHtml(name)}"></button></div></div>`}
 function renumber(list){[...list.children].forEach((item,i)=>item.querySelector('.rank-number').textContent=i+1)}
@@ -1091,7 +1606,7 @@ function setupSuggestions(inputId,boxId,values){
     }
   );
 }
-function validateCurrent(){if(current===1){for(const field of steps[current].querySelectorAll('input[required],select[required]')){if(!field.checkValidity()){field.reportValidity();return false}}const websiteField=document.getElementById('website');try{const url=new URL(/^https?:\/\//i.test(websiteField.value.trim())?websiteField.value.trim():'https://'+websiteField.value.trim());const host=url.hostname.toLowerCase().replace(/^www\./,'');const labels=host.split('.');if(labels.length<2||!labels.every(l=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(l))||!/^[a-z]{2,63}$/i.test(labels.at(-1)))throw new Error();url.hash='';websiteField.value=url.toString()}catch{websiteField.focus();showMessage('Enter a complete business website, such as https://yourcompany.com.');return false}const phone=document.getElementById('business-phone').value.replace(/\D/g,'');if(phone.length<10){showMessage('Enter a valid business phone number.');return false}const ein=document.getElementById('ein').value.replace(/\D/g,'');if(!/^\d{9}$/.test(ein)){showMessage('Enter a valid 9-digit EIN.');return false}if(document.getElementById('has-dba').checked&&!document.getElementById('dba-name').value.trim()){showMessage('Enter the DBA or trade name.');return false}}if(current===2&&selectedVoices.size===0){showMessage('Choose at least one Company Voice.');return false}if(current===3){const strengths=companyStrengths();if(strengths.length!==COMPANY_STRENGTH_LIMIT){showMessage('Keep exactly 5 company strengths before continuing.');return false}}if(current===5&&!document.getElementById('authorization').checked){showMessage('Confirm that you are authorized to recruit for this company.');return false}return true}
+function validateCurrent(){if(current===1){for(const field of steps[current].querySelectorAll('input[required],select[required]')){if(!field.checkValidity()){field.reportValidity();return false}}const websiteField=document.getElementById('website');try{const url=new URL(/^https?:\/\//i.test(websiteField.value.trim())?websiteField.value.trim():'https://'+websiteField.value.trim());const host=url.hostname.toLowerCase().replace(/^www\./,'');const labels=host.split('.');if(labels.length<2||!labels.every(l=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(l))||!/^[a-z]{2,63}$/i.test(labels.at(-1)))throw new Error();url.hash='';websiteField.value=url.toString()}catch{websiteField.focus();showMessage('Enter a complete business website, such as https://yourcompany.com.');return false}const phone=document.getElementById('business-phone').value.replace(/\D/g,'');if(phone.length<10){showMessage('Enter a valid business phone number.');return false}const ein=document.getElementById('ein').value.replace(/\D/g,'');if(!/^\d{9}$/.test(ein)){showMessage('Enter a valid 9-digit EIN.');return false}if(document.getElementById('has-dba').checked&&!document.getElementById('dba-name').value.trim()){showMessage('Enter the DBA or trade name.');return false}}if(current===2&&selectedVoices.size===0){showMessage('Choose at least one Company Voice.');return false}if(current===3){const strengths=companyStrengths();if(strengths.length!==COMPANY_STRENGTH_LIMIT){showMessage('Keep exactly 5 company strengths before continuing.');return false}}if(current===4){const priorities=candidatePriorities();if(priorities.length!==CANDIDATE_PRIORITY_LIMIT){showMessage('Keep exactly 5 hiring priorities before continuing.');return false}}if(current===5&&!document.getElementById('authorization').checked){showMessage('Confirm that you are authorized to recruit for this company.');return false}return true}
 function aiSummary(){const v=[...selectedVoices],c=getRanking('company-priorities').slice(0,3),h=getRanking('candidate-priorities').slice(0,3);return `Your company emphasizes ${joinWords(c).toLowerCase()}. Alygnn will write hiring content in a ${joinWords(v).toLowerCase()} voice while prioritizing candidates who demonstrate ${joinWords(h).toLowerCase()}.`}
 function joinWords(values){if(values.length<=1)return values[0]||'';if(values.length===2)return values.join(' and ');return values.slice(0,-1).join(', ')+', and '+values.at(-1)}
 function buildOverview(){const voices=[...selectedVoices],company=getRanking('company-priorities'),candidate=getRanking('candidate-priorities');document.getElementById('overview-voice').textContent=voices.join(' • ');document.getElementById('overview-company').innerHTML=company.slice(0,3).map(v=>`<li>${escapeHtml(v)}</li>`).join('');document.getElementById('overview-candidate').innerHTML=candidate.slice(0,3).map(v=>`<li>${escapeHtml(v)}</li>`).join('');document.getElementById('ai-summary').textContent=aiSummary()}
@@ -1406,6 +1921,179 @@ document.getElementById(
   }
 );
 
+
+document.getElementById(
+  'add-candidate-priority'
+).addEventListener(
+  'click',
+  ()=>{
+    addCandidatePriority(
+      document.getElementById(
+        'candidate-priority-input'
+      ).value
+    );
+  }
+);
+
+document.getElementById(
+  'candidate-priority-input'
+).addEventListener(
+  'input',
+  ()=>{
+    renderCandidatePriorityTypeahead();
+  }
+);
+
+document.getElementById(
+  'candidate-priority-input'
+).addEventListener(
+  'keydown',
+  event=>{
+    if(event.key==='Enter'){
+      event.preventDefault();
+
+      addCandidatePriority(
+        event.currentTarget.value
+      );
+    }
+  }
+);
+
+document.getElementById(
+  'candidate-priority-typeahead'
+).addEventListener(
+  'click',
+  event=>{
+    const button=
+      event.target.closest(
+        '[data-candidate-priority-typeahead]'
+      );
+
+    if(!button)return;
+
+    addCandidatePriority(
+      button.dataset
+        .candidatePriorityTypeahead
+    );
+  }
+);
+
+document.getElementById(
+  'candidate-priority-recommendations'
+).addEventListener(
+  'click',
+  event=>{
+    const button=
+      event.target.closest(
+        '[data-candidate-priority-replacement]'
+      );
+
+    if(!button)return;
+
+    addCandidatePriority(
+      button.dataset
+        .candidatePriorityReplacement
+    );
+  }
+);
+
+document.getElementById(
+  'candidate-priorities'
+).addEventListener(
+  'click',
+  async event=>{
+    const remove=
+      event.target.closest(
+        '[data-remove-candidate-priority]'
+      );
+
+    if(remove){
+      const item=
+        remove.closest(
+          '.rank-item'
+        );
+
+      if(!item)return;
+
+      const value=
+        item.dataset.value||
+        '';
+
+      const confirmed=
+        await confirmRemoveCandidatePriority(
+          value
+        );
+
+      if(!confirmed){
+        return;
+      }
+
+      renderCandidatePriorities(
+        candidatePriorities()
+          .filter(itemValue=>
+            itemValue!==value
+          )
+      );
+
+      saveDraft();
+
+      setTimeout(()=>{
+        const input=
+          document.getElementById(
+            'candidate-priority-input'
+          );
+
+        if(input){
+          input.focus();
+        }
+      },60);
+
+      return;
+    }
+
+    const move=
+      event.target.closest(
+        '.move'
+      );
+
+    if(!move)return;
+
+    const list=
+      document.getElementById(
+        'candidate-priorities'
+      );
+
+    const item=
+      move.closest(
+        '.rank-item'
+      );
+
+    if(
+      move.dataset.dir==='up'&&
+      item.previousElementSibling
+    ){
+      list.insertBefore(
+        item,
+        item.previousElementSibling
+      );
+    }
+
+    if(
+      move.dataset.dir==='down'&&
+      item.nextElementSibling
+    ){
+      list.insertBefore(
+        item.nextElementSibling,
+        item
+      );
+    }
+
+    renumber(list);
+    updateCandidatePriorityUI();
+    saveDraft();
+  }
+);
+
 nextButton.addEventListener('click',()=>{if(!validateCurrent())return;saveDraft();if(current<steps.length-1)showStep(current+1);else submit()});backButton.addEventListener('click',()=>{saveDraft();if(current>0)showStep(current-1)});document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>showStep(Number(b.dataset.go))));
 const hasDba=document.getElementById('has-dba'),dbaField=document.getElementById('dba-field'),dbaName=document.getElementById('dba-name');hasDba.addEventListener('change',()=>{dbaField.classList.toggle('show',hasDba.checked);dbaName.required=hasDba.checked;if(!hasDba.checked)dbaName.value=''})
 document.getElementById('ein').addEventListener('input',e=>{const d=e.target.value.replace(/\D/g,'').slice(0,9);e.target.value=d.length>2?d.slice(0,2)+'-'+d.slice(2):d});
@@ -1416,7 +2104,7 @@ window.addEventListener('beforeunload',saveDraft);
 (async()=>{
   renderVoices();
   renderCompanyStrengths(DEFAULT_COMPANY_STRENGTHS);
-  renderRankList('candidate-priorities',DEFAULT_CANDIDATE);
+  renderCandidatePriorities(DEFAULT_CANDIDATE);
   setupSuggestions('industry','industry-suggestions',INDUSTRIES);
   setupSuggestions('headquarters','city-suggestions',US_CITIES);
 
