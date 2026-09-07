@@ -277,6 +277,53 @@ async function fulfillCheckout(session) {
     return;
   }
 
+  if (product === 'team_seat') {
+    if (
+      session.mode === 'subscription' &&
+      session.subscription
+    ) {
+      const subscription =
+        await stripeGet(
+          `subscriptions/${
+            encodeURIComponent(
+              session.subscription
+            )
+          }`
+        );
+
+      await rpc(
+        'sync_team_seat_subscription',
+        {
+          p_employer_id:
+            employerId,
+          p_stripe_subscription_id:
+            subscription.id,
+          p_status:
+            subscription.status === 'trialing'
+              ? 'trialing'
+              : subscription.status,
+          p_expires_at:
+            subscription.current_period_end
+              ? new Date(
+                  subscription.current_period_end *
+                  1000
+                ).toISOString()
+              : null,
+          p_payment_reference:
+            session.id,
+          p_amount_cents:
+            Number(
+              session.amount_total ||
+              meta.unit_amount_cents ||
+              0
+            )
+        }
+      );
+    }
+
+    return;
+  }
+
   if (product === 'job_boost') {
     await rpc('activate_paid_job_boost', {
       p_employer_id: employerId,
@@ -318,53 +365,67 @@ async function fulfillSubscription(subscription, forceStatus) {
   const product = String(meta.product || '').toLowerCase();
   if (!meta.employer_id) return;
 
-  const actualStatus = String(
-    forceStatus ||
-    (subscription.status === 'trialing' ? 'trialing' : subscription.status || 'active')
-  ).toLowerCase();
+  if (product === 'team_seat') {
+    await rpc(
+      'sync_team_seat_subscription',
+      {
+        p_employer_id:
+          meta.employer_id,
+        p_stripe_subscription_id:
+          subscription.id,
+        p_status:
+          forceStatus ||
+          (
+            subscription.status === 'trialing'
+              ? 'trialing'
+              : subscription.status
+          ),
+        p_expires_at:
+          subscription.current_period_end
+            ? new Date(
+                subscription.current_period_end *
+                1000
+              ).toISOString()
+            : null,
+        p_payment_reference:
+          null,
+        p_amount_cents:
+          Number(
+            meta.unit_amount_cents ||
+            0
+          )
+      }
+    );
+
+    return;
+  }
 
   if (product === 'additional_slot' || product === 'single_job') {
+    const status = forceStatus || (subscription.status === 'trialing' ? 'trialing' : subscription.status);
     await rpc('sync_second_job_slot_subscription', {
       p_employer_id: meta.employer_id,
-      p_status: actualStatus,
+      p_status: status,
       p_expires_at: subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toISOString()
         : null,
       p_payment_reference: null,
       p_amount_cents: 15000
     });
-
-    if (['canceled','unpaid','incomplete_expired'].includes(actualStatus)) {
-      await rpc('alygnn_apply_second_slot_end', {
-        p_employer_id: meta.employer_id
-      });
-    }
     return;
   }
 
   if (product !== 'job_plan') return;
-
   await upsertPlan({
     employerId: meta.employer_id,
     plan: meta.plan,
     billing: meta.billing || 'monthly',
-    status: actualStatus,
+    status: forceStatus || (subscription.status === 'trialing' ? 'trialing' : 'active'),
     periodEnd: subscription.current_period_end,
     subscriptionId: subscription.id,
     customerId: typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id,
     scheduleId: typeof subscription.schedule === 'string' ? subscription.schedule : subscription.schedule?.id
   });
-
   await clearPendingIfApplied(meta.employer_id, meta.plan);
-
-  // This is the production enforcement point:
-  // when Stripe says the paid subscription has actually ended, paid-capacity
-  // jobs are closed automatically and the permanent Free-slot job remains.
-  if (['canceled','unpaid','incomplete_expired'].includes(actualStatus)) {
-    await rpc('alygnn_apply_free_fallback_after_plan_end', {
-      p_employer_id: meta.employer_id
-    });
-  }
 }
 
 async function fulfillExactUpgradeInvoice(
