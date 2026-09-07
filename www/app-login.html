@@ -1,50 +1,478 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alygnn Login</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F6F8F7">
+<title>Candidate Sign In | Alygnn</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
-:root{--brand:#5D7FA3;--bg:#05080D;--card-bg:rgba(18,24,36,.94);--text:#FFFFFF;--border:rgba(255,255,255,.12);--text-muted:#A7B0BC;--error:#D79A9A;--success:#6FBF8F;}*{box-sizing:border-box;font-family:'DM Sans',Arial,sans-serif!important;}html,body{margin:0;min-height:100%;background:#05080D;color:var(--text);}body{min-height:100vh;background:radial-gradient(circle at top,rgba(93,127,163,.35),transparent 35%),linear-gradient(180deg,#05080D,#0A0F17);}.screen{min-height:100vh;padding:20px;display:flex;justify-content:center;align-items:center}.card{width:100%;max-width:430px;background:var(--card-bg);border:1px solid var(--border);border-radius:34px;padding:34px 26px;box-shadow:0 25px 70px rgba(0,0,0,.45)}.logo{text-align:center;font-size:52px;font-weight:900;color:var(--brand);letter-spacing:-2px}.subtitle{text-align:center;color:var(--text-muted);font-size:16px;margin-top:6px;margin-bottom:36px}.title{text-align:center;font-size:36px;font-weight:900;margin-bottom:28px}.input{width:100%;padding:18px 20px;border-radius:18px;border:1px solid var(--border);background:rgba(255,255,255,.03);color:white;font-size:17px}.input::placeholder{color:rgba(255,255,255,.45)}.input:focus{outline:none;border-color:var(--brand)}.password-wrapper{position:relative;margin-top:14px}.password-input{padding-right:68px}.toggle-password{position:absolute;top:50%;right:18px;transform:translateY(-50%);background:none;border:none;cursor:pointer;opacity:.75;color:white;font-weight:900}.forgot{text-align:right;margin-top:12px;margin-bottom:20px}.forgot a{color:var(--text-muted);text-decoration:none;font-weight:700;font-size:15px}.message{display:none;margin-bottom:14px;font-size:14px;font-weight:700;line-height:1.4}.message.error{color:var(--error)}.message.success{color:var(--success)}.btn{width:100%;min-height:58px;padding:16px;border-radius:18px;border:none;font-size:18px;font-weight:900;cursor:pointer;transition:.2s;margin-top:10px}.btn:active{transform:scale(.98)}.btn:disabled{opacity:.65;cursor:not-allowed}.primary{background:var(--brand);color:white}.social{background:transparent;color:white;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:14px}.social-logo{width:24px;height:24px}.divider{display:flex;align-items:center;gap:14px;margin:24px 0 10px;color:var(--text-muted);font-size:13px;font-weight:700}.divider:before,.divider:after{content:'';flex:1;height:1px;background:var(--border)}.link{margin-top:28px;text-align:center;color:var(--text-muted);line-height:1.7;font-size:16px}.link a{color:var(--brand);text-decoration:none;font-weight:900}
+:root{
+  --brand:#5D7FA3;
+  --brand-dark:#356699;
+  --sage:#8CB69B;
+  --bg:#F6F8F7;
+  --card:#FCFCFA;
+  --text:#1A2530;
+  --muted:#607185;
+  --border:#DDE3E8;
+  --danger:#B54747;
+  --success:#26734F;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  min-height:100%;
+  font-family:'DM Sans',Arial,sans-serif;
+  color:var(--text);
+  background:var(--bg);
+}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 12% 7%,rgba(140,182,155,.12),transparent 28%),
+    radial-gradient(circle at 90% 88%,rgba(93,127,163,.08),transparent 30%),
+    var(--bg);
+}
+.page{
+  width:100%;
+  max-width:520px;
+  min-height:100vh;
+  margin:0 auto;
+  padding:
+    calc(18px + env(safe-area-inset-top))
+    22px
+    calc(32px + env(safe-area-inset-bottom));
+}
+.topbar{
+  display:grid;
+  grid-template-columns:50px 1fr 50px;
+  align-items:center;
+}
+.back{
+  width:48px;
+  height:48px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.78);
+  color:var(--text);
+  display:grid;
+  place-items:center;
+  font-size:21px;
+  cursor:pointer;
+  box-shadow:0 8px 22px rgba(42,63,82,.05);
+}
+.brand{
+  font-family:'DM Serif Display',Georgia,serif;
+  color:var(--brand);
+  font-size:44px;
+  line-height:1;
+  text-align:center;
+  letter-spacing:-1px;
+}
+.brand span{color:var(--sage)}
+.hero{
+  margin:54px 0 27px;
+}
+.eyebrow{
+  color:var(--brand-dark);
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:1.25px;
+  text-transform:uppercase;
+  margin-bottom:10px;
+}
+h1{
+  margin:0;
+  font-size:39px;
+  line-height:1.05;
+  letter-spacing:-1.3px;
+}
+.hero p{
+  margin:13px 0 0;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.6;
+}
+.card{
+  background:rgba(252,252,250,.96);
+  border:1px solid var(--border);
+  border-radius:28px;
+  padding:22px;
+  box-shadow:0 18px 48px rgba(40,65,84,.08);
+}
+.field{margin-top:15px}
+.field:first-of-type{margin-top:0}
+label{
+  display:block;
+  margin:0 0 8px 2px;
+  font-size:12px;
+  font-weight:900;
+}
+.input-wrap{position:relative}
+input{
+  width:100%;
+  min-height:58px;
+  border:1px solid var(--border);
+  border-radius:17px;
+  background:#fff;
+  color:var(--text);
+  padding:0 17px;
+  font:500 15px 'DM Sans',Arial,sans-serif;
+  outline:none;
+  transition:.18s ease;
+}
+input:focus{
+  border-color:var(--brand);
+  box-shadow:0 0 0 3px rgba(93,127,163,.10);
+}
+input.invalid{
+  border-color:#CB5757;
+  background:#FFF9F8;
+}
+.show-password{
+  position:absolute;
+  right:8px;
+  top:50%;
+  transform:translateY(-50%);
+  min-width:60px;
+  height:42px;
+  border:0;
+  background:transparent;
+  color:var(--brand-dark);
+  font:800 12px 'DM Sans';
+  cursor:pointer;
+}
+.error-text{
+  display:none;
+  color:#A83B3B;
+  font-size:11px;
+  font-weight:800;
+  margin:7px 2px 0;
+}
+.error-text.show{display:block}
+.forgot-row{
+  display:flex;
+  justify-content:flex-end;
+  margin:11px 2px 5px;
+}
+.link-button{
+  border:0;
+  background:none;
+  color:var(--brand-dark);
+  font:800 12px 'DM Sans';
+  padding:0;
+  cursor:pointer;
+}
+.message{
+  display:none;
+  margin:0 0 15px;
+  padding:12px 13px;
+  border-radius:13px;
+  font-size:11px;
+  font-weight:800;
+  line-height:1.45;
+}
+.message.show{display:block}
+.message.error{
+  background:#FFF1F0;
+  color:#A83838;
+  border:1px solid #F0CDCA;
+}
+.message.success{
+  background:#EAF7F0;
+  color:#176844;
+  border:1px solid #CBE8D7;
+}
+.btn{
+  width:100%;
+  min-height:56px;
+  border-radius:17px;
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+  font:900 15px 'DM Sans';
+  cursor:pointer;
+  transition:.18s ease;
+}
+.btn:active{transform:scale(.985)}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.primary{
+  margin-top:14px;
+  border-color:var(--brand-dark);
+  background:var(--brand-dark);
+  color:#fff;
+}
+.divider{
+  display:flex;
+  align-items:center;
+  gap:13px;
+  margin:22px 0 14px;
+  color:#8190A0;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.8px;
+}
+.divider::before,.divider::after{
+  content:'';
+  flex:1;
+  height:1px;
+  background:var(--border);
+}
+.social{
+  margin-top:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+.google-mark{
+  width:25px;
+  height:25px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  border:1px solid #E5E9ED;
+  background:#fff;
+  color:#4285F4;
+  font-weight:900;
+}
+.create{
+  margin:24px 0 0;
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.55;
+}
+.create a{
+  color:var(--brand-dark);
+  font-weight:900;
+  text-decoration:none;
+}
+.helper{
+  margin-top:17px;
+  color:#8796A5;
+  text-align:center;
+  font-size:10px;
+  line-height:1.55;
+}
+@media(max-height:760px){
+  .hero{margin-top:32px}
+  .page{padding-top:calc(12px + env(safe-area-inset-top))}
+  .card{padding:18px}
+  input,.btn{min-height:52px}
+}
 </style>
 </head>
 <body>
-<div class="screen"><div class="card"><div class="logo">Alygnn.</div><div class="subtitle">Where Opportunity meets talent</div><div class="title">Welcome back</div><div id="message" class="message"></div><input id="email" class="input" type="email" placeholder="Email" autocomplete="email"><div class="password-wrapper"><input id="password" class="input password-input" type="password" placeholder="Password" autocomplete="current-password"><button type="button" id="toggleBtn" class="toggle-password" onclick="togglePassword()">Show</button></div><div class="forgot"><a href="app-forgot-password.html">Forgot Password?</a></div><button id="signInBtn" class="btn primary" onclick="signIn()">Sign In</button><div class="divider">OR</div><button id="googleBtn" class="btn social" onclick="googleLogin()"><img class="social-logo" src="https://www.google.com/favicon.ico" alt="Google">Continue with Google</button><button class="btn social" onclick="Alygnn.showMessage('message','Apple login is not connected yet.','error')">Continue with Apple</button><div class="link">Don't have an account?<br><a href="app-create-account.html">Create Account</a></div></div></div>
-<script src="alygnn-core.js"></script>
+<main class="page">
+  <header class="topbar">
+    <button class="back" id="back-btn" type="button" aria-label="Back">←</button>
+    <div class="brand">Alygnn<span>.</span></div>
+    <div></div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">Candidate sign in</div>
+    <h1>Welcome back.</h1>
+    <p>Sign in to continue your job search, applications, and Alygnn matches.</p>
+  </section>
+
+  <section class="card">
+    <div id="message" class="message"></div>
+
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com">
+      <div id="email-error" class="error-text"></div>
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <div class="input-wrap">
+        <input id="password" type="password" autocomplete="current-password" placeholder="Enter your password">
+        <button class="show-password" id="show-btn" type="button">Show</button>
+      </div>
+      <div id="password-error" class="error-text"></div>
+    </div>
+
+    <div class="forgot-row">
+      <button class="link-button" id="forgot-btn" type="button">Forgot password?</button>
+    </div>
+
+    <button class="btn primary" id="sign-in-btn" type="button">Sign in</button>
+
+    <div class="divider">OR CONTINUE WITH</div>
+
+    <button class="btn social" id="google-btn" type="button">
+      <span class="google-mark">G</span>
+      <span>Google</span>
+    </button>
+
+    <button class="btn social" id="apple-btn" type="button">Apple</button>
+
+    <div class="create">
+      New to Alygnn? <a href="app-create-account.html">Create candidate account</a>
+    </div>
+  </section>
+
+  <div class="helper">
+    If this Alygnn login also has employer access, you can switch workspaces after signing in.
+  </div>
+</main>
+
 <script>
-const workspaceSb=supabase.createClient('https://auth.alygnn.com','sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-async function routeLoggedInCandidate(){const params=new URLSearchParams(location.search);if(params.has('logout'))return;const {data}=await workspaceSb.auth.getSession();if(data?.session)location.replace('app-workspaces.html?after_login=1&preferred=candidate')}
-function togglePassword(){const input=document.getElementById("password");const btn=document.getElementById("toggleBtn");if(input.type==="password"){input.type="text";btn.textContent="Hide";}else{input.type="password";btn.textContent="Show";}}
-function getFriendlyLoginError(error){const raw=(error&&error.message?error.message:"").toLowerCase();if(raw.includes("invalid login credentials")||raw.includes("invalid credentials"))return "Incorrect email or password. Please try again.";if(raw.includes("email not confirmed")||raw.includes("confirm your email"))return "Please verify your email before signing in.";if(raw.includes("fetch")||raw.includes("network")||raw.includes("failed to fetch"))return "Unable to connect. Please check your internet connection.";if(raw.includes("too many requests")||raw.includes("rate limit"))return "Too many login attempts. Please wait a few minutes and try again.";return "Unable to sign in. Please try again.";}
-async function signIn(){
-  const email=document.getElementById("email").value.trim().toLowerCase();
-  const password=document.getElementById("password").value;
-  const btn=document.getElementById("signInBtn");
-  if(!email){Alygnn.showMessage("message","Please enter your email address.","error");return}
-  if(!password){Alygnn.showMessage("message","Please enter your password.","error");return}
-  Alygnn.setButtonLoading(btn,true,"Signing in...","Sign In");
-  const {error}=await Alygnn.signInWithEmail(email,password);
-  if(error){Alygnn.showMessage("message",getFriendlyLoginError(error),"error");Alygnn.setButtonLoading(btn,false,"Signing in...","Sign In");return}
-  Alygnn.showMessage("message","Welcome back! Checking your workspaces...","success");
-  setTimeout(()=>location.replace('app-workspaces.html?after_login=1&preferred=candidate'),350);
+const sb=supabase.createClient(
+  'https://auth.alygnn.com',
+  'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG',
+  {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
+);
+
+const $=id=>document.getElementById(id);
+
+function showMessage(text,type){
+  const el=$('message');
+  el.textContent=text;
+  el.className='message show '+type;
 }
+
+function hideMessage(){
+  $('message').className='message';
+  $('message').textContent='';
+}
+
+function setFieldError(id,errorId,message){
+  $(id).classList.add('invalid');
+  const error=$(errorId);
+  error.textContent=message;
+  error.classList.add('show');
+}
+
+function clearFieldError(id,errorId){
+  $(id).classList.remove('invalid');
+  const error=$(errorId);
+  error.textContent='';
+  error.classList.remove('show');
+}
+
+function setLoading(button,loading,loadingText,normalText){
+  button.disabled=loading;
+  button.textContent=loading?loadingText:normalText;
+}
+
+function friendlyError(error){
+  const raw=String(error?.message||'').toLowerCase();
+  if(raw.includes('invalid login credentials')||raw.includes('invalid credentials'))return 'Incorrect email or password. Please try again.';
+  if(raw.includes('email not confirmed')||raw.includes('confirm your email'))return 'Please verify your email before signing in.';
+  if(raw.includes('fetch')||raw.includes('network')||raw.includes('failed to fetch'))return 'Unable to connect. Please check your internet connection.';
+  if(raw.includes('too many requests')||raw.includes('rate limit'))return 'Too many attempts. Please wait a few minutes and try again.';
+  return error?.message||'Unable to sign in. Please try again.';
+}
+
+function validate(){
+  hideMessage();
+  clearFieldError('email','email-error');
+  clearFieldError('password','password-error');
+
+  const email=$('email').value.trim().toLowerCase();
+  const password=$('password').value;
+  let first=null;
+
+  if(!email){
+    setFieldError('email','email-error','Enter your email address.');
+    first=$('email');
+  }else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    setFieldError('email','email-error','Enter a valid email address.');
+    first=$('email');
+  }
+
+  if(!password){
+    setFieldError('password','password-error','Enter your password.');
+    if(!first)first=$('password');
+  }
+
+  if(first){
+    first.focus();
+    return null;
+  }
+
+  return {email,password};
+}
+
+async function routeIfAlreadySignedIn(){
+  const params=new URLSearchParams(location.search);
+  if(params.has('logout'))return;
+
+  const {data}=await sb.auth.getSession();
+  if(data?.session){
+    location.replace('app-workspaces.html?after_login=1&preferred=candidate');
+  }
+}
+
+async function signIn(){
+  const form=validate();
+  if(!form)return;
+
+  const button=$('sign-in-btn');
+  setLoading(button,true,'Signing in…','Sign in');
+
+  const {error}=await sb.auth.signInWithPassword({
+    email:form.email,
+    password:form.password
+  });
+
+  if(error){
+    showMessage(friendlyError(error),'error');
+    setLoading(button,false,'Signing in…','Sign in');
+    return;
+  }
+
+  localStorage.setItem('alygnn_account_type','candidate');
+  showMessage('Welcome back. Checking your workspaces…','success');
+
+  setTimeout(()=>{
+    location.replace('app-workspaces.html?after_login=1&preferred=candidate');
+  },300);
+}
+
 async function googleLogin(){
-  const btn=document.getElementById("googleBtn");
-  Alygnn.setButtonLoading(btn,true,"Opening Google...","Continue with Google");
-  const {error}=await workspaceSb.auth.signInWithOAuth({
+  const button=$('google-btn');
+  setLoading(button,true,'Opening Google…','Google');
+  localStorage.setItem('alygnn_account_type','candidate');
+
+  const {error}=await sb.auth.signInWithOAuth({
     provider:'google',
     options:{
       redirectTo:'https://alygnn.com/app-workspaces.html?after_login=1&preferred=candidate',
       queryParams:{prompt:'select_account'}
     }
   });
-  if(error){Alygnn.showMessage("message",error.message||"Unable to continue with Google.","error");Alygnn.setButtonLoading(btn,false,"Opening Google...","Continue with Google")}
-}
-routeLoggedInCandidate();
 
+  if(error){
+    showMessage(friendlyError(error),'error');
+    setLoading(button,false,'Opening Google…','Google');
+  }
+}
+
+$('back-btn').onclick=()=>location.href='app-start.html';
+$('forgot-btn').onclick=()=>location.href='app-forgot-password.html';
+$('sign-in-btn').onclick=signIn;
+$('google-btn').onclick=googleLogin;
+$('apple-btn').onclick=()=>showMessage('Apple sign-in is not connected yet.','error');
+$('show-btn').onclick=()=>{
+  const input=$('password');
+  const showing=input.type==='text';
+  input.type=showing?'password':'text';
+  $('show-btn').textContent=showing?'Show':'Hide';
+};
+$('email').addEventListener('input',()=>clearFieldError('email','email-error'));
+$('password').addEventListener('input',()=>clearFieldError('password','password-error'));
+$('password').addEventListener('keydown',e=>{if(e.key==='Enter')signIn()});
+
+routeIfAlreadySignedIn();
 </script>
 </body>
 </html>
