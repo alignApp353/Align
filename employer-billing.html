@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>Billing — Alygnn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brand:#5D7FA3;--sage:#8CB69B;--mint:#6FBF8F;--rose:#D79A9A;
+  --bg:#F6F8F7;--card:#FCFCFA;--text:#1A2530;--muted:#4A5968;
+  --border:#DDE3E8;--brand-tint:rgba(93,127,163,.09);
+  --mint-tint:rgba(111,191,143,.14);--rose-tint:rgba(215,154,154,.15)
+}
+body{
+  font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);
+  min-height:100vh;padding-top:64px
+}
+nav{
+  position:fixed;top:0;left:0;right:0;height:64px;z-index:1000;
+  display:flex;align-items:center;justify-content:space-between;padding:0 5%;
+  background:rgba(246,248,247,.94);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border)
+}
+.logo{
+  font-family:'DM Serif Display',serif;font-size:22px;color:var(--brand);
+  text-decoration:none;letter-spacing:-.5px
+}
+.logo span{color:var(--sage)}
+.nav-right{display:flex;align-items:center;gap:12px}
+.nav-back{
+  color:var(--muted);text-decoration:none;font-size:13px;border:1px solid var(--border);
+  border-radius:999px;padding:8px 14px;background:var(--card)
+}
+.nav-back:hover{border-color:var(--brand);color:var(--brand)}
+.page{max-width:860px;margin:0 auto;padding:48px 6% 100px}
+.eyebrow{
+  color:var(--brand);font-size:10px;font-weight:700;letter-spacing:1.3px;
+  text-transform:uppercase;margin-bottom:6px
+}
+h1{
+  font-family:'DM Serif Display',serif;font-size:34px;letter-spacing:-.6px;
+  font-weight:400;margin-bottom:7px
+}
+.sub{color:var(--muted);font-size:13px;line-height:1.55;margin-bottom:30px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:22px
+}
+.card.full{grid-column:1/-1}
+.card-kicker{
+  color:var(--brand);font-size:10px;font-weight:700;letter-spacing:1.05px;
+  text-transform:uppercase;margin-bottom:6px
+}
+.card-title{font-size:16px;font-weight:600;margin-bottom:5px}
+.card-copy{font-size:12px;color:var(--muted);line-height:1.6}
+.plan-name{
+  font-family:'DM Serif Display',serif;font-size:25px;margin-bottom:4px
+}
+.plan-meta{font-size:12px;color:var(--muted);line-height:1.6}
+.status{
+  display:inline-flex;margin-top:12px;padding:5px 10px;border-radius:999px;
+  background:var(--mint-tint);color:#3C7955;font-size:10px;font-weight:700
+}
+.status.neutral{background:var(--brand-tint);color:var(--brand)}
+.payment-method{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  margin-top:14px;padding:15px;border:1px solid var(--border);border-radius:12px;background:white
+}
+.card-brand{
+  display:flex;align-items:center;gap:11px;min-width:0
+}
+.card-icon{
+  width:42px;height:30px;border:1px solid var(--border);border-radius:7px;
+  display:grid;place-items:center;color:var(--brand);font-size:11px;font-weight:700;
+  background:var(--brand-tint);text-transform:uppercase
+}
+.card-last4{font-size:13px;font-weight:600}
+.card-exp{font-size:11px;color:var(--muted);margin-top:2px}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
+  border-radius:999px;padding:10px 16px;font:600 12px 'DM Sans',sans-serif;
+  cursor:pointer
+}
+.btn-primary{border:0;background:var(--brand);color:white}
+.btn-secondary{border:1px solid var(--brand);background:white;color:var(--brand)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.billing-email{
+  margin-top:12px;font-size:13px;color:var(--text)
+}
+.billing-email span{color:var(--muted)}
+.test-note{
+  margin-top:14px;padding:12px 13px;border-radius:11px;background:var(--brand-tint);
+  color:var(--brand);font-size:11.5px;line-height:1.55
+}
+.invoice-list{margin-top:14px;border-top:1px solid var(--border)}
+.invoice-row{
+  display:grid;grid-template-columns:1.35fr .8fr .7fr auto;gap:14px;align-items:center;
+  padding:14px 0;border-bottom:1px solid var(--border)
+}
+.invoice-main{min-width:0}
+.invoice-name{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.invoice-date,.invoice-status{font-size:11px;color:var(--muted)}
+.invoice-amount{font-size:12px;font-weight:600}
+.invoice-link{font-size:11.5px;color:var(--brand);text-decoration:none;font-weight:600;white-space:nowrap}
+.invoice-link:hover{text-decoration:underline}
+.empty{
+  margin-top:14px;padding:18px;border:1px dashed var(--border);border-radius:12px;
+  color:var(--muted);font-size:12px;text-align:center
+}
+.loading{
+  position:fixed;inset:64px 0 0;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);z-index:900;color:var(--muted);font-size:13px
+}
+.error{
+  display:none;margin-bottom:16px;padding:12px 14px;border-radius:11px;
+  background:#FFF7F7;border:1px solid rgba(215,154,154,.45);
+  color:#914848;font-size:12px;line-height:1.5
+}
+.footer{
+  text-align:center;font-size:11px;color:var(--muted);padding-top:28px
+}
+.footer a{color:var(--muted);text-decoration:none}
+@media(max-width:700px){
+  .grid{grid-template-columns:1fr}
+  .card.full{grid-column:auto}
+  .invoice-row{grid-template-columns:1fr auto;gap:8px}
+  .invoice-date,.invoice-status{grid-column:1}
+  .invoice-amount{grid-column:2;grid-row:1}
+  .invoice-link{grid-column:2;grid-row:2/4}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="employers.html">Alygnn<span>.</span></a>
+  <div class="nav-right">
+    <a class="nav-back" href="employer-account.html#billing">← Back to account</a>
+  </div>
+</nav>
+
+<div class="loading" id="loading">Loading billing…</div>
+
+<main class="page">
+  <div class="eyebrow">Employer billing</div>
+  <h1>Payment & invoices</h1>
+  <div class="sub">View the payment method and invoice history connected to your Alygnn employer account.</div>
+
+  <div class="error" id="error-box"></div>
+
+  <div class="grid">
+    <section class="card">
+      <div class="card-kicker">Current plan</div>
+      <div class="plan-name" id="plan-name">—</div>
+      <div class="plan-meta" id="plan-meta">—</div>
+      <div class="status" id="plan-status">—</div>
+    </section>
+
+    <section class="card">
+      <div class="card-kicker">Billing contact</div>
+      <div class="card-title">Billing email</div>
+      <div class="billing-email" id="billing-email">—</div>
+      <div class="card-copy" id="next-charge" style="margin-top:10px"></div>
+    </section>
+
+    <section class="card full">
+      <div class="card-kicker">Payment method</div>
+      <div class="card-title">Card on file</div>
+      <div class="card-copy">Your default payment method for Alygnn billing.</div>
+
+      <div id="payment-method-wrap"></div>
+
+      <div style="margin-top:14px">
+        <button class="btn btn-primary" id="manage-payment-btn" type="button" onclick="openBillingPortal()">Manage payment method</button>
+      </div>
+
+      <div class="test-note" id="test-note" style="display:none">
+        This is a developer test entitlement, so no real Stripe card or invoice is attached to this account.
+      </div>
+    </section>
+
+    <section class="card full">
+      <div class="card-kicker">Billing history</div>
+      <div class="card-title">Invoices</div>
+      <div class="card-copy">Recent Alygnn invoices associated with this employer account.</div>
+      <div id="invoice-list"></div>
+    </section>
+  </div>
+
+  <div class="footer"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div>
+</main>
+
+<script>
+const SUPABASE_URL='https://auth.alygnn.com';
+const SUPABASE_ANON_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+
+function alygnnAuthStorageKey(){
+  let tabId=sessionStorage.getItem('alygnn_auth_tab_id');
+  if(!tabId){
+    tabId=(window.crypto&&typeof window.crypto.randomUUID==='function')
+      ?window.crypto.randomUUID()
+      :`${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    sessionStorage.setItem('alygnn_auth_tab_id',tabId);
+  }
+  return `alygnn-auth-${tabId}`;
+}
+
+const {createClient}=supabase;
+const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
+  auth:{
+    storage:window.sessionStorage,
+    storageKey:alygnnAuthStorageKey(),
+    persistSession:true,
+    autoRefreshToken:true,
+    detectSessionInUrl:true
+  }
+});
+
+let billingSummary=null;
+
+function money(cents,currency='usd'){
+  try{
+    return new Intl.NumberFormat('en-US',{
+      style:'currency',
+      currency:String(currency||'usd').toUpperCase()
+    }).format(Number(cents||0)/100);
+  }catch{
+    return '$'+(Number(cents||0)/100).toFixed(2);
+  }
+}
+
+function dateLabel(value){
+  if(!value)return '';
+  const d=new Date(value);
+  return Number.isNaN(d.getTime())?'':d.toLocaleDateString([],{
+    month:'short',day:'numeric',year:'numeric'
+  });
+}
+
+function planName(value){
+  const key=String(value||'free').toLowerCase();
+  if(key==='launch'||key==='business')return 'Launch';
+  if(key==='growth'||key==='enterprise')return 'Growth';
+  if(key==='scale')return 'Scale';
+  return 'Free';
+}
+
+function safeUrl(value){
+  const raw=String(value||'').trim();
+  if(!raw)return '';
+  try{
+    const u=new URL(raw);
+    return (u.protocol==='https:'||u.protocol==='http:')?u.toString():'';
+  }catch{return ''}
+}
+
+function showError(message){
+  const box=document.getElementById('error-box');
+  box.textContent=message;
+  box.style.display='block';
+}
+
+async function loadBilling(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session?.access_token){
+    location.replace('login.html?role=employer');
+    return;
+  }
+
+  const role=String(
+    session.user.user_metadata?.role||''
+  ).toLowerCase();
+
+  const {data:profile}=await sb
+    .from('profiles')
+    .select('role')
+    .eq('id',session.user.id)
+    .maybeSingle();
+
+  if(String(profile?.role||role).toLowerCase()!=='employer'){
+    location.replace('login.html?role=employer');
+    return;
+  }
+
+  const response=await fetch('/api/create-checkout-session',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':'Bearer '+session.access_token
+    },
+    body:JSON.stringify({action:'summary'})
+  });
+
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||!data.summary){
+    throw new Error(data.error||'Could not load billing details.');
+  }
+
+  billingSummary=data.summary;
+  renderBilling();
+}
+
+function renderBilling(){
+  const s=billingSummary||{};
+  const account=s.billing_account||{};
+  const testMode=s.test_mode===true;
+  const billing=String(s.billing_period||'').toLowerCase();
+
+  document.getElementById('plan-name').textContent=planName(s.current_plan);
+
+  const meta=[];
+  if(s.slot_limit)meta.push(`${Number(s.slot_limit)} total reusable job slots`);
+  if(billing)meta.push(billing.charAt(0).toUpperCase()+billing.slice(1));
+  if(s.amount_cents)meta.push(money(s.amount_cents));
+  if(s.current_period_end)meta.push('Current period ends '+dateLabel(s.current_period_end));
+  document.getElementById('plan-meta').textContent=meta.join(' · ')||'No paid plan';
+
+  const status=document.getElementById('plan-status');
+  if(testMode){
+    status.textContent='Test plan active';
+  }else if(['active','trialing'].includes(String(s.subscription_status||'').toLowerCase())){
+    status.textContent='Active plan';
+  }else{
+    status.textContent=String(s.subscription_status||'Free account').replaceAll('_',' ');
+    status.classList.add('neutral');
+  }
+
+  document.getElementById('billing-email').textContent=account.billing_email||'No billing email available';
+
+  const next=Number(account.next_plan_charge_cents||0);
+  document.getElementById('next-charge').textContent=
+    next>0 ? `Next scheduled plan charge: ${money(next)}.` : '';
+
+  const pm=account.payment_method||null;
+  const paymentWrap=document.getElementById('payment-method-wrap');
+  const manageBtn=document.getElementById('manage-payment-btn');
+  const testNote=document.getElementById('test-note');
+
+  if(testMode){
+    paymentWrap.innerHTML='<div class="empty">No real payment method is attached to this developer test plan.</div>';
+    manageBtn.style.display='none';
+    testNote.style.display='block';
+  }else if(pm){
+    const brand=String(pm.brand||pm.type||'card').toUpperCase();
+    const expiry=pm.exp_month&&pm.exp_year
+      ?`Expires ${String(pm.exp_month).padStart(2,'0')}/${String(pm.exp_year).slice(-2)}`
+      :'';
+    paymentWrap.innerHTML=`
+      <div class="payment-method">
+        <div class="card-brand">
+          <div class="card-icon">${brand.slice(0,5)}</div>
+          <div>
+            <div class="card-last4">${brand} •••• ${pm.last4||'—'}</div>
+            <div class="card-exp">${expiry}</div>
+          </div>
+        </div>
+      </div>`;
+    manageBtn.style.display='inline-flex';
+  }else{
+    paymentWrap.innerHTML='<div class="empty">No payment method is available for this account yet.</div>';
+    manageBtn.style.display=account.stripe_customer_count>0?'inline-flex':'none';
+  }
+
+  const invoices=Array.isArray(account.invoices)?account.invoices:[];
+  const list=document.getElementById('invoice-list');
+
+  if(testMode){
+    list.innerHTML='<div class="empty">Developer test plans do not create real invoices.</div>';
+  }else if(!invoices.length){
+    list.innerHTML='<div class="empty">No invoices yet.</div>';
+  }else{
+    list.className='invoice-list';
+    list.innerHTML=invoices.map(inv=>{
+      const link=safeUrl(inv.hosted_invoice_url)||safeUrl(inv.invoice_pdf);
+      const label=inv.description||inv.number||'Alygnn invoice';
+      const amount=Number(inv.amount_paid_cents||inv.amount_due_cents||0);
+      return `
+        <div class="invoice-row">
+          <div class="invoice-main">
+            <div class="invoice-name">${escapeHtml(label)}</div>
+            <div class="invoice-date">${dateLabel(inv.created)}</div>
+          </div>
+          <div class="invoice-status">${escapeHtml(inv.status||'')}</div>
+          <div class="invoice-amount">${money(amount,inv.currency)}</div>
+          ${link?`<a class="invoice-link" href="${escapeHtml(link)}" target="_blank" rel="noopener">View invoice</a>`:'<span></span>'}
+        </div>`;
+    }).join('');
+  }
+
+  document.getElementById('loading').style.display='none';
+}
+
+function escapeHtml(value){
+  return String(value??'')
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'",'&#039;');
+}
+
+async function openBillingPortal(){
+  const btn=document.getElementById('manage-payment-btn');
+  const original=btn.textContent;
+  btn.disabled=true;
+  btn.textContent='Opening…';
+
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session?.access_token)throw new Error('Your session expired. Please sign in again.');
+
+    const response=await fetch('/api/create-checkout-session',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+session.access_token
+      },
+      body:JSON.stringify({
+        action:'billing_portal',
+        return_url:location.origin+'/employer-billing.html'
+      })
+    });
+
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.url)throw new Error(data.error||'Could not open billing settings.');
+    location.href=data.url;
+  }catch(error){
+    showError(error.message||'Could not open billing settings.');
+    btn.disabled=false;
+    btn.textContent=original;
+  }
+}
+
+loadBilling().catch(error=>{
+  console.error(error);
+  document.getElementById('loading').style.display='none';
+  showError(error.message||'Could not load billing details.');
+});
+</script>
+</body>
+</html>
