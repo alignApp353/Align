@@ -347,7 +347,17 @@
     overflow-y:auto; background:var(--card); border:1px solid var(--border);
     border-radius:14px; box-shadow:0 12px 32px rgba(0,0,0,0.12); z-index:1200;
   }
-  .notif-dropdown-header { font-size:13px; font-weight:600; color:var(--text); padding:14px 16px 8px; }
+  .notif-dropdown-header {
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    font-size:13px; font-weight:600; color:var(--text); padding:14px 16px 8px;
+  }
+  .notif-mark-all {
+    border:0; background:transparent; color:var(--brand);
+    font-family:'DM Sans',sans-serif; font-size:11px; font-weight:500;
+    cursor:pointer; padding:0; white-space:nowrap;
+  }
+  .notif-mark-all:hover { opacity:.8; }
+  .notif-mark-all:disabled { opacity:.5; cursor:default; }
   .notif-empty { font-size:13px; color:var(--muted); padding:20px 16px; text-align:center; }
   .notif-item { display:block; padding:10px 16px; border-top:1px solid var(--border); text-decoration:none; color:inherit; }
   .notif-item:hover { background:var(--brand-light); }
@@ -451,7 +461,10 @@
         <span class="notif-badge" id="notif-badge" style="display:none">0</span>
       </button>
       <div class="notif-dropdown" id="notif-dropdown" style="display:none">
-        <div class="notif-dropdown-header">Notifications</div>
+        <div class="notif-dropdown-header">
+          <span>Notifications</span>
+          <button class="notif-mark-all" id="notif-mark-all-btn" type="button" onclick="markAllEmployerNotificationsRead(event)">Mark all read</button>
+        </div>
         <div id="notif-list"><div class="notif-empty">No notifications yet.</div></div>
       </div>
     </div>
@@ -884,6 +897,54 @@ async function handleCandidatePageMessageNotification(event,id){
   if(dropdown) dropdown.style.display='none';
 
   window.location.href=n.link||'messages.html';
+}
+
+async function markAllEmployerNotificationsRead(event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const btn=document.getElementById('notif-mark-all-btn');
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='Marking…';
+  }
+
+  const now=new Date().toISOString();
+  const regularIds=candidatePageNotificationItems
+    .filter(item=>item.source!=='message'&&!item.read_at&&item.id)
+    .map(item=>item.id);
+  const messageIds=candidatePageNotificationItems
+    .filter(item=>item.source==='message'&&item.message_id)
+    .map(item=>item.message_id);
+
+  try{
+    if(regularIds.length){
+      const {error}=await sb
+        .from('notifications')
+        .update({read_at:now})
+        .in('id',regularIds);
+      if(error) console.warn('Could not mark employer notifications read:',error);
+    }
+
+    if(messageIds.length&&currentUser?.id){
+      const {error}=await sb
+        .from('messages')
+        .update({read_at:now})
+        .in('id',messageIds)
+        .neq('sender_id',currentUser.id)
+        .is('read_at',null);
+      if(error) console.warn('Could not mark employer message notifications read:',error);
+    }
+
+    await refreshCandidatePageNotifications();
+  }finally{
+    if(btn){
+      btn.disabled=false;
+      btn.textContent='Mark all read';
+    }
+  }
 }
 
 async function refreshCandidatePageNotifications(){
