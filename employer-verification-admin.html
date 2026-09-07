@@ -48,6 +48,14 @@ h1{ font-family:'DM Serif Display', serif; font-size:2rem; letter-spacing:-.5px;
 .tab{ min-height:40px; padding:0 14px; border-radius:100px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-muted); font-weight:500; font-size:13px; cursor:pointer; }
 .tab.active{ background:var(--brand); border-color:var(--brand); color:#fff; }
 .refresh{ min-height:40px; padding:0 14px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); font-weight:500; font-size:13px; cursor:pointer; }
+.toolbar-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+.company-search{ min-height:40px; width:250px; padding:0 13px; border-radius:12px; border:1px solid var(--border); background:var(--card-bg); color:var(--text); font-size:13px; outline:none; }
+.company-search:focus{ border-color:var(--brand); box-shadow:0 0 0 3px var(--brand-tint); }
+.company-search::placeholder{ color:#9AA7B4; }
+.search-btn{ background:var(--brand); border-color:var(--brand); color:#fff; }
+.search-btn:hover{ opacity:.9; }
+.clear-search{ display:none; }
+.clear-search.show{ display:inline-flex; align-items:center; }
 
 .status-message{ margin-bottom:18px; padding:12px 14px; border:1px solid var(--border); border-radius:12px; background:var(--card-bg); color:var(--text-muted); font-size:13px; display:none; }
 .status-message.show{ display:block; }
@@ -91,7 +99,7 @@ h1{ font-family:'DM Serif Display', serif; font-size:2rem; letter-spacing:-.5px;
 .queue.loading{ opacity:.5; pointer-events:none; }
 .gate{ max-width:420px; margin:80px auto; text-align:center; padding:32px; border:1px solid var(--border); border-radius:20px; background:var(--card-bg); }
 
-@media(max-width:820px){ .facts{ grid-template-columns:1fr 1fr; } .summary{ grid-template-columns:1fr; } }
+@media(max-width:820px){ .facts{ grid-template-columns:1fr 1fr; } .summary{ grid-template-columns:1fr; } .toolbar-actions{ width:100%; justify-content:flex-start; } .company-search{ flex:1; width:auto; min-width:180px; } }
 
 .update-change-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
 .update-change-box{ padding:12px; border:1px solid var(--border); border-radius:12px; background:var(--bg); }
@@ -140,7 +148,12 @@ h1{ font-family:'DM Serif Display', serif; font-size:2rem; letter-spacing:-.5px;
         <button class="tab" data-status="deactivated">Deactivated</button>
         <button class="tab" data-status="profile_updates">Update requests</button>
       </div>
-      <button class="refresh" id="refresh">Refresh</button>
+      <div class="toolbar-actions">
+        <input class="company-search" id="company-search" type="search" placeholder="Paste company ID" autocomplete="off" spellcheck="false">
+        <button class="refresh search-btn" id="company-search-btn" type="button">Search ID</button>
+        <button class="refresh clear-search" id="clear-search" type="button">Clear</button>
+        <button class="refresh" id="refresh" type="button">Refresh</button>
+      </div>
     </div>
 
     <div class="status-message" id="message"></div>
@@ -165,6 +178,9 @@ let rows=[];
 let verificationCache=new Map();
 let companyCache=new Map();
 let profileUpdateRequests=[];
+let searchActive=false;
+let searchQuery='';
+let lastStatusBeforeSearch='pending_review';
 
 const $=id=>document.getElementById(id);
 
@@ -475,18 +491,20 @@ function renderRow(row){
   ).join('');
 
   const verificationStatus=row.verification_status||'pending_review';
-  const cardStatus=currentStatus==='deactivated'?'deactivated':verificationStatus;
+  const isDeactivated=String(row.account_status||'').toLowerCase()==='deactivated';
+  const viewStatus=searchActive ? (isDeactivated?'deactivated':verificationStatus) : currentStatus;
+  const cardStatus=viewStatus==='deactivated'?'deactivated':verificationStatus;
   const accountState=String(row.account_status||'active').replaceAll('_',' ');
   const submitted=row.created_at||doc?.created_at||null;
 
   let actions='';
 
-  if(currentStatus==='pending_review'){
+  if(viewStatus==='pending_review'){
     actions=`<div class="actions">
       <button class="btn approve" ${documentReady?'':'disabled style="opacity:.45;cursor:not-allowed"'} onclick="reviewCompany('${esc(row.company_id)}','approved',this)">Approve employer</button>
       <button class="btn reject" onclick="reviewCompany('${esc(row.company_id)}','rejected',this)">Decline</button>
     </div>`;
-  }else if(currentStatus==='approved'||currentStatus==='rejected'){
+  }else if(viewStatus==='approved'||viewStatus==='rejected'){
     actions=`<div class="actions">
       <button class="btn approve" style="background:#9A6A20" onclick="moveToPending('${esc(row.company_id)}',this)">Move to Pending</button>
     </div>`;
@@ -549,10 +567,89 @@ function renderRow(row){
 function render(){
   const queue=$('queue');
   if(!rows.length){
-    queue.innerHTML=`<div class="empty">No ${esc(fmtStatus(currentStatus))} employer verifications.</div>`;
+    queue.innerHTML=searchActive
+      ? `<div class="empty">No employer found with company ID matching <strong>${esc(searchQuery)}</strong>.</div>`
+      : `<div class="empty">No ${esc(fmtStatus(currentStatus))} employer verifications.</div>`;
     return;
   }
   queue.innerHTML=rows.map(renderRow).join('');
+}
+
+function setActiveTab(status){
+  document.querySelectorAll('.tab').forEach(button=>{
+    button.classList.toggle('active',button.dataset.status===status);
+  });
+}
+
+async function searchCompanyId(rawQuery=null){
+  const input=$('company-search');
+  const query=String(rawQuery??input.value??'').trim();
+  if(!query){
+    showMessage('Enter a company ID to search.','error');
+    input.focus();
+    return;
+  }
+
+  clearMessage();
+  $('queue').classList.add('loading');
+  $('company-search-btn').disabled=true;
+  $('company-search-btn').textContent='Searching…';
+
+  if(!searchActive && currentStatus!=='profile_updates') lastStatusBeforeSearch=currentStatus;
+  searchActive=true;
+  searchQuery=query;
+  currentStatus='search';
+  document.querySelectorAll('.tab').forEach(button=>button.classList.remove('active'));
+  $('clear-search').classList.add('show');
+
+  try{
+    await Promise.all([loadVerificationCache(),loadCompanyCache()]);
+    const needle=query.toLowerCase();
+    const matchedCompanies=[...companyCache.values()].filter(company=>
+      String(company.id||'').toLowerCase().includes(needle)
+    );
+
+    const seen=new Set();
+    rows=matchedCompanies.map(company=>{
+      seen.add(String(company.id||''));
+      return mergedRow(verificationCache.get(company.id),company);
+    });
+
+    // Keep search useful even if a verification row exists before the company cache refresh catches up.
+    for(const verification of verificationCache.values()){
+      const id=String(verification.company_id||'');
+      if(id.toLowerCase().includes(needle) && !seen.has(id)){
+        rows.push(mergedRow(verification,null));
+        seen.add(id);
+      }
+    }
+
+    rows.sort((a,b)=>String(a.company_name||'').localeCompare(String(b.company_name||'')));
+    render();
+    if(rows.length){
+      showMessage(`${rows.length} ${rows.length===1?'company':'companies'} found for that company ID.`,'success');
+    }
+  }catch(error){
+    console.error('Company ID search failed:',error);
+    rows=[];
+    render();
+    showMessage(error.message||'Could not search company IDs.','error');
+  }finally{
+    $('queue').classList.remove('loading');
+    $('company-search-btn').disabled=false;
+    $('company-search-btn').textContent='Search ID';
+  }
+}
+
+async function clearCompanySearch(){
+  searchActive=false;
+  searchQuery='';
+  $('company-search').value='';
+  $('clear-search').classList.remove('show');
+  clearMessage();
+  currentStatus=lastStatusBeforeSearch||'pending_review';
+  setActiveTab(currentStatus);
+  await loadStatus(currentStatus);
 }
 
 async function loadStatus(status=currentStatus){
@@ -604,11 +701,14 @@ async function loadCounts(){
     Object.prototype.hasOwnProperty.call(company,'account_status')
   );
 
-  $('count-deactivated').textContent=hasAccountStatus
-    ? String([...companyCache.values()].filter(company=>
-        String(company.account_status||'').toLowerCase()==='deactivated'
-      ).length)
-    : '—';
+  const deactivatedCount=$('count-deactivated');
+  if(deactivatedCount){
+    deactivatedCount.textContent=hasAccountStatus
+      ? String([...companyCache.values()].filter(company=>
+          String(company.account_status||'').toLowerCase()==='deactivated'
+        ).length)
+      : '—';
+  }
 }
 
 async function reviewCompany(companyId,decision,button){
@@ -638,7 +738,11 @@ async function reviewCompany(companyId,decision,button){
       body:JSON.stringify({company_id:companyId,decision,reason:reason.trim()})
     });
     showMessage(decision==='approved'?'Employer approved.':'Employer declined.','success');
-    await Promise.all([loadStatus(currentStatus),loadCounts()]);
+    if(searchActive){
+      await Promise.all([searchCompanyId(searchQuery),loadCounts()]);
+    }else{
+      await Promise.all([loadStatus(currentStatus),loadCounts()]);
+    }
   }catch(error){
     showMessage(error.message||'Could not save this decision.','error');
     button.disabled=false;
@@ -669,7 +773,11 @@ async function moveToPending(companyId,button){
     });
 
     showMessage('Company moved back to pending review.','success');
-    await Promise.all([loadStatus(currentStatus),loadCounts()]);
+    if(searchActive){
+      await Promise.all([searchCompanyId(searchQuery),loadCounts()]);
+    }else{
+      await Promise.all([loadStatus(currentStatus),loadCounts()]);
+    }
   }catch(error){
     showMessage(
       'The shared admin backend does not currently allow Move to Pending from this website. No separate status was written. '+(error.message||''),
@@ -682,17 +790,35 @@ async function moveToPending(companyId,button){
 
 document.querySelectorAll('.tab').forEach(button=>{
   button.addEventListener('click',()=>{
+    searchActive=false;
+    searchQuery='';
+    $('company-search').value='';
+    $('clear-search').classList.remove('show');
     document.querySelectorAll('.tab').forEach(item=>item.classList.remove('active'));
     button.classList.add('active');
     if(button.dataset.status==='profile_updates'){
       loadProfileUpdateRequests();
     }else{
+      lastStatusBeforeSearch=button.dataset.status;
       loadStatus(button.dataset.status);
     }
   });
 });
 
+$('company-search-btn').addEventListener('click',()=>searchCompanyId());
+$('company-search').addEventListener('keydown',event=>{
+  if(event.key==='Enter'){
+    event.preventDefault();
+    searchCompanyId();
+  }
+  if(event.key==='Escape' && searchActive){
+    clearCompanySearch();
+  }
+});
+$('clear-search').addEventListener('click',clearCompanySearch);
+
 $('refresh').addEventListener('click',()=>{
+  if(searchActive) return Promise.all([searchCompanyId(searchQuery),loadCounts()]);
   if(currentStatus==='profile_updates'){
     return Promise.all([loadProfileUpdateRequests(),loadCounts()]);
   }
