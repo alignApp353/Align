@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cancel plan — Alygnn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--card:#FCFCFA;
+    --text:#1A2530;--border:#DDE3E8;--mint:#6FBF8F;--rose:#D79A9A;
+    --muted:#4A5968;--brand-light:rgba(93,127,163,.08);--rose-light:rgba(215,154,154,.11)
+  }
+  html.cancel-locked body{visibility:hidden}
+  body{
+    min-height:100vh;background:var(--bg);color:var(--text);
+    font-family:'DM Sans',Arial,sans-serif
+  }
+  nav{
+    height:68px;padding:0 max(5%,calc((100% - 1320px)/2 + 5%));
+    display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid var(--border);background:rgba(246,248,247,.96)
+  }
+  .logo{
+    font-family:'DM Serif Display',serif;font-size:23px;color:var(--brand);
+    text-decoration:none
+  }
+  .logo span{color:var(--sage)}
+  .back{
+    display:inline-flex;align-items:center;gap:7px;padding:9px 16px;
+    border:1px solid var(--border);border-radius:999px;background:var(--card);
+    color:var(--text);font-size:13px;text-decoration:none
+  }
+  .back:hover{border-color:var(--brand);color:var(--brand)}
+  main{max-width:760px;margin:0 auto;padding:52px 24px 72px}
+  .eyebrow{
+    color:var(--brand);font-size:10px;font-weight:700;letter-spacing:1.4px;
+    text-transform:uppercase;margin-bottom:10px
+  }
+  h1{
+    font-family:'DM Serif Display',serif;font-size:42px;line-height:1.08;
+    font-weight:400;margin-bottom:12px
+  }
+  .lead{font-size:15px;line-height:1.65;color:var(--muted);max-width:650px}
+  .plan-card{
+    margin-top:30px;background:var(--card);border:1px solid var(--border);
+    border-radius:18px;padding:24px
+  }
+  .plan-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+  .plan-kicker{
+    color:var(--brand);font-size:10px;font-weight:700;letter-spacing:1.2px;
+    text-transform:uppercase;margin-bottom:7px
+  }
+  .plan-name{
+    font-family:'DM Serif Display',serif;font-size:29px;line-height:1.1;margin-bottom:6px
+  }
+  .plan-meta{color:var(--muted);font-size:13px;line-height:1.55}
+  .status{
+    flex:none;padding:6px 10px;border-radius:999px;background:rgba(111,191,143,.13);
+    color:#447257;font-size:10px;font-weight:700
+  }
+  .status.scheduled{background:var(--rose-light);color:#965353}
+  .divider{height:1px;background:var(--border);margin:22px 0}
+  .section-title{font-size:15px;font-weight:700;margin-bottom:12px}
+  .impact{
+    display:grid;gap:10px
+  }
+  .impact-row{
+    display:flex;align-items:flex-start;gap:11px;padding:13px 14px;
+    border:1px solid var(--border);border-radius:12px;background:white
+  }
+  .impact-icon{
+    width:23px;height:23px;display:flex;align-items:center;justify-content:center;
+    flex:none;border-radius:50%;background:var(--brand-light);color:var(--brand);
+    font-size:12px;font-weight:700
+  }
+  .impact-copy{font-size:13px;line-height:1.5;color:var(--muted)}
+  .impact-copy strong{color:var(--text);font-weight:600}
+  .confirm-box{
+    margin-top:18px;padding:15px 16px;border:1px solid var(--border);
+    border-radius:12px;background:white;display:flex;align-items:flex-start;gap:10px
+  }
+  .confirm-box input{margin-top:3px;width:16px;height:16px;accent-color:var(--brand)}
+  .confirm-box label{font-size:12px;line-height:1.5;color:var(--muted);cursor:pointer}
+  .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+  .btn{
+    min-height:42px;padding:0 19px;border-radius:999px;font:600 12px 'DM Sans',sans-serif;
+    cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center
+  }
+  .btn.keep{border:1px solid var(--brand);background:var(--brand);color:white}
+  .btn.cancel{border:1px solid rgba(215,154,154,.65);background:white;color:#9a5050}
+  .btn.cancel:hover{background:var(--rose-light)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .message{
+    display:none;margin-top:18px;padding:13px 15px;border-radius:12px;
+    font-size:12px;line-height:1.5
+  }
+  .message.show{display:block}
+  .message.error{background:#FFF7F6;border:1px solid rgba(215,154,154,.55);color:#914848}
+  .message.success{background:rgba(111,191,143,.11);border:1px solid rgba(111,191,143,.45);color:#356948}
+  .loading{
+    margin-top:30px;background:var(--card);border:1px solid var(--border);
+    border-radius:18px;padding:30px;text-align:center;color:var(--muted);font-size:13px
+  }
+  .footer{text-align:center;padding:0 20px 28px;color:var(--muted);font-size:11px}
+  .footer a{color:inherit;text-decoration:none}
+  @media(max-width:640px){
+    h1{font-size:34px}
+    main{padding-top:36px}
+    .plan-top{flex-direction:column}
+    .actions{flex-direction:column-reverse}
+    .btn{width:100%}
+  }
+</style>
+<script>document.documentElement.classList.add('cancel-locked');</script>
+</head>
+<body>
+<nav>
+  <a class="logo" href="index.html">Alygnn<span>.</span></a>
+  <a class="back" href="employer-account.html">← Back to account</a>
+</nav>
+
+<main>
+  <div class="eyebrow">Plan cancellation</div>
+  <h1>Before you cancel your plan.</h1>
+  <p class="lead">Your paid plan does not end today. Cancelling stops the next renewal, while your current paid access remains available through the end of the current billing period.</p>
+
+  <div class="loading" id="loading">Loading your current plan…</div>
+
+  <section class="plan-card" id="cancel-card" hidden>
+    <div class="plan-top">
+      <div>
+        <div class="plan-kicker">Current plan</div>
+        <div class="plan-name" id="plan-name">—</div>
+        <div class="plan-meta" id="plan-meta">—</div>
+      </div>
+      <span class="status" id="plan-status">Active</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-title">What happens if you cancel</div>
+    <div class="impact">
+      <div class="impact-row">
+        <div class="impact-icon">1</div>
+        <div class="impact-copy"><strong>You keep your current plan until the paid period ends.</strong> Your current hiring capacity remains available until then.</div>
+      </div>
+      <div class="impact-row">
+        <div class="impact-icon">2</div>
+        <div class="impact-copy"><strong>Your plan will not renew.</strong> Alygnn will not schedule another plan renewal after the current paid period.</div>
+      </div>
+      <div class="impact-row">
+        <div class="impact-icon">3</div>
+        <div class="impact-copy"><strong>Your account returns to its permanent Free slot afterward.</strong> Your Alygnn account and existing data are preserved.</div>
+      </div>
+    </div>
+
+    <div class="confirm-box" id="confirm-wrap">
+      <input type="checkbox" id="confirm-cancel">
+      <label for="confirm-cancel">I understand that my paid plan will stop renewing and my account will return to the permanent Free slot after the current paid period ends.</label>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <div class="actions" id="actions">
+      <button class="btn cancel" id="cancel-btn" type="button" disabled>Cancel plan at renewal</button>
+      <a class="btn keep" href="employer-account.html">Keep my current plan</a>
+    </div>
+  </section>
+</main>
+
+<div class="footer"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div>
+
+<script>
+const SUPABASE_URL='https://auth.alygnn.com';
+const SUPABASE_ANON_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+
+function alygnnAuthStorageKey(){
+  let tabId=window.sessionStorage.getItem('alygnn_auth_tab_id');
+  if(!tabId){
+    tabId=(window.crypto&&typeof window.crypto.randomUUID==='function')
+      ?window.crypto.randomUUID()
+      :`${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    window.sessionStorage.setItem('alygnn_auth_tab_id',tabId);
+  }
+  return `alygnn-auth-${tabId}`;
+}
+
+const {createClient}=supabase;
+const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
+  auth:{
+    storage:window.sessionStorage,
+    storageKey:alygnnAuthStorageKey(),
+    persistSession:true,
+    autoRefreshToken:true,
+    detectSessionInUrl:true
+  }
+});
+
+let billingSummary=null;
+
+function planName(plan){
+  const key=String(plan||'free').toLowerCase();
+  return ({launch:'Launch',growth:'Growth',scale:'Scale',business:'Business',enterprise:'Enterprise',free:'Free'})[key]
+    || key.charAt(0).toUpperCase()+key.slice(1);
+}
+
+function money(cents){
+  const amount=Number(cents||0)/100;
+  return amount.toLocaleString('en-US',{style:'currency',currency:'USD',minimumFractionDigits:Number.isInteger(amount)?0:2});
+}
+
+function dateLabel(value){
+  if(!value)return '';
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime()))return '';
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+function showMessage(text,type='error'){
+  const el=document.getElementById('message');
+  el.className=`message show ${type}`;
+  el.textContent=text;
+}
+
+async function billingRequest(payload,button){
+  const original=button?.textContent||'';
+  if(button){
+    button.disabled=true;
+    button.textContent='Working…';
+  }
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session?.access_token)throw new Error('Your session expired. Please sign in again.');
+
+    const response=await fetch('/api/create-checkout-session',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+session.access_token
+      },
+      body:JSON.stringify(payload)
+    });
+
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(data.error||'Billing change could not be completed.');
+    return data;
+  }finally{
+    if(button){
+      button.disabled=false;
+      button.textContent=original;
+    }
+  }
+}
+
+async function loadPage(){
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session?.user){
+      location.replace('login.html?role=employer');
+      return;
+    }
+
+    const role=String(session.user.user_metadata?.role||'').toLowerCase();
+    if(role&&role!=='employer'){
+      location.replace('login.html?role=employer');
+      return;
+    }
+
+    const data=await billingRequest({action:'summary'});
+    if(!data?.summary)throw new Error('Could not load your current billing details.');
+
+    billingSummary=data.summary;
+    const current=String(billingSummary.current_plan||'free').toLowerCase();
+    const paid=['launch','growth','scale','business','enterprise'].includes(current);
+
+    if(!paid){
+      location.replace('employer-account.html');
+      return;
+    }
+
+    const name=planName(current);
+    const period=String(billingSummary.billing_period||'').toLowerCase();
+    const end=dateLabel(billingSummary.current_period_end);
+    const amount=Number(billingSummary.amount_cents||0);
+    const slots=Math.max(1,Number(billingSummary.slot_limit||1));
+
+    document.getElementById('plan-name').textContent=name;
+
+    const meta=[];
+    meta.push(`${slots} total reusable job slot${slots===1?'':'s'}`);
+    if(period)meta.push(period.charAt(0).toUpperCase()+period.slice(1));
+    if(amount)meta.push(money(amount));
+    if(end)meta.push(`Access through ${end}`);
+    document.getElementById('plan-meta').textContent=meta.join(' · ');
+
+    const status=document.getElementById('plan-status');
+    const confirmWrap=document.getElementById('confirm-wrap');
+    const cancelBtn=document.getElementById('cancel-btn');
+
+    if(billingSummary.cancel_at_period_end===true){
+      status.textContent='Cancellation scheduled';
+      status.classList.add('scheduled');
+      confirmWrap.hidden=true;
+      cancelBtn.hidden=true;
+      showMessage(end
+        ? `Your ${name} plan is already scheduled to end after the current paid period on ${end}.`
+        : `Your ${name} plan is already scheduled to end after the current paid period.`
+      ,'success');
+    }else{
+      status.textContent='Active';
+      document.getElementById('confirm-cancel').addEventListener('change',event=>{
+        cancelBtn.disabled=!event.target.checked;
+      });
+    }
+
+    document.getElementById('loading').hidden=true;
+    document.getElementById('cancel-card').hidden=false;
+    document.documentElement.classList.remove('cancel-locked');
+  }catch(error){
+    console.error(error);
+    document.getElementById('loading').innerHTML=`
+      <strong style="display:block;color:var(--text);margin-bottom:7px">Could not load cancellation details</strong>
+      <span>${String(error?.message||'Please try again.')}</span>
+    `;
+    document.documentElement.classList.remove('cancel-locked');
+  }
+}
+
+document.getElementById('cancel-btn').addEventListener('click',async()=>{
+  const btn=document.getElementById('cancel-btn');
+  if(!document.getElementById('confirm-cancel').checked)return;
+
+  try{
+    await billingRequest({action:'cancel_plan'},btn);
+    const name=planName(billingSummary?.current_plan);
+    const end=dateLabel(billingSummary?.current_period_end);
+
+    document.getElementById('plan-status').textContent='Cancellation scheduled';
+    document.getElementById('plan-status').classList.add('scheduled');
+    document.getElementById('confirm-wrap').hidden=true;
+    btn.hidden=true;
+
+    showMessage(
+      end
+        ? `${name} will remain active through ${end}, then your account will return to the permanent Free slot.`
+        : `${name} will remain active through the current paid period, then your account will return to the permanent Free slot.`,
+      'success'
+    );
+  }catch(error){
+    showMessage(error?.message||'Could not schedule cancellation.','error');
+  }
+});
+
+loadPage();
+</script>
+</body>
+</html>
