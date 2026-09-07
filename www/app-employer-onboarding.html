@@ -2142,6 +2142,45 @@ window.addEventListener('beforeunload',saveDraft);
     return;
   }
 
+  /*
+   * Invited teammates should join the existing company instead of being
+   * forced through owner/company onboarding.
+   */
+  try{
+    const {data:teamInvite,error:teamInviteError}=await sb.rpc(
+      'accept_my_pending_team_invite'
+    );
+
+    if(teamInviteError){
+      console.warn(
+        'Team invitation acceptance is not available:',
+        teamInviteError
+      );
+    }else if(teamInvite?.accepted===true){
+      try{
+        localStorage.setItem(
+          `alygnn_company_id_${session.user.id}`,
+          String(teamInvite.company_id||'')
+        );
+        localStorage.setItem(
+          'alygnn_company_id',
+          String(teamInvite.company_id||'')
+        );
+      }catch(_){}
+
+      location.replace(
+        'app-employer-dashboard.html'
+      );
+
+      return;
+    }
+  }catch(error){
+    console.warn(
+      'Could not check pending team invitation:',
+      error
+    );
+  }
+
   const userId=
     String(session.user.id||'').trim();
 
