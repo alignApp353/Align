@@ -5004,6 +5004,9 @@
           <button class="settings-link" id="privacy-settings" type="button">
             <span class="settings-icon-label"><span class="settings-icon">P</span><span class="settings-copy"><strong>Privacy</strong><small>Data and visibility preferences</small></span></span><span>›</span>
           </button>
+          <button class="settings-link" id="workspace-switch-settings" type="button" hidden>
+            <span class="settings-icon-label"><span class="settings-icon">W</span><span class="settings-copy"><strong>Switch workspace</strong><small>Candidate and employer workspaces</small></span></span><span>›</span>
+          </button>
           <button class="settings-link" id="support-settings" type="button">
             <span class="settings-icon-label"><span class="settings-icon">?</span><span class="settings-copy"><strong>Help &amp; support</strong><small>Get help with your workspace</small></span></span><span>›</span>
           </button>
@@ -11833,6 +11836,17 @@
     }
 
 
+    async function loadWorkspaceSwitcherVisibility(){
+      try{
+        const {data,error}=await sb.rpc('get_my_workspace_context');
+        if(error)return;
+        const employers=Array.isArray(data?.employer_workspaces)?data.employer_workspaces:[];
+        const invites=Array.isArray(data?.pending_invites)?data.pending_invites:[];
+        const button=$('workspace-switch-settings');
+        if(button)button.hidden=!(data?.has_candidate===true||employers.length>1||invites.length>0);
+      }catch(error){console.warn('Workspace switcher unavailable:',error)}
+    }
+
     function openProModal(feature='Hiring Workflow'){
       $('pro-modal-copy').textContent = `${feature} is part of Alygnn Pro. Keep your existing ATS, or unlock Alygnn’s complete hiring workflow when your team needs it.`;
       $('pro-modal').hidden = false;
@@ -13694,36 +13708,12 @@
         await refreshCurrentUser();
 
         /*
-         * If this account was invited to an existing employer workspace,
-         * accept the pending invitation before the normal company guard runs.
+         * Team invitations require explicit acceptance in app-workspaces.html.
          */
-        try{
-          const {data:accepted,error:acceptError}=await sb.rpc(
-            'accept_my_pending_team_invite'
-          );
-
-          if(acceptError){
-            console.warn(
-              'Pending team invite acceptance was unavailable:',
-              acceptError
-            );
-          }else if(accepted?.accepted===true){
-            try{
-              localStorage.setItem(
-                `alygnn_company_id_${state.session.user.id}`,
-                String(accepted.company_id||'')
-              );
-            }catch(_){}
-          }
-        }catch(error){
-          console.warn(
-            'Pending team invite check failed:',
-            error
-          );
-        }
 
         await loadEmployerCompanyData();
         await loadTeamAccess();
+        await loadWorkspaceSwitcherVisibility();
 
         /*
          * A brand-new employer must complete company onboarding before
@@ -14447,6 +14437,9 @@
     };
     $('security-settings').onclick = () => toast('Account and security controls will connect here.');
     $('privacy-settings').onclick = () => toast('Privacy controls will connect here.');
+    $('workspace-switch-settings').onclick = () => {
+      location.href='app-workspaces.html?manual=1';
+    };
     $('support-settings').onclick = () => toast('Help and support will connect here.');
     $('about-settings').onclick = () => toast('Alygnn Employer Workspace V5');
     $('notifications-btn').onclick = () => {
