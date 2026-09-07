@@ -448,22 +448,10 @@ input,select{width:100%;min-height:53px;padding:0 14px;border:1px solid var(--bo
 </div>
 
 <div class="step" data-title="Overview">
-  <div class="eyebrow">Overview</div>
-  <h1>Review your hiring preferences.</h1>
-
-  <p class="intro">
-    Confirm the information below before creating your company workspace.
-  </p>
-
+  <div class="eyebrow">Overview</div><h1>Review your hiring preferences.</h1>
+  <p class="intro">Confirm the information below before creating your company workspace.</p>
   <div class="overview-grid">
-    <div class="overview-card">
-      <div class="overview-head">
-        <h2>Company Voice</h2>
-        <button class="edit" type="button" data-go="2">Edit</button>
-      </div>
-      <div class="overview-content" id="overview-voice"></div>
-    </div>
-
+    <div class="overview-card"><div class="overview-head"><h2>Company Voice</h2><button class="edit" type="button" data-go="2">Edit</button></div><div class="overview-content" id="overview-voice"></div></div>
     <div class="overview-card"><div class="overview-head"><h2>Why Candidates Should Choose You</h2><button class="edit" type="button" data-go="3">Edit</button></div><ol class="overview-content ordered" id="overview-company"></ol></div>
     <div class="overview-card"><div class="overview-head"><h2>What Matters Most When Hiring</h2><button class="edit" type="button" data-go="4">Edit</button></div><ol class="overview-content ordered" id="overview-candidate"></ol></div>
     <div class="ai-summary"><h2>AI Summary</h2><p id="ai-summary"></p></div>
@@ -1627,35 +1615,7 @@ function setupSuggestions(inputId,boxId,values){
 function validateCurrent(){if(current===1){for(const field of steps[current].querySelectorAll('input[required],select[required]')){if(!field.checkValidity()){field.reportValidity();return false}}const websiteField=document.getElementById('website');try{const url=new URL(/^https?:\/\//i.test(websiteField.value.trim())?websiteField.value.trim():'https://'+websiteField.value.trim());const host=url.hostname.toLowerCase().replace(/^www\./,'');const labels=host.split('.');if(labels.length<2||!labels.every(l=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(l))||!/^[a-z]{2,63}$/i.test(labels.at(-1)))throw new Error();url.hash='';websiteField.value=url.toString()}catch{websiteField.focus();showMessage('Enter a complete business website, such as https://yourcompany.com.');return false}const phone=document.getElementById('business-phone').value.replace(/\D/g,'');if(phone.length<10){showMessage('Enter a valid business phone number.');return false}const ein=document.getElementById('ein').value.replace(/\D/g,'');if(!/^\d{9}$/.test(ein)){showMessage('Enter a valid 9-digit EIN.');return false}if(document.getElementById('has-dba').checked&&!document.getElementById('dba-name').value.trim()){showMessage('Enter the DBA or trade name.');return false}}if(current===2&&selectedVoices.size===0){showMessage('Choose at least one Company Voice.');return false}if(current===3){const strengths=companyStrengths();if(strengths.length!==COMPANY_STRENGTH_LIMIT){showMessage('Keep exactly 5 company strengths before continuing.');return false}}if(current===4){const priorities=candidatePriorities();if(priorities.length!==CANDIDATE_PRIORITY_LIMIT){showMessage('Keep exactly 5 hiring priorities before continuing.');return false}}if(current===5&&!document.getElementById('authorization').checked){showMessage('Confirm that you are authorized to recruit for this company.');return false}return true}
 function aiSummary(){const v=[...selectedVoices],c=getRanking('company-priorities').slice(0,3),h=getRanking('candidate-priorities').slice(0,3);return `Your company emphasizes ${joinWords(c).toLowerCase()}. Alygnn will write hiring content in a ${joinWords(v).toLowerCase()} voice while prioritizing candidates who demonstrate ${joinWords(h).toLowerCase()}.`}
 function joinWords(values){if(values.length<=1)return values[0]||'';if(values.length===2)return values.join(' and ');return values.slice(0,-1).join(', ')+', and '+values.at(-1)}
-function buildOverview(){
-  const voices=[...selectedVoices];
-  const company=getRanking('company-priorities');
-  const candidate=getRanking('candidate-priorities');
-
-  document.getElementById(
-    'overview-voice'
-  ).textContent=
-    voices.join(' • ');
-
-  document.getElementById(
-    'overview-company'
-  ).innerHTML=
-    company
-      .map(v=>`<li>${escapeHtml(v)}</li>`)
-      .join('');
-
-  document.getElementById(
-    'overview-candidate'
-  ).innerHTML=
-    candidate
-      .map(v=>`<li>${escapeHtml(v)}</li>`)
-      .join('');
-
-  document.getElementById(
-    'ai-summary'
-  ).textContent=
-    aiSummary();
-}
+function buildOverview(){const voices=[...selectedVoices],company=getRanking('company-priorities'),candidate=getRanking('candidate-priorities');document.getElementById('overview-voice').textContent=voices.join(' • ');document.getElementById('overview-company').innerHTML=company.slice(0,3).map(v=>`<li>${escapeHtml(v)}</li>`).join('');document.getElementById('overview-candidate').innerHTML=candidate.slice(0,3).map(v=>`<li>${escapeHtml(v)}</li>`).join('');document.getElementById('ai-summary').textContent=aiSummary()}
 function payload(){const ein=document.getElementById('ein').value.replace(/\D/g,'');return{company_name:document.getElementById('company-name').value.trim(),website:document.getElementById('website').value.trim(),business_phone:document.getElementById('business-phone').value.trim(),industry:document.getElementById('industry').value.trim(),company_size:document.getElementById('company-size').value,headquarters:document.getElementById('headquarters').value.trim(),has_dba:document.getElementById('has-dba').checked,dba_name:document.getElementById('has-dba').checked?document.getElementById('dba-name').value.trim():'',ein,ein_last4:ein.slice(-4),company_voice:[...selectedVoices],company_priorities:getRanking('company-priorities'),candidate_priorities:getRanking('candidate-priorities'),ai_summary:aiSummary(),authorized:document.getElementById('authorization').checked}}
 async function submit(){
   nextButton.disabled=true;
