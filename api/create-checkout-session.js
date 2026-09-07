@@ -169,6 +169,53 @@ async function getEmployerPostingAccess(token) {
   return data||{};
 }
 
+
+async function getTeamAccess(token) {
+  const base =
+    (process.env.SUPABASE_URL || 'https://auth.alygnn.com')
+      .replace(/\/$/, '');
+
+  const anon =
+    supabasePublicKey();
+
+  const response =
+    await fetch(
+      base +
+      '/rest/v1/rpc/get_my_team_access',
+      {
+        method: 'POST',
+        headers: {
+          apikey: anon,
+          Authorization:
+            'Bearer ' + token,
+          'Content-Type':
+            'application/json'
+        },
+        body: '{}'
+      }
+    );
+
+  const data =
+    await response.json().catch(
+      () => null
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      (
+        data &&
+        (
+          data.message ||
+          data.error
+        )
+      ) ||
+      'Could not verify team-seat access.'
+    );
+  }
+
+  return data || {};
+}
+
 function additionalSlotEligible(access) {
   // The $150/month Second Job Slot is ONLY for employers without
   // an active monthly/quarterly Launch/Growth/Scale plan.
@@ -327,22 +374,6 @@ async function patchEntitlement(employerId,patch){
     body:JSON.stringify({...patch,plan_change_updated_at:new Date().toISOString(),updated_at:new Date().toISOString()})
   });
   if(!r.ok)throw new Error('Could not save billing state: '+await r.text());
-}
-
-async function manageRpc(name,body={}){
-  const r=await fetch(manageBase()+'/rest/v1/rpc/'+encodeURIComponent(name),{
-    method:'POST',
-    headers:manageServiceHeaders(),
-    body:JSON.stringify(body)
-  });
-  const data=await r.json().catch(()=>null);
-  if(!r.ok){
-    throw new Error(
-      (data&&(data.message||data.error))||
-      `Supabase RPC ${name} failed.`
-    );
-  }
-  return data;
 }
 function exactPlan(ent){
   const exact=String(ent?.test_plan||'').toLowerCase();
@@ -759,43 +790,13 @@ async function applyDueTestPlanChange(
       :NaN;
 
   if(
-    !['free','launch','growth','scale'].includes(
+    !['launch','growth','scale'].includes(
       pending
     ) ||
     !Number.isFinite(effectiveAt) ||
     effectiveAt>Date.now()
   ){
     return ent;
-  }
-
-  // A scheduled test-plan cancellation has reached its renewal date.
-  // Close every job using paid capacity, preserve one permanent Free-slot job,
-  // and return the employer to normal Free access.
-  if(pending==='free'){
-    await manageRpc(
-      'alygnn_apply_free_fallback_after_plan_end',
-      {p_employer_id:employerId}
-    );
-
-    await patchEntitlement(employerId,{
-      plan:'free',
-      test_plan:null,
-      test_mode:false,
-      subscription_status:'inactive',
-      slot_limit:0,
-      billing_period:null,
-      urgently_hiring:false,
-      current_period_end:null,
-      plan_amount_cents:null,
-      stripe_plan_subscription_id:null,
-      stripe_plan_customer_id:null,
-      stripe_plan_schedule_id:null,
-      pending_plan:null,
-      pending_billing_period:null,
-      pending_plan_effective_at:null
-    });
-
-    return await getEntitlement(employerId);
   }
 
   await patchEntitlement(employerId,{
@@ -1984,6 +1985,7 @@ module.exports = async function handler(req, res) {
     let slots = 0;
     let days = 0;
     let jobId = '';
+    let billingEmployerId = user.id;
 
     // Backward compatibility: the former $150 "single_job" product is now
     // the standalone $150/month Second Job Slot.
@@ -2012,6 +2014,130 @@ module.exports = async function handler(req, res) {
       cents = 15000;
       slots = 1;
       mode = 'subscription';
+
+    } else if (product === 'team_seat') {
+      const access =
+        await getTeamAccess(token);
+
+      if (!access?.has_company) {
+        return send(
+          res,
+          400,
+          {
+            error:
+              'Create or join a company workspace before adding a team seat.'
+          }
+        );
+      }
+
+      const canManageBilling =
+        access?.is_owner === true ||
+        access?.can_manage_billing === true;
+
+      if (!canManageBilling) {
+        return send(
+          res,
+          403,
+          {
+            error:
+              'You do not have Manage Billing access for this company.'
+          }
+        );
+      }
+
+      const teamPlan =
+        String(
+          access.plan || 'free'
+        ).toLowerCase();
+
+      if (
+        ![
+          'launch',
+          'growth',
+          'scale'
+        ].includes(teamPlan)
+      ) {
+        return send(
+          res,
+          400,
+          {
+            error:
+              'Team seats require an active Launch, Growth, or Scale plan.'
+          }
+        );
+      }
+
+      if (
+        Number(
+          access.available_seats || 0
+        ) > 0
+      ) {
+        return send(
+          res,
+          409,
+          {
+            error:
+              'You already have an available team seat. Invite the team member before purchasing another seat.'
+          }
+        );
+      }
+
+      if (
+        access.can_purchase_seat !== true
+      ) {
+        const recommended =
+          String(
+            access.upgrade_recommended ||
+            ''
+          ).toLowerCase();
+
+        return send(
+          res,
+          409,
+          {
+            error:
+              recommended
+                ? `Your ${teamPlan} team capacity is full. Upgrade to ${recommended} for more team access.`
+                : 'Your current plan has reached its team-member limit.',
+            recommend_upgrade:
+              Boolean(recommended),
+            recommended_plan:
+              recommended || null
+          }
+        );
+      }
+
+      cents =
+        Number(
+          access.seat_price_cents || 0
+        );
+
+      if (
+        ![9900,7500,5000]
+          .includes(cents)
+      ) {
+        return send(
+          res,
+          400,
+          {
+            error:
+              'The team-seat price could not be verified.'
+          }
+        );
+      }
+
+      billingEmployerId =
+        String(
+          access.owner_user_id ||
+          user.id
+        );
+
+      plan = teamPlan;
+      billing = 'monthly';
+      mode = 'subscription';
+      slots = 1;
+      name =
+        `Alygnn ${teamPlan.charAt(0).toUpperCase()+teamPlan.slice(1)} Team Seat`;
 
     } else if (product === 'job_boost') {
       const access =
@@ -2118,7 +2244,7 @@ module.exports = async function handler(req, res) {
     }
 
     const metadata = {
-      employer_id: user.id,
+      employer_id: billingEmployerId,
       employer_email: user.email || '',
       product,
       plan,
@@ -2126,7 +2252,10 @@ module.exports = async function handler(req, res) {
       slots: slots || '',
       job_id: jobId,
       days: days || '',
-      unit_amount_cents: product === 'job_boost' ? '1500' : cents,
+      unit_amount_cents:
+        product === 'job_boost'
+          ? '1500'
+          : cents,
       source: String(input.source || 'website'),
       terms_version: String(input.terms_version || '')
     };
