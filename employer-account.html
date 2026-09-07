@@ -51,19 +51,9 @@
   .notif-dropdown{
     position:absolute; top:calc(100% + 10px); right:0; width:340px; max-height:420px;
     overflow-y:auto; background:var(--card-bg); border:1px solid var(--border);
-    border-radius:14px; box-shadow:0 12px 32px rgba(0,0,0,0.12); z-index:1200;
+    border-radius:14px; box-shadow:0 12px 32px rgba(0,0,0,0.12); z-index:50;
   }
-  .notif-dropdown-header{
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
-    font-size:13px; font-weight:600; color:var(--text); padding:14px 16px 8px;
-  }
-  .notif-mark-all{
-    border:0; background:transparent; color:var(--brand);
-    font-family:'DM Sans',sans-serif; font-size:11px; font-weight:500;
-    cursor:pointer; padding:0; white-space:nowrap;
-  }
-  .notif-mark-all:hover{ opacity:.8; }
-  .notif-mark-all:disabled{ opacity:.5; cursor:default; }
+  .notif-dropdown-header{ font-size:13px; font-weight:600; color:var(--text); padding:14px 16px 8px; }
   .notif-empty{ font-size:13px; color:var(--text-muted); padding:20px 16px; text-align:center; }
   .notif-item{ display:block; padding:10px 16px; border-top:1px solid var(--border); text-decoration:none; color:inherit; }
   .notif-item:hover{ background:var(--brand-tint); }
@@ -842,11 +832,9 @@
         <span class="notif-badge" id="notif-badge" style="display:none">0</span>
       </button>
       <div class="notif-dropdown" id="notif-dropdown" style="display:none">
-        <div class="notif-dropdown-header">
-          <span>Notifications</span>
-          <button class="notif-mark-all" id="notif-mark-all-btn" type="button" onclick="markAllEmployerNotificationsRead(event)">Mark all read</button>
-        </div>
+        <div class="notif-dropdown-header">Notifications</div>
         <div id="notif-list"><div class="notif-empty">No notifications yet.</div></div>
+        <a href="notifications.html" class="notif-view-all">View all</a>
       </div>
     </div>
     <span class="nav-name" id="nav-name"></span>
@@ -2210,7 +2198,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         ${summary.pending_plan ? `<div class="billing-meta" style="margin-top:14px">Scheduled change: ${escapeHtml(billingPlanName(summary.pending_plan))}${summary.pending_plan_effective_at ? ' on '+escapeHtml(billingDate(summary.pending_plan_effective_at)) : ''}.</div>` : ''}
         <div class="billing-actions">
           ${(paidPlan||secondActive||testMode||summary.billing_account?.stripe_customer_count>0) ? `<a class="billing-btn primary" href="employer-billing.html">${lock?'Update payment method':'Payment method & invoices'}</a>` : ''}
-          ${paidPlan ? (summary.cancel_at_period_end ? `<button class="billing-btn secondary" type="button" onclick="resumeAccountPlan(this)">Keep current plan</button>` : `<button class="billing-btn secondary" type="button" onclick="cancelAccountPlan(this)">Cancel at renewal</button>`) : ''}
+          ${paidPlan ? (summary.cancel_at_period_end ? `<button class="billing-btn secondary" type="button" onclick="resumeAccountPlan(this)">Keep current plan</button>` : `<a class="billing-btn secondary" href="employer-cancel-plan.html">Cancel at renewal</a>`) : ''}
           ${secondActive ? (second.cancel_at_period_end ? `<button class="billing-btn secondary" type="button" onclick="resumeSecondSlot(this)">Keep Second Job Slot</button>` : `<button class="billing-btn secondary" type="button" onclick="cancelSecondSlot(this)">Cancel Second Job Slot</button>`) : ''}
           <a class="billing-btn secondary" href="pricing.html">Compare plans</a>
         </div>`;
@@ -2560,10 +2548,9 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     window.location.href = 'index.html';
   }
 
-  // ---- Notifications — same behavior as My Jobs ----
+  // ---- Notifications ----
 
   function timeAgo(iso) {
-    if(!iso) return '';
     const diffMs = Date.now() - new Date(iso).getTime();
     const mins = Math.floor(diffMs / 60000);
     if (mins < 1) return 'just now';
@@ -2575,320 +2562,90 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     return new Date(iso).toLocaleDateString();
   }
 
-  let notificationItemsCache = [];
-  let accountMessageNotificationChannel = null;
-  let accountMessageNotificationPollTimer = null;
-  let accountMessageNotificationRefreshBusy = false;
-
-  function accountCandidateName(profile){
-    const direct=String(profile?.full_name||'').trim();
-    if(direct)return direct;
-
-    let resume=profile?.resume_data;
-    if(typeof resume==='string'){
-      try{resume=JSON.parse(resume)}catch(_){resume={}}
-    }
-    if(!resume||typeof resume!=='object')resume={};
-    const personal=resume.personal&&typeof resume.personal==='object'?resume.personal:{};
-
-    return String(
-      resume.name||
-      resume.full_name||
-      [personal.first_name,personal.last_name].filter(Boolean).join(' ')||
-      'Candidate'
-    ).trim();
-  }
-
-  async function fetchEmployerUnreadMessageNotifications(){
-    if(!currentUserId)return [];
-
-    try{
-      const {data:threads,error:threadsError}=await sb
-        .from('message_threads')
-        .select('id,job_id,candidate_id,employer_id')
-        .eq('employer_id',currentUserId);
-
-      if(threadsError)throw threadsError;
-
-      const employerThreads=threads||[];
-      const threadIds=employerThreads.map(t=>t.id).filter(Boolean);
-      if(!threadIds.length)return [];
-
-      const {data:messageRows,error:messagesError}=await sb
-        .from('messages')
-        .select('id,thread_id,sender_id,body,created_at,read_at')
-        .in('thread_id',threadIds)
-        .neq('sender_id',currentUserId)
-        .is('read_at',null)
-        .order('created_at',{ascending:false})
-        .limit(20);
-
-      if(messagesError)throw messagesError;
-      if(!(messageRows||[]).length)return [];
-
-      const jobIds=[...new Set(employerThreads.map(t=>t.job_id).filter(Boolean))];
-      const candidateIds=[...new Set(employerThreads.map(t=>t.candidate_id).filter(Boolean))];
-
-      const [jobsResult,profilesResult]=await Promise.all([
-        jobIds.length
-          ? sb.from('jobs').select('id,title').in('id',jobIds)
-          : Promise.resolve({data:[],error:null}),
-        candidateIds.length
-          ? sb.from('profiles').select('id,full_name,resume_data').in('id',candidateIds)
-          : Promise.resolve({data:[],error:null})
-      ]);
-
-      const threadMap=new Map(employerThreads.map(t=>[String(t.id),t]));
-      const jobMap=new Map((jobsResult.data||[]).map(job=>[String(job.id),job]));
-      const profileMap=new Map((profilesResult.data||[]).map(profile=>[String(profile.id),profile]));
-
-      return (messageRows||[]).map(message=>{
-        const thread=threadMap.get(String(message.thread_id))||{};
-        const job=jobMap.get(String(thread.job_id))||{};
-        const profile=profileMap.get(String(thread.candidate_id))||{};
-        const candidateName=accountCandidateName(profile);
-        const jobTitle=String(job.title||'your job').trim();
-        const preview=String(message.body||'').trim().replace(/\s+/g,' ');
-        const shortPreview=preview.length>90?preview.slice(0,87)+'…':preview;
-
-        return{
-          id:`message-${message.id}`,
-          source:'message',
-          message_id:message.id,
-          thread_id:message.thread_id,
-          type:'message',
-          title:`New message from ${candidateName}`,
-          body:shortPreview?`${jobTitle}: ${shortPreview}`:`New reply about ${jobTitle}.`,
-          link:`messages.html?thread=${encodeURIComponent(message.thread_id)}`,
-          read_at:null,
-          created_at:message.created_at
-        };
-      });
-    }catch(error){
-      console.warn('Could not load employer message notifications:',error);
-      return [];
-    }
-  }
-
   async function fetchNotifications() {
     if (!currentUserId) return [];
 
-    const [{data,error},messageItems]=await Promise.all([
-      sb
-        .from('notifications')
-        .select('id,type,title,body,link,read_at,created_at')
-        .eq('recipient_id',currentUserId)
-        .order('created_at',{ascending:false})
-        .limit(20),
-      fetchEmployerUnreadMessageNotifications()
-    ]);
+    const { data, error } = await sb
+      .from('notifications')
+      .select('id, type, title, body, link, read_at, created_at')
+      .eq('recipient_id', currentUserId)
+      .order('created_at', { ascending: false })
+      .limit(20);
 
-    if(error)console.error('Failed to load notifications:',error);
-
-    return [...messageItems,...(error?[]:(data||[]))]
-      .sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0))
-      .slice(0,20);
-  }
-
-  function normalizedEmployerNotificationTitle(n){
-    const title=String(n?.title||'').trim();
-    const match=title.match(/^new applicant for\s+(.+)$/i);
-    if(match)return `${match[1]} — New applicant`;
-    return title||'Notification';
+    if (error) {
+      console.error('Failed to load notifications:', error);
+      return [];
+    }
+    return data || [];
   }
 
   function renderNotifDropdown(items) {
-    notificationItemsCache=items||[];
+    const badge = document.getElementById('notif-badge');
+    const list = document.getElementById('notif-list');
+    const unreadCount = items.filter(n => !n.read_at).length;
 
-    const badge=document.getElementById('notif-badge');
-    const list=document.getElementById('notif-list');
-    if(!badge||!list)return;
-
-    const unreadCount=notificationItemsCache.filter(n=>!n.read_at).length;
-
-    if(unreadCount>0){
-      badge.style.display='flex';
-      badge.textContent=unreadCount>9?'9+':String(unreadCount);
-    }else{
-      badge.style.display='none';
+    if (unreadCount > 0) {
+      badge.style.display = 'flex';
+      badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
+    } else {
+      badge.style.display = 'none';
     }
 
-    if(!notificationItemsCache.length){
-      list.innerHTML='<div class="notif-empty">No notifications yet.</div>';
+    if (items.length === 0) {
+      list.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
       return;
     }
 
-    list.innerHTML=notificationItemsCache.slice(0,6).map(n=>{
-      if(n.source==='message'){
-        return `
-          <a class="notif-item unread" href="${escapeHtml(n.link||'#')}"
-             onclick="handleEmployerMessageNotification(event,'${n.id}')">
-            <div class="notif-item-title">${escapeHtml(n.title)}</div>
-            ${n.body?`<div class="notif-item-body">${escapeHtml(n.body)}</div>`:''}
-            <div class="notif-item-time">${timeAgo(n.created_at)}</div>
-          </a>`;
-      }
-
-      return `
-        <a class="notif-item ${n.read_at?'':'unread'}" href="${n.link?escapeHtml(n.link):'#'}"
-           onclick="handleEmployerRegularNotification(event,'${n.id}')">
-          <div class="notif-item-title">${escapeHtml(normalizedEmployerNotificationTitle(n))}</div>
-          ${n.body?`<div class="notif-item-body">${escapeHtml(n.body)}</div>`:''}
-          <div class="notif-item-time">${timeAgo(n.created_at)}</div>
-        </a>`;
-    }).join('');
+    list.innerHTML = items.slice(0, 6).map(n => `
+      <a class="notif-item ${n.read_at ? '' : 'unread'}" href="${n.link ? escapeHtml(n.link) : '#'}" onclick="markNotificationRead('${n.id}')">
+        <div class="notif-item-title">${escapeHtml(n.title)}</div>
+        ${n.body ? `<div class="notif-item-body">${escapeHtml(n.body)}</div>` : ''}
+        <div class="notif-item-time">${timeAgo(n.created_at)}</div>
+      </a>
+    `).join('');
   }
 
-  async function handleEmployerRegularNotification(event,id){
-    if(event)event.preventDefault();
-    const n=notificationItemsCache.find(item=>item.id===id);
-    if(!n)return;
+  async function markNotificationRead(id) {
+    if (!currentUserId) return;
 
     await sb
       .from('notifications')
-      .update({read_at:new Date().toISOString()})
-      .eq('id',id)
-      .eq('recipient_id',currentUserId);
-
-    const dropdown=document.getElementById('notif-dropdown');
-    if(dropdown)dropdown.style.display='none';
-
-    const destination=String(n.link||'').trim();
-    if(destination){
-      location.href=destination;
-    }else if(String(n.title||'').toLowerCase().includes('applicant')||String(n.body||'').toLowerCase().includes('applied')){
-      location.href='candidates.html';
-    }else{
-      await refreshNotifications();
-    }
+      .update({ read_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('recipient_id', currentUserId);
   }
 
-  async function handleEmployerMessageNotification(event,id){
-    if(event)event.preventDefault();
-    const n=notificationItemsCache.find(item=>item.id===id);
-    if(!n)return;
-
-    if(n.message_id){
-      const {error}=await sb
-        .from('messages')
-        .update({read_at:new Date().toISOString()})
-        .eq('id',n.message_id)
-        .neq('sender_id',currentUserId)
-        .is('read_at',null);
-      if(error)console.warn('Could not mark employer message notification read:',error);
-    }
-
-    const dropdown=document.getElementById('notif-dropdown');
-    if(dropdown)dropdown.style.display='none';
-    location.href=n.link||'messages.html';
-  }
-
-  async function markAllEmployerNotificationsRead(event){
-    if(event){
-      event.preventDefault();
-      event.stopPropagation();
-    }
-
-    const btn=document.getElementById('notif-mark-all-btn');
-    if(btn){
-      btn.disabled=true;
-      btn.textContent='Marking…';
-    }
-
-    const now=new Date().toISOString();
-    const regularIds=notificationItemsCache
-      .filter(item=>item.source!=='message'&&!item.read_at&&item.id)
-      .map(item=>item.id);
-    const messageIds=notificationItemsCache
-      .filter(item=>item.source==='message'&&item.message_id)
-      .map(item=>item.message_id);
-
-    try{
-      if(regularIds.length){
-        const {error}=await sb
-          .from('notifications')
-          .update({read_at:now})
-          .in('id',regularIds)
-          .eq('recipient_id',currentUserId);
-        if(error)console.warn('Could not mark employer notifications read:',error);
-      }
-
-      if(messageIds.length){
-        const {error}=await sb
-          .from('messages')
-          .update({read_at:now})
-          .in('id',messageIds)
-          .neq('sender_id',currentUserId)
-          .is('read_at',null);
-        if(error)console.warn('Could not mark employer message notifications read:',error);
-      }
-
-      await refreshNotifications();
-    }finally{
-      if(btn){
-        btn.disabled=false;
-        btn.textContent='Mark all read';
-      }
-    }
-  }
-
-  async function refreshNotifications(){
-    const items=await fetchNotifications();
+  async function refreshNotifications() {
+    const items = await fetchNotifications();
     renderNotifDropdown(items);
   }
 
-  function initNotifications(){
+  function initNotifications() {
     refreshNotifications();
 
-    const bell=document.getElementById('notif-bell');
-    const dropdown=document.getElementById('notif-dropdown');
-    const wrap=document.getElementById('notif-wrap');
-    if(!bell||!dropdown||!wrap)return;
+    const bell = document.getElementById('notif-bell');
+    const dropdown = document.getElementById('notif-dropdown');
 
-    bell.addEventListener('click',event=>{
-      event.stopPropagation();
-      const isOpen=dropdown.style.display!=='none';
-      dropdown.style.display=isOpen?'none':'block';
-      if(!isOpen)refreshNotifications();
+    bell.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = dropdown.style.display !== 'none';
+      dropdown.style.display = isOpen ? 'none' : 'block';
+      if (!isOpen) refreshNotifications();
     });
 
-    document.addEventListener('click',event=>{
-      if(!wrap.contains(event.target))dropdown.style.display='none';
+    document.addEventListener('click', (e) => {
+      if (!document.getElementById('notif-wrap').contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
     });
 
-    sb.channel('account-employer-notifications-'+currentUserId)
-      .on('postgres_changes',{
-        event:'INSERT',schema:'public',table:'notifications',
-        filter:`recipient_id=eq.${currentUserId}`
-      },()=>refreshNotifications())
+    // Live updates: new applications should light up the bell without a refresh.
+    sb.channel('notifications-' + currentUserId)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'notifications',
+        filter: `recipient_id=eq.${currentUserId}`
+      }, () => refreshNotifications())
       .subscribe();
-
-    if(!accountMessageNotificationChannel){
-      accountMessageNotificationChannel=sb
-        .channel('account-employer-message-notifications-'+currentUserId)
-        .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},async payload=>{
-          if(payload?.new?.sender_id===currentUserId)return;
-          if(accountMessageNotificationRefreshBusy)return;
-          accountMessageNotificationRefreshBusy=true;
-          try{
-            await refreshNotifications();
-          }finally{
-            accountMessageNotificationRefreshBusy=false;
-          }
-        })
-        .subscribe();
-    }
-
-    if(!accountMessageNotificationPollTimer){
-      accountMessageNotificationPollTimer=window.setInterval(()=>{
-        if(document.visibilityState==='visible')refreshNotifications();
-      },5000);
-    }
-
-    document.addEventListener('visibilitychange',()=>{
-      if(document.visibilityState==='visible')refreshNotifications();
-    });
-    window.addEventListener('focus',()=>refreshNotifications());
   }
 
 
