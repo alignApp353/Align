@@ -626,7 +626,17 @@ const { createClient } = supabase;
     const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Creating account…';
     const meta = { full_name: name, role: currentRole };
     if (company) meta.company = company;
-    const { data, error } = await sb.auth.signUp({ email, password, options: { data: meta } });
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password,
+      options: {
+        data: meta,
+        // New accounts must continue into the correct onboarding flow after
+        // email confirmation instead of falling back to Supabase's Site URL
+        // (which sends them to index.html).
+        emailRedirectTo: redirectFor(currentRole)
+      }
+    });
     if (error) {
       btn.disabled = false; btn.textContent = orig;
       showMsg(error.message);
@@ -692,7 +702,7 @@ const { createClient } = supabase;
       return;
     }
 
-    showMsg('Account created! Check your email to confirm, then sign in.', 'success');
+    showMsg(currentRole === 'employer' ? 'Account created! Check your email to confirm. After confirmation, you’ll continue to Employer Setup.' : 'Account created! Check your email to confirm. After confirmation, you’ll continue to your Alygnn account.', 'success');
     setTimeout(() => switchTab('login'), 3000);
   }
 
