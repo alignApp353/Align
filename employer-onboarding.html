@@ -279,9 +279,10 @@ const US_CITIES=['Albuquerque, NM','Alexandria, VA','Anaheim, CA','Anchorage, AK
 const steps=[...document.querySelectorAll('.step')];let current=0;const selectedVoices=new Set();
 const form=document.getElementById('onboarding-form'),message=document.getElementById('message'),nextButton=document.getElementById('next-button'),backButton=document.getElementById('back-button');
 let DRAFT_KEY=null;
+let onboardingCompleted=false;
 
 function saveDraft(){
-  if(!DRAFT_KEY)return;
+  if(onboardingCompleted||!DRAFT_KEY)return;
   const draft={
     current,
     company_name:document.getElementById('company-name').value,
@@ -1024,10 +1025,20 @@ async function submit(){
     }
 
     localStorage.setItem('alygnn_employer_verification_status','pending_review');
+
+    // Setup is finished. Stop the beforeunload draft saver BEFORE navigating,
+    // otherwise the browser recreates the completed draft during the redirect
+    // and Alygnn can reopen this final onboarding screen again.
+    onboardingCompleted=true;
+    window.removeEventListener('beforeunload',saveDraft);
     try{localStorage.removeItem(DRAFT_KEY)}catch{}
 
-    showMessage('Setup complete. Your verification document was submitted for review.','success');
-    setTimeout(()=>location.replace('employer-account.html'),1000);
+    showMessage('Setup complete. Your verification document was submitted for review. Opening your Employer Dashboard…','success');
+
+    // Go straight to the dashboard. Routing through employer-account.html can
+    // send pending-review employers back into onboarding on older account-page
+    // guards, which makes it look like Finish Setup did nothing.
+    setTimeout(()=>window.location.replace('employer-dashboard.html?setup=complete#jobs'),650);
 
   }catch(error){
     console.error('Employer onboarding failed:',error);
@@ -1117,11 +1128,24 @@ window.addEventListener('beforeunload',saveDraft);
 
   const {data:profile}=await sb
     .from('profiles')
-    .select('company_name,company_website,company_phone,business_email,business_address,employer_verified,verification_status')
+    .select('company_name,company_website,company_phone,business_email,business_address,employer_verified,verification_status,hiring_blueprint')
     .eq('id',session.user.id)
     .maybeSingle();
 
-  if(profile?.employer_verified){location.replace('employer-dashboard.html');return}
+  // Do not reopen onboarding after a successful submission. Pending review is
+  // a completed onboarding state; only the admin decision is still pending.
+  const verificationStatus=String(profile?.verification_status||'').toLowerCase();
+  const completedStatuses=new Set(['pending_review','pending','submitted','under_review','in_review','approved']);
+  const savedCompanyId=String(profile?.hiring_blueprint?.company_id||localStorage.getItem('alygnn_company_id')||'').trim();
+  const onboardingAlreadySubmitted=completedStatuses.has(verificationStatus)&&!!savedCompanyId;
+
+  if(profile?.employer_verified||onboardingAlreadySubmitted){
+    onboardingCompleted=true;
+    window.removeEventListener('beforeunload',saveDraft);
+    try{localStorage.removeItem(DRAFT_KEY)}catch{}
+    location.replace('employer-dashboard.html#jobs');
+    return;
+  }
 
   if(!restoreDraft()){
     if(profile?.company_name) document.getElementById('company-name').value=profile.company_name;
