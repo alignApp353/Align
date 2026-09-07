@@ -33,6 +33,9 @@ const CHECKOUT_CATALOG = {
   }
 };
 
+// Every employer permanently keeps one reusable free job slot.
+const PERMANENT_FREE_JOB_SLOTS = 1;
+
 function cors(res) {
   // Authorization is Bearer-token based, not cookie based, so wildcard origin is
   // appropriate for the local Capacitor WebView + alygnn.com.
@@ -430,13 +433,22 @@ function subscriptionSummary(ent,sub){
   const billing=subscriptionBilling(ent,sub);
   const p=MANAGE_CATALOG[billing]?.[plan]||null;
   const endUnix=sub?.current_period_end||null;
+  const slots=canonicalSlotSummary(ent,sub);
   return {
     current_plan:plan,
     billing_period:billing,
+    test_mode:ent?.test_mode===true,
     subscription_status:String(sub?.status||ent?.subscription_status||'free').toLowerCase(),
     current_period_end:endUnix?new Date(endUnix*1000).toISOString():(ent?.current_period_end||null),
     amount_cents:p?.cents??Number(ent?.plan_amount_cents||0),
-    slot_limit:Number(ent?.slot_limit||p?.slots||1),
+
+    // For the Billing UI, slot_limit is the TOTAL reusable capacity.
+    // Launch = 3 + 1 free = 4, Growth = 5 + 1 free = 6,
+    // Scale = 8 + 1 free = 9.
+    slot_limit:slots.total_slot_limit,
+    total_slot_limit:slots.total_slot_limit,
+    plan_slot_limit:slots.plan_slot_limit,
+    permanent_free_slot_count:slots.permanent_free_slot_count,
     pending_plan:ent?.pending_plan||null,
     pending_billing_period:ent?.pending_billing_period||null,
     pending_plan_effective_at:ent?.pending_plan_effective_at||null,
@@ -660,6 +672,55 @@ function testPlanSlotLimit(plan){
   return MANAGE_CATALOG.monthly?.[plan]?.slots ||
     MANAGE_CATALOG.quarterly?.[plan]?.slots ||
     0;
+}
+
+async function normalizeCanonicalPlanEntitlement(employerId,ent){
+  const plan=exactPlan(ent);
+  const billing=billingPeriod(ent);
+  const catalog=MANAGE_CATALOG[billing];
+  const planRow=catalog?.[plan];
+
+  // slot_limit in employer_entitlements stores ONLY the paid-plan slots.
+  // The permanent free slot is added separately by posting-access/UI logic.
+  if(!planRow || !['launch','growth','scale'].includes(plan)){
+    return ent;
+  }
+
+  const expectedSlots=Number(planRow.slots||0);
+  const expectedUrgent=['growth','scale'].includes(plan);
+  const currentSlots=Number(ent?.slot_limit||0);
+  const currentUrgent=ent?.urgently_hiring===true;
+
+  if(currentSlots===expectedSlots && currentUrgent===expectedUrgent){
+    return ent;
+  }
+
+  await patchEntitlement(employerId,{
+    slot_limit:expectedSlots,
+    urgently_hiring:expectedUrgent
+  });
+
+  return await getEntitlement(employerId);
+}
+
+function canonicalSlotSummary(ent,sub){
+  const plan=subscriptionPlan(ent,sub);
+  const billing=subscriptionBilling(ent,sub);
+  const paidPlanSlots=Number(MANAGE_CATALOG[billing]?.[plan]?.slots||0);
+
+  if(paidPlanSlots>0){
+    return {
+      plan_slot_limit:paidPlanSlots,
+      permanent_free_slot_count:PERMANENT_FREE_JOB_SLOTS,
+      total_slot_limit:paidPlanSlots+PERMANENT_FREE_JOB_SLOTS
+    };
+  }
+
+  return {
+    plan_slot_limit:0,
+    permanent_free_slot_count:PERMANENT_FREE_JOB_SLOTS,
+    total_slot_limit:PERMANENT_FREE_JOB_SLOTS
+  };
 }
 
 async function applyDueTestPlanChange(
@@ -1501,12 +1562,80 @@ async function billingAccountSummary(user,ent,planSub,secondSub){
   };
 }
 
+async function createBillingPortalSession({user,ent,planSub,input}){
+  if(ent?.test_mode===true){
+    const error=new Error(
+      'Developer test billing has no Stripe payment method or invoices. Payment method & invoices is available after a real Stripe checkout.'
+    );
+    error.status=409;
+    error.test_mode=true;
+    throw error;
+  }
+
+  let secondSub=null;
+  let customerId=stripeCustomerId(planSub,ent);
+
+  if(!customerId){
+    try{
+      secondSub=await resolveSecondSlotSubscription(user.id);
+      customerId=
+        typeof secondSub?.customer==='string'
+          ?secondSub.customer
+          :secondSub?.customer?.id||null;
+    }catch(error){
+      console.warn(
+        'Could not resolve customer for billing portal:',
+        error?.message||error
+      );
+    }
+  }
+
+  if(!customerId){
+    const error=new Error(
+      'No Stripe billing profile exists for this account yet. Complete a paid checkout first.'
+    );
+    error.status=409;
+    throw error;
+  }
+
+  const returnUrl=allowedReturnUrl(
+    input.return_url||input.success_url,
+    'https://alygnn.com/employer-account.html#billing'
+  );
+
+  const session=await manageStripe(
+    'POST',
+    'billing_portal/sessions',
+    {
+      customer:customerId,
+      return_url:returnUrl
+    }
+  );
+
+  if(!session?.url){
+    throw new Error('Stripe could not open the billing portal.');
+  }
+
+  return {
+    url:session.url,
+    id:session.id||null
+  };
+}
+
 async function runManageAction(res,user,input){
   const action=String(input.action||'summary').toLowerCase();
 
   let ent=await getEntitlement(user.id);
 
   ent=await applyDueTestPlanChange(
+    user.id,
+    ent
+  );
+
+  // Migrate any stale Launch/Growth/Scale slot limits from older pricing.
+  // This fixes old values such as Scale = 14 and restores Scale to 8 paid
+  // slots + the permanent free slot = 9 total reusable slots.
+  ent=await normalizeCanonicalPlanEntitlement(
     user.id,
     ent
   );
@@ -1533,6 +1662,23 @@ async function runManageAction(res,user,input){
         :null;
 
   ent=await getEntitlement(user.id);
+
+  if([
+    'billing_portal',
+    'customer_portal',
+    'payment_method',
+    'payment_methods',
+    'payment_method_and_invoices',
+    'manage_billing'
+  ].includes(action)){
+    const portal=await createBillingPortalSession({
+      user,
+      ent,
+      planSub:sub,
+      input
+    });
+    return send(res,200,{ok:true,...portal});
+  }
 
   if(action==='summary'){
     let secondSlot=null;
@@ -1761,7 +1907,13 @@ module.exports = async function handler(req, res) {
       'cancel_plan',
       'resume_plan',
       'cancel_second_slot',
-      'resume_second_slot'
+      'resume_second_slot',
+      'billing_portal',
+      'customer_portal',
+      'payment_method',
+      'payment_methods',
+      'payment_method_and_invoices',
+      'manage_billing'
     ].includes(billingAction)) {
       return await runManageAction(res, user, input);
     }
