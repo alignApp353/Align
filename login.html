@@ -192,14 +192,14 @@
         <path d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/>
         <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
       </svg>
-      Continue with Google
+      <span id="google-btn-text">Sign in with Google</span>
     </button>
 
     <button class="google-btn" onclick="handleApple()" >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="black">
         <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.39.07 2.36.74 3.18.8 1.21-.24 2.37-.93 3.67-.84 1.58.13 2.77.79 3.53 1.98-3.25 1.94-2.48 6.18.57 7.37-.67 1.63-1.53 3.24-2.95 3.57zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
       </svg>
-      Continue with Apple
+      <span id="apple-btn-text">Sign in with Apple</span>
     </button>
 
     <div class="divider"><span id="divider-text">or sign in with email</span></div>
@@ -315,6 +315,7 @@ const { createClient } = supabase;
   });
 
   let currentRole = 'seeker';
+  let currentAuthMode = 'login';
 
   // Pre-select role from URL param
   const urlRole = new URLSearchParams(window.location.search).get('role');
@@ -369,7 +370,12 @@ const { createClient } = supabase;
       return;
     }
 
-    showMsg('Finishing sign in…', 'success');
+    const storedMode =
+      sessionStorage.getItem('alygnn_oauth_mode') ||
+      params.get('mode') ||
+      'login';
+
+    showMsg(storedMode === 'signup' ? 'Finishing account setup…' : 'Finishing sign in…', 'success');
 
     const { data: { session }, error: sessionError } = await sb.auth.getSession();
     if (sessionError || !session?.user) {
@@ -383,11 +389,6 @@ const { createClient } = supabase;
       params.get('role') ||
       user.user_metadata?.role ||
       'seeker';
-
-    const storedMode =
-      sessionStorage.getItem('alygnn_oauth_mode') ||
-      params.get('mode') ||
-      'login';
 
     const storedCompany =
       sessionStorage.getItem('alygnn_oauth_company') ||
@@ -410,12 +411,39 @@ const { createClient } = supabase;
       return;
     }
 
+    const providerName = user.app_metadata?.provider === 'apple' ? 'Apple' : 'Google';
+    const hasExistingAlygnnAccount = !!profile || !!user.user_metadata?.role;
+
+    // IMPORTANT: OAuth sign-in and OAuth sign-up are intentionally different.
+    // Supabase itself will authenticate a Google/Apple identity either way, so
+    // Alygnn must enforce the selected tab after OAuth returns.
+    if (storedMode === 'login' && !hasExistingAlygnnAccount) {
+      await sb.auth.signOut();
+      clearOAuthContext();
+      history.replaceState({}, '', 'login.html?role=' + encodeURIComponent(normalizeRole(storedRole)));
+      switchRole(normalizeRole(storedRole));
+      switchTab('login');
+      showMsg(`No Alygnn account was found for this ${providerName} account. Create an account first.`);
+      return;
+    }
+
+    if (storedMode === 'signup' && hasExistingAlygnnAccount) {
+      const existingRole = normalizeRole(profile?.role || user.user_metadata?.role || storedRole);
+      await sb.auth.signOut();
+      clearOAuthContext();
+      history.replaceState({}, '', 'login.html?role=' + encodeURIComponent(existingRole));
+      switchRole(existingRole);
+      switchTab('login');
+      showMsg(`An Alygnn account already exists for this ${providerName} account. Sign in instead.`);
+      return;
+    }
+
     // Existing Alygnn accounts always keep their saved role.
-    // Only a brand-new OAuth account uses the role selected before OAuth.
+    // Only a genuinely new OAuth signup uses the role selected before OAuth.
     const role = normalizeRole(
       profile?.role ||
-      storedRole ||
-      user.user_metadata?.role
+      user.user_metadata?.role ||
+      storedRole
     );
 
     const fullName =
@@ -483,6 +511,15 @@ const { createClient } = supabase;
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+
+    // Returning from account deletion should always land on SIGN IN, not
+    // accidentally leave the user on the Create account tab.
+    if (params.get('account_deleted') === '1') {
+      switchTab('login');
+      showMsg('Your account has been deleted. You can sign in with another account or create a new one.', 'success');
+    }
+
     finishOAuthReturn().catch(error => {
       console.error('OAuth completion failed:', error);
       showMsg('We could not finish your Google or Apple sign in. Please try again.');
@@ -510,6 +547,8 @@ const { createClient } = supabase;
       ? `New here? <a href="#" onclick="switchTab('signup'); return false;">Create a free account</a>`
       : `Already have one? <a href="#" onclick="switchTab('login'); return false;">Sign in</a>`;
     document.getElementById('divider-text').textContent = isLogin ? 'or sign in with email' : 'or sign up with email';
+    document.getElementById('google-btn-text').textContent = isLogin ? 'Sign in with Google' : 'Sign up with Google';
+    document.getElementById('apple-btn-text').textContent = isLogin ? 'Sign in with Apple' : 'Sign up with Apple';
     document.getElementById('login-btn').textContent = isEmp ? 'Sign in to Dashboard' : 'Sign in to Alygnn';
     document.getElementById('signup-btn').textContent = isEmp ? 'Create employer account' : 'Create account';
     document.getElementById('switch-prompt').innerHTML = isLogin
@@ -519,7 +558,8 @@ const { createClient } = supabase;
 
   function switchTab(mode) {
     hideMsg();
-    const isLogin = mode === 'login';
+    currentAuthMode = mode === 'signup' ? 'signup' : 'login';
+    const isLogin = currentAuthMode === 'login';
     document.getElementById('login-form').style.display = isLogin ? 'block' : 'none';
     document.getElementById('signup-form').style.display = isLogin ? 'none' : 'block';
     document.getElementById('tab-login').classList.toggle('active', isLogin);
@@ -650,14 +690,15 @@ const { createClient } = supabase;
   }
 
   async function handleGoogle() {
-    const isSignupTab = document.getElementById('signup-form').style.display !== 'none';
+    const mode = currentAuthMode;
 
-    if (isSignupTab && !document.getElementById('signup-terms').checked) {
+    // Terms are required only when CREATE ACCOUNT is selected.
+    // Existing users signing in with Google are never blocked by this checkbox.
+    if (mode === 'signup' && !document.getElementById('signup-terms').checked) {
       showMsg('Please agree to the Terms of Service and Privacy Policy to continue.');
       return;
     }
 
-    const mode = isSignupTab ? 'signup' : 'login';
     saveOAuthContext(currentRole, mode);
 
     await sb.auth.signInWithOAuth({
@@ -669,14 +710,14 @@ const { createClient } = supabase;
   }
 
   async function handleApple() {
-    const isSignupTab = document.getElementById('signup-form').style.display !== 'none';
+    const mode = currentAuthMode;
 
-    if (isSignupTab && !document.getElementById('signup-terms').checked) {
+    // Match Google: Terms are a sign-up requirement, never a sign-in requirement.
+    if (mode === 'signup' && !document.getElementById('signup-terms').checked) {
       showMsg('Please agree to the Terms of Service and Privacy Policy to continue.');
       return;
     }
 
-    const mode = isSignupTab ? 'signup' : 'login';
     saveOAuthContext(currentRole, mode);
 
     await sb.auth.signInWithOAuth({
