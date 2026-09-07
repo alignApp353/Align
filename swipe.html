@@ -159,6 +159,22 @@
     border: 1px solid var(--border);
     font-family: 'DM Serif Display', serif;
   }
+  .company-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 5px;
+    background: white;
+    display: block;
+  }
+  .company-logo-fallback {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Serif Display', serif;
+  }
   .card-top-text { flex: 1; min-width: 0; }
   .job-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--text); letter-spacing: -0.3px; line-height: 1.2; margin-bottom: 3px; }
   .company-name { font-size: 14px; color: var(--text-muted); }
@@ -561,6 +577,62 @@
     return name.trim().split(/\s+/).map(w => w[0]).join('').substring(0, 2).toUpperCase();
   }
 
+  function safeCompanyLogoUrl(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    try {
+      const url = new URL(raw);
+      return (url.protocol === 'https:' || url.protocol === 'http:') ? url.toString() : '';
+    } catch {
+      return '';
+    }
+  }
+
+  async function attachEmployerLogos(jobRows) {
+    const rows = Array.isArray(jobRows) ? jobRows : [];
+    const employerIds = [...new Set(rows.map(job => job.employer_id).filter(Boolean).map(String))];
+
+    if (!employerIds.length) return rows;
+
+    const logoByEmployer = new Map();
+
+    await Promise.all(employerIds.map(async employerId => {
+      let logoUrl = '';
+
+      try {
+        const { data, error } = await sb.rpc('get_public_employer_profile', {
+          target_employer: employerId
+        });
+
+        if (!error) {
+          const profile = Array.isArray(data) ? (data[0] || null) : (data || null);
+          logoUrl = safeCompanyLogoUrl(profile?.company_logo_url);
+        }
+      } catch (_) {}
+
+      if (!logoUrl) {
+        try {
+          const { data } = await sb
+            .from('profiles')
+            .select('company_logo_url')
+            .eq('id', employerId)
+            .maybeSingle();
+
+          logoUrl = safeCompanyLogoUrl(data?.company_logo_url);
+        } catch (_) {}
+      }
+
+      if (logoUrl) logoByEmployer.set(employerId, logoUrl);
+    }));
+
+    return rows.map(job => ({
+      ...job,
+      company_logo_url: safeCompanyLogoUrl(job.company_logo_url) ||
+        logoByEmployer.get(String(job.employer_id || '')) ||
+        ''
+    }));
+  }
+
   // Pulls jobs directly from Alygnn's own employer-posted jobs table —
   // these only ever come from real business owners who created an
   // employer account and posted through the dashboard, never from an
@@ -727,6 +799,8 @@
         throw new Error('No jobs match your preferences right now. Try widening your criteria in Preferences, or check back soon.');
       }
 
+      results = await attachEmployerLogos(results);
+
       jobs = results;
       currentIndex = 0;
       applied = 0;
@@ -811,11 +885,17 @@
           : `<div class="match-badge pending" data-job-id="${job.id}">Calculating match…</div>`)
       : '';
 
+    const companyLogoUrl = safeCompanyLogoUrl(job.company_logo_url);
+    const companyInitials = escapeHtml(getInitials(job.company));
+    const companyLogoHTML = companyLogoUrl
+      ? `<img src="${escapeHtml(companyLogoUrl)}" alt="${escapeHtml(job.company || 'Company')} logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><span class="company-logo-fallback" style="display:none;">${companyInitials}</span>`
+      : `<span class="company-logo-fallback">${companyInitials}</span>`;
+
     card.innerHTML = `
       <div class="stamp stamp-apply">APPLIED ✓</div>
       <div class="stamp stamp-skip">PASSED ✕</div>
       <div class="card-top">
-        <div class="company-logo">${getInitials(job.company)}</div>
+        <div class="company-logo">${companyLogoHTML}</div>
         <div class="card-top-text">
           <div class="job-title">${escapeHtml(job.title || 'Untitled Role')}</div>
           <div class="company-name">${escapeHtml(job.company || '')}</div>
