@@ -126,6 +126,52 @@ nav{
   margin-bottom:24px;
 }
 
+.job-heading-row{
+  display:flex;
+  align-items:flex-start;
+  gap:16px;
+}
+
+.job-company-logo{
+  width:64px;
+  height:64px;
+  flex:0 0 64px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:rgba(93,127,163,.08);
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--brand);
+  font-family:'DM Serif Display', serif !important;
+  font-size:20px;
+  font-weight:500;
+}
+
+.job-company-logo img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  padding:6px;
+  background:white;
+  display:block;
+}
+
+.job-company-logo-fallback{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'DM Serif Display', serif !important;
+}
+
+.job-heading-copy{
+  min-width:0;
+  flex:1;
+}
+
 .job-title{
   font-family:'DM Serif Display', serif !important;
   font-size:1.75rem;
@@ -440,10 +486,18 @@ nav{
       <div id="swipe-return-row" class="swipe-return-row" style="display:none;">
         <a href="swipe.html" id="swipe-return-btn" class="swipe-return-btn">← Keep swiping</a>
       </div>
-<div class="job-title" id="job-title">—</div>
-    <div class="job-meta" id="job-meta">—</div>
-    <div class="job-badges" id="job-badges"></div>
-    <div class="applied-note" id="applied-note"></div>
+<div class="job-heading-row">
+      <div class="job-company-logo" id="job-company-logo">
+        <span class="job-company-logo-fallback" id="job-company-logo-fallback">C</span>
+        <img id="job-company-logo-img" alt="" style="display:none;">
+      </div>
+      <div class="job-heading-copy">
+        <div class="job-title" id="job-title">—</div>
+        <div class="job-meta" id="job-meta">—</div>
+        <div class="job-badges" id="job-badges"></div>
+        <div class="applied-note" id="applied-note"></div>
+      </div>
+    </div>
   </div>
 
   <div class="section" id="company-profile-section" style="display:none;">
@@ -828,6 +882,50 @@ async function loadPublicEmployerProfile(employerId){
   return Array.isArray(data) ? (data[0] || null) : (data || null);
 }
 
+function companyInitials(name){
+  const clean = String(name || '').trim();
+  if(!clean) return 'C';
+  return clean.split(/\s+/).map(part => part[0]).join('').slice(0,2).toUpperCase();
+}
+
+function safeCompanyLogoUrl(value){
+  const raw = String(value || '').trim();
+  if(!raw) return '';
+  try{
+    const url = new URL(raw);
+    return (url.protocol === 'https:' || url.protocol === 'http:') ? url.toString() : '';
+  }catch{
+    return '';
+  }
+}
+
+function setJobCompanyLogo(logoUrl, companyName){
+  const img = document.getElementById('job-company-logo-img');
+  const fallback = document.getElementById('job-company-logo-fallback');
+  if(!img || !fallback) return;
+
+  fallback.textContent = companyInitials(companyName);
+  fallback.style.display = 'flex';
+
+  const safeLogo = safeCompanyLogoUrl(logoUrl);
+  if(!safeLogo){
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    return;
+  }
+
+  img.alt = `${companyName || 'Company'} logo`;
+  img.onload = () => {
+    img.style.display = 'block';
+    fallback.style.display = 'none';
+  };
+  img.onerror = () => {
+    img.style.display = 'none';
+    fallback.style.display = 'flex';
+  };
+  img.src = safeLogo;
+}
+
 function renderPublicEmployerProfile(profile, fallbackCompanyName){
   if(!profile) return;
 
@@ -839,6 +937,7 @@ function renderPublicEmployerProfile(profile, fallbackCompanyName){
 
   const companyName = profile.company_name || fallbackCompanyName || 'Company';
   title.textContent = `About ${companyName}`;
+  setJobCompanyLogo(profile.company_logo_url, companyName);
 
   const aboutText = String(profile.company_headline || '').trim();
   if(aboutText){
@@ -889,6 +988,7 @@ function renderJob(job, appInfo, interviewInfo){
   document.title = `${job.title || 'Job'} — Alygnn`;
 
   document.getElementById('job-title').textContent = job.title || 'Untitled role';
+  setJobCompanyLogo(job.company_logo_url, job.company);
 
   const metaParts = [job.company, job.location].filter(Boolean).join(' · ');
   document.getElementById('job-meta').textContent = metaParts || '';
