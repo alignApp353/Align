@@ -109,6 +109,8 @@
   .rank-picker .counter { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
   .rank-picker .suggestions { top: calc(100% + 7px); right: 84px; }
   .suggestion-custom { color: var(--brand); font-weight: 500; }
+  .suggestion-correction { color: var(--brand); background: rgba(93,127,163,0.06); }
+  .suggestion-correction strong { font-weight: 700; }
   .rank-remove { width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--text-muted); font-size: 20px; line-height: 1; cursor: pointer; }
   .rank-remove:hover { background: rgba(215,154,154,.15); color: #a05858; }
   .rank-item { grid-template-columns: 34px 1fr auto auto; }
@@ -204,7 +206,7 @@
   <p class="intro">Choose 5 strengths that best describe your company. Start typing to search the list, or add your own. Then drag them into the order you want Alygnn to emphasize.</p>
   <div class="rank-picker">
     <div class="rank-input-row suggest-wrap">
-      <input id="company-priority-input" type="text" autocomplete="off" placeholder="Start typing a company strength">
+      <input id="company-priority-input" type="text" autocomplete="off" spellcheck="true" autocapitalize="words" placeholder="Start typing a company strength">
       <button class="rank-add" id="company-priority-add" type="button">Add</button>
       <div id="company-priority-suggestions" class="suggestions"></div>
     </div>
@@ -219,7 +221,7 @@
   <p class="intro">Choose 5 things your hiring team values most. Start typing to search the list, or add your own priority. Then rank the five from most important to least important.</p>
   <div class="rank-picker">
     <div class="rank-input-row suggest-wrap">
-      <input id="candidate-priority-input" type="text" autocomplete="off" placeholder="Start typing a hiring priority">
+      <input id="candidate-priority-input" type="text" autocomplete="off" spellcheck="true" autocapitalize="words" placeholder="Start typing a hiring priority">
       <button class="rank-add" id="candidate-priority-add" type="button">Add</button>
       <div id="candidate-priority-suggestions" class="suggestions"></div>
     </div>
@@ -269,7 +271,7 @@ const SUPABASE_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
 
 const VOICES=['Professional','Friendly','Modern','Direct','Formal','Energetic'];
-const COMPANY_STRENGTH_OPTIONS=['Career Growth','Competitive Pay','Company Culture','Learning & Development','Performance & Recognition','Meaningful Work','Innovation','Work-Life Balance','Flexible Scheduling','Remote Work','Strong Leadership','Mentorship','Fast Advancement','Job Stability','Great Benefits','Health & Wellness','Employee Ownership','Team Collaboration','Inclusive Workplace','Community Impact','Mission-Driven Work','Autonomy','Cutting-Edge Technology','Training Programs','Recognition & Rewards','Paid Time Off','Family-Friendly Culture','Travel Opportunities','Entrepreneurial Environment','Transparent Communication','Career Mobility'];
+const COMPANY_STRENGTH_OPTIONS=['Career Growth','Competitive Pay','Company Culture','Learning & Development','Performance & Recognition','Meaningful Work','Innovation','Work-Life Balance','Flexible Scheduling','Remote Work','Strong Leadership','Mentorship','Fast Advancement','Job Stability','Great Benefits','Health & Wellness','Employee Ownership','Team Collaboration','Inclusive Workplace','Community Impact','Mission-Driven Work','Autonomy','Cutting-Edge Technology','Training Programs','Recognition & Rewards','Paid Time Off','Family-Friendly Culture','Travel Opportunities','Entrepreneurial Environment','Communication','Transparent Communication','Career Mobility'];
 const CANDIDATE_PRIORITY_OPTIONS=['Technical Skills','Soft Skills','Experience','Communication','Culture Fit','Reliability','Leadership','Availability','Problem Solving','Critical Thinking','Coachability','Work Ethic','Adaptability','Teamwork','Customer Service','Sales Ability','Attention to Detail','Initiative','Time Management','Creativity','Professionalism','Education','Certifications','Industry Knowledge','Results Orientation','Accountability','Emotional Intelligence','Learning Agility','Organization','Decision Making'];
 const INDUSTRIES=['Accounting','Advertising and Marketing','Agriculture','Architecture and Design','Automotive','Banking','Biotechnology','Construction','Consulting','Consumer Services','Education','Energy and Utilities','Engineering','Entertainment and Media','Financial Services','Food and Beverage','Government','Healthcare','Hospitality','Human Resources and Staffing','Insurance','Legal Services','Logistics and Transportation','Manufacturing','Nonprofit','Pharmaceuticals','Professional Services','Real Estate','Retail','Software and Technology','Telecommunications','Travel and Tourism','Wholesale','Wireless Services','Internet Service Provider','Fiber Optics','Network Infrastructure','Telecommunications Equipment'];
 const US_CITIES=['Albuquerque, NM','Alexandria, VA','Anaheim, CA','Anchorage, AK','Arlington, TX','Arlington, VA','Atlanta, GA','Augusta, GA','Austin, TX','Baltimore, MD','Baton Rouge, LA','Birmingham, AL','Boise, ID','Boston, MA','Buffalo, NY','Burlington, VT','Cary, NC','Charleston, SC','Charlotte, NC','Chattanooga, TN','Chicago, IL','Cincinnati, OH','Cleveland, OH','Colorado Springs, CO','Columbia, SC','Columbus, OH','Dallas, TX','Denver, CO','Des Moines, IA','Detroit, MI','Durham, NC','El Paso, TX','Fayetteville, NC','Fort Lauderdale, FL','Fort Worth, TX','Fresno, CA','Greensboro, NC','Greenville, SC','Hartford, CT','Henderson, NV','Honolulu, HI','Houston, TX','Indianapolis, IN','Irvine, CA','Jackson, MS','Jacksonville, FL','Kansas City, MO','Knoxville, TN','Las Vegas, NV','Lexington, KY','Little Rock, AR','Long Beach, CA','Los Angeles, CA','Louisville, KY','Madison, WI','Memphis, TN','Mesa, AZ','Miami, FL','Milwaukee, WI','Minneapolis, MN','Nashville, TN','New Orleans, LA','New York, NY','Newark, NJ','Norfolk, VA','Oakland, CA','Oklahoma City, OK','Omaha, NE','Orlando, FL','Philadelphia, PA','Phoenix, AZ','Pittsburgh, PA','Plano, TX','Portland, ME','Portland, OR','Providence, RI','Raleigh, NC','Reno, NV','Richmond, VA','Rochester, NY','Sacramento, CA','Salt Lake City, UT','San Antonio, TX','San Diego, CA','San Francisco, CA','San Jose, CA','Savannah, GA','Seattle, WA','St. Louis, MO','St. Petersburg, FL','Syracuse, NY','Tallahassee, FL','Tampa, FL','Toledo, OH','Tucson, AZ','Tulsa, OK','Virginia Beach, VA','Washington, DC','Wilmington, NC','Winston-Salem, NC'];
@@ -319,8 +321,8 @@ function restoreDraft(){
   document.getElementById('ein').value=draft.ein||'';
   (draft.voices||[]).forEach(v=>selectedVoices.add(v));
   renderVoiceState();
-  if(draft.company_priorities?.length)renderRankList('company-priorities',draft.company_priorities);
-  if(draft.candidate_priorities?.length)renderRankList('candidate-priorities',draft.candidate_priorities);
+  if(draft.company_priorities?.length)renderRankList('company-priorities',normalizeSavedRanking(draft.company_priorities,COMPANY_STRENGTH_OPTIONS));
+  if(draft.candidate_priorities?.length)renderRankList('candidate-priorities',normalizeSavedRanking(draft.candidate_priorities,CANDIDATE_PRIORITY_OPTIONS));
   showStep(draft.current||0);
   return true;
 }
@@ -391,6 +393,52 @@ function updateRankPickerState(listId){
   if(input)input.disabled=count>=5;
   if(add)add.disabled=count>=5;
 }
+function editDistance(a,b){
+  const x=String(a||'').toLowerCase(),y=String(b||'').toLowerCase();
+  const prev=Array.from({length:y.length+1},(_,i)=>i);
+  for(let i=1;i<=x.length;i++){
+    let diagonal=prev[0];
+    prev[0]=i;
+    for(let j=1;j<=y.length;j++){
+      const above=prev[j];
+      prev[j]=Math.min(
+        prev[j]+1,
+        prev[j-1]+1,
+        diagonal+(x[i-1]===y[j-1]?0:1)
+      );
+      diagonal=above;
+    }
+  }
+  return prev[y.length];
+}
+function bestKnownCorrection(raw,options){
+  const value=String(raw||'').trim().replace(/\s+/g,' ');
+  if(!value)return null;
+  const exact=options.find(v=>v.toLowerCase()===value.toLowerCase());
+  if(exact)return {value:exact,distance:0,confidence:1};
+
+  let best=null;
+  for(const option of options){
+    const distance=editDistance(value,option);
+    const longest=Math.max(value.length,option.length)||1;
+    const confidence=1-(distance/longest);
+    if(!best||distance<best.distance||(distance===best.distance&&confidence>best.confidence)){
+      best={value:option,distance,confidence};
+    }
+  }
+
+  if(!best)return null;
+  const len=value.length;
+  const maxDistance=len>=12?4:len>=8?3:len>=5?2:1;
+  return best.distance<=maxDistance&&best.confidence>=0.72?best:null;
+}
+function normalizeSavedRanking(items,options){
+  return (items||[]).map(item=>{
+    const correction=bestKnownCorrection(item,options);
+    return correction?.value||String(item||'').trim();
+  });
+}
+
 function setupRankPicker({listId,inputId,addId,suggestionsId,options}){
   const list=document.getElementById(listId);
   const input=document.getElementById(inputId);
@@ -399,11 +447,15 @@ function setupRankPicker({listId,inputId,addId,suggestionsId,options}){
 
   function selected(){return new Set(getRanking(listId).map(v=>v.toLowerCase()))}
   function close(){box.classList.remove('show');box.innerHTML=''}
-  function addValue(raw){
-    const value=String(raw||'').trim().replace(/\s+/g,' ');
-    if(!value)return;
+  function addValue(raw,{forceCustom=false}={}){
+    const typed=String(raw||'').trim().replace(/\s+/g,' ');
+    if(!typed)return;
     const values=getRanking(listId);
     if(values.length>=5){showMessage('You can choose up to 5 items. Remove one before adding another.');return}
+
+    const correction=forceCustom?null:bestKnownCorrection(typed,options);
+    const value=correction?.value||typed;
+
     if(values.some(v=>v.toLowerCase()===value.toLowerCase())){showMessage('That item is already selected.');return}
     renderRankList(listId,[...values,value]);
     input.value='';
@@ -414,17 +466,26 @@ function setupRankPicker({listId,inputId,addId,suggestionsId,options}){
   }
   function renderSuggestions(){
     if(input.disabled)return close();
-    const q=input.value.trim().toLowerCase();
+    const raw=input.value.trim();
+    const q=raw.toLowerCase();
     const chosen=selected();
     const matches=options
       .filter(v=>!chosen.has(v.toLowerCase())&&(!q||v.toLowerCase().includes(q)))
       .slice(0,8);
-    let html=matches.map(v=>`<button class="suggestion" type="button" data-value="${escapeHtml(v)}">${escapeHtml(v)}</button>`).join('');
-    const raw=input.value.trim();
+
+    const correction=raw?bestKnownCorrection(raw,options):null;
+    const correctionIsUseful=!!correction&&correction.distance>0&&!chosen.has(correction.value.toLowerCase())&&!matches.some(v=>v.toLowerCase()===correction.value.toLowerCase());
+
+    let html='';
+    if(correctionIsUseful){
+      html+=`<button class="suggestion suggestion-correction" type="button" data-value="${escapeHtml(correction.value)}">Did you mean <strong>${escapeHtml(correction.value)}</strong>?</button>`;
+    }
+    html+=matches.map(v=>`<button class="suggestion" type="button" data-value="${escapeHtml(v)}">${escapeHtml(v)}</button>`).join('');
+
     const exactKnown=options.some(v=>v.toLowerCase()===raw.toLowerCase());
     const exactSelected=chosen.has(raw.toLowerCase());
     if(raw&&!exactKnown&&!exactSelected){
-      html+=`<button class="suggestion suggestion-custom" type="button" data-value="${escapeHtml(raw)}">Add “${escapeHtml(raw)}”</button>`;
+      html+=`<button class="suggestion suggestion-custom" type="button" data-custom="true" data-value="${escapeHtml(raw)}">Add exactly “${escapeHtml(raw)}”</button>`;
     }
     if(!html)return close();
     box.innerHTML=html;
@@ -440,7 +501,7 @@ function setupRankPicker({listId,inputId,addId,suggestionsId,options}){
   add.addEventListener('click',()=>addValue(input.value));
   box.addEventListener('click',e=>{
     const b=e.target.closest('.suggestion');if(!b)return;
-    addValue(b.dataset.value);
+    addValue(b.dataset.value,{forceCustom:b.dataset.custom==='true'});
   });
   list.addEventListener('click',e=>{
     const remove=e.target.closest('.rank-remove');if(!remove)return;
