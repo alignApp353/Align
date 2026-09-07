@@ -978,7 +978,11 @@ async function submit(){
       ai_summary:data.ai_summary,
       company_id:companyId,
       irs_document_path:einDocumentPath,
-      irs_document_review_status:'pending_review'
+      irs_document_review_status:'pending_review',
+      // Explicit completion marker used by login/dashboard routing. Do not infer
+      // onboarding completion from verification_status alone because a new
+      // employer can already have a pending/default status before setup.
+      onboarding_complete:true
     };
 
     const profilePayload={
@@ -1132,14 +1136,32 @@ window.addEventListener('beforeunload',saveDraft);
     .eq('id',session.user.id)
     .maybeSingle();
 
-  // Do not reopen onboarding after a successful submission. Pending review is
-  // a completed onboarding state; only the admin decision is still pending.
-  const verificationStatus=String(profile?.verification_status||'').toLowerCase();
-  const completedStatuses=new Set(['pending_review','pending','submitted','under_review','in_review','approved']);
-  const savedCompanyId=String(profile?.hiring_blueprint?.company_id||localStorage.getItem('alygnn_company_id')||'').trim();
-  const onboardingAlreadySubmitted=completedStatuses.has(verificationStatus)&&!!savedCompanyId;
+  // Do not trust verification_status or a global localStorage company ID as
+  // proof that THIS signed-in employer completed onboarding. Both can exist
+  // before setup, and localStorage can belong to another employer account used
+  // in the same browser. Completion must come from this user's saved blueprint
+  // (or an actual approved/verified state).
+  const verificationStatus=String(profile?.verification_status||'').trim().toLowerCase();
+  const blueprint=profile?.hiring_blueprint&&typeof profile.hiring_blueprint==='object'
+    ? profile.hiring_blueprint
+    : null;
+  const blueprintCompanyId=String(blueprint?.company_id||'').trim();
+  const blueprintDocumentPath=String(blueprint?.irs_document_path||'').trim();
+  const blueprintLooksComplete=!!blueprint && (
+    blueprint.onboarding_complete===true ||
+    (
+      !!blueprintCompanyId &&
+      !!blueprintDocumentPath &&
+      Array.isArray(blueprint.company_priorities) && blueprint.company_priorities.length>=5 &&
+      Array.isArray(blueprint.candidate_priorities) && blueprint.candidate_priorities.length>=5
+    )
+  );
+  const onboardingAlreadySubmitted=
+    profile?.employer_verified===true ||
+    verificationStatus==='approved' ||
+    blueprintLooksComplete;
 
-  if(profile?.employer_verified||onboardingAlreadySubmitted){
+  if(onboardingAlreadySubmitted){
     onboardingCompleted=true;
     window.removeEventListener('beforeunload',saveDraft);
     try{localStorage.removeItem(DRAFT_KEY)}catch{}
