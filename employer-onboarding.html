@@ -268,7 +268,31 @@
 <script>
 const SUPABASE_URL='https://auth.alygnn.com';
 const SUPABASE_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+
+// IMPORTANT: use the exact same per-tab Supabase session storage as login.html,
+// employers.html, employer-account.html, and the dashboard. If this page uses
+// Supabase's default localStorage client, a valid employer session in the tab
+// appears signed out here and onboarding immediately bounces back to login.
+function alygnnAuthStorageKey(){
+  let tabId=window.sessionStorage.getItem('alygnn_auth_tab_id');
+  if(!tabId){
+    tabId=(window.crypto&&typeof window.crypto.randomUUID==='function')
+      ? window.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    window.sessionStorage.setItem('alygnn_auth_tab_id',tabId);
+  }
+  return `alygnn-auth-${tabId}`;
+}
+
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+  auth:{
+    storage:window.sessionStorage,
+    storageKey:alygnnAuthStorageKey(),
+    persistSession:true,
+    autoRefreshToken:true,
+    detectSessionInUrl:true
+  }
+});
 
 const VOICES=['Professional','Friendly','Modern','Direct','Formal','Energetic'];
 const COMPANY_STRENGTH_OPTIONS=['Career Growth','Competitive Pay','Company Culture','Learning & Development','Performance & Recognition','Meaningful Work','Innovation','Work-Life Balance','Flexible Scheduling','Remote Work','Strong Leadership','Mentorship','Fast Advancement','Job Stability','Great Benefits','Health & Wellness','Employee Ownership','Team Collaboration','Inclusive Workplace','Community Impact','Mission-Driven Work','Autonomy','Cutting-Edge Technology','Training Programs','Recognition & Rewards','Paid Time Off','Family-Friendly Culture','Travel Opportunities','Entrepreneurial Environment','Communication','Transparent Communication','Career Mobility'];
