@@ -23,9 +23,7 @@
     background: rgba(246,248,247,0.95); backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
     padding: 0 5%; display: flex; align-items: center;
-    justify-content: space-between; height: 64px;
-    position: fixed; top: 0; left: 0; right: 0; width: 100%;
-    z-index: 1000;
+    justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100;
   }
   .logo { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--brand); letter-spacing: -0.5px; text-decoration: none; }
   .logo span { color: var(--sage); }
@@ -34,60 +32,13 @@
   .btn-logout { font-size: 13px; color: var(--text-muted); background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 14px; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
   .btn-logout:hover { border-color: var(--rose); color: var(--rose); }
 
-  .notif-bell{
-    position:relative; display:flex; align-items:center; justify-content:center;
-    width:36px; height:36px; border-radius:10px; border:1px solid var(--border);
-    background:var(--card-bg); color:var(--text-muted); cursor:pointer;
-  }
-  .notif-bell:hover{ color:var(--brand); border-color:var(--brand); }
-  .notif-bell svg{ width:18px; height:18px; }
-  .notif-badge{
-    position:absolute; top:-5px; right:-5px; min-width:16px; height:16px; padding:0 4px;
-    background:var(--rose); color:white; font-size:10px; font-weight:700;
-    border-radius:999px; display:flex; align-items:center; justify-content:center; line-height:1;
-  }
-  .notif-dropdown{
-    position:absolute; top:calc(100% + 10px); right:0; width:340px; max-height:420px;
-    overflow-y:auto; background:var(--card-bg); border:1px solid var(--border);
-    border-radius:14px; box-shadow:0 12px 32px rgba(0,0,0,0.12); z-index:50;
-  }
-  .notif-dropdown-header{
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
-    font-size:13px; font-weight:600; color:var(--text); padding:14px 16px 8px;
-  }
-  .notif-mark-all{
-    border:0; background:transparent; color:var(--brand);
-    font-family:'DM Sans',sans-serif; font-size:11px; font-weight:500;
-    cursor:pointer; padding:0; white-space:nowrap;
-  }
-  .notif-mark-all:hover{ opacity:.8; }
-  .notif-mark-all:disabled{ opacity:.5; cursor:default; }
-  .notif-empty{ font-size:13px; color:var(--text-muted); padding:20px 16px; text-align:center; }
-  .notif-item{ display:block; padding:10px 16px; border-top:1px solid var(--border); text-decoration:none; color:inherit; }
-  .notif-item:hover{ background:var(--brand-light); }
-  .notif-item.unread{ background:var(--brand-light); }
-  .notif-item-title{ font-size:13px; font-weight:600; color:var(--text); margin-bottom:2px; }
-  .notif-item-body{ font-size:12px; color:var(--text-muted); line-height:1.4; }
-  .notif-item-time{ font-size:11px; color:var(--text-muted); margin-top:4px; }
-  .notif-view-all{
-    display:block; text-align:center; font-size:12px; color:var(--brand); font-weight:600;
-    padding:10px; border-top:1px solid var(--border); text-decoration:none;
-  }
-  .notif-view-all:hover{ opacity:.8; }
-
-  .layout {
-    min-height: 100vh;
-    padding-top: 64px;
-  }
+  .layout { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 64px); }
 
   .sidebar {
     background: var(--card-bg); border-right: 1px solid var(--border);
-    padding: 32px 20px; position: fixed; top: 64px; left: 0;
-    width: 240px; height: calc(100vh - 64px); overflow: hidden;
+    padding: 32px 20px; position: sticky; top: 64px;
+    height: calc(100vh - 64px); overflow-y: auto;
   }
-  /* .sidebar is fixed (out of normal flow), so .main gets a matching
-     left margin to sit beside it instead of sliding underneath. */
-  .main { margin-left: 240px; }
   .sidebar-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); font-weight: 500; margin-bottom: 10px; padding: 0 8px; }
   .nav-item {
     display: flex; align-items: center; gap: 10px;
@@ -99,24 +50,7 @@
   }
   .nav-item:hover { background: var(--brand-light); color: var(--text); }
   .nav-item.active { background: var(--brand-light); color: var(--brand); font-weight: 500; }
-  .nav-icon {
-    width: 20px;
-    height: 20px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  .nav-icon svg {
-    width: 18px;
-    height: 18px;
-    display: block;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
   .nav-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
 
   .main { padding: 40px 5%; }
@@ -152,14 +86,7 @@
   .job-row:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
   .job-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .job-status.active { background: var(--mint); }
-  .job-status.pending { background: #E7B86D; }
   .job-status.paused { background: var(--rose); }
-  .job-status.closed { background: #9BA8B3; }
-  .job-status-badge.closed { color: #586673; background: rgba(155,168,179,0.14); }
-  .job-status-badge { display: inline-flex; align-items: center; margin-left: 8px; padding: 2px 8px; border-radius: 100px; font-size: 10px; font-weight: 500; vertical-align: middle; }
-  .job-status-badge.active { color: #2d8a57; background: var(--mint-light); }
-  .job-status-badge.pending { color: #7a5a1a; background: rgba(231,184,109,0.14); }
-  .job-status-badge.paused { color: #a05858; background: rgba(215,154,154,0.12); }
   .job-info { flex: 1; }
   .job-title-text { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
   .job-meta { font-size: 12px; color: var(--text-muted); }
@@ -214,72 +141,6 @@
   .form-input { background: white; border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 16px; font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--text); outline: none; transition: border-color 0.2s; width: 100%; }
   .form-input:focus { border-color: var(--brand); }
   .form-input::placeholder { color: #aab4bc; }
-
-  /* Company logo is required only when creating a new job. */
-  .posting-logo-card{
-    display:flex;
-    align-items:center;
-    gap:14px;
-    padding:14px;
-    border:1.5px solid var(--border);
-    border-radius:14px;
-    background:white;
-  }
-  .posting-logo-card.missing{
-    border-color:rgba(215,154,154,.65);
-    background:rgba(215,154,154,.055);
-  }
-  .posting-logo-preview{
-    width:64px;
-    height:64px;
-    flex:0 0 auto;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    overflow:hidden;
-    border:1px solid var(--border);
-    border-radius:16px;
-    background:var(--brand-light);
-    color:var(--brand);
-    font-family:'DM Serif Display',serif;
-    font-size:21px;
-  }
-  .posting-logo-preview img{
-    width:100%;
-    height:100%;
-    object-fit:contain;
-    background:white;
-  }
-  .posting-logo-copy{
-    min-width:0;
-    flex:1;
-  }
-  .posting-logo-copy strong{
-    display:block;
-    color:var(--text);
-    font-size:13px;
-    margin-bottom:3px;
-  }
-  .posting-logo-copy p{
-    color:var(--text-muted);
-    font-size:11px;
-    line-height:1.45;
-    margin:0 0 8px;
-  }
-  .posting-logo-file{
-    width:100%;
-    font-family:'DM Sans',sans-serif;
-    font-size:11px;
-    color:var(--text-muted);
-  }
-  .posting-logo-status{
-    margin-top:6px;
-    font-size:11px;
-    color:var(--text-muted);
-  }
-  .posting-logo-status.ready{ color:#2d8a57; }
-  .posting-logo-status.error{ color:#a05858; }
-
   textarea.form-input { resize: vertical; min-height: 120px; }
   select.form-input { cursor: pointer; }
   .btn-post { background: var(--brand); color: white; border: none; border-radius: 12px; padding: 14px 32px; font-size: 15px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
@@ -389,93 +250,9 @@
   .chip-results-empty { padding: 10px 16px; font-size: 12px; color: var(--text-muted); }
   .chip-count-note { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
 
-  /* ---- Work authorization / sponsorship picker ---- */
-  .work-auth-box{
-    border:1px solid var(--border);
-    background:#FBFCFC;
-    border-radius:14px;
-    padding:16px;
-  }
-  .work-auth-heading{
-    font-size:13px;
-    font-weight:600;
-    color:var(--text);
-    margin-bottom:4px;
-  }
-  .work-auth-copy{
-    font-size:11px;
-    line-height:1.5;
-    color:var(--text-muted);
-    margin-bottom:12px;
-  }
-  .work-auth-grid{
-    display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:8px;
-  }
-  .work-auth-option{
-    display:flex;
-    align-items:flex-start;
-    gap:9px;
-    min-height:48px;
-    padding:11px 12px;
-    border:1px solid var(--border);
-    border-radius:11px;
-    background:white;
-    cursor:pointer;
-    transition:.15s ease;
-    user-select:none;
-  }
-  .work-auth-option:hover{border-color:#AFC0D1;background:#F8FBFD}
-  .work-auth-option.selected{
-    border-color:var(--brand);
-    background:#EEF4F9;
-    box-shadow:0 0 0 1px rgba(93,127,163,.08);
-  }
-  .work-auth-option input{
-    width:16px;
-    height:16px;
-    margin-top:1px;
-    accent-color:var(--brand);
-    flex:none;
-  }
-  .work-auth-option-title{
-    font-size:12px;
-    font-weight:600;
-    color:var(--text);
-    line-height:1.3;
-  }
-  .work-auth-option-sub{
-    margin-top:2px;
-    font-size:10px;
-    line-height:1.35;
-    color:var(--text-muted);
-  }
-  .work-auth-note{
-    margin-top:9px;
-    font-size:10px;
-    line-height:1.45;
-    color:var(--text-muted);
-  }
-  @media(max-width:620px){
-    .work-auth-grid{grid-template-columns:1fr}
-  }
-
   .empty-state { background: var(--card-bg); border: 1px dashed var(--border); border-radius: 14px; padding: 40px 28px; text-align: center; color: var(--text-muted); font-size: 14px; }
   .empty-state .empty-icon { font-size: 32px; margin-bottom: 12px; }
   .empty-state .empty-title { font-weight: 500; color: var(--text); margin-bottom: 6px; font-size: 15px; }
-
-  .test-entitlement-banner {
-    display:none; margin-top:14px; padding:12px 14px; border-radius:12px;
-    border:1px solid rgba(140,182,155,.55); background:rgba(140,182,155,.12);
-    color:var(--text); font-size:12px; line-height:1.5;
-  }
-  .test-entitlement-banner.show { display:block; }
-  .test-entitlement-banner strong { color:#4F9568; }
-  .payment-access-banner{display:none;margin-top:14px;padding:14px 16px;border-radius:12px;border:1px solid rgba(180,90,90,.32);background:#FFF8F7;color:var(--text);font-size:12px;line-height:1.55}
-  .payment-access-banner.show{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-  .payment-access-banner strong{display:block;color:#914848;font-size:13px;margin-bottom:2px}
-  .payment-access-banner button{border:0;border-radius:999px;background:var(--brand);color:#fff;padding:9px 15px;font:600 11px 'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}
 
   .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--text); color: white; padding: 10px 20px; border-radius: 100px; font-size: 13px; font-weight: 500; transition: transform 0.3s ease; z-index: 200; white-space: nowrap; }
   .toast.show { transform: translateX(-50%) translateY(0); }
@@ -483,76 +260,9 @@
   .candidate-view-link { display: inline-block; font-size: 12px; color: var(--brand); background: none; border: none; padding: 0; margin-bottom: 14px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
   .candidate-view-link:hover { opacity: 0.8; }
 
-  .job-applicants-modal-box{ max-width:760px; }
-  .job-applicants-head{ padding-right:34px; margin-bottom:18px; }
-  .job-applicants-kicker{
-    font-size:10px; letter-spacing:1.25px; text-transform:uppercase;
-    color:var(--brand); font-weight:700; margin-bottom:5px;
-  }
-  .job-applicants-title{
-    font-family:'DM Serif Display',serif; font-size:26px; color:var(--text);
-    line-height:1.15; margin-bottom:5px;
-  }
-  .job-applicants-sub{ font-size:12px; color:var(--text-muted); line-height:1.5; }
-  .job-applicants-list{ display:grid; gap:12px; margin-top:18px; }
-  .job-applicants-list .candidate-card{ padding:18px; transform:none; }
-  .job-applicants-list .candidate-card:hover{ transform:none; }
-  .job-applicants-list .candidate-card.notification-focus{
-    border-color:rgba(93,127,163,.65);
-    box-shadow:0 0 0 3px rgba(93,127,163,.09);
-  }
-  .notification-focus-label{
-    display:inline-flex; align-items:center; padding:3px 8px; border-radius:999px;
-    font-size:9px; font-weight:700; letter-spacing:.3px; text-transform:uppercase;
-    color:var(--brand); background:var(--brand-light); margin-left:7px;
-  }
-  .job-applicants-empty{
-    border:1px dashed var(--border); border-radius:14px; padding:28px 20px;
-    text-align:center; color:var(--text-muted); font-size:13px;
-  }
-
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,37,48,0.45); z-index: 300; align-items: center; justify-content: center; padding: 24px; }
   .modal-overlay.show { display: flex; }
   .modal-box { background: var(--card-bg); border-radius: 20px; max-width: 560px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 32px; position: relative; }
-
-  .boost-modal-head{ padding-right:34px; margin-bottom:20px; }
-  .boost-modal-kicker{ font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:var(--brand); font-weight:700; margin-bottom:6px; }
-  .boost-modal-title{ font-family:'DM Serif Display',serif; font-size:25px; color:var(--text); margin-bottom:6px; }
-  .boost-modal-copy{ font-size:13px; color:var(--text-muted); line-height:1.55; }
-  .boost-job-list{ display:grid; gap:10px; margin-top:18px; }
-  .boost-job-option{
-    width:100%; display:flex; align-items:center; justify-content:space-between; gap:16px;
-    padding:15px 16px; border:1px solid var(--border); border-radius:14px;
-    background:white; text-align:left; cursor:pointer; font-family:'DM Sans',sans-serif;
-    transition:border-color .2s, transform .2s, box-shadow .2s;
-  }
-  .boost-job-option:hover{ border-color:var(--brand); transform:translateY(-1px); box-shadow:0 7px 18px rgba(38,54,70,.05); }
-  .boost-job-option-title{ font-size:14px; font-weight:600; color:var(--text); margin-bottom:3px; }
-  .boost-job-option-meta{ font-size:11px; color:var(--text-muted); line-height:1.4; }
-  .boost-job-option-action{ flex-shrink:0; color:var(--brand); font-size:12px; font-weight:700; white-space:nowrap; }
-  
-  .boost-until{
-    display:inline-block;
-    margin-left:7px;
-    font-size:10px;
-    font-weight:600;
-    color:var(--text-muted);
-    vertical-align:middle;
-    white-space:nowrap;
-  }
-
-.boosted-pill{
-    display:inline-flex; align-items:center; margin-left:7px; padding:2px 8px; border-radius:999px;
-    font-size:10px; font-weight:700; color:#755b18; background:rgba(231,184,109,.15);
-    border:1px solid rgba(231,184,109,.35); vertical-align:middle;
-  }
-  .urgent-pill{
-    display:inline-flex; align-items:center; margin-left:7px; padding:2px 8px; border-radius:999px;
-    font-size:10px; font-weight:700; color:#914848; background:rgba(215,154,154,.15);
-    border:1px solid rgba(215,154,154,.4); vertical-align:middle;
-  }
-  .btn-view.urgent-on{ border-color:rgba(215,154,154,.6); color:#914848; }
-  .btn-view.urgent-on:hover{ border-color:#914848; }
   .modal-close { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 18px; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 4px; }
   .modal-close:hover { color: var(--text); }
   .modal-top { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; padding-right: 30px; }
@@ -574,8 +284,8 @@
   @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 
   @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
     .sidebar { display: none; }
-    .main { margin-left: 0; }
     .stats-row { grid-template-columns: 1fr 1fr; }
     .form-grid { grid-template-columns: 1fr; }
     .pay-row { grid-template-columns: 1fr; }
@@ -602,18 +312,6 @@
     font-size: 14px; color: var(--text-muted);
   }
   body.auth-ready #auth-loading { display: none; }
-
-  /* Fixed employer shell:
-     - top navigation is fixed to the viewport
-     - sidebar stays fixed and never becomes its own scroll area
-     - only the document/main page content scrolls */
-  @media (min-width: 861px) {
-    .sidebar {
-      overflow: hidden !important;
-      overscroll-behavior: none;
-    }
-  }
-
 </style>
 </head>
 <body>
@@ -623,19 +321,6 @@
 <nav>
   <a href="index.html" class="logo">Alygnn<span>.</span></a>
   <div class="nav-right">
-    <div class="notif-wrap" id="notif-wrap">
-      <button class="notif-bell" id="notif-bell" type="button" aria-label="Notifications">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <span class="notif-badge" id="notif-badge" style="display:none">0</span>
-      </button>
-      <div class="notif-dropdown" id="notif-dropdown" style="display:none">
-        <div class="notif-dropdown-header">
-          <span>Notifications</span>
-          <button class="notif-mark-all" id="notif-mark-all-btn" type="button" onclick="markAllEmployerNotificationsRead(event)">Mark all read</button>
-        </div>
-        <div id="notif-list"><div class="notif-empty">No notifications yet.</div></div>
-      </div>
-    </div>
     <span class="nav-user" id="nav-user-name"></span>
     <button class="btn-logout" onclick="logout()">Sign out</button>
   </div>
@@ -645,35 +330,17 @@
   <aside class="sidebar">
     <div class="sidebar-label">Employer</div>
     <button class="nav-item active" onclick="showPanel('jobs', this)">
-      <span class="nav-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7"/><path d="M3 11h18"/><path d="M10 11v2h4v-2"/></svg>
-      </span>
-      My Jobs
+      <span class="nav-icon">💼</span> My Jobs
     </button>
-    <a class="nav-item" href="candidates.html">
-      <span class="nav-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.3"/><path d="M15.5 14.5a4.5 4.5 0 0 1 5 4.5"/></svg>
-      </span>
-      Candidates
-    </a>
-    <a class="nav-item" href="messages.html">
-      <span class="nav-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M4 5h16v12H8l-4 3V5z"/><path d="m7 9 5 4 5-4"/></svg>
-      </span>
-      Messages
-    </a>
-    <button class="nav-item" id="sidebar-post-job-btn" onclick="openPostJob()">
-      <span class="nav-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-      </span>
-      <span id="sidebar-post-job-label">Post a Job</span>
+    <button class="nav-item" onclick="showPanel('interviews', this)">
+      <span class="nav-icon">📅</span> Interviews
+    </button>
+    <button class="nav-item" onclick="showPanel('post', this)">
+      <span class="nav-icon">➕</span> Post a Job
     </button>
     <hr class="nav-divider">
     <a href="employer-account.html" class="nav-item">
-      <span class="nav-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M10 6 4 12l6 6"/><path d="M4 12h16"/></svg>
-      </span>
-      My account
+      <span class="nav-icon">←</span> My account
     </a>
   </aside>
 
@@ -684,15 +351,10 @@
       <div class="page-header">
         <div class="page-title">My Jobs</div>
         <div class="page-sub">Manage your job listings</div>
-        <div class="test-entitlement-banner" id="test-entitlement-banner"></div>
-        <div class="payment-access-banner" id="payment-access-banner">
-          <div><strong>Candidate access paused</strong><span>We couldn’t process your latest plan payment. Your jobs, applications, messages, and history are safe, but candidate profiles and hiring actions are locked until payment succeeds.</span></div>
-          <button type="button" onclick="openDashboardBillingPortal(this)">Update payment method</button>
-        </div>
       </div>
       <div class="section-header">
-        <div class="section-title">Job listings <span id="job-slot-usage" style="font-size:12px; font-weight:400; color:var(--text-muted); margin-left:8px;"></span></div>
-        <button class="btn-primary" id="post-new-job-btn" onclick="openPostJob()">+ Post new job</button>
+        <div class="section-title">Active listings</div>
+        <button class="btn-primary" onclick="showPanel('post', this)">+ Post new job</button>
       </div>
       <input type="text" class="form-input" id="jobs-search-input" placeholder="Search your posted jobs by title, location, or type…" autocomplete="off" oninput="renderJobs()" style="margin-bottom: 16px;">
       <div id="jobs-list">
@@ -703,8 +365,8 @@
       </div>
     </div>
 
-    <!-- CANDIDATES — shows all applicants by default. When opened from a
-         specific job row, it filters to that job's applicants. -->
+    <!-- CANDIDATES (single job — reached only via the "Candidates" button
+         on a job row in My Jobs; never shows more than one job's list) -->
     <div class="panel" id="panel-candidates">
       <a href="#" onclick="showPanel('jobs'); return false;" class="nav-back-link" style="display:block; font-size:13px; color:var(--text-muted); margin-bottom:14px;">← Back to My Jobs</a>
       <div class="page-header">
@@ -724,6 +386,21 @@
       </div>
     </div>
 
+    <!-- INTERVIEWS -->
+    <div class="panel" id="panel-interviews">
+      <div class="page-header">
+        <div class="page-title">Interviews</div>
+        <div class="page-sub">Interviews you've scheduled with candidates</div>
+      </div>
+      <div id="interviews-list">
+        <div class="empty-state" id="interviews-empty-state">
+          <div class="empty-icon">📅</div>
+          <div class="empty-title">No interviews scheduled yet</div>
+          Go to Candidates and click "Schedule interview" on a candidate to set one up.
+        </div>
+      </div>
+    </div>
+
     <!-- POST JOB (5-step wizard, matches the Alygnn mobile app flow) -->
     <div class="panel" id="panel-post">
       <div class="page-header">
@@ -731,7 +408,7 @@
         <div class="page-sub">Fill in the details and start finding candidates</div>
       </div>
       <div class="verification-lock" id="verification-lock" style="display:none;">
-        You can create a job now. It will stay pending and hidden from candidates until your business is approved.
+        Your business must be approved by Alygnn before you can post jobs.
       </div>
 
       <div class="wizard-wrap">
@@ -765,20 +442,6 @@
               <input type="text" class="form-input" id="f-company" placeholder="Your company" oninput="updatePreview()" readonly style="background: var(--bg); color: var(--text-muted); cursor: not-allowed;">
               <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Matches your verified company profile. <a href="employer-account.html" style="color: var(--brand);">Edit in account settings</a>.</p>
             </div>
-
-            <div class="form-group full" id="posting-logo-group">
-              <label class="form-label">Company logo <span style="text-transform:none; font-weight:400;">(required to post a new job)</span></label>
-              <div class="posting-logo-card" id="posting-logo-card">
-                <div class="posting-logo-preview" id="posting-logo-preview">CO</div>
-                <div class="posting-logo-copy">
-                  <strong id="posting-logo-title">Add your company logo</strong>
-                  <p>Shown to candidates on your job listings and company profile. PNG, JPG, or WEBP up to 5 MB.</p>
-                  <input class="posting-logo-file" id="posting-logo-input" type="file" accept="image/png,image/jpeg,image/webp" onchange="handlePostingCompanyLogoUpload(event)">
-                  <div class="posting-logo-status" id="posting-logo-status"></div>
-                </div>
-              </div>
-            </div>
-
             <div class="form-grid">
               <div class="form-group">
                 <label class="form-label">Job type</label>
@@ -808,13 +471,13 @@
             <div class="form-group">
               <label class="form-label">Location</label>
               <div class="chip-search-wrap">
-                <input type="text" class="form-input" id="f-location" placeholder="Search any U.S. city or state, like Myrtle Beach, SC" autocomplete="off"
+                <input type="text" class="form-input" id="f-location" placeholder="Start typing a city, like Raleigh, NC" autocomplete="off"
                   oninput="updatePreview(); renderLocationSuggestions();"
                   onfocus="renderLocationSuggestions();"
                   onblur="setTimeout(hideLocationSuggestions, 150)">
                 <div class="chip-results" id="location-suggestions"></div>
               </div>
-              <small style="font-size:11px; color:var(--text-muted); margin-top:2px;">Search any U.S. city or state. If a city is not suggested, you can still type it in "City, ST" format.</small>
+              <small style="font-size:11px; color:var(--text-muted); margin-top:2px;">Pick a city from the list, or type your own in "City, ST" format.</small>
             </div>
           </div>
 
@@ -884,7 +547,7 @@
           <!-- STEP 5 — Requirements & Benefits -->
           <div class="wizard-step" id="wizard-step-5">
             <div class="wizard-title">Requirements & benefits</div>
-            <div class="wizard-sub">Select at least 1 requirement. Benefits are optional.</div>
+            <div class="wizard-sub">Select at least 3 requirements. Benefits are optional.</div>
 
             <!-- REQUIREMENTS: search to add from a fixed list -->
             <div class="form-group full">
@@ -895,7 +558,7 @@
                   oninput="filterResults('req')" onfocus="filterResults('req')" onblur="setTimeout(() => hideResults('req'), 150)">
                 <div class="chip-results" id="req-results"></div>
               </div>
-              <div class="chip-count-note" id="req-count-note">Select at least 1.</div>
+              <div class="chip-count-note" id="req-count-note">Select at least 3.</div>
               <input type="hidden" id="f-reqs">
             </div>
 
@@ -909,67 +572,6 @@
                 <div class="chip-results" id="benefit-results"></div>
               </div>
               <input type="hidden" id="f-benefits">
-            </div>
-
-            <!-- WORK AUTHORIZATION / SPONSORSHIP -->
-            <div class="form-group full">
-              <label class="form-label">Work authorization & sponsorship <span style="text-transform:none; font-weight:400;">(optional)</span></label>
-              <div class="work-auth-box">
-                <div class="work-auth-heading">What can this employer support for this role?</div>
-                <div class="work-auth-copy">Select every option that applies. OPT and CPT are work authorization categories; H-1B is employer-sponsored.</div>
-
-                <div class="work-auth-grid" id="work-auth-grid">
-                  <label class="work-auth-option" data-work-auth="opt">
-                    <input type="checkbox" value="opt" onchange="toggleWorkAuthorization(this)">
-                    <span>
-                      <div class="work-auth-option-title">Open to OPT</div>
-                      <div class="work-auth-option-sub">Candidates currently authorized through Optional Practical Training.</div>
-                    </span>
-                  </label>
-
-                  <label class="work-auth-option" data-work-auth="stem_opt">
-                    <input type="checkbox" value="stem_opt" onchange="toggleWorkAuthorization(this)">
-                    <span>
-                      <div class="work-auth-option-title">STEM OPT extension support</div>
-                      <div class="work-auth-option-sub">For qualifying STEM OPT candidates when employer requirements are met.</div>
-                    </span>
-                  </label>
-
-                  <label class="work-auth-option" data-work-auth="cpt">
-                    <input type="checkbox" value="cpt" onchange="toggleWorkAuthorization(this)">
-                    <span>
-                      <div class="work-auth-option-title">Open to CPT</div>
-                      <div class="work-auth-option-sub">Candidates authorized through Curricular Practical Training.</div>
-                    </span>
-                  </label>
-
-                  <label class="work-auth-option" data-work-auth="h1b_sponsorship">
-                    <input type="checkbox" value="h1b_sponsorship" onchange="toggleWorkAuthorization(this)">
-                    <span>
-                      <div class="work-auth-option-title">H-1B sponsorship available</div>
-                      <div class="work-auth-option-sub">Employer may sponsor a qualifying candidate for H-1B employment.</div>
-                    </span>
-                  </label>
-
-                  <label class="work-auth-option" data-work-auth="h1b_transfer">
-                    <input type="checkbox" value="h1b_transfer" onchange="toggleWorkAuthorization(this)">
-                    <span>
-                      <div class="work-auth-option-title">H-1B transfer support</div>
-                      <div class="work-auth-option-sub">Employer may support an eligible H-1B change of employer.</div>
-                    </span>
-                  </label>
-
-                  <label class="work-auth-option" data-work-auth="no_sponsorship">
-                    <input type="checkbox" value="no_sponsorship" onchange="toggleWorkAuthorization(this)">
-                    <span>
-                      <div class="work-auth-option-title">No employment visa sponsorship</div>
-                      <div class="work-auth-option-sub">Use when this role does not offer employer-sponsored visa support.</div>
-                    </span>
-                  </label>
-                </div>
-
-                <div class="work-auth-note">This field describes job-level support only. It does not ask candidates about citizenship, nationality, or other protected characteristics.</div>
-              </div>
             </div>
           </div>
 
@@ -1001,42 +603,15 @@
   <div class="modal-box" id="candidate-modal-box"></div>
 </div>
 
-<div class="modal-overlay" id="job-applicants-modal-overlay" onclick="if (event.target === this) closeJobApplicantsModal()">
-  <div class="modal-box job-applicants-modal-box" id="job-applicants-modal-box"></div>
-</div>
-
-<div class="modal-overlay" id="boost-modal-overlay" onclick="if (event.target === this) closeBoostPicker()">
-  <div class="modal-box" id="boost-modal-box"></div>
+<div class="modal-overlay" id="interview-modal-overlay" onclick="if (event.target === this) closeInterviewModal()">
+  <div class="modal-box" id="interview-modal-box"></div>
 </div>
 
 <script>
   const SUPABASE_URL = 'https://auth.alygnn.com';
   const SUPABASE_ANON_KEY = 'sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-  
-function alygnnAuthStorageKey() {
-  let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
-  if (!tabId) {
-    tabId = (window.crypto && typeof window.crypto.randomUUID === 'function')
-      ? window.crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-    window.sessionStorage.setItem('alygnn_auth_tab_id', tabId);
-  }
-  return `alygnn-auth-${tabId}`;
-}
-
-const { createClient } = supabase;
-  const sb = // Keep Alygnn authentication isolated to this browser tab.
-// This lets a candidate account stay open in one tab while a different
-// employer account is signed in in another tab.
-createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      storage: window.sessionStorage,
-      storageKey: alygnnAuthStorageKey(),
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
-    }
-  });
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let jobs = [];
   let jobAppliedCounts = {};
@@ -1046,43 +621,14 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   let currentProfile = null;
   let currentUser = null;
   let editingJobId = null;
-  let companyLogoUploading = false;
-
-  // Billing is server-owned. The browser may READ this row, but paid access
-  // should only be changed by your payment webhook/service-role backend.
-  let billingReady = false;
-  let billingEntitlement = {
-    plan: 'free',
-    subscription_status: 'inactive',
-    current_period_end: null,
-    free_job_used: false,
-    paid_job_credits: 0,
-    slot_limit: 1,
-    billing_period: null,
-    test_mode: false,
-    test_plan: null,
-    urgently_hiring: false,
-    candidate_access_locked: false,
-    candidate_access_lock_reason: null,
-    weekly_purchase_allowed: false,
-    recommended_upgrade_plan: null,
-    second_slot_eligible: true,
-    active_paid_plan: false
-  };
-
   let selectedGooglePlace = null;
   let locationAutocomplete = null;
 
   // ---- Search-to-add picker state ----
   const REQUIREMENT_PRESETS = [
     'High school diploma or equivalent',
-    'Some college',
-    'Associate degree',
     "Bachelor's degree",
-    "Master's degree",
-    'Doctoral degree',
-    'Professional degree',
-    'Trade school or vocational certificate',
+    'Associate degree',
     '1+ years of experience',
     '2+ years of experience',
     '3+ years of experience',
@@ -1162,55 +708,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     benefit: { selected: new Set(), custom: [] }
   };
 
-  const workAuthorizationState = new Set();
-
-  function normalizeWorkAuthorizationValues(value) {
-    if (Array.isArray(value)) return value.map(v => String(v || '').trim()).filter(Boolean);
-    if (!value) return [];
-    if (typeof value === 'string') {
-      return value
-        .split(/[\n,]/)
-        .map(v => v.trim())
-        .filter(Boolean);
-    }
-    return [];
-  }
-
-  function renderWorkAuthorization() {
-    document.querySelectorAll('#work-auth-grid .work-auth-option').forEach(option => {
-      const value = option.dataset.workAuth;
-      const checked = workAuthorizationState.has(value);
-      option.classList.toggle('selected', checked);
-      const input = option.querySelector('input[type="checkbox"]');
-      if (input) input.checked = checked;
-    });
-  }
-
-  function setWorkAuthorization(values = []) {
-    workAuthorizationState.clear();
-    normalizeWorkAuthorizationValues(values).forEach(value => workAuthorizationState.add(value));
-    renderWorkAuthorization();
-  }
-
-  function toggleWorkAuthorization(input) {
-    const value = String(input?.value || '');
-    if (!value) return;
-
-    if (value === 'no_sponsorship' && input.checked) {
-      workAuthorizationState.clear();
-      workAuthorizationState.add('no_sponsorship');
-    } else {
-      if (input.checked) workAuthorizationState.add(value);
-      else workAuthorizationState.delete(value);
-
-      if (value !== 'no_sponsorship' && input.checked) {
-        workAuthorizationState.delete('no_sponsorship');
-      }
-    }
-
-    renderWorkAuthorization();
-  }
-
   const MAX_RESULTS_SHOWN = 8;
 
   function presetsFor(type) {
@@ -1248,9 +745,9 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if (type === 'req') {
       const note = document.getElementById('req-count-note');
       const count = state.selected.size;
-      note.textContent = count >= 1
+      note.textContent = count >= 3
         ? `${count} selected`
-        : `Select at least 1 (${count} selected).`;
+        : `Select at least 3 (${count} selected).`;
     }
   }
 
@@ -1467,239 +964,38 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     syncChipHiddenField(type);
   }
 
-  // Broad job-title catalog used only for autocomplete/suggestions.
-  // Employers can still type a valid title that is not in this list.
+  // A representative list of common job titles across industries — like the
+  // requirements/benefits presets, not exhaustive (job titles are
+  // effectively unlimited), so typing anything not listed here still
+  // works fine as free text; this just makes common ones easy to pick.
+  // Kept in sync with the same list job seekers pick from when adding
+  // work experience on their own account page.
   const JOB_TITLE_OPTIONS = [
-    // Retail / customer service
-    'Cashier','Sales Associate','Retail Associate','Retail Sales Associate','Customer Service Representative',
-    'Customer Support Representative','Customer Success Representative','Customer Success Manager',
-    'Guest Services Associate','Member Services Representative','Store Associate','Stock Associate',
-    'Merchandising Associate','Visual Merchandiser','Key Holder','Shift Lead','Shift Supervisor',
-    'Assistant Store Manager','Store Manager','District Manager','Call Center Representative',
-    'Contact Center Representative','Client Services Representative','Front Desk Associate',
-
-    // Sales / business development
-    'Sales Representative','Outside Sales Representative','Inside Sales Representative','Field Sales Representative',
-    'Sales Development Representative','Business Development Representative','Business Development Associate',
-    'Business Development Manager','Account Representative','Account Executive','Account Manager',
-    'Key Account Manager','Territory Sales Representative','Territory Manager','Regional Sales Manager',
-    'Sales Manager','Sales Director','Sales Operations Analyst','Sales Operations Manager',
-    'Sales Coordinator','Sales Support Specialist','Client Relationship Manager','Client Success Manager',
-    'Partnerships Manager','Channel Sales Manager','Brand Ambassador',
-
-    // Marketing / advertising / communications
-    'Marketing Assistant','Marketing Associate','Marketing Coordinator','Marketing Specialist','Marketing Manager',
-    'Marketing Director','Marketing Analyst','Market Analyst','Market Research Analyst','Market Research Associate',
-    'Consumer Insights Analyst','Growth Marketing Manager','Growth Marketing Specialist','Digital Marketing Specialist',
-    'Digital Marketing Manager','Performance Marketing Manager','Product Marketing Manager','Email Marketing Specialist',
-    'Content Marketing Specialist','Content Marketing Manager','Social Media Coordinator','Social Media Specialist',
-    'Social Media Manager','Communications Coordinator','Communications Specialist','Communications Manager',
-    'Public Relations Coordinator','Public Relations Specialist','Public Relations Manager','Media Buyer',
-    'Media Planner','Advertising Coordinator','Advertising Account Executive','SEO Specialist','SEM Specialist',
-    'Copywriter','Content Writer','Content Strategist','Brand Manager','Brand Strategist','Community Manager',
-    'Event Coordinator','Event Manager',
-
-    // Finance / accounting / banking
-    'Accountant','Staff Accountant','Senior Accountant','Junior Accountant','Accounting Assistant',
-    'Accounting Clerk','Accounts Payable Clerk','Accounts Payable Specialist','Accounts Receivable Clerk',
-    'Accounts Receivable Specialist','Bookkeeper','Payroll Specialist','Payroll Coordinator','Financial Analyst',
-    'Senior Financial Analyst','FP&A Analyst','Budget Analyst','Credit Analyst','Investment Analyst',
-    'Risk Analyst','Treasury Analyst','Tax Associate','Tax Accountant','Auditor','Internal Auditor',
-    'Bank Teller','Personal Banker','Relationship Banker','Loan Officer','Mortgage Loan Officer',
-    'Underwriter','Insurance Underwriter','Claims Adjuster','Claims Specialist','Insurance Agent',
-    'Financial Advisor','Controller','Finance Manager',
-
-    // Human resources / recruiting
-    'HR Assistant','HR Coordinator','HR Specialist','HR Generalist','HR Manager','Human Resources Manager',
-    'Recruiting Coordinator','Recruiter','Corporate Recruiter','Technical Recruiter','Talent Acquisition Specialist',
-    'Talent Acquisition Partner','Talent Acquisition Manager','Benefits Specialist','Compensation Analyst',
-    'People Operations Coordinator','People Operations Manager','Training Coordinator','Training Specialist',
-    'Learning and Development Specialist','Employee Relations Specialist',
-
-    // Administrative / office
-    'Administrative Assistant','Administrative Coordinator','Executive Assistant','Office Assistant','Office Coordinator',
-    'Office Manager','Receptionist','Data Entry Clerk','Data Entry Specialist','Records Clerk','File Clerk',
-    'Operations Assistant','Operations Coordinator','Operations Specialist','Operations Analyst','Operations Manager',
-    'Business Operations Analyst','Business Analyst','Management Analyst','Executive Coordinator',
-    'Program Coordinator','Program Manager','Project Coordinator','Project Manager','Senior Project Manager',
-    'Project Administrator','Scheduler','Dispatcher',
-
-    // Technology / data / engineering
-    'Software Engineer','Software Developer','Frontend Developer','Front End Developer','Backend Developer',
-    'Back End Developer','Full Stack Developer','Web Developer','Mobile Developer','iOS Developer','Android Developer',
-    'Application Developer','Cloud Engineer','DevOps Engineer','Site Reliability Engineer','Systems Engineer',
-    'Systems Administrator','Network Administrator','Network Engineer','IT Support Specialist','Help Desk Technician',
-    'Desktop Support Technician','Technical Support Specialist','IT Technician','IT Manager','Cybersecurity Analyst',
-    'Security Analyst','Information Security Analyst','SOC Analyst','Data Analyst','Senior Data Analyst',
-    'Business Intelligence Analyst','BI Analyst','Data Scientist','Data Engineer','Database Administrator',
-    'Database Developer','Machine Learning Engineer','AI Engineer','QA Analyst','Quality Assurance Analyst',
-    'QA Engineer','Software Test Engineer','Automation Engineer','Solutions Engineer','Sales Engineer',
-    'Technical Account Manager','Technical Project Manager','Product Manager','Product Owner','Product Analyst',
-    'UX Designer','UI Designer','UX Researcher','Product Designer','Graphic Designer',
-
-    // Healthcare / medical
-    'Registered Nurse','Licensed Practical Nurse','Licensed Vocational Nurse','Certified Nursing Assistant',
-    'Nursing Assistant','Medical Assistant','Medical Receptionist','Medical Biller','Medical Coder',
-    'Patient Care Technician','Patient Care Coordinator','Patient Services Representative','Pharmacy Technician',
-    'Pharmacist','Dental Assistant','Dental Hygienist','Physical Therapist','Physical Therapist Assistant',
-    'Occupational Therapist','Occupational Therapy Assistant','Respiratory Therapist','Radiologic Technologist',
-    'X-Ray Technician','Ultrasound Technician','Surgical Technician','Medical Technologist','Laboratory Technician',
-    'Clinical Research Coordinator','Clinical Research Associate','Case Manager','Care Coordinator',
-    'Home Health Aide','Caregiver','Behavior Technician','Mental Health Technician','Therapist','Counselor',
-
-    // Education / childcare
-    'Teacher','Elementary School Teacher','Middle School Teacher','High School Teacher','Preschool Teacher',
-    'Teaching Assistant','Teacher Assistant','Substitute Teacher','Tutor','Academic Advisor','School Counselor',
-    'Special Education Teacher','Instructional Assistant','Childcare Provider','Daycare Teacher','Nanny',
-    'Camp Counselor','Coach','Athletic Coach','Volleyball Coach','Basketball Coach','Soccer Coach',
-
-    // Hospitality / food service
-    'Server','Bartender','Barista','Host','Hostess','Host / Hostess','Busser','Food Runner','Dishwasher',
-    'Line Cook','Prep Cook','Cook','Chef','Sous Chef','Executive Chef','Kitchen Manager','Restaurant Manager',
-    'Assistant Restaurant Manager','Catering Coordinator','Catering Manager','Banquet Server','Hotel Front Desk Agent',
-    'Front Desk Agent','Guest Services Agent','Concierge','Housekeeper','Housekeeping Supervisor',
-    'Hotel Manager','General Manager','Food Service Manager',
-
-    // Warehouse / logistics / transportation
-    'Warehouse Associate','Warehouse Worker','Warehouse Clerk','Warehouse Lead','Warehouse Supervisor',
-    'Warehouse Manager','Picker Packer','Order Picker','Packer','Material Handler','Forklift Operator',
-    'Inventory Associate','Inventory Specialist','Inventory Control Specialist','Shipping Clerk','Receiving Clerk',
-    'Shipping and Receiving Clerk','Logistics Coordinator','Logistics Specialist','Logistics Analyst',
-    'Supply Chain Analyst','Supply Chain Coordinator','Supply Chain Manager','Procurement Specialist',
-    'Purchasing Agent','Buyer','Delivery Driver','Courier','Truck Driver','CDL Driver','Route Driver',
-    'Dispatcher','Transportation Coordinator','Fleet Manager',
-
-    // Skilled trades / construction / maintenance
-    'Construction Laborer','Construction Worker','Carpenter','Electrician','Plumber','HVAC Technician',
-    'HVAC Installer','Maintenance Technician','Maintenance Worker','Maintenance Supervisor','Facilities Technician',
-    'Facilities Manager','Building Engineer','Welder','Machinist','CNC Machinist','CNC Operator',
-    'Millwright','Pipefitter','Sheet Metal Worker','Equipment Operator','Heavy Equipment Operator',
-    'Field Technician','Service Technician','Installation Technician','Cable Technician','Utility Technician',
-    'Painter','Roofer','Concrete Finisher','Estimator','Construction Estimator','Project Engineer',
-    'Construction Project Manager','Site Superintendent','Construction Superintendent','Safety Coordinator',
-    'Safety Manager',
-
-    // Manufacturing / quality
-    'Production Associate','Production Worker','Assembler','Assembly Technician','Machine Operator',
-    'Production Operator','Manufacturing Technician','Manufacturing Engineer','Process Engineer',
-    'Industrial Engineer','Quality Inspector','Quality Control Inspector','Quality Technician',
-    'Quality Assurance Specialist','Quality Engineer','Production Supervisor','Production Manager',
-    'Plant Manager','Operations Supervisor',
-
-    // Automotive
-    'Auto Mechanic','Automotive Technician','Service Advisor','Automotive Service Advisor',
-    'Diesel Mechanic','Body Shop Technician','Auto Body Technician','Detailer','Automotive Detailer',
-    'Parts Specialist','Parts Advisor','Service Manager',
-
-    // Real estate / property
-    'Real Estate Agent','Real Estate Broker','Leasing Consultant','Leasing Agent','Property Manager',
-    'Assistant Property Manager','Community Manager','Maintenance Coordinator','Property Administrator',
-    'Real Estate Analyst','Acquisitions Analyst','Asset Manager',
-
-    // Legal / compliance
-    'Legal Assistant','Paralegal','Legal Secretary','Law Clerk','Compliance Analyst','Compliance Specialist',
-    'Compliance Officer','Contract Administrator','Contracts Specialist','Risk and Compliance Analyst',
-
-    // Security / public safety
-    'Security Guard','Security Officer','Loss Prevention Associate','Loss Prevention Specialist',
-    'Public Safety Officer','Emergency Dispatcher','911 Dispatcher',
-
-    // Science / research
-    'Research Assistant','Research Associate','Research Analyst','Research Coordinator','Laboratory Assistant',
-    'Lab Technician','Laboratory Technician','Research Scientist','Scientist','Chemist','Biologist',
-    'Environmental Scientist','Environmental Technician',
-
-    // Creative / media
-    'Photographer','Videographer','Video Editor','Graphic Designer','Motion Graphics Designer',
-    'Creative Coordinator','Creative Director','Art Director','Production Assistant','Producer',
-    'Social Media Content Creator',
-
-    // Beauty / wellness / fitness
-    'Hair Stylist','Barber','Esthetician','Nail Technician','Massage Therapist',
-    'Personal Trainer','Fitness Instructor','Group Fitness Instructor','Wellness Coordinator',
-
-    // Veterinary / animal care
-    'Veterinary Assistant','Veterinary Technician','Veterinary Receptionist','Animal Care Technician',
-    'Kennel Technician','Pet Groomer',
-
-    // General entry-level / internships
-    'Intern','Marketing Intern','Sales Intern','Finance Intern','Accounting Intern','HR Intern',
-    'Software Engineering Intern','Data Analyst Intern','Operations Intern','Management Trainee',
-    'Sales Trainee','Leadership Trainee','Graduate Trainee'
+    'Cashier', 'Sales Associate', 'Retail Associate', 'Customer Service Representative',
+    'Server', 'Bartender', 'Barista', 'Host / Hostess', 'Line Cook', 'Prep Cook',
+    'Kitchen Manager', 'Restaurant Manager', 'Shift Supervisor', 'Store Manager',
+    'Assistant Manager', 'Warehouse Associate', 'Delivery Driver', 'Forklift Operator',
+    'Receptionist', 'Administrative Assistant', 'Office Manager', 'Executive Assistant',
+    'Data Entry Clerk', 'Bookkeeper', 'Accountant', 'Accounts Payable Clerk',
+    'Payroll Specialist', 'Financial Analyst', 'HR Coordinator', 'HR Generalist',
+    'Recruiter', 'Sales Representative', 'Account Executive', 'Account Manager',
+    'Business Development Representative', 'Marketing Coordinator', 'Marketing Manager',
+    'Social Media Manager', 'Content Writer', 'Graphic Designer', 'Web Developer',
+    'Software Engineer', 'IT Support Specialist', 'Systems Administrator', 'Data Analyst',
+    'Project Manager', 'Product Manager', 'Operations Manager', 'General Manager',
+    'Teacher', 'Teaching Assistant', 'Tutor', 'Childcare Provider', 'Nanny',
+    'Camp Counselor', 'Registered Nurse', 'Certified Nursing Assistant', 'Medical Assistant',
+    'Pharmacy Technician', 'Dental Assistant', 'Physical Therapist Assistant',
+    'Personal Trainer', 'Fitness Instructor', 'Security Guard', 'Custodian',
+    'Maintenance Technician', 'Electrician', 'Plumber', 'HVAC Technician',
+    'Construction Laborer', 'Landscaper', 'Auto Mechanic', 'Truck Driver',
+    'Real Estate Agent', 'Property Manager', 'Paralegal', 'Legal Assistant',
+    'Photographer', 'Event Coordinator', 'Hair Stylist', 'Esthetician',
+    'Veterinary Assistant', 'Research Assistant', 'Intern', 'Welder', 'Machinist',
+    'Quality Control Inspector', 'Production Supervisor', 'Field Technician',
+    'Volleyball Coach', 'Coach', 'Chef', 'Sous Chef', 'Housekeeper',
+    'Front Desk Agent', 'Concierge', 'Call Center Representative'
   ];
-
-  const JOB_TITLE_SEARCH_ALIASES = {
-    'market analysis': ['Market Analyst','Marketing Analyst','Market Research Analyst','Consumer Insights Analyst'],
-    'marketing analysis': ['Marketing Analyst','Market Research Analyst','Consumer Insights Analyst'],
-    'business analysis': ['Business Analyst','Business Operations Analyst','Management Analyst'],
-    'data analysis': ['Data Analyst','Business Intelligence Analyst','BI Analyst'],
-    'financial analysis': ['Financial Analyst','FP&A Analyst','Budget Analyst'],
-    'sales': ['Sales Representative','Sales Associate','Account Executive','Account Manager','Business Development Representative'],
-    'customer service': ['Customer Service Representative','Customer Support Representative','Client Services Representative'],
-    'software': ['Software Engineer','Software Developer','Full Stack Developer','Frontend Developer','Backend Developer'],
-    'warehouse': ['Warehouse Associate','Warehouse Worker','Material Handler','Forklift Operator'],
-    'admin': ['Administrative Assistant','Administrative Coordinator','Office Assistant','Office Coordinator'],
-    'marketing': ['Marketing Coordinator','Marketing Specialist','Marketing Manager','Marketing Analyst'],
-    'hr': ['HR Coordinator','HR Specialist','HR Generalist','Recruiter'],
-    'human resources': ['HR Coordinator','HR Specialist','HR Generalist','Human Resources Manager'],
-    'accounting': ['Accountant','Staff Accountant','Accounting Assistant','Bookkeeper'],
-    'finance': ['Financial Analyst','Finance Manager','Budget Analyst','FP&A Analyst']
-  };
-
-  function normalizeTitleSearchToken(token) {
-    const map = {
-      analysis:'analyst',
-      analytics:'analyst',
-      marketing:'market',
-      markets:'market',
-      developer:'develop',
-      development:'develop',
-      engineering:'engineer',
-      representative:'rep',
-      representatives:'rep',
-      assistant:'assist',
-      coordinator:'coordinat',
-      specialist:'special',
-      technician:'tech',
-      management:'manager',
-      administrator:'admin',
-      administration:'admin',
-      accounting:'account',
-      recruiter:'recruit'
-    };
-    return map[token] || token
-      .replace(/ies$/, 'y')
-      .replace(/ing$/, '')
-      .replace(/ed$/, '')
-      .replace(/s$/, '');
-  }
-
-  function titleSearchScore(title, query) {
-    const t = title.toLowerCase();
-    const q = query.toLowerCase().trim();
-
-    if (!q) return 1;
-    if (t === q) return 1000;
-    if (t.startsWith(q)) return 900;
-    if (t.includes(q)) return 800;
-
-    const qTokens = q.split(/\s+/).filter(Boolean).map(normalizeTitleSearchToken);
-    const tTokens = t.split(/[^a-z0-9]+/).filter(Boolean).map(normalizeTitleSearchToken);
-
-    let matched = 0;
-    for (const qToken of qTokens) {
-      const hit = tTokens.some(tToken =>
-        tToken === qToken ||
-        tToken.startsWith(qToken) ||
-        qToken.startsWith(tToken)
-      );
-      if (hit) matched++;
-    }
-
-    if (matched === qTokens.length && matched > 0) return 700 + matched;
-    if (matched > 0) return 400 + matched;
-    return 0;
-  }
 
   function renderTitleSuggestions() {
     const input = document.getElementById('f-title');
@@ -1707,33 +1003,14 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if (!input || !box) return;
 
     const query = input.value.trim().toLowerCase();
-
-    const aliasMatches = [];
-    Object.entries(JOB_TITLE_SEARCH_ALIASES).forEach(([alias, titles]) => {
-      if (query && (
-        alias.includes(query) ||
-        query.includes(alias) ||
-        titleSearchScore(alias, query) >= 700
-      )) {
-        aliasMatches.push(...titles);
-      }
-    });
-
-    const scored = JOB_TITLE_OPTIONS
-      .map(title => ({ title, score: titleSearchScore(title, query) }))
-      .filter(item => query === '' || item.score > 0)
-      .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
-      .map(item => item.title);
-
-    const matches = [...new Set([...aliasMatches, ...scored])].slice(0, 12);
+    const matches = (query === ''
+      ? JOB_TITLE_OPTIONS
+      : JOB_TITLE_OPTIONS.filter(t => t.toLowerCase().includes(query))
+    ).slice(0, MAX_RESULTS_SHOWN);
 
     if (matches.length === 0) {
-      // Don't make an employer think the title is invalid just because it
-      // isn't in the suggestion catalog. Valid free-text titles still work.
-      box.innerHTML = `<div class="chip-result-row" style="cursor:default;color:var(--text-muted);">
-        No exact suggestion — you can keep “${escapeHtml(input.value.trim())}”
-      </div>`;
-      box.classList.add('show');
+      box.classList.remove('show');
+      box.innerHTML = '';
       return;
     }
 
@@ -1743,7 +1020,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     }).join('');
     box.classList.add('show');
   }
-
 
   function selectTitleSuggestion(title) {
     const input = document.getElementById('f-title');
@@ -1757,231 +1033,62 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if (box) box.classList.remove('show');
   }
 
-  // Location autocomplete:
-  // - Includes every U.S. state, DC, and U.S. territories below.
-  // - Keeps a large city suggestion catalog for quick selection.
-  // - Uses typo-tolerant matching, so e.g. "mrtle beach" still finds
-  //   "Myrtle Beach, SC".
-  // - The city list is intentionally NOT a gate: employers may type ANY
-  //   legitimate U.S. city in "City, ST" format even if it is not in the
-  //   suggestion catalog.
-  const US_STATES = [
-    ['Alabama','AL'],['Alaska','AK'],['Arizona','AZ'],['Arkansas','AR'],
-    ['California','CA'],['Colorado','CO'],['Connecticut','CT'],['Delaware','DE'],
-    ['District of Columbia','DC'],['Florida','FL'],['Georgia','GA'],['Hawaii','HI'],
-    ['Idaho','ID'],['Illinois','IL'],['Indiana','IN'],['Iowa','IA'],['Kansas','KS'],
-    ['Kentucky','KY'],['Louisiana','LA'],['Maine','ME'],['Maryland','MD'],
-    ['Massachusetts','MA'],['Michigan','MI'],['Minnesota','MN'],['Mississippi','MS'],
-    ['Missouri','MO'],['Montana','MT'],['Nebraska','NE'],['Nevada','NV'],
-    ['New Hampshire','NH'],['New Jersey','NJ'],['New Mexico','NM'],['New York','NY'],
-    ['North Carolina','NC'],['North Dakota','ND'],['Ohio','OH'],['Oklahoma','OK'],
-    ['Oregon','OR'],['Pennsylvania','PA'],['Rhode Island','RI'],
-    ['South Carolina','SC'],['South Dakota','SD'],['Tennessee','TN'],['Texas','TX'],
-    ['Utah','UT'],['Vermont','VT'],['Virginia','VA'],['Washington','WA'],
-    ['West Virginia','WV'],['Wisconsin','WI'],['Wyoming','WY'],
-    ['Puerto Rico','PR'],['Guam','GU'],['U.S. Virgin Islands','VI'],
-    ['American Samoa','AS'],['Northern Mariana Islands','MP']
-  ];
-
-  const STATE_NAME_TO_ABBR = Object.fromEntries(
-    US_STATES.map(([name, abbr]) => [name.toLowerCase(), abbr])
-  );
-  const STATE_ABBR_SET = new Set(US_STATES.map(([, abbr]) => abbr));
-
+  // A representative list of major U.S. cities for the location
+  // suggestion dropdown — not exhaustive (there are tens of thousands of
+  // U.S. towns and cities), so typing anything not listed here still
+  // works fine as free text; this just makes common ones easy to pick.
+  // Same list and pattern used on the job-seeker preferences page, and
+  // replaces the old Google Places Autocomplete dependency entirely
+  // (that API key was failing to load — "This page can't load Google
+  // Maps correctly" — which also meant isValidLocation() could never be
+  // satisfied for non-remote jobs, silently blocking every employer from
+  // posting an on-site or hybrid role).
   const KNOWN_CITIES = [
-    // North Carolina
-    'Albemarle, NC','Angier, NC','Apex, NC','Archdale, NC','Archer Lodge, NC',
-    'Asheboro, NC','Asheville, NC','Ayden, NC','Beaufort, NC','Belmont, NC',
-    'Benson, NC','Bessemer City, NC','Black Mountain, NC','Boone, NC','Brevard, NC',
-    'Burgaw, NC','Burlington, NC','Butner, NC','Carrboro, NC','Cary, NC',
-    'Chapel Hill, NC','Charlotte, NC','Clayton, NC','Clemmons, NC','Coats, NC',
-    'Concord, NC','Cornelius, NC','Creedmoor, NC','Davidson, NC','Dunn, NC',
-    'Durham, NC','Eden, NC','Edenton, NC','Elizabeth City, NC','Erwin, NC',
-    'Farmville, NC','Fayetteville, NC','Forest City, NC','Four Oaks, NC','Franklinton, NC',
-    'Fuquay-Varina, NC','Garner, NC','Gastonia, NC','Goldsboro, NC','Graham, NC',
-    'Greensboro, NC','Greenville, NC','Hampstead, NC','Henderson, NC','Hendersonville, NC',
-    'Hickory, NC','High Point, NC','Hillsborough, NC','Holly Ridge, NC','Holly Springs, NC',
-    'Hope Mills, NC','Huntersville, NC','Indian Trail, NC','Jacksonville, NC','Kannapolis, NC',
-    'Kernersville, NC','Kill Devil Hills, NC','Kinston, NC','Knightdale, NC','La Grange, NC',
-    'Leland, NC','Lenoir, NC','Lexington, NC','Lillington, NC','Lincolnton, NC',
-    'Louisburg, NC','Lumberton, NC','Manteo, NC','Matthews, NC','Mebane, NC',
-    'Mint Hill, NC','Monroe, NC','Mooresville, NC','Morehead City, NC','Morganton, NC',
-    'Morrisville, NC','Mount Airy, NC','Mount Olive, NC','Nags Head, NC','Nashville, NC',
-    'New Bern, NC','Newton, NC','Oak Island, NC','Oxford, NC','Pinehurst, NC',
-    'Pineville, NC','Pittsboro, NC','Raleigh, NC','Reidsville, NC','Roanoke Rapids, NC',
-    'Rolesville, NC','Rocky Mount, NC','Roxboro, NC','Salisbury, NC','Sanford, NC',
-    'Selma, NC','Shallotte, NC','Shelby, NC','Siler City, NC','Smithfield, NC',
-    'Snow Hill, NC','Southport, NC','Southern Pines, NC','Spring Hope, NC','Spring Lake, NC',
-    'Statesville, NC','Swansboro, NC','Tarboro, NC','Thomasville, NC','Wake Forest, NC',
-    'Wallace, NC','Washington, NC','Waynesville, NC','Wendell, NC','Whiteville, NC',
-    'Williamston, NC','Wilmington, NC','Wilson, NC','Winston-Salem, NC','Winterville, NC',
-    'Youngsville, NC','Zebulon, NC',
-
-    // Major and commonly searched U.S. cities
     'New York, NY','Los Angeles, CA','Chicago, IL','Houston, TX','Phoenix, AZ',
     'Philadelphia, PA','San Antonio, TX','San Diego, CA','Dallas, TX','Austin, TX',
-    'Jacksonville, FL','Fort Worth, TX','San Jose, CA','Columbus, OH',
+    'Jacksonville, FL','Fort Worth, TX','San Jose, CA','Columbus, OH','Charlotte, NC',
+    'Raleigh, NC','Durham, NC','Greensboro, NC','Winston-Salem, NC','Wilmington, NC',
+    'Fayetteville, NC','Cary, NC','High Point, NC','Asheville, NC','Concord, NC',
     'San Francisco, CA','Indianapolis, IN','Seattle, WA','Denver, CO','Washington, DC',
     'Boston, MA','Nashville, TN','Detroit, MI','Portland, OR','Memphis, TN',
     'Oklahoma City, OK','Las Vegas, NV','Louisville, KY','Baltimore, MD','Milwaukee, WI',
     'Albuquerque, NM','Tucson, AZ','Fresno, CA','Sacramento, CA','Kansas City, MO',
     'Mesa, AZ','Atlanta, GA','Omaha, NE','Colorado Springs, CO','Miami, FL',
-    'Tampa, FL','Orlando, FL','Virginia Beach, VA','Long Beach, CA','Oakland, CA',
-    'Minneapolis, MN','Tulsa, OK','Arlington, TX','New Orleans, LA','Wichita, KS',
-    'Cleveland, OH','Bakersfield, CA','Aurora, CO','Anaheim, CA','Honolulu, HI',
-    'Santa Ana, CA','Riverside, CA','Corpus Christi, TX','Lexington, KY','Stockton, CA',
-    'Henderson, NV','St. Paul, MN','St. Louis, MO','Cincinnati, OH','Pittsburgh, PA',
-    'Greenville, SC','Columbia, SC','Charleston, SC','Myrtle Beach, SC',
-    'Richmond, VA','Norfolk, VA','Chesapeake, VA','Newport News, VA',
-    'Baton Rouge, LA','Shreveport, LA','Boise, ID','Spokane, WA','Tacoma, WA',
-    'Bellevue, WA','Salt Lake City, UT','Provo, UT','Albany, NY','Buffalo, NY',
-    'Rochester, NY','Syracuse, NY','Hartford, CT','Providence, RI',
-    'Jersey City, NJ','Newark, NJ','Trenton, NJ','Chattanooga, TN','Knoxville, TN',
-    'Jackson, MS','Little Rock, AR','Des Moines, IA','Madison, WI','Green Bay, WI',
-    'Fort Lauderdale, FL','St. Petersburg, FL','Tallahassee, FL','Savannah, GA',
-    'Augusta, GA','Athens, GA','Birmingham, AL','Montgomery, AL','Mobile, AL',
-    'Huntsville, AL','Anchorage, AK','Fairbanks, AK','Juneau, AK','Little Rock, AR',
-    'Fayetteville, AR','Bentonville, AR','Scottsdale, AZ','Tempe, AZ','Chandler, AZ',
-    'Glendale, AZ','Irvine, CA','Pasadena, CA','Santa Monica, CA','Burbank, CA',
-    'Berkeley, CA','Palo Alto, CA','Mountain View, CA','Sunnyvale, CA','Santa Clara, CA',
-    'Santa Barbara, CA','Palm Springs, CA','Oxnard, CA','Ventura, CA','Modesto, CA',
-    'Santa Rosa, CA','Boulder, CO','Fort Collins, CO','Lakewood, CO','Pueblo, CO',
-    'New Haven, CT','Stamford, CT','Bridgeport, CT','Wilmington, DE','Dover, DE',
-    'Gainesville, FL','Naples, FL','Sarasota, FL','Cape Coral, FL','Pensacola, FL',
-    'Daytona Beach, FL','West Palm Beach, FL','Fort Myers, FL','Kissimmee, FL',
-    'Macon, GA','Columbus, GA','Roswell, GA','Marietta, GA','Alpharetta, GA',
-    'Savannah, GA','Hilo, HI','Kailua, HI','Idaho Falls, ID',"Coeur d'Alene, ID",
-    'Springfield, IL','Peoria, IL','Rockford, IL','Naperville, IL','Fort Wayne, IN',
-    'Evansville, IN','South Bend, IN','Cedar Rapids, IA','Davenport, IA','Iowa City, IA',
-    'Overland Park, KS','Topeka, KS','Lawrence, KS','Bowling Green, KY',
-    'Baton Rouge, LA','Lafayette, LA','Lake Charles, LA','Portland, ME','Bangor, ME',
-    'Annapolis, MD','Frederick, MD','Rockville, MD','Silver Spring, MD',
-    'Cambridge, MA','Worcester, MA','Springfield, MA','Ann Arbor, MI','Grand Rapids, MI',
-    'Lansing, MI','Flint, MI','Duluth, MN','Rochester, MN','Bloomington, MN',
-    'Gulfport, MS','Hattiesburg, MS','Oxford, MS','Springfield, MO','Columbia, MO',
-    'Billings, MT','Bozeman, MT','Missoula, MT','Lincoln, NE','Reno, NV',
-    'Carson City, NV','Manchester, NH','Nashua, NH','Atlantic City, NJ',
-    'Princeton, NJ','Santa Fe, NM','Las Cruces, NM','Yonkers, NY','White Plains, NY',
-    'Fargo, ND','Bismarck, ND','Akron, OH','Dayton, OH','Toledo, OH','Norman, OK',
-    'Eugene, OR','Salem, OR','Bend, OR','Allentown, PA','Harrisburg, PA','Erie, PA',
-    'Scranton, PA','San Juan, PR','Ponce, PR','Caguas, PR','Cranston, RI',
-    'Sioux Falls, SD','Rapid City, SD','Murfreesboro, TN','Franklin, TN',
-    'El Paso, TX','Plano, TX','Frisco, TX','Irving, TX','Garland, TX','McKinney, TX',
-    'Lubbock, TX','Amarillo, TX','Waco, TX','College Station, TX','Round Rock, TX',
-    'Brownsville, TX','McAllen, TX','Killeen, TX','Denton, TX','Tyler, TX',
-    'Ogden, UT','St. George, UT','Burlington, VT','Roanoke, VA','Alexandria, VA',
-    'Arlington, VA','Fairfax, VA','Fredericksburg, VA','Charlottesville, VA',
-    'Vancouver, WA','Olympia, WA','Everett, WA','Yakima, WA','Charleston, WV',
-    'Morgantown, WV','Huntington, WV','Kenosha, WI','Appleton, WI','Eau Claire, WI',
-    'Cheyenne, WY','Casper, WY'
+    'Tampa, FL','Orlando, FL','Virginia Beach, VA','Long Beach, CA',
+    'Oakland, CA','Minneapolis, MN','Tulsa, OK','Arlington, TX','New Orleans, LA',
+    'Wichita, KS','Cleveland, OH','Bakersfield, CA','Aurora, CO','Anaheim, CA',
+    'Honolulu, HI','Santa Ana, CA','Riverside, CA','Corpus Christi, TX','Lexington, KY',
+    'Stockton, CA','Henderson, NV','St. Paul, MN','St. Louis, MO','Cincinnati, OH',
+    'Pittsburgh, PA','Greenville, SC','Columbia, SC','Charleston, SC','Richmond, VA',
+    'Norfolk, VA','Chesapeake, VA','Newport News, VA','Baton Rouge, LA','Shreveport, LA',
+    'Boise, ID','Spokane, WA','Tacoma, WA','Bellevue, WA','Salt Lake City, UT',
+    'Provo, UT','Albany, NY','Buffalo, NY','Rochester, NY','Syracuse, NY',
+    'Hartford, CT','Providence, RI','Jersey City, NJ','Newark, NJ','Trenton, NJ',
+    'Chattanooga, TN','Knoxville, TN','Jackson, MS','Little Rock, AR','Des Moines, IA',
+    'Madison, WI','Green Bay, WI','Fort Lauderdale, FL','St. Petersburg, FL',
+    'Tallahassee, FL','Savannah, GA','Augusta, GA','Athens, GA','Myrtle Beach, SC'
   ];
-
-  function normalizeLocationSearch(value) {
-    return String(value || '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, ' ')
-      .trim();
-  }
-
-  function levenshteinDistance(a, b) {
-    a = normalizeLocationSearch(a);
-    b = normalizeLocationSearch(b);
-    if (!a) return b.length;
-    if (!b) return a.length;
-
-    const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
-    for (let i = 1; i <= a.length; i++) {
-      let last = prev[0];
-      prev[0] = i;
-      for (let j = 1; j <= b.length; j++) {
-        const old = prev[j];
-        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, last + cost);
-        last = old;
-      }
-    }
-    return prev[b.length];
-  }
-
-  function locationSearchScore(option, query) {
-    const o = normalizeLocationSearch(option);
-    const q = normalizeLocationSearch(query);
-    if (!q) return 1;
-    if (o === q) return 1000;
-    if (o.startsWith(q)) return 900;
-    if (o.includes(q)) return 800;
-
-    const optionCity = normalizeLocationSearch(option.split(',')[0]);
-    const dist = levenshteinDistance(optionCity, q);
-    const allowed = q.length <= 5 ? 1 : q.length <= 9 ? 2 : 3;
-    if (dist <= allowed) return 700 - dist * 20;
-
-    const qTokens = q.split(' ').filter(Boolean);
-    const oTokens = o.split(' ').filter(Boolean);
-    const tokenHits = qTokens.filter(qt =>
-      oTokens.some(ot => ot.startsWith(qt) || qt.startsWith(ot) || levenshteinDistance(ot, qt) <= 1)
-    ).length;
-
-    return tokenHits ? 400 + tokenHits : 0;
-  }
-
-  function getStateSuggestions(query) {
-    const q = normalizeLocationSearch(query);
-    return US_STATES
-      .map(([name, abbr]) => ({
-        value: name,
-        label: `${name} (${abbr})`,
-        score: Math.max(
-          locationSearchScore(name, q),
-          locationSearchScore(abbr, q)
-        )
-      }))
-      .filter(item => !q || item.score > 0)
-      .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
-  }
 
   function renderLocationSuggestions() {
     const input = document.getElementById('f-location');
     const box = document.getElementById('location-suggestions');
     if (!input || !box) return;
 
-    const rawQuery = input.value.trim();
-    const query = normalizeLocationSearch(rawQuery);
+    const query = input.value.trim().toLowerCase();
+    const matches = (query === ''
+      ? KNOWN_CITIES
+      : KNOWN_CITIES.filter(c => c.toLowerCase().includes(query))
+    ).slice(0, MAX_RESULTS_SHOWN);
 
-    const cityMatches = KNOWN_CITIES
-      .map(city => ({ value: city, label: city, score: locationSearchScore(city, query) }))
-      .filter(item => !query || item.score > 0)
-      .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
-
-    const stateMatches = getStateSuggestions(query);
-
-    const combined = [...cityMatches, ...stateMatches]
-      .filter((item, index, arr) =>
-        arr.findIndex(other => other.value.toLowerCase() === item.value.toLowerCase()) === index
-      )
-      .slice(0, 60);
-
-    // If the employer already typed a properly shaped city/state that is not
-    // in our suggestion catalog, explicitly offer it instead of blocking them.
-    const typedCityState = /^[A-Za-z .'-]{2,},\s*[A-Za-z]{2,}$/.test(rawQuery)
-      ? { value: rawQuery, label: `Use “${rawQuery}”`, score: 1200 }
-      : null;
-
-    const results = typedCityState ? [typedCityState, ...combined] : combined;
-
-    if (results.length === 0) {
-      box.innerHTML = `<div class="chip-result-row" style="cursor:default;color:var(--text-muted);">
-        Keep typing — you can enter any U.S. city in “City, ST” format.
-      </div>`;
-      box.classList.add('show');
+    if (matches.length === 0) {
+      box.classList.remove('show');
+      box.innerHTML = '';
       return;
     }
 
-    box.innerHTML = results.map(item => {
-      const escaped = item.value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-      return `<div class="chip-result-row" onmousedown="event.preventDefault(); selectLocationSuggestion('${escaped}')">${escapeHtml(item.label)}</div>`;
+    box.innerHTML = matches.map(city => {
+      const escaped = city.replace(/'/g, "\\'");
+      return `<div class="chip-result-row" onmousedown="event.preventDefault(); selectLocationSuggestion('${escaped}')">${escapeHtml(city)}</div>`;
     }).join('');
     box.classList.add('show');
   }
@@ -2012,7 +1119,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     const { data: profile, error: profileError } = await sb
       .from('profiles')
-      .select('role, company_name, full_name, employer_verified, verification_status, company_logo_url')
+      .select('role, company_name, full_name, employer_verified, verification_status, hiring_blueprint')
       .eq('id', authedUser.id)
       .maybeSingle();
 
@@ -2033,6 +1140,37 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       return;
     }
 
+    const status = String(profile?.verification_status || '').trim().toLowerCase();
+    const blueprint = profile?.hiring_blueprint && typeof profile.hiring_blueprint === 'object'
+      ? profile.hiring_blueprint
+      : null;
+    const blueprintCompanyId = String(blueprint?.company_id || '').trim();
+    const blueprintDocumentPath = String(blueprint?.irs_document_path || '').trim();
+    const blueprintLooksComplete = !!blueprint && (
+      blueprint.onboarding_complete === true ||
+      (
+        !!blueprintCompanyId &&
+        !!blueprintDocumentPath &&
+        Array.isArray(blueprint.company_priorities) && blueprint.company_priorities.length >= 5 &&
+        Array.isArray(blueprint.candidate_priorities) && blueprint.candidate_priorities.length >= 5
+      )
+    );
+
+    // A verification status by itself is NOT onboarding completion. New employer
+    // rows can already be pending, and an empty/partial hiring_blueprint can exist
+    // before setup. Only a completed blueprint or a real approved state gets in.
+    const onboardingComplete =
+      profile?.employer_verified === true ||
+      status === 'approved' ||
+      blueprintLooksComplete;
+
+    if (!onboardingComplete) {
+      window.location.replace('employer-onboarding.html');
+      return;
+    }
+
+    document.body.classList.add('auth-ready');
+
     currentProfile = profile || {};
     employerVerified =
       profile?.employer_verified === true &&
@@ -2052,446 +1190,15 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       companyInput.value = profile.company_name;
     }
 
-    renderPostingCompanyLogo(profile?.company_logo_url || '');
-
     renderSelectedChips('req');
     renderSelectedChips('benefit');
 
     updateVerificationUI();
-    await activatePendingJobsIfApproved();
     await loadJobs();
-    await loadCandidates();
-    await loadBillingEntitlement();
-    renderJobs();
-    updatePostingAccessUI();
-    initNotifications();
-
-    const initialPanel = getPanelFromHash();
-
-    // IMPORTANT: keep the dashboard hidden until the slot entitlement check is
-    // finished. If someone follows employer-dashboard.html#post with every
-    // slot already occupied, send them straight to Pricing without briefly
-    // painting the Post a Job panel first.
-    if (initialPanel === 'post' && !editingJobId && !canCreateNewJob()) {
-      redirectToPricing(getPostingAccess().reason);
-      return;
-    }
-
-    document.body.classList.add('auth-ready');
-    applyPanelVisual(initialPanel);
-    loadPanelData(initialPanel);
-
-    const requestedAction = new URLSearchParams(window.location.search).get('action');
-    if (requestedAction === 'boost') {
-      // Open after the dashboard is visible so Pricing → Boost lands directly
-      // in the job picker instead of silently looking like the normal Jobs tab.
-      requestAnimationFrame(() => openBoostPicker());
-    }
-
-    const boostParams = new URLSearchParams(window.location.search);
-    const boostResult = boostParams.get('boost');
-    if (boostResult === 'success') {
-      const boostedJobId = boostParams.get('job');
-      const selectedDays = Math.max(0, Number.parseInt(boostParams.get('days') || '0', 10) || 0);
-      const boostedJob = jobs.find(item => item.id === boostedJobId);
-      const untilCopy = boostedJob?.boosted_until ? formatBoostUntil(boostedJob.boosted_until) : '';
-      const durationCopy = selectedDays
-        ? `${selectedDays}-day Job Boost activated`
-        : 'Job Boost activated';
-
-      showToast(`${durationCopy}${untilCopy ? ` · active until ${untilCopy}` : ''}.`);
-
-      const url = new URL(window.location.href);
-      url.searchParams.delete('boost');
-      url.searchParams.delete('job');
-      url.searchParams.delete('days');
-      history.replaceState({}, '', url.pathname + url.search + (window.location.hash || '#jobs'));
-    }
+    loadPanelData(getPanelFromHash());
   }
 
-  // ---- Employer job-slot entitlement / paywall ----
-  // Free:   1 reusable active/pending job slot.
-  // Launch: 3 reusable active/pending job slots.
-  // Growth: 5 reusable active/pending job slots + Urgently Hiring.
-  // Scale:  8 reusable active/pending job slots + Urgently Hiring.
-  // Weekly: 1 reusable active/pending job slot until its 7-day expiration.
-  // Deleting/closing a job frees its slot so another listing can be posted.
-  //
-  // The database trigger is the real enforcement layer. Developer test packages
-  // are also server-backed; the dashboard never grants extra slots from URL or
-  // localStorage alone.
-  async function loadBillingEntitlement() {
-    billingReady = false;
-
-    const normalizeEntitlement = (data) => ({
-      plan: String(data?.plan || 'free').toLowerCase(),
-      subscription_status: String(data?.subscription_status || 'inactive').toLowerCase(),
-      current_period_end: data?.current_period_end || null,
-      free_job_used: data?.free_job_used === true,
-      paid_job_credits: Math.max(0, Number(data?.paid_job_credits || 0)),
-      slot_limit: Math.max(0, Number(data?.slot_limit || 0)),
-      billing_period: data?.billing_period ? String(data.billing_period).toLowerCase() : null,
-      test_mode: data?.test_mode === true,
-      test_plan: data?.test_plan ? String(data.test_plan).toLowerCase() : null,
-      urgently_hiring: data?.urgently_hiring === true,
-      weekly_slot_count: Math.max(0, Number(data?.weekly_slot_count || 0)),
-      weekly_slots_expires_at: data?.weekly_slots_expires_at || null,
-      addon_slot_count: Math.max(0, Number(data?.addon_slot_count || 0)),
-      addon_slots_expires_at: data?.addon_slots_expires_at || null,
-      candidate_access_locked: data?.candidate_access_locked === true,
-      candidate_access_lock_reason: data?.candidate_access_lock_reason ? String(data.candidate_access_lock_reason) : null,
-      weekly_purchase_allowed: data?.weekly_purchase_allowed === true,
-      recommended_upgrade_plan: data?.recommended_upgrade_plan ? String(data.recommended_upgrade_plan).toLowerCase() : null,
-      second_slot_eligible: data?.second_slot_eligible === true,
-      active_paid_plan: data?.active_paid_plan === true,
-      server_access_loaded: data?.server_access_loaded === true,
-      server_can_post: typeof data?.server_can_post === 'boolean' ? data.server_can_post : null,
-      server_reason: data?.server_reason ? String(data.server_reason) : null,
-      server_active_job_count: Number.isFinite(Number(data?.server_active_job_count))
-        ? Math.max(0, Number(data.server_active_job_count))
-        : null,
-      server_available_slots: Number.isFinite(Number(data?.server_available_slots))
-        ? Math.max(0, Number(data.server_available_slots))
-        : null
-    });
-
-    try {
-      // New schema used by Launch / Growth / Scale / Weekly and test-mode access.
-      let result = await sb
-        .from('employer_entitlements')
-        .select('plan, subscription_status, current_period_end, free_job_used, paid_job_credits, slot_limit, billing_period, test_mode, test_plan, urgently_hiring, addon_slot_count, addon_slots_expires_at, candidate_access_locked, candidate_access_lock_reason')
-        .eq('employer_id', currentUser.id)
-        .maybeSingle();
-
-      // Keep the site usable before the new SQL migration is installed.
-      if (result.error && /slot_limit|billing_period|test_mode|test_plan|urgently_hiring|candidate_access/i.test(String(result.error.message || ''))) {
-        result = await sb
-          .from('employer_entitlements')
-          .select('plan, subscription_status, current_period_end, free_job_used, paid_job_credits')
-          .eq('employer_id', currentUser.id)
-          .maybeSingle();
-      }
-
-      if (result.error) throw result.error;
-
-      if (result.data) {
-        billingEntitlement = normalizeEntitlement(result.data);
-      } else {
-        billingEntitlement = normalizeEntitlement({
-          plan: 'free',
-          subscription_status: 'inactive',
-          free_job_used: jobs.length > 0,
-          slot_limit: 1
-        });
-      }
-
-      // Server summary is the source of truth for effective capacity.
-      // It includes the permanent free slot, the Free-only $150 Second Job Slot,
-      // paid-plan capacity, temporary Weekly slots, and candidate billing-lock state.
-      const accessResult = await sb.rpc('get_employer_posting_access');
-      if (!accessResult.error && accessResult.data) {
-        billingEntitlement = {
-          ...billingEntitlement,
-          slot_limit: Math.max(1, Number(accessResult.data.slot_limit || 1)),
-          weekly_slot_count: Math.max(0, Number(accessResult.data.weekly_slot_count || 0)),
-          weekly_slots_expires_at: accessResult.data.weekly_slots_expires_at || null,
-          addon_slot_count: Math.max(0, Number(accessResult.data.addon_slot_count || 0)),
-          addon_slots_expires_at: accessResult.data.addon_slots_expires_at || null,
-          candidate_access_locked: accessResult.data.candidate_access_locked === true,
-          candidate_access_lock_reason: accessResult.data.candidate_access_lock_reason || null,
-          weekly_purchase_allowed: accessResult.data.weekly_purchase_allowed === true,
-          recommended_upgrade_plan: accessResult.data.recommended_upgrade_plan ? String(accessResult.data.recommended_upgrade_plan).toLowerCase() : null,
-          second_slot_eligible: accessResult.data.second_slot_eligible === true,
-          active_paid_plan: accessResult.data.active_paid_plan === true,
-          server_access_loaded: true,
-          server_can_post: accessResult.data.can_post === true,
-          server_reason: String(accessResult.data.reason || ''),
-          server_active_job_count: Math.max(0, Number(accessResult.data.active_job_count || 0)),
-          server_available_slots: Math.max(0, Number(accessResult.data.available_slots || 0))
-        };
-      } else if (accessResult.error) {
-        console.warn('Could not load server posting access:', accessResult.error);
-      }
-    } catch (error) {
-      console.error('Failed to load employer billing entitlement:', error);
-      billingEntitlement = normalizeEntitlement({
-        plan: 'free',
-        subscription_status: 'inactive',
-        free_job_used: jobs.length > 0,
-        slot_limit: 1
-      });
-    } finally {
-      billingReady = true;
-    }
-  }
-
-  function entitlementNotExpired() {
-    if (!billingEntitlement.current_period_end) return true;
-    const periodEnd = new Date(billingEntitlement.current_period_end).getTime();
-    return Number.isNaN(periodEnd) || periodEnd > Date.now();
-  }
-
-  function hasActivePaidPlan() {
-    const plan = String(billingEntitlement.plan || '').toLowerCase();
-    const status = String(billingEntitlement.subscription_status || '').toLowerCase();
-
-    // Past-due plans keep their paid slot capacity during Stripe retry/grace,
-    // while candidate access is locked separately.
-    if (!['active', 'trialing', 'past_due'].includes(status)) return false;
-    if (status !== 'past_due' && !entitlementNotExpired()) return false;
-
-    // A server-authorized test entitlement is treated exactly like paid access
-    // for slot testing, while remaining clearly marked test_mode in the DB/UI.
-    if (billingEntitlement.test_mode === true && billingEntitlement.slot_limit > 0) return true;
-
-    return ['business', 'enterprise', 'launch', 'growth', 'scale', 'weekly_slot'].includes(plan);
-  }
-
-  function activeJobCount() {
-    // Pending jobs reserve a slot too, so an unverified employer cannot queue
-    // unlimited listings while waiting for business approval.
-    return jobs.filter(job => {
-      const status = String(job.status || 'active').toLowerCase();
-      return status === 'active' || status === 'pending';
-    }).length;
-  }
-
-  function paidJobLimit() {
-    const serverLimit = Math.max(0, Number(billingEntitlement.slot_limit || 0));
-    if (serverLimit > 0) return serverLimit;
-
-    const plan = String(billingEntitlement.test_plan || billingEntitlement.plan || '').toLowerCase();
-    if (plan === 'scale') return 9;
-    if (plan === 'growth') return 6;
-    if (plan === 'launch') return 4;
-
-    // Legacy compatibility until old entitlement rows are migrated. Totals
-    // include the permanent free slot.
-    if (plan === 'enterprise') return 6;
-    if (plan === 'business') return 4;
-    return 1;
-  }
-
-  function entitlementDisplayName() {
-    const plan = String(billingEntitlement.test_plan || billingEntitlement.plan || 'free').toLowerCase();
-    const names = {
-      free: 'Free', launch: 'Launch', growth: 'Growth', scale: 'Scale',
-      weekly_slot: 'Weekly', business: 'Launch', enterprise: 'Growth'
-    };
-    return names[plan] || plan;
-  }
-
-  function getPostingAccess() {
-    if (!billingReady) {
-      return { allowed: false, reason: 'billing-loading', label: 'Checking slots…' };
-    }
-
-    // Prefer the server RPC whenever it loaded successfully. This matters for
-    // all slot sources together: the permanent free slot, Free-only Second Job
-    // Slot, paid-plan slots, and any eligible temporary Weekly slot.
-    if (billingEntitlement.server_access_loaded === true) {
-      const used = Number.isFinite(billingEntitlement.server_active_job_count)
-        ? billingEntitlement.server_active_job_count
-        : activeJobCount();
-      const limit = Math.max(1, Number(billingEntitlement.slot_limit || 1));
-      const allowed = billingEntitlement.server_can_post === true;
-
-      return allowed
-        ? {
-            allowed: true,
-            reason: billingEntitlement.server_reason || 'slot-available',
-            label: '+ Post new job',
-            used,
-            limit
-          }
-        : {
-            allowed: false,
-            reason: billingEntitlement.server_reason || 'slot-limit',
-            label: '+ Add a job slot',
-            used,
-            limit
-          };
-    }
-
-    const used = activeJobCount();
-
-    // Compatibility fallback if the server RPC is temporarily unavailable.
-    // Any effective capacity above the free 1-slot baseline should be honored
-    // in the UI; the database trigger remains the final enforcement layer.
-    const effectiveLimit = paidJobLimit();
-    if (hasActivePaidPlan() || effectiveLimit > 1) {
-      return used < effectiveLimit
-        ? { allowed: true, reason: 'slot-available', label: '+ Post new job', used, limit: effectiveLimit }
-        : { allowed: false, reason: 'slot-limit', label: '+ Add a job slot', used, limit: effectiveLimit };
-    }
-
-    // Free employers have one reusable slot. Deleting or closing the job frees it.
-    const limit = 1;
-    return used < limit
-      ? { allowed: true, reason: 'free-slot-available', label: '+ Post new job', used, limit }
-      : { allowed: false, reason: 'slot-limit', label: '+ Add a job slot', used, limit };
-  }
-
-  function canCreateNewJob() {
-    return getPostingAccess().allowed === true;
-  }
-
-  async function openDashboardBillingPortal(button) {
-    const original=button?.textContent||'Update payment method';
-    if(button){button.disabled=true;button.textContent='Opening billing…';}
-    try {
-      const { data: { session } } = await sb.auth.getSession();
-      if(!session?.access_token) throw new Error('Your session expired. Please sign in again.');
-      const response=await fetch('/api/create-checkout-session',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
-        body:JSON.stringify({action:'billing_portal',return_url:location.origin+'/employer-dashboard.html?billing=return'})
-      });
-      const data=await response.json().catch(()=>({}));
-      if(!response.ok||!data.url) throw new Error(data.error||'Could not open billing settings.');
-      window.location.href=data.url;
-    } catch(error) {
-      console.error(error);
-      showToast(error?.message||'Could not open billing settings.');
-      if(button){button.disabled=false;button.textContent=original;}
-    }
-  }
-
-  function redirectToPricing(reason = 'job-limit') {
-    const q = new URLSearchParams();
-    q.set('reason', reason);
-    window.location.href = 'pricing.html?' + q.toString();
-  }
-
-  // Urgently Hiring is a per-job on/off toggle the employer controls freely —
-  // it is never applied automatically. Only plans that include the perk
-  // (Growth, Scale, Enterprise) are allowed to turn it on.
-  function canUseUrgentBadge() {
-    // Check BOTH the base plan and the test/add-on plan.
-    // A temporary Weekly slot must never hide a Growth/Scale base plan.
-    const plans = [
-      String(billingEntitlement.plan || '').toLowerCase(),
-      String(billingEntitlement.test_plan || '').toLowerCase()
-    ];
-
-    return plans.some(plan =>
-      ['growth', 'scale', 'enterprise'].includes(plan)
-    );
-  }
-
-  async function toggleUrgent(jobId) {
-    const job = jobs.find(j => j.id === jobId);
-    if (!job) return;
-
-    if (!canUseUrgentBadge()) {
-      showToast('Urgently Hiring is available on Growth, Scale, and Enterprise plans.');
-      setTimeout(() => redirectToPricing('urgent-badge'), 700);
-      return;
-    }
-
-    const next = !(job.urgently_hiring === true);
-
-    const { error } = await sb
-      .from('jobs')
-      .update({ urgently_hiring: next, updated_at: new Date().toISOString() })
-      .eq('id', jobId)
-      .eq('employer_id', currentUser.id);
-
-    if (error) {
-      console.error('Failed to toggle Urgently Hiring:', error);
-      showToast('Could not update Urgently Hiring.');
-      return;
-    }
-
-    job.urgently_hiring = next;
-    renderJobs();
-    showToast(next ? 'Urgently Hiring badge added.' : 'Urgently Hiring badge removed.');
-  }
-
-  function updatePostingAccessUI() {
-    const topButton = document.getElementById('post-new-job-btn');
-    const sidebarButton = document.getElementById('sidebar-post-job-btn');
-    const sidebarLabel = document.getElementById('sidebar-post-job-label');
-    const slotUsage = document.getElementById('job-slot-usage');
-    const testBanner = document.getElementById('test-entitlement-banner');
-
-    if (!billingReady) return;
-
-    const access = getPostingAccess();
-
-    if (slotUsage && Number.isFinite(access.used) && Number.isFinite(access.limit)) {
-      slotUsage.textContent = `· ${access.used} of ${access.limit} ${access.limit === 1 ? 'slot' : 'slots'} used`;
-    }
-
-    if (testBanner) {
-      if (billingEntitlement.test_mode === true && hasActivePaidPlan()) {
-        const billing = billingEntitlement.billing_period
-          ? billingEntitlement.billing_period.charAt(0).toUpperCase() + billingEntitlement.billing_period.slice(1)
-          : '';
-        const expiry = billingEntitlement.current_period_end
-          ? new Date(billingEntitlement.current_period_end).toLocaleString()
-          : 'No expiration set';
-        const urgent = canUseUrgentBadge() ? ' · Urgently Hiring available' : '';
-        const addonCount = hasActivePaidPlan() ? 0 : Math.max(0, Number(billingEntitlement.addon_slot_count || 0));
-        const addonCopy = addonCount
-          ? ` · +1 Second Job Slot ($150/month)`
-          : '';
-        const weeklyCount = Math.max(0, Number(billingEntitlement.weekly_slot_count || 0));
-        const weeklyExpiry = billingEntitlement.weekly_slots_expires_at
-          ? new Date(billingEntitlement.weekly_slots_expires_at).toLocaleString()
-          : '';
-        const weeklyCopy = weeklyCount
-          ? ` · +${weeklyCount} Weekly slot${weeklyCount===1?'':'s'}${weeklyExpiry ? ' (expires ' + weeklyExpiry + ')' : ''}`
-          : '';
-        testBanner.innerHTML = `<strong>TEST PACKAGE ACTIVE</strong> · ${entitlementDisplayName()}${billing ? ' · ' + billing : ''} · ${paidJobLimit()} total job slot${paidJobLimit() === 1 ? '' : 's'}${addonCopy}${weeklyCopy}${urgent}<br>Base plan expires: ${expiry} · No payment was charged.`;
-        testBanner.classList.add('show');
-      } else {
-        testBanner.classList.remove('show');
-        testBanner.textContent = '';
-      }
-    }
-
-    const paymentBanner=document.getElementById('payment-access-banner');
-    if(paymentBanner){
-      paymentBanner.classList.toggle('show', billingEntitlement.candidate_access_locked === true);
-    }
-
-    if (topButton) {
-      topButton.textContent = access.label;
-      topButton.title = access.reason === 'slot-limit'
-        ? `All ${access.limit} job ${access.limit === 1 ? 'slot is' : 'slots are'} in use. Delete or close a job to free a slot, or add more job-slot capacity.`
-        : `You have ${access.limit - access.used} job ${access.limit - access.used === 1 ? 'slot' : 'slots'} available.`;
-    }
-
-    if (sidebarButton) sidebarButton.title = topButton?.title || '';
-
-    if (sidebarLabel) {
-      sidebarLabel.textContent = access.allowed ? 'Post a Job' : 'Add a job slot';
-    }
-
-    if (typeof renderWizardStep === 'function') renderWizardStep();
-  }
-
-  function openPostJob() {
-    // Business verification does not block creating the listing. If the
-    // employer is not approved yet, postJob() saves it as pending instead.
-    if (!billingReady) {
-      showToast('Checking your posting plan…');
-      return;
-    }
-
-    const access = getPostingAccess();
-    if (!access.allowed) {
-      redirectToPricing(access.reason);
-      return;
-    }
-
-    // Clicking the main "Post a Job" action always starts a NEW listing.
-    if (editingJobId) cancelEdit();
-    showPanel('post');
-  }
-
-  const VALID_PANELS = ['jobs', 'post'];
+  const VALID_PANELS = ['jobs', 'candidates', 'interviews', 'post'];
 
   function getPanelFromHash() {
     const hash = (window.location.hash || '').replace('#', '');
@@ -2524,6 +1231,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   // The actual data-fetching side effects for a given panel.
   function loadPanelData(name) {
     if (name === 'post') { updatePreview(); resetWizardToStep1(); }
+    if (name === 'candidates') loadCandidates();
+    if (name === 'interviews') loadInterviews();
   }
 
   // Every real panel switch changes the URL hash, which is a genuine
@@ -2533,11 +1242,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   // linked in — e.g. from a job's "Candidates" button back to My Jobs,
   // not all the way back to Account.
   function showPanel(name) {
-    // Editing an existing listing never consumes another posting slot.
-    // Creating a new listing must pass the billing gate.
-    if (name === 'post' && !editingJobId && billingReady && !canCreateNewJob()) {
-      redirectToPricing(getPostingAccess().reason);
-      return;
+    // Pending employers stay in the dashboard. They can prepare a draft,
+    // but the final publish action remains locked until approval.
+    if (name === 'post' && !employerVerified) {
+      showToast('You can prepare this job now. Publishing unlocks after business verification.');
     }
 
     if (window.location.hash === '#' + name) {
@@ -2552,12 +1260,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
   function handleHashRoute() {
     const name = getPanelFromHash();
-
-    if (name === 'post' && currentUser && billingReady && !editingJobId && !canCreateNewJob()) {
-      redirectToPricing(getPostingAccess().reason);
-      return;
-    }
-
     applyPanelVisual(name);
     loadPanelData(name);
   }
@@ -2577,178 +1279,52 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const lockBox = document.getElementById('verification-lock');
     const postBtn = document.getElementById('post-job-btn');
 
-    // Verification controls whether a listing is LIVE, not whether an employer
-    // is allowed to prepare/submit it. Billing limits still apply normally.
-    if (postBtn) {
-      postBtn.classList.remove('locked');
-      postBtn.disabled = false;
-    }
-
     if (employerVerified) {
       if (lockBox) lockBox.style.display = 'none';
-      updatePostingAccessUI();
+      if (postBtn) {
+        postBtn.classList.remove('locked');
+        postBtn.disabled = false;
+      }
       return;
     }
 
     const status = String(currentProfile?.verification_status || 'not_submitted').toLowerCase();
-    const submitted = ['pending', 'pending_review', 'submitted', 'under_review', 'in_review'].includes(status);
+    const pending = status === 'pending' || status === 'pending_review';
 
     if (lockBox) {
       lockBox.style.display = 'block';
-      lockBox.innerHTML = submitted
-        ? `
-          <strong>Business verification pending</strong><br>
-          You can post your job now. It will be saved as <strong>Pending approval</strong> and will stay hidden from candidates until Alygnn approves your business.
-        `
-        : `
-          <strong>Business verification not complete</strong><br>
-          You can create your job now, but it will stay <strong>Pending approval</strong> and hidden from candidates until your business is verified.
-          <br><br>
-          <a href="employer-onboarding.html" style="color:#5D7FA3; font-weight:500;">Complete business verification →</a>
+
+      if (pending) {
+        lockBox.innerHTML = `
+          <strong>Business verification is under review</strong><br>
+          Your employer setup is complete. You can use your dashboard and prepare job drafts while Alygnn reviews your business.
+          Publishing unlocks automatically after approval.
         `;
+      } else if (status === 'rejected') {
+        lockBox.innerHTML = `
+          <strong>Business verification needs attention</strong><br>
+          Alygnn did not approve the current verification submission. Your dashboard remains available, but job publishing is locked.
+          <br><br>
+          <a href="contact.html" style="color:#5D7FA3; font-weight:500;">Contact support →</a>
+        `;
+      } else {
+        lockBox.innerHTML = `
+          <strong>Business setup required</strong><br>
+          Finish employer onboarding before publishing jobs.
+          <br><br>
+          <a href="employer-onboarding.html" style="color:#5D7FA3; font-weight:500;">Complete employer setup →</a>
+        `;
+      }
     }
 
-    updatePostingAccessUI();
+    if (postBtn) {
+      postBtn.classList.add('locked');
+      postBtn.disabled = true;
+    }
+
+    // Keep the wizard's own Continue/Post button (step 5) in sync with
+    // verification status too, not just the hidden legacy #post-job-btn.
     if (typeof renderWizardStep === 'function') renderWizardStep();
-  }
-
-  function postingCompanyInitials(){
-    const name = String(
-      currentProfile?.company_name ||
-      document.getElementById('f-company')?.value ||
-      'Company'
-    ).trim();
-
-    return name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0,2)
-      .map(part => part.charAt(0).toUpperCase())
-      .join('') || 'CO';
-  }
-
-  function renderPostingCompanyLogo(logoUrl){
-    const preview = document.getElementById('posting-logo-preview');
-    const card = document.getElementById('posting-logo-card');
-    const title = document.getElementById('posting-logo-title');
-    const status = document.getElementById('posting-logo-status');
-    if (!preview || !card || !title || !status) return;
-
-    const url = String(logoUrl || '').trim();
-    preview.innerHTML = '';
-
-    if (url) {
-      const img = document.createElement('img');
-      img.src = url;
-      img.alt = 'Company logo';
-      img.onerror = () => {
-        preview.innerHTML = '';
-        preview.textContent = postingCompanyInitials();
-      };
-      preview.appendChild(img);
-
-      card.classList.remove('missing');
-      title.textContent = 'Company logo added';
-      status.textContent = 'Ready to use on this job.';
-      status.className = 'posting-logo-status ready';
-    } else {
-      preview.textContent = postingCompanyInitials();
-      card.classList.add('missing');
-      title.textContent = 'Add your company logo';
-      status.textContent = 'Required before a new job can be posted.';
-      status.className = 'posting-logo-status error';
-    }
-  }
-
-  async function handlePostingCompanyLogoUpload(event){
-    const input = event.target;
-    const file = input.files && input.files[0];
-    const status = document.getElementById('posting-logo-status');
-
-    if (!file || !currentUser) return;
-
-    const allowed = ['image/png','image/jpeg','image/webp'];
-    if (!allowed.includes(file.type)) {
-      if (status) {
-        status.textContent = 'Use a PNG, JPG, or WEBP company logo.';
-        status.className = 'posting-logo-status error';
-      }
-      input.value = '';
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      if (status) {
-        status.textContent = 'Company logo must be 5 MB or smaller.';
-        status.className = 'posting-logo-status error';
-      }
-      input.value = '';
-      return;
-    }
-
-    companyLogoUploading = true;
-    if (status) {
-      status.textContent = 'Uploading logo…';
-      status.className = 'posting-logo-status';
-    }
-
-    const continueBtn = document.getElementById('wizard-continue-btn');
-    if (continueBtn && currentWizardStep === 1) continueBtn.disabled = true;
-
-    try {
-      const ext =
-        file.type === 'image/png'
-          ? 'png'
-          : file.type === 'image/webp'
-            ? 'webp'
-            : 'jpg';
-
-      const storagePath =
-        `${currentUser.id}/company-logo-${Date.now()}.${ext}`;
-
-      const { error: uploadError } = await sb.storage
-        .from('company-logos')
-        .upload(storagePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: publicData } = sb.storage
-        .from('company-logos')
-        .getPublicUrl(storagePath);
-
-      const logoUrl = publicData?.publicUrl || '';
-      if (!logoUrl) throw new Error('Could not create the company logo URL.');
-
-      const { error: saveError } = await sb
-        .from('profiles')
-        .update({ company_logo_url: logoUrl })
-        .eq('id', currentUser.id);
-
-      if (saveError) throw saveError;
-
-      currentProfile = {
-        ...(currentProfile || {}),
-        company_logo_url: logoUrl
-      };
-
-      renderPostingCompanyLogo(logoUrl);
-      showToast('Company logo saved.');
-    } catch (error) {
-      console.error('Company logo upload failed:', error);
-      if (status) {
-        status.textContent = 'Could not save the logo. Please try again.';
-        status.className = 'posting-logo-status error';
-      }
-      showToast('Could not save your company logo.');
-    } finally {
-      companyLogoUploading = false;
-      input.value = '';
-      renderWizardStep();
-    }
   }
 
   // ---- Post Job wizard (5 steps, matches the mobile app's step-by-step
@@ -2774,14 +1350,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const continueBtn = document.getElementById('wizard-continue-btn');
     if (currentWizardStep === TOTAL_WIZARD_STEPS) {
       continueBtn.textContent = editingJobId ? 'Save changes →' : 'Post job →';
-      const postingAllowed = editingJobId || (!billingReady ? false : canCreateNewJob());
-      const locked = !postingAllowed;
-      continueBtn.classList.toggle('locked', locked);
-      continueBtn.disabled = locked;
+      continueBtn.classList.toggle('locked', !employerVerified);
     } else {
       continueBtn.textContent = 'Continue';
       continueBtn.classList.remove('locked');
-      continueBtn.disabled = false;
     }
   }
 
@@ -2800,12 +1372,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       const company = document.getElementById('f-company').value.trim();
       if (!isValidJobTitle(title)) return 'Enter a real job title, like "Customer Service Representative" or "Sales Account Manager".';
       if (!isValidCompanyName(company)) return 'Enter a real company name.';
-      if (!editingJobId) {
-        if (companyLogoUploading) return 'Wait for your company logo to finish uploading.';
-        if (!String(currentProfile?.company_logo_url || '').trim()) {
-          return 'Upload your company logo before posting a new job.';
-        }
-      }
       return '';
     }
     if (step === 2) {
@@ -2910,422 +1476,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     }
   }
 
-  // ---- Notifications ----
-
-  function timeAgo(iso) {
-    const diffMs = Date.now() - new Date(iso).getTime();
-    const mins = Math.floor(diffMs / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    if (days < 7) return `${days}d ago`;
-    return new Date(iso).toLocaleDateString();
-  }
-
-  let employerMessageNotificationChannel = null;
-  let employerMessageNotificationPollTimer = null;
-  let employerMessageNotificationRefreshBusy = false;
-
-  function employerCandidateName(candidateId) {
-    const match = candidates.find(c => String(c.profile?.id || '') === String(candidateId || ''));
-    const profile = match?.profile || {};
-    const direct = String(profile.full_name || '').trim();
-    if (direct) return direct;
-
-    let resume = profile.resume_data;
-    if (typeof resume === 'string') {
-      try { resume = JSON.parse(resume); } catch (_) { resume = {}; }
-    }
-    if (!resume || typeof resume !== 'object') resume = {};
-
-    const personal = resume.personal && typeof resume.personal === 'object'
-      ? resume.personal
-      : {};
-
-    return String(
-      resume.name ||
-      resume.full_name ||
-      [personal.first_name, personal.last_name].filter(Boolean).join(' ') ||
-      'Candidate'
-    ).trim();
-  }
-
-  async function fetchEmployerUnreadMessageNotifications() {
-    if (!currentUser?.id) return [];
-
-    try {
-      const { data: threads, error: threadsError } = await sb
-        .from('message_threads')
-        .select('id,job_id,candidate_id,employer_id')
-        .eq('employer_id', currentUser.id);
-
-      if (threadsError) throw threadsError;
-
-      const employerThreads = threads || [];
-      const threadIds = employerThreads.map(t => t.id).filter(Boolean);
-      if (!threadIds.length) return [];
-
-      const { data: messageRows, error: messagesError } = await sb
-        .from('messages')
-        .select('id,thread_id,sender_id,body,created_at,read_at')
-        .in('thread_id', threadIds)
-        .neq('sender_id', currentUser.id)
-        .is('read_at', null)
-        .order('created_at', { ascending:false })
-        .limit(20);
-
-      if (messagesError) throw messagesError;
-
-      const unreadMessages = messageRows || [];
-      if (!unreadMessages.length) return [];
-
-      const threadMap = new Map(
-        employerThreads.map(t => [String(t.id), t])
-      );
-      const jobMap = new Map(
-        jobs.map(job => [String(job.id), job])
-      );
-
-      return unreadMessages.map(message => {
-        const thread = threadMap.get(String(message.thread_id)) || {};
-        const job = jobMap.get(String(thread.job_id)) || {};
-        const candidateName = employerCandidateName(thread.candidate_id);
-        const jobTitle = String(job.title || 'your job').trim();
-        const preview = String(message.body || '').trim().replace(/\s+/g, ' ');
-        const shortPreview = preview.length > 90 ? preview.slice(0,87) + '…' : preview;
-
-        return {
-          id: `message-${message.id}`,
-          source: 'message',
-          message_id: message.id,
-          thread_id: message.thread_id,
-          type: 'message',
-          title: `New message from ${candidateName}`,
-          body: shortPreview ? `${jobTitle}: ${shortPreview}` : `New reply about ${jobTitle}.`,
-          link: `messages.html?thread=${encodeURIComponent(message.thread_id)}`,
-          read_at: null,
-          created_at: message.created_at
-        };
-      });
-    } catch (error) {
-      console.warn('Could not load employer message notifications:', error);
-      return [];
-    }
-  }
-
-  async function fetchNotifications() {
-    const [{ data, error }, messageItems] = await Promise.all([
-      sb
-        .from('notifications')
-        .select('id, type, title, body, link, read_at, created_at')
-        .order('created_at', { ascending: false })
-        .limit(20),
-      fetchEmployerUnreadMessageNotifications()
-    ]);
-
-    if (error) {
-      console.error('Failed to load notifications:', error);
-    }
-
-    const regularItems = error ? [] : (data || []);
-
-    return [...messageItems, ...regularItems]
-      .sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-      .slice(0, 20);
-  }
-
-  let notificationItemsCache = [];
-
-  function notificationApplication(n) {
-    const rawLink = String(n?.link || '');
-
-    // Newer notifications may already carry IDs in their link.
-    try {
-      const url = new URL(rawLink || location.href, location.origin);
-      const applicationId =
-        url.searchParams.get('application') ||
-        url.searchParams.get('application_id') ||
-        url.searchParams.get('app');
-      const jobId =
-        url.searchParams.get('job') ||
-        url.searchParams.get('job_id');
-
-      if (applicationId) {
-        const exact = candidates.find(c => c.applicationId === applicationId);
-        if (exact) return exact;
-      }
-      if (jobId) {
-        const byJob = candidates
-          .filter(c => c.job?.id === jobId)
-          .sort((a,b) => new Date(b.appliedAt || 0) - new Date(a.appliedAt || 0));
-        if (byJob.length) return byJob[0];
-      }
-    } catch (e) {}
-
-    // Backward compatibility for the notifications already in Supabase:
-    // match the candidate name + job title that appear in title/body.
-    const haystack = `${n?.title || ''} ${n?.body || ''}`.toLowerCase();
-
-    const scored = candidates.map(c => {
-      const name = String(c.profile?.full_name || '').trim().toLowerCase();
-      const jobTitle = String(c.job?.title || '').trim().toLowerCase();
-      let score = 0;
-
-      if (name && haystack.includes(name)) score += 60;
-      if (jobTitle && haystack.includes(jobTitle)) score += 50;
-
-      if (n?.created_at && c.appliedAt) {
-        const diff = Math.abs(new Date(n.created_at).getTime() - new Date(c.appliedAt).getTime());
-        if (Number.isFinite(diff)) {
-          if (diff < 5 * 60 * 1000) score += 20;
-          else if (diff < 60 * 60 * 1000) score += 10;
-          else if (diff < 24 * 60 * 60 * 1000) score += 4;
-        }
-      }
-
-      return { c, score };
-    }).sort((a,b) => b.score - a.score);
-
-    return scored[0]?.score > 0 ? scored[0].c : null;
-  }
-
-  function renderNotifDropdown(items) {
-    notificationItemsCache = items || [];
-
-    const badge = document.getElementById('notif-badge');
-    const list = document.getElementById('notif-list');
-    const unreadCount = notificationItemsCache.filter(n => !n.read_at).length;
-
-    if (unreadCount > 0) {
-      badge.style.display = 'flex';
-      badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
-    } else {
-      badge.style.display = 'none';
-    }
-
-    if (notificationItemsCache.length === 0) {
-      list.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
-      return;
-    }
-
-    list.innerHTML = notificationItemsCache.slice(0, 6).map(n => {
-      const isApplicant =
-        String(n.type || '').toLowerCase().includes('applicant') ||
-        String(n.title || '').toLowerCase().includes('applicant') ||
-        String(n.body || '').toLowerCase().includes('applied');
-
-      if (isApplicant) {
-        const c = notificationApplication(n);
-        if (c?.job) {
-          const name = c.profile?.full_name || 'A candidate';
-          return `
-            <a class="notif-item ${n.read_at ? '' : 'unread'}" href="#"
-               onclick="handleCandidateNotification(event, '${n.id}')">
-              <div class="notif-item-title">${escapeHtml(c.job.title)} — New applicant</div>
-              <div class="notif-item-body">${escapeHtml(name)} applied to this job.</div>
-              <div class="notif-item-time">${timeAgo(n.created_at)}</div>
-            </a>
-          `;
-        }
-      }
-
-      if (n.source === 'message') {
-        return `
-          <a class="notif-item unread" href="${escapeHtml(n.link || '#')}"
-             onclick="handleEmployerMessageNotification(event, '${n.id}')">
-            <div class="notif-item-title">${escapeHtml(n.title)}</div>
-            ${n.body ? `<div class="notif-item-body">${escapeHtml(n.body)}</div>` : ''}
-            <div class="notif-item-time">${timeAgo(n.created_at)}</div>
-          </a>
-        `;
-      }
-
-      return `
-        <a class="notif-item ${n.read_at ? '' : 'unread'}" href="${n.link ? escapeHtml(n.link) : '#'}"
-           onclick="markNotificationRead('${n.id}')">
-          <div class="notif-item-title">${escapeHtml(n.title)}</div>
-          ${n.body ? `<div class="notif-item-body">${escapeHtml(n.body)}</div>` : ''}
-          <div class="notif-item-time">${timeAgo(n.created_at)}</div>
-        </a>
-      `;
-    }).join('');
-  }
-
-  async function handleCandidateNotification(event, id) {
-    if (event) event.preventDefault();
-
-    const n = notificationItemsCache.find(item => item.id === id);
-    const c = notificationApplication(n);
-
-    await markNotificationRead(id);
-
-    const dropdown = document.getElementById('notif-dropdown');
-    if (dropdown) dropdown.style.display = 'none';
-
-    if (!c?.job?.id) {
-      showToast('Could not match that notification to an application.');
-      return;
-    }
-
-    const params = new URLSearchParams({
-      job: c.job.id,
-      application: c.applicationId
-    });
-    window.location.href = 'candidates.html?' + params.toString();
-  }
-
-  async function handleEmployerMessageNotification(event, id) {
-    if (event) event.preventDefault();
-
-    const n = notificationItemsCache.find(item => item.id === id);
-    if (!n) return;
-
-    if (n.message_id) {
-      const { error } = await sb
-        .from('messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('id', n.message_id)
-        .neq('sender_id', currentUser.id)
-        .is('read_at', null);
-
-      if (error) console.warn('Could not mark employer message notification read:', error);
-    }
-
-    const dropdown = document.getElementById('notif-dropdown');
-    if (dropdown) dropdown.style.display = 'none';
-
-    window.location.href = n.link || 'messages.html';
-  }
-
-  async function markNotificationRead(id) {
-    await sb.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', id);
-  }
-
-  async function markAllEmployerNotificationsRead(event) {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-
-    const btn = document.getElementById('notif-mark-all-btn');
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = 'Marking…';
-    }
-
-    const now = new Date().toISOString();
-
-    const regularIds = notificationItemsCache
-      .filter(item => item.source !== 'message' && !item.read_at && item.id)
-      .map(item => item.id);
-
-    const messageIds = notificationItemsCache
-      .filter(item => item.source === 'message' && item.message_id)
-      .map(item => item.message_id);
-
-    try {
-      if (regularIds.length) {
-        const { error } = await sb
-          .from('notifications')
-          .update({ read_at: now })
-          .in('id', regularIds);
-
-        if (error) console.warn('Could not mark employer notifications read:', error);
-      }
-
-      if (messageIds.length && currentUser?.id) {
-        const { error } = await sb
-          .from('messages')
-          .update({ read_at: now })
-          .in('id', messageIds)
-          .neq('sender_id', currentUser.id)
-          .is('read_at', null);
-
-        if (error) console.warn('Could not mark employer message notifications read:', error);
-      }
-
-      await refreshNotifications();
-    } finally {
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = 'Mark all read';
-      }
-    }
-  }
-
-  async function refreshNotifications() {
-    const items = await fetchNotifications();
-    renderNotifDropdown(items);
-  }
-
-  function initNotifications() {
-    refreshNotifications();
-
-    const bell = document.getElementById('notif-bell');
-    const dropdown = document.getElementById('notif-dropdown');
-
-    bell.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = dropdown.style.display !== 'none';
-      dropdown.style.display = isOpen ? 'none' : 'block';
-      if (!isOpen) refreshNotifications();
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!document.getElementById('notif-wrap').contains(e.target)) {
-        dropdown.style.display = 'none';
-      }
-    });
-
-    // Live application notifications.
-    sb.channel('notifications-' + currentUser.id)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'notifications',
-        filter: `recipient_id=eq.${currentUser.id}`
-      }, () => refreshNotifications())
-      .subscribe();
-
-    // Live candidate replies for this employer.
-    if (!employerMessageNotificationChannel) {
-      employerMessageNotificationChannel = sb
-        .channel('employer-message-notifications-' + currentUser.id)
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
-        }, async payload => {
-          if (payload?.new?.sender_id === currentUser.id) return;
-
-          if (employerMessageNotificationRefreshBusy) return;
-          employerMessageNotificationRefreshBusy = true;
-          try {
-            await refreshNotifications();
-          } finally {
-            employerMessageNotificationRefreshBusy = false;
-          }
-        })
-        .subscribe(status => {
-          if (status === 'SUBSCRIBED') refreshNotifications();
-        });
-    }
-
-    // Fallback: refresh while the dashboard is visible even if a browser/network
-    // misses a websocket event.
-    if (!employerMessageNotificationPollTimer) {
-      employerMessageNotificationPollTimer = window.setInterval(() => {
-        if (document.visibilityState === 'visible') refreshNotifications();
-      }, 5000);
-    }
-
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') refreshNotifications();
-    });
-
-    window.addEventListener('focus', () => refreshNotifications());
-  }
-
   function escapeHtml(value) {
     return String(value || '')
       .replaceAll('&', '&amp;')
@@ -3346,23 +1496,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       .toUpperCase();
   }
 
-  async function activatePendingJobsIfApproved() {
-    // Database trigger should make this immediate when an admin approves the
-    // employer. This client-side fallback also promotes any pending jobs the
-    // next time an approved employer opens the dashboard.
-    if (!currentUser || !employerVerified) return;
-
-    const { error } = await sb
-      .from('jobs')
-      .update({ status: 'active', updated_at: new Date().toISOString() })
-      .eq('employer_id', currentUser.id)
-      .eq('status', 'pending');
-
-    if (error) {
-      console.warn('Could not auto-activate pending jobs from dashboard:', error);
-    }
-  }
-
   async function loadJobs() {
     if (!currentUser) return;
 
@@ -3375,22 +1508,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     if (error) {
       console.error('Failed to load jobs:', error);
       showToast('Could not load jobs from Supabase.');
-      document.getElementById('jobs-list').innerHTML = `
-        <div class="empty-state" id="jobs-error-state">
-          <div class="empty-icon">⚠️</div>
-          <div class="empty-title">Could not load your jobs</div>
-          <div style="font-size:13px; color:var(--text-muted); margin:6px 0 14px; word-break:break-word;">
-            ${escapeHtml(error.message || 'Unknown error.')}
-          </div>
-          <button class="btn-primary" onclick="loadJobs()">Retry</button>
-        </div>`;
       return;
     }
 
     jobs = data || [];
     await loadAppliedCounts();
     renderJobs();
-    if (billingReady) updatePostingAccessUI();
   }
 
   // The "Applied" number shown per job is computed live from the
@@ -3400,7 +1523,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   // client had no way to keep it accurate and it just stayed at 0.
   async function loadAppliedCounts() {
     jobAppliedCounts = {};
-    if (jobs.length === 0 || billingEntitlement.candidate_access_locked === true) return;
+    if (jobs.length === 0) return;
 
     const jobIds = jobs.map(j => j.id);
 
@@ -3419,8 +1542,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     });
   }
 
-  // ---- Applicants: loaded once and reviewed per job in a popup.
-  // Requires two RLS policies on top of the
+  // ---- Candidates: applications for this employer's jobs, joined with
+  // the applicant's profile. Requires two RLS policies on top of the
   // default "candidates manage their own applications" policy:
   //   1. Employers can SELECT applications where job_id belongs to them
   //   2. Employers can SELECT profiles of candidates who applied to their jobs
@@ -3428,13 +1551,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   // scoped the same way as the SELECT policy above.
   async function loadCandidates() {
     if (!currentUser) return;
-
-    if (billingEntitlement.candidate_access_locked === true) {
-      candidates = [];
-      candidatesLoaded = true;
-      renderCandidates();
-      return;
-    }
 
     if (jobs.length === 0) {
       candidates = [];
@@ -3496,93 +1612,57 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     candidatesLoaded = true;
     renderCandidates();
+    loadInterviews();
   }
 
-  // Candidates belong to a job. There is intentionally no global
-  // Candidates page: employers review applicants from a specific job row or
-  // from a job-specific application notification.
-  let currentJobApplicantsModalId = null;
-  let focusedApplicationId = null;
+  // Which job's candidates are currently shown — always exactly one job.
+  // This panel has no sidebar entry of its own; it's only reached via the
+  // "Candidates" button on a job row in My Jobs.
+  let candidateJobFilter = null;
 
+  // Called from the "Candidates" button on a job row in My Jobs — jumps
+  // straight to that job's applicants instead of making the employer
+  // switch panels and then find the right tab themselves.
   function viewCandidatesForJob(jobId) {
-    openJobApplicantsModal(jobId);
+    candidateJobFilter = jobId;
+    showPanel('candidates');
   }
 
-  function openJobApplicantsModal(jobId, applicationId = null) {
-    if (billingEntitlement.candidate_access_locked === true) {
-      showToast('Candidate access is paused until your payment is updated.');
-      window.location.href='candidates.html?billing=locked';
-      return;
-    }
-    const job = jobs.find(j => j.id === jobId);
-    if (!job) {
-      showToast('Could not find that job.');
-      return;
-    }
-
-    currentJobApplicantsModalId = jobId;
-    focusedApplicationId = applicationId || null;
-    renderJobApplicantsModal(jobId, focusedApplicationId);
-
-    const overlay = document.getElementById('job-applicants-modal-overlay');
-    if (overlay) overlay.classList.add('show');
-  }
-
-  function closeJobApplicantsModal() {
-    const overlay = document.getElementById('job-applicants-modal-overlay');
-    if (overlay) overlay.classList.remove('show');
-    currentJobApplicantsModalId = null;
-    focusedApplicationId = null;
-  }
-
-  function renderJobApplicantsModal(jobId, applicationId = null) {
-    const box = document.getElementById('job-applicants-modal-box');
-    if (!box) return;
-
-    const job = jobs.find(j => j.id === jobId);
-    if (!job) return;
-
-    let visible = candidates
-      .filter(c => c.job?.id === jobId)
-      .sort((a,b) => new Date(b.appliedAt || 0) - new Date(a.appliedAt || 0));
-
-    // When opened from a notification, put that applicant first so the
-    // employer immediately sees the person who triggered the notification.
-    if (applicationId) {
-      visible = [
-        ...visible.filter(c => c.applicationId === applicationId),
-        ...visible.filter(c => c.applicationId !== applicationId)
-      ];
-    }
-
-    box.innerHTML = `
-      <button type="button" class="modal-close" onclick="closeJobApplicantsModal()" aria-label="Close">✕</button>
-      <div class="job-applicants-head">
-        <div class="job-applicants-kicker">Applicants for this job</div>
-        <div class="job-applicants-title">${escapeHtml(job.title || 'Job')}</div>
-        <div class="job-applicants-sub">
-          ${escapeHtml(job.location || '')}${job.location && job.job_type ? ' · ' : ''}${escapeHtml(job.job_type || '')}
-          ${visible.length ? ` · ${visible.length} applicant${visible.length === 1 ? '' : 's'}` : ''}
-        </div>
-      </div>
-
-      ${visible.length
-        ? `<div class="job-applicants-list">
-            ${visible.map(c => renderCandidateCard(c, c.applicationId === applicationId)).join('')}
-           </div>`
-        : `<div class="job-applicants-empty">No one has applied to this job yet.</div>`}
-    `;
-  }
-
-  // Kept as the single refresh point after Accept / Pass. There is no global
-  // Candidates panel anymore; if a job popup is open, refresh only that popup.
   function renderCandidates() {
-    if (currentJobApplicantsModalId) {
-      renderJobApplicantsModal(currentJobApplicantsModalId, focusedApplicationId);
+    const grid = document.getElementById('candidates-grid');
+
+    const job = jobs.find(j => j.id === candidateJobFilter) || null;
+    const titleEl = document.getElementById('candidates-page-title');
+    const subEl = document.getElementById('candidates-page-sub');
+    if (titleEl) titleEl.textContent = job ? job.title : 'Candidates';
+    if (subEl) subEl.textContent = job ? 'Job seekers who swiped right on this listing' : 'Job seekers who swiped right on your listings';
+
+    if (!candidateJobFilter) {
+      grid.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1" id="candidates-empty-state">
+          <div class="empty-icon">👥</div>
+          <div class="empty-title">No job selected</div>
+          Open a job in My Jobs and click "Candidates" to see its applicants here.
+        </div>`;
+      return;
     }
+
+    const visible = candidates.filter(c => (c.job ? c.job.id : 'unknown') === candidateJobFilter);
+
+    if (visible.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1" id="candidates-empty-state">
+          <div class="empty-icon">👥</div>
+          <div class="empty-title">No candidates for this job yet</div>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = visible.map(c => renderCandidateCard(c)).join('');
+    filterCandidates();
   }
 
-  function renderCandidateCard(c, notificationFocus = false) {
+  function renderCandidateCard(c) {
     const name = c.profile.full_name || 'Candidate';
     const initials = getInitials(name);
     const jobTitle = c.job ? c.job.title : 'a job';
@@ -3615,16 +1695,22 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         ? `<span class="tag status-rejected">Passed</span>`
         : `<span class="tag">New applicant</span>`;
 
+    const interview = getInterviewForApplication(c.applicationId);
+    const interviewBadge = interview
+      ? `<div class="candidate-headline" style="color:var(--brand); font-weight:500;">📅 Interview: ${escapeHtml(formatInterviewDate(interview.scheduledAt))}</div>`
+      : '';
+
     return `
-      <div class="candidate-card ${notificationFocus ? 'notification-focus' : ''}" data-application-id="${c.applicationId}">
+      <div class="candidate-card" data-application-id="${c.applicationId}">
         <div class="candidate-top">
           <div class="candidate-avatar">${escapeHtml(initials)}</div>
           <div>
-            <div class="candidate-name">${escapeHtml(name)}${notificationFocus ? '<span class="notification-focus-label">New applicant</span>' : ''}</div>
+            <div class="candidate-name">${escapeHtml(name)}</div>
             <div class="candidate-role">Applied to ${escapeHtml(jobTitle)}</div>
           </div>
         </div>
         ${summarySnippet ? `<div class="candidate-headline">${escapeHtml(summarySnippet)}</div>` : ''}
+        ${interviewBadge}
         <div class="candidate-tags">
           ${statusTag}
           ${skillTags}
@@ -3636,16 +1722,15 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           <button class="btn-accept" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'accepted')">Accept</button>
           <button class="btn-pass" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'rejected')">Pass</button>
         </div>
+        <button type="button" class="btn-ai" style="width:100%; justify-content:center; margin-top:8px; padding:9px;" onclick="openInterviewModal('${c.applicationId}', '${c.job ? c.job.id : ''}', '${c.profile.id}', '${escapeJsString(name)}', '${escapeJsString(jobTitle)}');">
+          📅 ${interview ? 'Reschedule interview' : 'Schedule interview'}
+        </button>
       </div>
     `;
   }
 
   // ---- Candidate full-profile modal ----
   function openCandidateModal(applicationId) {
-    if (billingEntitlement.candidate_access_locked === true) {
-      showToast('Candidate access is paused until your payment is updated.');
-      return;
-    }
     const c = candidates.find(cand => cand.applicationId === applicationId);
     if (!c) return;
 
@@ -3658,13 +1743,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    const candidateOverlay = document.getElementById('candidate-modal-overlay');
-    if (candidateOverlay?.classList.contains('show')) {
-      closeCandidateModal();
-      return;
-    }
-    closeJobApplicantsModal();
+    if (e.key === 'Escape') closeCandidateModal();
   });
 
   function renderCandidateModal(c) {
@@ -3749,7 +1828,330 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         <button class="btn-accept" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'accepted'); closeCandidateModal();">Accept</button>
         <button class="btn-pass" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'rejected'); closeCandidateModal();">Pass</button>
       </div>
+      <button type="button" class="btn-ai" style="width:100%; justify-content:center; margin-top:8px; padding:10px;" onclick="closeCandidateModal(); openInterviewModal('${c.applicationId}', '${c.job ? c.job.id : ''}', '${profile.id}', '${escapeJsString(name)}', '${escapeJsString(jobTitle)}');">
+        📅 ${getInterviewForApplication(c.applicationId) ? 'Reschedule interview' : 'Schedule interview'}
+      </button>
     `;
+  }
+
+  // ---- Interviews ----
+  // Stored in a dedicated `interviews` table, one row per application
+  // (unique constraint on application_id so scheduling twice just
+  // updates the existing interview instead of creating duplicates).
+  // RLS: employers can only read/write interviews where employer_id
+  // matches their own auth.uid() — same pattern as applications/jobs.
+  let interviews = [];
+
+  function escapeJsString(value) {
+    return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  }
+
+  function getInterviewForApplication(applicationId) {
+    return interviews.find(iv => iv.applicationId === applicationId) || null;
+  }
+
+  function formatInterviewDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleString(undefined, {
+      weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+    });
+  }
+
+  // Converts an ISO timestamp into the value a <input type="datetime-local">
+  // expects (local time, no timezone suffix), so editing an existing
+  // interview shows the correct pre-filled date/time instead of blank.
+  function toDatetimeLocalValue(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  async function loadInterviews() {
+    if (!currentUser) return;
+
+    const { data, error } = await sb
+      .from('interviews')
+      .select('id, application_id, job_id, candidate_id, scheduled_at, location_or_link, video_link, notes')
+      .eq('employer_id', currentUser.id)
+      .order('scheduled_at', { ascending: true });
+
+    if (error) {
+      console.error('Failed to load interviews:', error);
+      interviews = [];
+      renderInterviewsPanel();
+      return;
+    }
+
+    const rows = data || [];
+    let profileMap = {};
+
+    if (rows.length > 0) {
+      const candidateIds = [...new Set(rows.map(r => r.candidate_id))];
+      const { data: profilesData, error: profilesError } = await sb
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', candidateIds);
+
+      if (profilesError) console.error('Failed to load candidate names for interviews:', profilesError);
+      (profilesData || []).forEach(p => { profileMap[p.id] = p; });
+    }
+
+    const jobMap = {};
+    jobs.forEach(j => { jobMap[j.id] = j; });
+
+    interviews = rows.map(r => ({
+      id: r.id,
+      applicationId: r.application_id,
+      jobId: r.job_id,
+      candidateId: r.candidate_id,
+      scheduledAt: r.scheduled_at,
+      locationOrLink: r.location_or_link,
+      videoLink: r.video_link,
+      notes: r.notes,
+      candidateName: profileMap[r.candidate_id]?.full_name || 'Candidate',
+      jobTitle: jobMap[r.job_id]?.title || 'a job'
+    }));
+
+    renderInterviewsPanel();
+    // Refresh candidate cards too, so the "Schedule interview" /
+    // "Reschedule interview" badges stay accurate if that panel is
+    // already on screen.
+    if (candidatesLoaded) renderCandidates();
+  }
+
+  function renderInterviewsPanel() {
+    const listEl = document.getElementById('interviews-list');
+    if (!listEl) return;
+
+    if (interviews.length === 0) {
+      listEl.innerHTML = `
+        <div class="empty-state" id="interviews-empty-state">
+          <div class="empty-icon">📅</div>
+          <div class="empty-title">No interviews scheduled yet</div>
+          Go to Candidates and click "Schedule interview" on a candidate to set one up.
+        </div>`;
+      return;
+    }
+
+    listEl.innerHTML = interviews.map(iv => {
+      const metaParts = [
+        formatInterviewDate(iv.scheduledAt),
+        iv.locationOrLink || null
+      ].filter(Boolean).join(' · ');
+
+      const videoLinkHtml = iv.videoLink
+        ? `<div class="job-meta" style="margin-top:2px;"><a href="${escapeHtml(iv.videoLink)}" target="_blank" rel="noopener" style="color:var(--brand);">${escapeHtml(iv.videoLink)}</a></div>`
+        : '';
+
+      return `
+      <div class="job-row">
+        <div class="job-status active"></div>
+        <div class="job-info">
+          <div class="job-title-text">${escapeHtml(iv.candidateName)} — ${escapeHtml(iv.jobTitle)}</div>
+          <div class="job-meta">${escapeHtml(metaParts)}</div>
+          ${videoLinkHtml}
+          ${iv.notes ? `<div class="job-meta" style="margin-top:4px;">${escapeHtml(iv.notes)}</div>` : ''}
+        </div>
+        <div class="job-actions">
+          <button class="btn-view" onclick="openInterviewModal('${iv.applicationId}', '${iv.jobId}', '${iv.candidateId}', '${escapeJsString(iv.candidateName)}', '${escapeJsString(iv.jobTitle)}')">Edit</button>
+          <button class="btn-danger" onclick="cancelInterview('${iv.id}')">Cancel</button>
+        </div>
+      </div>
+    `;
+    }).join('');
+  }
+
+  function openInterviewModal(applicationId, jobId, candidateId, candidateName, jobTitle) {
+    const existing = getInterviewForApplication(applicationId);
+
+    const scheduledAtLocal = existing ? toDatetimeLocalValue(existing.scheduledAt) : '';
+    const locationVal = existing ? (existing.locationOrLink || '') : '';
+    const videoLinkVal = existing ? (existing.videoLink || '') : '';
+    const notesVal = existing ? (existing.notes || '') : '';
+
+    document.getElementById('interview-modal-box').innerHTML = `
+      <button type="button" class="modal-close" onclick="closeInterviewModal()" aria-label="Close">✕</button>
+      <div class="modal-top">
+        <div class="modal-avatar">${escapeHtml(getInitials(candidateName))}</div>
+        <div>
+          <div class="modal-name">${existing ? 'Edit interview' : 'Schedule interview'}</div>
+          <div class="modal-role">${escapeHtml(candidateName)} — ${escapeHtml(jobTitle)}</div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:16px;">
+        <label class="form-label">Date & time</label>
+        <input type="datetime-local" class="form-input" id="iv-datetime" value="${escapeHtml(scheduledAtLocal)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location <span style="text-transform:none; font-weight:400;">(optional if remote)</span></label>
+        <div class="chip-search-wrap">
+          <input type="text" class="form-input" id="iv-location" placeholder="Start typing a city, like Raleigh, NC" autocomplete="off"
+            value="${escapeHtml(locationVal)}"
+            oninput="renderIvLocationSuggestions();"
+            onfocus="renderIvLocationSuggestions();"
+            onblur="setTimeout(hideIvLocationSuggestions, 150)">
+          <div class="chip-results" id="iv-location-suggestions"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Video link <span style="text-transform:none; font-weight:400;">(optional)</span></label>
+        <input type="text" class="form-input" id="iv-video-link" placeholder="e.g. Zoom, Google Meet, or Teams link" value="${escapeHtml(videoLinkVal)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes <span style="text-transform:none; font-weight:400;">(optional)</span></label>
+        <textarea class="form-input" id="iv-notes" placeholder="Anything to remember for this interview...">${escapeHtml(notesVal)}</textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-accept" onclick="saveInterview('${applicationId}', '${jobId}', '${candidateId}')">${existing ? 'Save changes' : 'Schedule'}</button>
+        ${existing
+          ? `<button class="btn-pass" onclick="cancelInterview('${existing.id}'); closeInterviewModal();">Cancel interview</button>`
+          : `<button class="btn-pass" onclick="closeInterviewModal()">Cancel</button>`}
+      </div>
+    `;
+
+    document.getElementById('interview-modal-overlay').classList.add('show');
+  }
+
+  // City suggestions for the interview location field — reuses the same
+  // KNOWN_CITIES list the Post a Job location step uses, but with its own
+  // element IDs (iv-location / iv-location-suggestions) since this modal's
+  // HTML is regenerated fresh each time it opens.
+  function renderIvLocationSuggestions() {
+    const input = document.getElementById('iv-location');
+    const box = document.getElementById('iv-location-suggestions');
+    if (!input || !box) return;
+
+    const query = input.value.trim().toLowerCase();
+    const matches = (query === ''
+      ? KNOWN_CITIES
+      : KNOWN_CITIES.filter(c => c.toLowerCase().includes(query))
+    ).slice(0, MAX_RESULTS_SHOWN);
+
+    if (matches.length === 0) {
+      box.classList.remove('show');
+      box.innerHTML = '';
+      return;
+    }
+
+    box.innerHTML = matches.map(city => {
+      const escaped = city.replace(/'/g, "\\'");
+      return `<div class="chip-result-row" onmousedown="event.preventDefault(); selectIvLocationSuggestion('${escaped}')">${escapeHtml(city)}</div>`;
+    }).join('');
+    box.classList.add('show');
+  }
+
+  function selectIvLocationSuggestion(city) {
+    const input = document.getElementById('iv-location');
+    if (input) input.value = city;
+    hideIvLocationSuggestions();
+  }
+
+  function hideIvLocationSuggestions() {
+    const box = document.getElementById('iv-location-suggestions');
+    if (box) box.classList.remove('show');
+  }
+
+
+  function closeInterviewModal() {
+    document.getElementById('interview-modal-overlay').classList.remove('show');
+  }
+
+  async function saveInterview(applicationId, jobId, candidateId) {
+    const datetimeVal = document.getElementById('iv-datetime').value;
+    const locationVal = document.getElementById('iv-location').value.trim();
+    const videoLinkVal = document.getElementById('iv-video-link').value.trim();
+    const notesVal = document.getElementById('iv-notes').value.trim();
+
+    if (!datetimeVal) {
+      showToast('Pick a date and time for the interview.');
+      return;
+    }
+
+    const scheduledAtIso = new Date(datetimeVal).toISOString();
+
+    const { error } = await sb
+      .from('interviews')
+      .upsert({
+        application_id: applicationId,
+        job_id: jobId,
+        candidate_id: candidateId,
+        employer_id: currentUser.id,
+        scheduled_at: scheduledAtIso,
+        location_or_link: locationVal || null,
+        video_link: videoLinkVal || null,
+        notes: notesVal || null
+      }, { onConflict: 'application_id' });
+
+    if (error) {
+      console.error('Failed to save interview:', error);
+      showToast('Could not save the interview. Try again.');
+      return;
+    }
+
+    showToast('Interview saved.');
+    closeInterviewModal();
+    await loadInterviews();
+
+    // Best-effort — a failed email shouldn't undo the interview that
+    // already saved successfully, so this is fire-and-forget with just a
+    // console warning (and a follow-up toast) if it doesn't go through.
+    notifyCandidateOfInterview({
+      candidateId,
+      jobId,
+      scheduledAtIso,
+      locationVal,
+      videoLinkVal,
+      notesVal
+    });
+  }
+
+  async function notifyCandidateOfInterview({ candidateId, jobId, scheduledAtIso, locationVal, videoLinkVal, notesVal }) {
+    const job = jobs.find(j => j.id === jobId);
+    const jobTitle = job ? job.title : 'the role';
+    const companyName = currentProfile?.company_name || document.getElementById('nav-user-name').textContent || '';
+
+    try {
+      const { data, error: emailError } = await sb.functions.invoke('send-interview-email', {
+        body: {
+          candidate_id: candidateId,
+          job_title: jobTitle,
+          company_name: companyName,
+          formatted_datetime: formatInterviewDate(scheduledAtIso) + ' (employer\'s local time)',
+          location: locationVal || null,
+          video_link: videoLinkVal || null,
+          notes: notesVal || null
+        }
+      });
+
+      if (emailError || !data?.success) {
+        console.error('Failed to send interview email:', emailError || data);
+        showToast('Interview saved, but the notification email did not send.');
+      }
+    } catch (err) {
+      console.error('notifyCandidateOfInterview error:', err);
+      showToast('Interview saved, but the notification email did not send.');
+    }
+  }
+
+  async function cancelInterview(interviewId) {
+    const { error } = await sb
+      .from('interviews')
+      .delete()
+      .eq('id', interviewId);
+
+    if (error) {
+      console.error('Failed to cancel interview:', error);
+      showToast('Could not cancel the interview. Try again.');
+      return;
+    }
+
+    showToast('Interview cancelled.');
+    await loadInterviews();
   }
 
   // Resumes live in a private bucket — a plain link won't carry the
@@ -3783,10 +2185,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   async function updateApplicationStatus(applicationId, status) {
-    if (billingEntitlement.candidate_access_locked === true) {
-      showToast('Candidate actions are paused until your payment is updated.');
-      return;
-    }
     const { error } = await sb
       .from('applications')
       .update({ status })
@@ -3802,102 +2200,11 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     await loadCandidates();
   }
 
-  function jobBoostIsActive(job) {
-    if (!job?.boosted_until) return false;
-    const until = new Date(job.boosted_until).getTime();
-    return !Number.isNaN(until) && until > Date.now();
-  }
-
-  function formatBoostUntil(value) {
-    if (!value) return '';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return '';
-    return d.toLocaleString([], {
-      month:'short', day:'numeric', year:'numeric',
-      hour:'numeric', minute:'2-digit', timeZoneName:'short'
-    });
-  }
-
-  function eligibleBoostJobs() {
-    return jobs.filter(job => String(job.status || 'active').toLowerCase() === 'active');
-  }
-
-  function openBoostCheckout(jobId) {
-    const job = jobs.find(j => j.id === jobId);
-    if (!job || String(job.status || '').toLowerCase() !== 'active') {
-      showToast('Only active jobs can be boosted.');
-      return;
-    }
-    window.location.href = 'boost-checkout.html?job=' + encodeURIComponent(job.id);
-  }
-
-  function openBoostPicker() {
-    const overlay = document.getElementById('boost-modal-overlay');
-    const box = document.getElementById('boost-modal-box');
-    if (!overlay || !box) return;
-
-    const activeJobs = eligibleBoostJobs();
-
-    if (!activeJobs.length) {
-      box.innerHTML = `
-        <button type="button" class="modal-close" onclick="closeBoostPicker()" aria-label="Close">✕</button>
-        <div class="boost-modal-head">
-          <div class="boost-modal-kicker">Job Boost · $15 / day</div>
-          <div class="boost-modal-title">Choose a job to boost</div>
-          <div class="boost-modal-copy">You need an active job before you can choose Boost dates.</div>
-        </div>
-        <button class="btn-primary" type="button" onclick="closeBoostPicker(); openPostJob();">Post a job</button>
-      `;
-    } else {
-      box.innerHTML = `
-        <button type="button" class="modal-close" onclick="closeBoostPicker()" aria-label="Close">✕</button>
-        <div class="boost-modal-head">
-          <div class="boost-modal-kicker">Job Boost · $15 / day</div>
-          <div class="boost-modal-title">Which job do you want to boost?</div>
-          <div class="boost-modal-copy">Choose the job first, then select 1–30 Boost days on the calendar. Each day is $15.</div>
-        </div>
-        <div class="boost-job-list">
-          ${activeJobs.map(job => {
-            const activeBoost = jobBoostIsActive(job);
-            return `
-              <button class="boost-job-option" type="button" onclick="openBoostCheckout('${job.id}')">
-                <div>
-                  <div class="boost-job-option-title">
-                    ${escapeHtml(job.title || 'Untitled role')}
-                    ${activeBoost ? '<span class="boosted-pill">Boosted</span>' : ''}
-                  </div>
-                  <div class="boost-job-option-meta">
-                    ${escapeHtml(job.location || 'Location not listed')}
-                    ${activeBoost ? ' · Boost active until ' + escapeHtml(formatBoostUntil(job.boosted_until)) : ''}
-                  </div>
-                </div>
-                <span class="boost-job-option-action">${activeBoost ? 'Add days →' : 'Boost →'}</span>
-              </button>
-            `;
-          }).join('')}
-        </div>
-      `;
-    }
-
-    overlay.classList.add('show');
-  }
-
-  function closeBoostPicker() {
-    const overlay = document.getElementById('boost-modal-overlay');
-    if (overlay) overlay.classList.remove('show');
-
-    const url = new URL(window.location.href);
-    if (url.searchParams.get('action') === 'boost') {
-      url.searchParams.delete('action');
-      history.replaceState({}, '', url.pathname + url.search + (window.location.hash || '#jobs'));
-    }
-  }
-
   function renderJobs() {
     const jobsList = document.getElementById('jobs-list');
 
     if (jobs.length === 0) {
-      jobsList.innerHTML = `<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">Your job slot is available</div>Post a job using your available slot. If your business is still being verified, the job will stay pending until approval.</div>`;
+      jobsList.innerHTML = `<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">No active listings</div>Post your first job to start receiving candidates.</div>`;
       return;
     }
 
@@ -3945,65 +2252,20 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   function renderJobRow(job) {
-    const rawStatus = String(job.status || 'active').toLowerCase();
-    const closeReason = String(job.closed_reason || '').toLowerCase();
-    const isClosed = rawStatus === 'closed';
-    const pending = ['pending','pending_review','pending_verification'].includes(rawStatus);
-
-    const statusClass = isClosed
-      ? 'closed'
-      : pending
-        ? 'pending'
-        : rawStatus === 'active'
-          ? 'active'
-          : 'paused';
-
-    let statusLabel = pending
-      ? 'Pending approval'
-      : rawStatus === 'active'
-        ? 'Active'
-        : (rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1));
-
-    if (isClosed && closeReason === 'free_candidate_cap') {
-      statusLabel = 'Closed · 25 candidates';
-    } else if (isClosed && closeReason === 'weekly_slot_expired') {
-      statusLabel = 'Closed · Weekly expired';
-    }
-
-    const closedAction = closeReason === 'free_candidate_cap'
-      ? `<button class="btn-view" onclick="redirectToPricing('free-candidate-cap')">Add a job slot</button>`
-      : closeReason === 'weekly_slot_expired'
-        ? `<button class="btn-view" onclick="redirectToPricing('weekly-expired')">Get a job slot</button>`
-        : `<button class="btn-view" onclick="reopenJob('${job.id}')">Reopen</button>`;
-
     return `
       <div class="job-row">
-        <div class="job-status ${statusClass}"></div>
+        <div class="job-status active"></div>
         <div class="job-info">
-          <div class="job-title-text">${escapeHtml(job.title)}<span class="job-status-badge ${statusClass}">${escapeHtml(statusLabel)}</span>${jobBoostIsActive(job) ? `<span class="boosted-pill">Boosted</span><span class="boost-until">until ${escapeHtml(formatBoostUntil(job.boosted_until))}</span>` : ''}${job.urgently_hiring === true ? `<span class="urgent-pill">Urgently Hiring</span>` : ''}</div>
+          <div class="job-title-text">${escapeHtml(job.title)}</div>
           <div class="job-meta">${escapeHtml(job.job_type || '')} · ${escapeHtml(formatWorkStyleLabel(job.work_style))}${job.salary ? ' · ' + escapeHtml(job.salary) : ''}${job.location ? ' · ' + escapeHtml(job.location) : ''}</div>
         </div>
         <div class="job-stats">
           <div><div class="js-val">${job.views || 0}</div><div class="js-label">Views</div></div>
-          <div><div class="js-val">${billingEntitlement.candidate_access_locked === true ? '—' : (jobAppliedCounts[job.id] || 0)}</div><div class="js-label">${billingEntitlement.candidate_access_locked === true ? 'Locked' : 'Applied'}</div></div>
+          <div><div class="js-val">${jobAppliedCounts[job.id] || 0}</div><div class="js-label">Applied</div></div>
         </div>
         <div class="job-actions">
-          ${isClosed
-            ? closedAction
-            : pending
-              ? '<button class="btn-view" disabled style="opacity:.45; cursor:not-allowed;" title="This job will accept candidates after business approval.">Candidates</button>'
-              : billingEntitlement.candidate_access_locked === true
-                ? `<button class="btn-view" onclick="window.location.href='candidates.html?billing=locked'">Unlock candidates</button>`
-                : `<button class="btn-view" onclick="window.location.href='candidates.html?job=${encodeURIComponent(job.id)}'">Candidates</button>`}
+          <button class="btn-view" onclick="viewCandidatesForJob('${job.id}')">Candidates</button>
           <button class="btn-view" onclick="window.location.href='job-details.html?job=${job.id}&from=employer'">View</button>
-          ${isClosed
-            ? ''
-            : pending
-              ? '<button class="btn-view" disabled style="opacity:.45; cursor:not-allowed;" title="Only active jobs can be boosted.">Boost</button>'
-              : `<button class="btn-view" onclick="window.location.href='boost-checkout.html?job=${encodeURIComponent(job.id)}'">${jobBoostIsActive(job) ? 'Boost again' : 'Boost'}</button>`}
-          ${!isClosed && canUseUrgentBadge()
-            ? `<button class="btn-view ${job.urgently_hiring === true ? 'urgent-on' : ''}" onclick="toggleUrgent('${job.id}')">${job.urgently_hiring === true ? 'Remove urgently hiring' : 'Urgently Hiring'}</button>`
-            : ''}
           <button class="btn-view" onclick="editJob('${job.id}')">Edit</button>
           <button class="btn-danger" onclick="deleteJob('${job.id}')">Delete</button>
         </div>
@@ -4128,8 +2390,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       salary: buildSalaryString(),
       description: document.getElementById('f-desc').value.trim(),
       requirements: document.getElementById('f-reqs').value.trim(),
-      benefits: document.getElementById('f-benefits').value.trim(),
-      work_authorization_support: Array.from(workAuthorizationState)
+      benefits: document.getElementById('f-benefits').value.trim()
     };
   }
 
@@ -4155,8 +2416,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const benefitValues = (job.benefits || '').split('\n').map(b => b.trim()).filter(Boolean);
     resetChips('benefit', benefitValues);
 
-    setWorkAuthorization(job.work_authorization_support || []);
-
     updatePreview();
   }
 
@@ -4177,7 +2436,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     resetChips('req', []);
     resetChips('benefit', []);
-    setWorkAuthorization([]);
 
     updatePreview();
   }
@@ -4241,15 +2499,12 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       return /remote|united states|usa|u\.s\.|[A-Za-z]{3,}/i.test(clean);
     }
 
-    // The suggestion catalog is convenience only, never a gate.
-    // Accept any "City, ST" / "City, State" location, plus statewide postings
-    // using a full state/territory name.
-    const cityStateShape = /^[A-Za-z .'-]{2,},\s*[A-Za-z .'-]{2,}$/.test(clean);
-    const stateOnly = US_STATES.some(([name, abbr]) =>
-      clean.toLowerCase() === name.toLowerCase() ||
-      clean.toUpperCase() === abbr
-    );
-    return cityStateShape || stateOnly;
+    // No longer checks window.google/selectedGooglePlace — the location
+    // field is now backed by our own KNOWN_CITIES list rather than Google
+    // Places Autocomplete (see renderLocationSuggestions), so any
+    // "City, ST"-shaped text is accepted whether it came from a
+    // suggestion click or was typed by hand.
+    return /^[A-Za-z .'-]{3,},\s*[A-Za-z]{2,}(,\s*[A-Za-z .'-]+)?$/.test(clean);
   }
 
   function isValidSalary(salary) {
@@ -4299,8 +2554,8 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       .map(r => normalizeText(r))
       .filter(Boolean);
 
-    if (requirements.length < 1) {
-      return 'Select at least 1 requirement.';
+    if (requirements.length < 3) {
+      return 'Select at least 3 requirements.';
     }
 
     return '';
@@ -4371,35 +2626,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   // correctly.
 
   async function postJob() {
-    // Verification determines whether a NEW listing is active or pending.
-    // It no longer sends the employer back through onboarding.
-
-    // A company logo is required only for NEW job postings.
-    // Existing jobs can still be edited without forcing a logo upload.
-    if (!editingJobId) {
-      if (companyLogoUploading) {
-        showToast('Wait for your company logo to finish uploading.');
-        return;
-      }
-
-      if (!String(currentProfile?.company_logo_url || '').trim()) {
-        currentWizardStep = 1;
-        renderWizardStep();
-        renderPostingCompanyLogo('');
-        showToast('Upload your company logo before posting a new job.');
-        return;
-      }
-    }
-
-    // Editing keeps the same slot. Creating a new listing requires an available slot.
-    if (!editingJobId) {
-      if (!billingReady) await loadBillingEntitlement();
-
-      const access = getPostingAccess();
-      if (!access.allowed) {
-        redirectToPricing(access.reason);
-        return;
-      }
+    if (!employerVerified) {
+      showToast('Your business must be approved by Alygnn before this job can be published.');
+      updateVerificationUI();
+      return;
     }
 
     const job = collectJobForm();
@@ -4434,59 +2664,20 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         .insert({
           employer_id: currentUser.id,
           ...job,
-          status: employerVerified ? 'active' : 'pending'
+          status: 'active'
         });
 
       if (error) {
         console.error('Failed to post job:', error);
-
-        const message = String(error.message || '').toLowerCase();
-        const isBillingBlock =
-          message.includes('free job') ||
-          message.includes('free posting') ||
-          message.includes('subscription') ||
-          message.includes('business or enterprise') ||
-          message.includes('active job limit') ||
-          message.includes('posting limit') ||
-          message.includes('paid job') ||
-          message.includes('job credit') ||
-          message.includes('single job');
-
-        const missingWorkAuthColumn =
-          message.includes('work_authorization_support') &&
-          (
-            message.includes('schema cache') ||
-            message.includes('column') ||
-            message.includes('could not find')
-          );
-
-        if (missingWorkAuthColumn) {
-          showToast('Job posting setup needs one Supabase update for Work Authorization. Run the provided SQL once, then post again.');
-        } else if (
-          isBillingBlock ||
-          message.includes('reusable job slots') ||
-          message.includes('job slots are currently in use') ||
-          message.includes('posting capacity is inconsistent')
-        ) {
-          showToast(error.message || 'No job slot is available.');
-          await loadBillingEntitlement();
-          updatePostingAccessUI();
-        } else {
-          // Surface the real database reason while this flow is being validated.
-          showToast(error.message || 'Could not post job. Please try again.');
-        }
+        showToast('Could not post job. Check Supabase jobs table.');
         return;
       }
 
-      showToast(employerVerified
-        ? 'Job posted successfully!'
-        : 'Job saved as pending. It will go live automatically after your business is approved.');
+      showToast('🎉 Job posted successfully!');
       clearJobForm();
     }
 
     await loadJobs();
-    await loadBillingEntitlement();
-    updatePostingAccessUI();
     setTimeout(() => showPanel('jobs'), 500);
   }
 
@@ -4515,59 +2706,11 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     updateVerificationUI();
   }
 
-  async function reopenJob(jobId) {
-    const job = jobs.find(j => j.id === jobId);
-    if (!job) return;
-
-    const closeReason = String(job.closed_reason || '').toLowerCase();
-
-    if (closeReason === 'free_candidate_cap' && !hasActivePaidPlan()) {
-      showToast('This free job reached 25 candidates. Choose a paid plan to reopen it.');
-      setTimeout(() => redirectToPricing('free-candidate-cap'), 700);
-      return;
-    }
-
-    if (closeReason === 'weekly_slot_expired' && !canCreateNewJob()) {
-      showToast('The 7-day Weekly Job Slot expired. Add capacity or free a slot to reopen this job.');
-      setTimeout(() => redirectToPricing('weekly-expired'), 700);
-      return;
-    }
-
-    const { error } = await sb
-      .from('jobs')
-      .update({
-        status: employerVerified ? 'active' : 'pending',
-        closed_reason: null,
-        closed_at: null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', jobId)
-      .eq('employer_id', currentUser.id);
-
-    if (error) {
-      console.error('Failed to reopen job:', error);
-      const msg = String(error.message || '');
-      if (/slot|capacity|25-candidate|paid job slot/i.test(msg)) {
-        showToast(msg);
-        await loadBillingEntitlement();
-        updatePostingAccessUI();
-      } else {
-        showToast('Could not reopen job.');
-      }
-      return;
-    }
-
-    await loadJobs();
-    await loadBillingEntitlement();
-    updatePostingAccessUI();
-    showToast(employerVerified ? 'Job reopened.' : 'Job moved back to pending approval.');
-  }
-
   async function deleteJob(jobId) {
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
 
-    if (!confirm(`Delete "${job.title}"? This will free the job slot so you can post another job.`)) return;
+    if (!confirm(`Delete "${job.title}"?`)) return;
 
     const { error } = await sb
       .from('jobs')
@@ -4583,13 +2726,11 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     if (editingJobId === jobId) cancelEdit();
     await loadJobs();
-    await loadBillingEntitlement();
-    updatePostingAccessUI();
-    showToast('Job deleted. Your job slot is available again.');
+    showToast('Job deleted.');
   }
 
   async function logout() {
-    await sb.auth.signOut({ scope: 'local' });
+    await sb.auth.signOut();
     window.location.href = 'index.html';
   }
 
