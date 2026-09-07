@@ -328,6 +328,22 @@ async function patchEntitlement(employerId,patch){
   });
   if(!r.ok)throw new Error('Could not save billing state: '+await r.text());
 }
+
+async function manageRpc(name,body={}){
+  const r=await fetch(manageBase()+'/rest/v1/rpc/'+encodeURIComponent(name),{
+    method:'POST',
+    headers:manageServiceHeaders(),
+    body:JSON.stringify(body)
+  });
+  const data=await r.json().catch(()=>null);
+  if(!r.ok){
+    throw new Error(
+      (data&&(data.message||data.error))||
+      `Supabase RPC ${name} failed.`
+    );
+  }
+  return data;
+}
 function exactPlan(ent){
   const exact=String(ent?.test_plan||'').toLowerCase();
   if(['launch','growth','scale'].includes(exact))return exact;
@@ -743,13 +759,43 @@ async function applyDueTestPlanChange(
       :NaN;
 
   if(
-    !['launch','growth','scale'].includes(
+    !['free','launch','growth','scale'].includes(
       pending
     ) ||
     !Number.isFinite(effectiveAt) ||
     effectiveAt>Date.now()
   ){
     return ent;
+  }
+
+  // A scheduled test-plan cancellation has reached its renewal date.
+  // Close every job using paid capacity, preserve one permanent Free-slot job,
+  // and return the employer to normal Free access.
+  if(pending==='free'){
+    await manageRpc(
+      'alygnn_apply_free_fallback_after_plan_end',
+      {p_employer_id:employerId}
+    );
+
+    await patchEntitlement(employerId,{
+      plan:'free',
+      test_plan:null,
+      test_mode:false,
+      subscription_status:'inactive',
+      slot_limit:0,
+      billing_period:null,
+      urgently_hiring:false,
+      current_period_end:null,
+      plan_amount_cents:null,
+      stripe_plan_subscription_id:null,
+      stripe_plan_customer_id:null,
+      stripe_plan_schedule_id:null,
+      pending_plan:null,
+      pending_billing_period:null,
+      pending_plan_effective_at:null
+    });
+
+    return await getEntitlement(employerId);
   }
 
   await patchEntitlement(employerId,{
