@@ -260,6 +260,8 @@ nav{
           <button class="notif-mark-all" id="notif-mark-all-btn" type="button" onclick="markAllEmployerNotificationsRead(event)">Mark all read</button>
         </div>
         <div id="notif-list"><div class="notif-empty">No notifications yet.</div></div>
+      </div>
+    </div>
 
     <span class="nav-name" id="header-company-name">Employer</span>
 
@@ -406,37 +408,37 @@ function renderRoster(){
 async function loadHeaderCompanyName(){
   try{
     let name='';
-    const companyId=String(access?.company_id||'');
+    const ownerId=String(access?.owner_user_id||session?.user?.id||'');
 
-    if(companyId){
-      const {data}=await sb
-        .from('companies')
-        .select('company_name,name,legal_name')
-        .eq('id',companyId)
+    // Employer Account reads company_name from the employer profile.
+    // Use the same source first so this header matches it exactly.
+    if(ownerId){
+      const {data:profile}=await sb
+        .from('profiles')
+        .select('company_name,full_name')
+        .eq('id',ownerId)
         .maybeSingle();
 
       name=
-        data?.company_name||
-        data?.name||
-        data?.legal_name||
+        profile?.company_name||
         '';
     }
 
+    // Fallback to the company record when available.
     if(!name){
-      const ownerId=String(access?.owner_user_id||session?.user?.id||'');
+      const companyId=String(access?.company_id||'');
 
-      if(ownerId){
-        const {data}=await sb
+      if(companyId){
+        const {data:company}=await sb
           .from('companies')
           .select('company_name,name,legal_name')
-          .eq('owner_user_id',ownerId)
-          .limit(1)
+          .eq('id',companyId)
           .maybeSingle();
 
         name=
-          data?.company_name||
-          data?.name||
-          data?.legal_name||
+          company?.company_name||
+          company?.name||
+          company?.legal_name||
           '';
       }
     }
