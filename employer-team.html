@@ -341,6 +341,7 @@ nav{
 <script>
 const SUPABASE_URL='https://auth.alygnn.com';
 const SUPABASE_ANON_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+const TEAM_INVITE_FUNCTION_URL='https://auth.alygnn.com/functions/v1/send-team-invite';
 function alygnnAuthStorageKey(){let t=sessionStorage.getItem('alygnn_auth_tab_id');if(!t){t=crypto?.randomUUID?.()||`${Date.now()}-${Math.random()}`;sessionStorage.setItem('alygnn_auth_tab_id',t)}return `alygnn-auth-${t}`}
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{storage:sessionStorage,storageKey:alygnnAuthStorageKey(),persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let session=null,access=null,roster=null,editingMember=null;
@@ -468,6 +469,42 @@ async function loadTeam(){
 function openInvite(){if(!can('team_manage'))return;editingMember=null;$('modal-title').textContent='Invite team member';$('member-name').value='';$('member-email').value='';$('member-email').readOnly=false;$('member-role').value='recruiter';$('remove-member').style.display='none';$('save-member').textContent='Send invite';applyRolePreset();clearMsg('modal-message');$('invite-overlay').classList.add('show')}
 function closeInvite(){$('invite-overlay').classList.remove('show')}
 function editMember(encoded){editingMember=JSON.parse(encoded);$('modal-title').textContent='Edit team member';$('member-name').value=editingMember.name||'';$('member-email').value=editingMember.email||'';$('member-email').readOnly=true;$('member-role').value=['admin','hiring_manager','recruiter'].includes(editingMember.team_role)?editingMember.team_role:'recruiter';$('remove-member').style.display='inline-block';$('save-member').textContent='Save access';renderPermissions(editingMember.permissions);clearMsg('modal-message');$('invite-overlay').classList.add('show')}
+
+async function sendTeamInviteEmail(inviteId){
+  if(!session?.access_token){
+    throw new Error('Your Alygnn session expired. Please sign in again.');
+  }
+
+  const response=await fetch(TEAM_INVITE_FUNCTION_URL,{
+    method:'POST',
+
+    // text/plain keeps this request CORS-safelisted and avoids the browser
+    // preflight problem that was causing "Failed to send a request to the Edge Function".
+    headers:{
+      'Content-Type':'text/plain;charset=UTF-8'
+    },
+
+    body:JSON.stringify({
+      invite_id:String(inviteId||''),
+      access_token:session.access_token
+    })
+  });
+
+  let data={};
+  try{
+    data=await response.json();
+  }catch(_){}
+
+  if(!response.ok || data?.success!==true){
+    throw new Error(
+      data?.error ||
+      `Invitation email service returned ${response.status}.`
+    );
+  }
+
+  return data;
+}
+
 async function saveMember(){
  if(!can('team_manage'))return;const b=$('save-member');const name=$('member-name').value.trim(),email=$('member-email').value.trim().toLowerCase(),role=$('member-role').value,permissions=currentPerms();
  if(name.length<2)return showMsg('modal-message','Enter the team member’s name.');
@@ -477,14 +514,36 @@ async function saveMember(){
   if(editingMember){const {error}=await sb.rpc('update_company_team_member',{p_user_id:editingMember.user_id,p_team_role:role,p_permissions:permissions});if(error)throw error;showMsg('page-message','Team member access updated.','success')}
   else{
    const {data:invite,error}=await sb.rpc('create_company_team_invite',{p_email:email,p_member_name:name,p_team_role:role,p_permissions:permissions});if(error)throw error;
-   try{const result=await sb.functions.invoke('send-team-invite',{body:{invite_id:invite?.id}});if(result.error)throw result.error;showMsg('page-message','Invitation sent.','success')}catch(mail){console.warn(mail);showMsg('page-message','Invitation saved, but the email could not be sent.','error')}
+   try{
+     await sendTeamInviteEmail(invite?.id);
+     showMsg('page-message','Invitation sent.','success');
+   }catch(mail){
+     console.warn('Team invite email failed:',mail);
+     showMsg(
+       'page-message',
+       mail?.message||'Invitation saved, but the email could not be sent.',
+       'error'
+     );
+   }
   }
   closeInvite();await loadTeam();
  }catch(e){showMsg('modal-message',e.message||'Could not save the team member.')}finally{b.disabled=false}
 }
 async function removeMember(){if(!editingMember||!confirm(`Remove ${editingMember.name||editingMember.email} from this workspace?`))return;try{const {error}=await sb.rpc('remove_company_team_member',{p_user_id:editingMember.user_id});if(error)throw error;closeInvite();await loadTeam();showMsg('page-message','Team member removed.','success')}catch(e){showMsg('modal-message',e.message||'Could not remove team member.')}}
 async function revokeInvite(id){if(!confirm('Revoke this pending invitation?'))return;try{const {error}=await sb.rpc('revoke_company_team_invite',{p_invite_id:id});if(error)throw error;await loadTeam();showMsg('page-message','Invitation revoked.','success')}catch(e){showMsg('page-message',e.message||'Could not revoke invitation.')}}
-async function resendInvite(id){try{const result=await sb.functions.invoke('send-team-invite',{body:{invite_id:id}});if(result.error)throw result.error;showMsg('page-message','Invitation email sent again.','success')}catch(e){showMsg('page-message',e.message||'Could not resend invitation.')}}
+async function resendInvite(id){
+  try{
+    await sendTeamInviteEmail(id);
+    showMsg('page-message','Invitation email sent again.','success');
+  }catch(e){
+    console.error('Team invite resend failed:',e);
+    showMsg(
+      'page-message',
+      e?.message||'Could not resend the invitation email.',
+      'error'
+    );
+  }
+}
 function buySeat(){
   location.href='employer-team-payment.html';
 }
