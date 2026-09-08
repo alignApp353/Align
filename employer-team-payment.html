@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Team seat checkout — Alygnn</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+:root{
+  --brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--card:#FCFCFA;
+  --text:#1A2530;--muted:#4A5968;--border:#DDE3E8;--mint:#6FBF8F;--rose:#D79A9A;
+}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',Arial,sans-serif}
+nav{
+  height:64px;position:fixed;top:0;left:0;right:0;z-index:30;background:rgba(246,248,247,.94);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 5%;
+}
+.logo{font-family:'DM Serif Display';font-size:22px;color:var(--brand);text-decoration:none}.logo span{color:var(--sage)}
+.nav-center{position:absolute;left:50%;transform:translateX(-50%);display:flex;gap:24px;align-items:center}
+.nav-center a{font-size:14px;color:var(--muted);text-decoration:none;padding:6px 0;border-bottom:2px solid transparent}
+.nav-center a.active{color:var(--text);border-bottom-color:var(--brand)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:16px}
+.nav-name{font-size:14px;color:var(--muted);max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-btn{border-radius:100px;padding:8px 18px;font:500 13px 'DM Sans';cursor:pointer;text-decoration:none}
+.nav-btn.outline{background:white;border:1px solid var(--border);color:var(--text)}
+.nav-btn.brand{background:var(--brand);border:1px solid var(--brand);color:#fff}
+.page{max-width:1000px;margin:0 auto;padding:112px 24px 60px}
+.back{display:inline-flex;align-items:center;gap:7px;color:var(--muted);text-decoration:none;font-size:13px;margin-bottom:24px}
+.back:hover{color:var(--brand)}
+.checkout-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:start}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:26px}
+.eyebrow{text-transform:uppercase;letter-spacing:1.8px;color:var(--brand);font-size:11px;font-weight:700}
+h1,h2{font-family:'DM Serif Display';font-weight:400}
+h1{font-size:38px;margin:8px 0 12px}h2{font-size:24px;margin:0 0 8px}
+.lead{font-size:14px;line-height:1.6;color:var(--muted);margin:0 0 24px}
+.plan-box{border:1px solid var(--border);background:#F7F9FA;border-radius:14px;padding:16px;margin:18px 0}
+.plan-row{display:flex;justify-content:space-between;gap:14px;align-items:center}
+.plan-name{font-weight:700}.plan-badge{padding:5px 9px;border-radius:999px;background:#EEF3F7;color:var(--brand);font-size:11px;font-weight:700}
+.plan-copy{font-size:12px;color:var(--muted);line-height:1.5;margin-top:6px}
+.feature-list{list-style:none;margin:18px 0 0;padding:0}.feature-list li{padding:11px 0;border-top:1px solid var(--border);font-size:13px;color:var(--muted)}
+.feature-list li::before{content:'✓';color:var(--sage);font-weight:700;margin-right:9px}
+.terms{display:flex;align-items:flex-start;gap:10px;margin-top:20px;padding:14px;border:1px solid var(--border);border-radius:12px;background:white}
+.terms input{margin-top:3px}.terms label{font-size:12px;line-height:1.55;color:var(--muted)}.terms a{color:var(--brand);text-decoration:none}
+.action{width:100%;height:50px;border:0;border-radius:14px;background:var(--brand);color:white;font:700 14px 'DM Sans';cursor:pointer;margin-top:16px}
+.action:disabled{opacity:.5;cursor:not-allowed}
+.message{display:none;margin-top:14px;padding:12px;border-radius:11px;font-size:12px;line-height:1.45}
+.message.show{display:block}.message.error{background:#FAEEEE;color:#9B4A4A}.message.info{background:#EEF4F8;color:#45647F}.message.success{background:#EAF6EE;color:#356B49}
+.summary{position:sticky;top:92px}.price{font-family:'DM Serif Display';font-size:42px;margin:18px 0 0}.suffix{font-family:'DM Sans';font-size:13px;color:var(--muted)}
+.normal-price{font-size:12px;color:var(--muted);margin-top:4px}
+.summary-line{display:flex;justify-content:space-between;gap:15px;padding:13px 0;border-top:1px solid var(--border);font-size:13px}
+.summary-line strong{font-size:14px}.summary-note{text-align:center;font-size:11px;color:var(--muted);margin-top:12px;line-height:1.45}
+.test-banner{margin-top:14px;border:1px solid #CFE5D8;background:#F0F8F3;color:#356B49;border-radius:12px;padding:12px;font-size:12px;line-height:1.5}
+.loading{min-height:300px;display:grid;place-items:center;color:var(--muted);font-size:14px}
+@media(max-width:820px){.checkout-grid{grid-template-columns:1fr}.summary{position:static}.nav-center{display:none}.nav-name{display:none}}
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="employers.html">Alygnn<span>.</span></a>
+  <div class="nav-center">
+    <a href="employer-account.html">← Account</a>
+    <a href="employer-team.html" class="active">Team members</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-name" id="company-name">Employer</span>
+    <a class="nav-btn brand" href="employer-dashboard.html">Dashboard</a>
+    <button class="nav-btn outline" onclick="signOut()">Sign out</button>
+  </div>
+</nav>
+
+<main class="page">
+  <a class="back" href="employer-team.html">← Back to team members</a>
+
+  <div id="loading" class="loading">Loading your team-seat pricing…</div>
+
+  <div id="checkout" class="checkout-grid" hidden>
+    <section class="card">
+      <div class="eyebrow">Team access add-on</div>
+      <h1>Add a team member seat</h1>
+      <p class="lead">Add one additional teammate to your Alygnn employer workspace. Your company owner never counts against team-member capacity.</p>
+
+      <div class="plan-box">
+        <div class="plan-row">
+          <div class="plan-name" id="plan-name">Launch plan</div>
+          <span class="plan-badge" id="plan-badge">Launch</span>
+        </div>
+        <div class="plan-copy" id="plan-copy">Loading plan details…</div>
+      </div>
+
+      <h2>What this seat includes</h2>
+      <ul class="feature-list">
+        <li>Invite one recruiter, hiring manager, or admin</li>
+        <li>Customize job, candidate, message, company, billing, and team permissions</li>
+        <li>Change the teammate’s role later from Team Members</li>
+        <li>Remove the teammate without affecting the company owner account</li>
+      </ul>
+
+      <div class="terms">
+        <input type="checkbox" id="terms">
+        <label for="terms">
+          I agree to Alygnn’s <a href="terms.html" target="_blank">Terms of Service</a> and
+          <a href="privacy.html" target="_blank">Privacy Policy</a>. The team seat renews monthly until canceled.
+        </label>
+      </div>
+
+      <button id="checkout-btn" class="action" onclick="startCheckout()" disabled>Continue to secure payment</button>
+      <div id="message" class="message"></div>
+    </section>
+
+    <aside class="card summary">
+      <div class="eyebrow">Order summary</div>
+      <h2 id="summary-title">Extra team member</h2>
+
+      <div class="price"><span id="due-price">$99</span><span class="suffix"> / month</span></div>
+      <div class="normal-price" id="normal-price"></div>
+
+      <div style="margin-top:22px">
+        <div class="summary-line"><span>Team seat</span><span id="subtotal">$99.00</span></div>
+        <div class="summary-line"><span>Tax</span><span id="tax">Calculated at checkout</span></div>
+        <div class="summary-line"><strong>Due today</strong><strong id="due-today">$99.00 + tax</strong></div>
+      </div>
+
+      <div id="test-banner" class="test-banner" hidden>
+        Developer test mode · No payment will be taken from this test account.
+      </div>
+
+      <div class="summary-note">Secure checkout · Subscription billed monthly</div>
+    </aside>
+  </div>
+</main>
+
+<script>
+const SUPABASE_URL='https://auth.alygnn.com';
+const SUPABASE_ANON_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+const TEST_MODE_EMAILS=['simoninn18@gmail.com','laurenge2345@gmail.com','larauyr@hotmail.com'];
+function alygnnAuthStorageKey(){let t=sessionStorage.getItem('alygnn_auth_tab_id');if(!t){t=crypto?.randomUUID?.()||`${Date.now()}-${Math.random()}`;sessionStorage.setItem('alygnn_auth_tab_id',t)}return `alygnn-auth-${t}`}
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{storage:sessionStorage,storageKey:alygnnAuthStorageKey(),persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+
+let session=null,access=null,developerTestMode=false;
+const $=id=>document.getElementById(id);
+function money(cents){return '$'+(Number(cents||0)/100).toFixed(2)}
+function planLabel(p){return ({launch:'Launch',growth:'Growth',scale:'Scale'})[String(p||'').toLowerCase()]||'Alygnn'}
+function showMessage(text,type='error'){const e=$('message');e.textContent=text;e.className=`message show ${type}`}
+function clearMessage(){const e=$('message');e.textContent='';e.className='message'}
+
+async function loadCompanyName(){
+  try{
+    const companyId=String(access?.company_id||'');
+    if(companyId){
+      const {data}=await sb.from('companies').select('company_name,name,legal_name').eq('id',companyId).maybeSingle();
+      const name=data?.company_name||data?.name||data?.legal_name;
+      if(name){$('company-name').textContent=name;return}
+    }
+  }catch(_){}
+  $('company-name').textContent=session?.user?.user_metadata?.company_name||'Employer';
+}
+
+function render(){
+  const plan=String(access?.plan||'free').toLowerCase();
+  const price=Number(access?.seat_price_cents||0);
+  const label=planLabel(plan);
+
+  $('plan-name').textContent=`${label} plan`;
+  $('plan-badge').textContent=label;
+  $('plan-copy').textContent=
+    plan==='launch'
+      ?'Launch includes 0 teammates. This purchase adds your one available teammate seat.'
+      :plan==='growth'
+        ?'Growth includes 1 teammate. This purchase adds one additional teammate seat.'
+        :plan==='scale'
+          ?'Scale includes 2 teammates. This purchase adds one additional teammate seat.'
+          :'A paid Alygnn employer plan is required for team-member access.';
+
+  $('summary-title').textContent=`${label} extra team member`;
+
+  if(developerTestMode){
+    $('due-price').textContent='$0';
+    $('normal-price').textContent=`Normally ${money(price)} / month`;
+    $('subtotal').textContent='$0.00';
+    $('tax').textContent='$0.00';
+    $('due-today').textContent='$0.00';
+    $('test-banner').hidden=false;
+    $('checkout-btn').textContent=`Activate ${label} team seat — $0`;
+  }else{
+    $('due-price').textContent='$'+Math.round(price/100);
+    $('normal-price').textContent='';
+    $('subtotal').textContent=money(price);
+    $('tax').textContent='Calculated at checkout';
+    $('due-today').textContent=`${money(price)} + tax`;
+    $('test-banner').hidden=true;
+    $('checkout-btn').textContent=`Continue to secure payment — $${Math.round(price/100)}/mo`;
+  }
+
+  $('checkout-btn').disabled=!$('terms').checked || access?.can_purchase_seat!==true;
+  $('loading').hidden=true;
+  $('checkout').hidden=false;
+
+  if(access?.can_purchase_seat!==true){
+    showMessage('An additional team seat is not available for this company right now. Return to Team Members to review your current capacity.','info');
+  }
+}
+
+async function activateTestSeat(){
+  const btn=$('checkout-btn');
+  btn.disabled=true;
+  btn.textContent='Activating test team seat…';
+
+  const {data,error}=await sb.rpc('activate_employer_test_team_seat');
+
+  if(error){
+    console.error(error);
+    showMessage(
+      error.message||
+      'Team-seat test activation is not installed in Supabase yet. Run ALYGNN-WEBSITE-TEST-TEAM-SEAT.sql once, then try again.',
+      'info'
+    );
+    render();
+    return;
+  }
+
+  btn.textContent='Team seat activated ✓';
+  showMessage('Your test team seat is active. No payment was processed.','success');
+  setTimeout(()=>location.href='employer-team.html?team_seat=success',700);
+}
+
+async function startCheckout(){
+  if(!session)return;
+  if(!$('terms').checked){showMessage('Please accept the Terms of Service and Privacy Policy.');return}
+  if(access?.can_purchase_seat!==true){showMessage('An additional team seat is not available on this plan.');return}
+
+  clearMessage();
+
+  if(developerTestMode){
+    await activateTestSeat();
+    return;
+  }
+
+  const btn=$('checkout-btn');
+  btn.disabled=true;
+  btn.textContent='Opening secure checkout…';
+
+  try{
+    const res=await fetch('/api/create-checkout-session',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+session.access_token
+      },
+      body:JSON.stringify({
+        product:'team_seat',
+        billing:'monthly',
+        purchase_type:'subscription',
+        terms_accepted:true,
+        terms_version:'team-seat-v1',
+        source:'employer_web_team_payment',
+        success_url:location.origin+'/employer-team.html?team_seat=success',
+        cancel_url:location.href
+      })
+    });
+
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||!data.url)throw new Error(data.error||'Could not open secure checkout.');
+    location.href=data.url;
+  }catch(error){
+    console.error(error);
+    showMessage(error.message||'Could not start team-seat checkout.');
+    render();
+  }
+}
+
+async function signOut(){await sb.auth.signOut();location.href='login.html?role=employer'}
+
+$('terms').addEventListener('change',()=>render());
+
+(async()=>{
+  const {data:{session:s},error}=await sb.auth.getSession();
+  if(error||!s){location.replace('login.html?role=employer');return}
+  session=s;
+  developerTestMode=TEST_MODE_EMAILS.includes(String(s.user.email||'').toLowerCase());
+
+  const {data:a,error:accessError}=await sb.rpc('get_my_team_access');
+  if(accessError){
+    $('loading').textContent='Could not load your team-seat pricing.';
+    return;
+  }
+  access=a||{};
+  await loadCompanyName();
+  render();
+})();
+</script>
+</body>
+</html>
