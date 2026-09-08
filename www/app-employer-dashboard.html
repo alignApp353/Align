@@ -5004,9 +5004,6 @@
           <button class="settings-link" id="privacy-settings" type="button">
             <span class="settings-icon-label"><span class="settings-icon">P</span><span class="settings-copy"><strong>Privacy</strong><small>Data and visibility preferences</small></span></span><span>›</span>
           </button>
-          <button class="settings-link" id="workspace-switch-settings" type="button" hidden>
-            <span class="settings-icon-label"><span class="settings-icon">W</span><span class="settings-copy"><strong>Switch workspace</strong><small>Candidate and employer workspaces</small></span></span><span>›</span>
-          </button>
           <button class="settings-link" id="support-settings" type="button">
             <span class="settings-icon-label"><span class="settings-icon">?</span><span class="settings-copy"><strong>Help &amp; support</strong><small>Get help with your workspace</small></span></span><span>›</span>
           </button>
@@ -5578,13 +5575,11 @@
       pendingCompanyLinks:[],
       companyEditorMode:'all',
       teamAccess:null,
+      currentTeamMember:null,
+      sharedCompanyContext:null,
       teamRoster:null,
       editingTeamMember:null,
-      editingTeamInvite:null,
-      sharedCompanyAiProfile:{},
-      sharedCompanyOnboardingProfile:{},
-      sharedCompanyAiProfileComplete:false,
-      workspaceMemberName:''
+      editingTeamInvite:null
     };
 
     const THEME_STORAGE_KEY = 'alygnnEmployerTheme';
@@ -7083,10 +7078,27 @@
     function greeting(){
       const context = getEmployerTimeContext();
 
+      const member=state.currentTeamMember||{};
+      const access=state.teamAccess||{};
+      const shared=state.sharedCompanyContext||{};
+      const currentUser=state.currentUser||state.session?.user||{};
+      const currentMeta=currentUser.user_metadata||{};
+
       const name =
-        state.workspaceMemberName ||
+        shared.member_name ||
+        member.full_name ||
+        member.member_name ||
+        member.name ||
+        member.display_name ||
+        access.member_name ||
+        access.full_name ||
+        access.name ||
+        access.display_name ||
+        currentMeta.full_name ||
+        currentMeta.name ||
         state.session?.user?.user_metadata?.full_name ||
         state.session?.user?.user_metadata?.name ||
+        currentUser.email?.split('@')[0] ||
         state.session?.user?.email?.split('@')[0] ||
         'there';
 
@@ -8935,8 +8947,9 @@
     function hiringProfileMetadata(){
       const user = state.currentUser || state.session?.user || {};
       const meta = user.user_metadata || {};
-      const saved = meta.employer_ai_profile || {};
-      const setup = meta.onboarding_company_profile || {};
+      const shared = state.sharedCompanyContext || {};
+      const saved = shared.ai_profile || meta.employer_ai_profile || {};
+      const setup = shared.onboarding_profile || meta.onboarding_company_profile || {};
       const verification = state.employerVerification || {};
 
       return {
@@ -9593,8 +9606,9 @@
     function companyMetadata(){
       const user = state.currentUser || state.session?.user || {};
       const meta = user.user_metadata || {};
-      const setup = meta.onboarding_company_profile || {};
-      const aiProfile = meta.employer_ai_profile || {};
+      const shared = state.sharedCompanyContext || {};
+      const setup = shared.onboarding_profile || meta.onboarding_company_profile || {};
+      const aiProfile = shared.ai_profile || meta.employer_ai_profile || {};
       const verification = state.employerVerification || {};
       const company = state.companyRecord || {};
       const firstJob = state.jobs[0] || {};
@@ -10795,6 +10809,36 @@
         }
 
         state.teamAccess=data||null;
+
+        try{
+          const currentCompanyId=String(
+            state.teamAccess?.company_id||
+            state.companyRecord?.id||
+            state.companyRecord?.company_id||
+            state.employerVerification?.company_id||
+            ''
+          ).trim();
+
+          let memberQuery=sb
+            .from('company_members')
+            .select('*')
+            .eq('user_id',state.session.user.id);
+
+          if(currentCompanyId){
+            memberQuery=memberQuery.eq('company_id',currentCompanyId);
+          }
+
+          const memberResult=await memberQuery
+            .limit(1)
+            .maybeSingle();
+
+          if(!memberResult.error && memberResult.data){
+            state.currentTeamMember=memberResult.data;
+          }
+        }catch(memberError){
+          console.warn('Current team member name could not be loaded:',memberError);
+        }
+
         return state.teamAccess;
       }catch(error){
         console.warn(
@@ -10806,69 +10850,171 @@
     }
 
 
-    async function loadSharedCompanyContext(){
+    function companyAiProfileCacheKey(companyId=''){
+      return `alygnn_company_ai_profile_complete:${String(companyId||'unknown')}`;
+    }
+
+    async function hydrateSharedCompanyAiProfileStatus(){
+      const currentCompanyId=String(
+        state.teamAccess?.company_id||
+        state.companyRecord?.id||
+        state.companyRecord?.company_id||
+        state.employerVerification?.company_id||
+        ''
+      ).trim();
+
+      /*
+       * Canonical shared-company resolver.
+       * This SECURITY DEFINER RPC is the correct source for team members:
+       * it returns the owner's Company AI Profile, company completion state,
+       * and the signed-in member's display name without exposing auth.users.
+       */
       try{
         const {data,error}=await sb.rpc(
           'get_my_company_shared_context'
         );
 
-        if(error){
-          console.warn(
-            'Shared company context unavailable:',
-            error
-          );
-          return null;
-        }
+        if(!error && data){
+          const shared=Array.isArray(data)?(data[0]||{}):data;
+          state.sharedCompanyContext=shared||{};
 
-        if(!data){
-          return null;
-        }
+          if(shared?.member_name){
+            state.currentTeamMember={
+              ...(state.currentTeamMember||{}),
+              member_name:shared.member_name,
+              name:shared.member_name
+            };
+          }
 
-        state.workspaceMemberName=
-          String(
-            data.member_name||
+          if(
+            shared?.ai_profile_complete===true||
+            shared?.profile_complete===true||
+            shared?.blueprint_complete===true
+          ){
+            state.aiProfileComplete=true;
+          }
+
+          const sharedCompanyId=String(
+            shared?.company_id||
+            currentCompanyId||
             ''
           ).trim();
 
-        state.sharedCompanyAiProfile=
-          data.ai_profile &&
-          typeof data.ai_profile==='object'
-            ?data.ai_profile
-            :{};
-
-        state.sharedCompanyOnboardingProfile=
-          data.onboarding_profile &&
-          typeof data.onboarding_profile==='object'
-            ?data.onboarding_profile
-            :{};
-
-        state.sharedCompanyAiProfileComplete=
-          data.ai_profile_complete===true;
-
-        if(
-          state.teamAccess?.is_owner!==true
-        ){
-          state.aiProfileComplete=
-            state.sharedCompanyAiProfileComplete;
-
-          if(
-            data.company_verification_status
-          ){
-            state.verificationStatus=
-              String(
-                data.company_verification_status
+          if(state.aiProfileComplete && sharedCompanyId){
+            try{
+              localStorage.setItem(
+                companyAiProfileCacheKey(sharedCompanyId),
+                '1'
               );
+            }catch(_){}
           }
+
+          return state.aiProfileComplete;
         }
 
-        return data;
+        if(error){
+          console.warn(
+            'Shared company context RPC unavailable. Falling back to direct checks:',
+            error
+          );
+        }
       }catch(error){
         console.warn(
-          'Could not load shared company context:',
+          'Shared company context could not be loaded:',
           error
         );
-        return null;
       }
+
+      if(!currentCompanyId){
+        return state.aiProfileComplete;
+      }
+
+      if(state.aiProfileComplete){
+        try{
+          localStorage.setItem(companyAiProfileCacheKey(currentCompanyId),'1');
+        }catch(_){}
+        return true;
+      }
+
+      const access=state.teamAccess||{};
+
+      if(
+        access.ai_profile_complete===true||
+        access.company_ai_profile_complete===true||
+        access.profile_complete===true||
+        access.blueprint_complete===true
+      ){
+        state.aiProfileComplete=true;
+      }
+
+      if(!state.aiProfileComplete){
+        try{
+          if(localStorage.getItem(companyAiProfileCacheKey(currentCompanyId))==='1'){
+            state.aiProfileComplete=true;
+          }
+        }catch(_){}
+      }
+
+      if(!state.aiProfileComplete){
+        const ownerUserId=String(access.owner_user_id||'').trim();
+
+        if(ownerUserId){
+          try{
+            const ownerVerification=await sb
+              .from('employer_verifications')
+              .select('user_id,company_id,profile_complete,blueprint_complete')
+              .eq('user_id',ownerUserId)
+              .maybeSingle();
+
+            if(
+              !ownerVerification.error &&
+              ownerVerification.data &&
+              (
+                ownerVerification.data.profile_complete===true||
+                ownerVerification.data.blueprint_complete===true
+              ) &&
+              (
+                !ownerVerification.data.company_id ||
+                String(ownerVerification.data.company_id)===currentCompanyId
+              )
+            ){
+              state.aiProfileComplete=true;
+            }
+          }catch(error){
+            console.warn('Owner AI profile status could not be loaded:',error);
+          }
+        }
+      }
+
+      if(!state.aiProfileComplete){
+        try{
+          const sharedVerification=await sb
+            .from('employer_verifications')
+            .select('user_id,company_id,profile_complete,blueprint_complete')
+            .eq('company_id',currentCompanyId)
+            .limit(25);
+
+          if(
+            !sharedVerification.error &&
+            (sharedVerification.data||[]).some(row=>
+              row?.profile_complete===true||
+              row?.blueprint_complete===true
+            )
+          ){
+            state.aiProfileComplete=true;
+          }
+        }catch(error){
+          console.warn('Company AI profile status could not be loaded:',error);
+        }
+      }
+
+      if(state.aiProfileComplete){
+        try{
+          localStorage.setItem(companyAiProfileCacheKey(currentCompanyId),'1');
+        }catch(_){}
+      }
+
+      return state.aiProfileComplete;
     }
 
     async function loadTeamRoster(){
@@ -11906,17 +12052,6 @@
       });
     }
 
-
-    async function loadWorkspaceSwitcherVisibility(){
-      try{
-        const {data,error}=await sb.rpc('get_my_workspace_context');
-        if(error)return;
-        const employers=Array.isArray(data?.employer_workspaces)?data.employer_workspaces:[];
-        const invites=Array.isArray(data?.pending_invites)?data.pending_invites:[];
-        const button=$('workspace-switch-settings');
-        if(button)button.hidden=!(data?.has_candidate===true||employers.length>1||invites.length>0);
-      }catch(error){console.warn('Workspace switcher unavailable:',error)}
-    }
 
     function openProModal(feature='Hiring Workflow'){
       $('pro-modal-copy').textContent = `${feature} is part of Alygnn Pro. Keep your existing ATS, or unlock Alygnn’s complete hiring workflow when your team needs it.`;
@@ -13260,6 +13395,7 @@
     async function refreshCompanyProfile(){
       await refreshCurrentUser();
       await loadEmployerCompanyData();
+      await hydrateSharedCompanyAiProfileStatus();
       renderCompany();
       renderAiProfileCard();
     }
@@ -13290,6 +13426,7 @@
     function calculateAiProfileProgress(){
       const user=state.currentUser||state.session?.user||{};
       const meta=user.user_metadata||{};
+      const shared=state.sharedCompanyContext||{};
       const verification=state.employerVerification||{};
       const company=state.companyRecord||{};
       const companyView=companyMetadata();
@@ -13303,34 +13440,29 @@
 
       const currentCompanyName=companyView.name==='Your Company'?'':companyView.name;
 
-      const isTeamMember=
-        state.teamAccess?.is_owner===false;
+      const sharedSaved=
+        shared.ai_profile&&typeof shared.ai_profile==='object'
+          ?shared.ai_profile
+          :null;
 
-      const saved=
-        isTeamMember
-          ?(
-              state.sharedCompanyAiProfile||
-              {}
-            )
-          :scopedCompanyProfile(
-              meta.employer_ai_profile,
-              currentCompanyId,
-              currentCompanyName,
-              user.id
-            );
+      const sharedSetup=
+        shared.onboarding_profile&&typeof shared.onboarding_profile==='object'
+          ?shared.onboarding_profile
+          :null;
 
-      const setup=
-        isTeamMember
-          ?(
-              state.sharedCompanyOnboardingProfile||
-              {}
-            )
-          :scopedCompanyProfile(
-              meta.onboarding_company_profile,
-              currentCompanyId,
-              currentCompanyName,
-              user.id
-            );
+      const saved=sharedSaved||scopedCompanyProfile(
+        meta.employer_ai_profile,
+        currentCompanyId,
+        currentCompanyName,
+        user.id
+      );
+
+      const setup=sharedSetup||scopedCompanyProfile(
+        meta.onboarding_company_profile,
+        currentCompanyId,
+        currentCompanyName,
+        user.id
+      );
 
       const scopedVerification=scopedCompanyProfile(
         verification,
@@ -13361,19 +13493,10 @@
         return String(value||'').trim().length>0;
       }).length;
 
-      const sharedComplete=
-        state.teamAccess?.is_owner===false &&
-        state.sharedCompanyAiProfileComplete===true;
-
       return {
         completed,
         total:values.length,
-        percent:
-          (state.aiProfileComplete||sharedComplete)
-            ?100
-            :Math.round(
-                (completed/values.length)*100
-              )
+        percent:state.aiProfileComplete?100:Math.round((completed/values.length)*100)
       };
     }
 
@@ -13803,14 +13926,37 @@
         await refreshCurrentUser();
 
         /*
-         * Team invitations require explicit acceptance in app-workspaces.html.
+         * If this account was invited to an existing employer workspace,
+         * accept the pending invitation before the normal company guard runs.
          */
+        try{
+          const {data:accepted,error:acceptError}=await sb.rpc(
+            'accept_my_pending_team_invite'
+          );
+
+          if(acceptError){
+            console.warn(
+              'Pending team invite acceptance was unavailable:',
+              acceptError
+            );
+          }else if(accepted?.accepted===true){
+            try{
+              localStorage.setItem(
+                `alygnn_company_id_${state.session.user.id}`,
+                String(accepted.company_id||'')
+              );
+            }catch(_){}
+          }
+        }catch(error){
+          console.warn(
+            'Pending team invite check failed:',
+            error
+          );
+        }
 
         await loadEmployerCompanyData();
         await loadTeamAccess();
-        await loadSharedCompanyContext();
-        greeting();
-        await loadWorkspaceSwitcherVisibility();
+        await hydrateSharedCompanyAiProfileStatus();
 
         /*
          * A brand-new employer must complete company onboarding before
@@ -14534,9 +14680,6 @@
     };
     $('security-settings').onclick = () => toast('Account and security controls will connect here.');
     $('privacy-settings').onclick = () => toast('Privacy controls will connect here.');
-    $('workspace-switch-settings').onclick = () => {
-      location.href='app-workspaces.html?manual=1';
-    };
     $('support-settings').onclick = () => toast('Help and support will connect here.');
     $('about-settings').onclick = () => toast('Alygnn Employer Workspace V5');
     $('notifications-btn').onclick = () => {
