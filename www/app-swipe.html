@@ -939,6 +939,14 @@ body.details-open{overflow:hidden}
 .details-pill{font-size:11px;font-weight:800;padding:8px 11px;border-radius:999px;border:1px solid var(--border);background:#F9FBFC;color:var(--text-muted)}
 .details-pill.pay{background:var(--brand-light);color:var(--brand-dark);border-color:rgba(93,127,163,.2)}
 .details-section{margin-top:14px;background:#fff;border:1px solid var(--border);border-radius:21px;padding:18px}
+.details-company-about{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.details-company-about-logo{width:56px;height:56px;border:1px solid #dbe5ee;border-radius:16px;overflow:hidden;display:grid;place-items:center;background:#eef4f8;color:#376da3;font-size:19px;font-weight:900;flex:0 0 auto}
+.details-company-about-logo img,.details-logo img{width:100%;height:100%;object-fit:contain;background:#fff;border-radius:inherit}
+.details-company-about-name{color:#162336;font-weight:900;font-size:16px}
+.details-company-about-meta{margin-top:4px;color:#718096;font-size:11px;font-weight:700}
+.details-company-links{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}
+.details-company-link{display:inline-flex;min-height:33px;align-items:center;padding:0 10px;border:1px solid #dbe5ee;border-radius:999px;color:#376da3;background:#fff;font-size:10px;font-weight:800;text-decoration:none}
+
 .details-section h2{font-size:16px;font-weight:900;margin-bottom:10px;color:var(--text)}
 .details-copy{font-size:14px;color:var(--text-muted);line-height:1.7;white-space:pre-wrap;word-break:break-word}
 .details-list{display:grid;gap:10px;list-style:none}
@@ -1499,8 +1507,6 @@ let candidateProfile={};
 let candidatePreferences={};
 let candidateResume={};
 let jobs=[];
-let appliedJobIds=new Set();
-let skippedJobIds=new Set();
 let currentIndex=0;
 const SWIPE_COMMIT_THRESHOLD=70;
 let applied=0;
@@ -1993,6 +1999,29 @@ function getJobLists(job){
   };
 }
 
+function candidateExternalUrl(value){
+  const raw=String(value||'').trim();
+  if(!raw)return '';
+  try{
+    const url=new URL(/^https?:\/\//i.test(raw)?raw:'https://'+raw);
+    return ['http:','https:'].includes(url.protocol)?url.href:'';
+  }catch(_error){
+    return '';
+  }
+}
+
+function candidateCompanyLogoHtml(job,company){
+  const logo=candidateExternalUrl(job.company_logo||job.logo_url);
+  if(!logo)return escapeHtml(initials(company));
+  return `<img src="${escapeHtml(logo)}" alt="${escapeHtml(company)} logo" onerror="this.remove();this.parentElement.textContent='${escapeHtml(initials(company))}'">`;
+}
+
+function candidateCompanyLink(label,value){
+  const url=candidateExternalUrl(value);
+  if(!url)return '';
+  return `<a class="details-company-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+}
+
 function openJobDetails(index){
   const job=jobs[Number(index)];
   if(!job)return;
@@ -2011,7 +2040,7 @@ function openJobDetails(index){
   document.getElementById('details-scroll').innerHTML=`
     <article class="details-hero">
       <div class="details-company-row">
-        <div class="details-logo">${escapeHtml(initials(company))}</div>
+        <div class="details-logo">${candidateCompanyLogoHtml(job,company)}</div>
         <div>
           <h1 class="details-title" id="details-job-title">${escapeHtml(job.title||'Job Opportunity')}</h1>
           <div class="details-company">${escapeHtml(company)}</div>
@@ -2051,7 +2080,24 @@ function openJobDetails(index){
 
     <section class="details-section">
       <h2>About ${escapeHtml(company)}</h2>
+
+      <div class="details-company-about">
+        <div class="details-company-about-logo">${candidateCompanyLogoHtml(job,company)}</div>
+        <div>
+          <div class="details-company-about-name">${escapeHtml(company)}</div>
+          <div class="details-company-about-meta">Verified employer on Alygnn</div>
+        </div>
+      </div>
+
       <div class="details-copy">${escapeHtml(companyAbout||'Company information has not been added yet.')}</div>
+
+      <div class="details-company-links">
+        ${candidateCompanyLink('Website',job.company_website)}
+        ${candidateCompanyLink('LinkedIn',job.company_linkedin_url)}
+        ${candidateCompanyLink('Instagram',job.company_instagram_url)}
+        ${candidateCompanyLink('Facebook',job.company_facebook_url)}
+        ${candidateCompanyLink('X',job.company_x_url)}
+      </div>
     </section>
   `;
 
@@ -2089,7 +2135,12 @@ async function applyFromDetails(){
     setTimeout(()=>{
       closeJobDetails();
       if(detailsJobIndex===currentIndex){
-        history.push({job,direction:'right',index:currentIndex});
+        history.push({
+          job,
+          direction:'right',
+          index:currentIndex,
+          persistenceCreated:!alreadyExists
+        });
         currentIndex++;
         setTimeout(renderCards,230);
       }
@@ -2303,45 +2354,38 @@ function dragEnd(e){
   }
 }
 
-async function loadCandidateDecisions(){
-  appliedJobIds=new Set();
-  skippedJobIds=new Set();
+function candidateSeenJobsKey(userId=session?.user?.id||''){
+  return `alygnn_candidate_seen_jobs:${String(userId||'unknown')}`;
+}
 
-  const applicationsResult=await sb
-    .from('applications')
-    .select('job_id')
-    .eq('candidate_id',session.user.id);
-
-  if(applicationsResult.error) throw applicationsResult.error;
-
-  for(const row of applicationsResult.data||[]){
-    if(row?.job_id!=null) appliedJobIds.add(String(row.job_id));
+function readCandidateSeenJobs(userId=session?.user?.id||''){
+  try{
+    const value=JSON.parse(localStorage.getItem(candidateSeenJobsKey(userId))||'[]');
+    return new Set(Array.isArray(value)?value.map(String):[]);
+  }catch(_){
+    return new Set();
   }
+}
 
-  applied=(applicationsResult.data||[]).length;
+function rememberCandidateSeenJob(jobId,userId=session?.user?.id||''){
+  if(!jobId)return;
+  try{
+    const seen=readCandidateSeenJobs(userId);
+    seen.add(String(jobId));
+    localStorage.setItem(candidateSeenJobsKey(userId),JSON.stringify([...seen]));
+  }catch(_){}
+}
 
-  const skippedResult=await sb
-    .from('skipped_jobs')
-    .select('job_id')
-    .eq('candidate_id',session.user.id);
-
-  if(skippedResult.error){
-    console.warn('Could not load passed jobs:',skippedResult.error);
-    skipped=0;
-    return;
-  }
-
-  for(const row of skippedResult.data||[]){
-    if(row?.job_id!=null) skippedJobIds.add(String(row.job_id));
-  }
-
-  skipped=skippedJobIds.size;
+function forgetCandidateSeenJob(jobId,userId=session?.user?.id||''){
+  if(!jobId)return;
+  try{
+    const seen=readCandidateSeenJobs(userId);
+    seen.delete(String(jobId));
+    localStorage.setItem(candidateSeenJobsKey(userId),JSON.stringify([...seen]));
+  }catch(_){}
 }
 
 async function createApplication(job){
-  const key=String(job.id);
-  if(appliedJobIds.has(key)) return true;
-
   const {data:existing,error:checkError}=await sb
     .from('applications')
     .select('id')
@@ -2349,10 +2393,9 @@ async function createApplication(job){
     .eq('job_id',job.id)
     .maybeSingle();
 
-  if(checkError)throw checkError;
-
+  if(checkError)console.warn(checkError);
   if(existing){
-    appliedJobIds.add(key);
+    rememberCandidateSeenJob(job.id);
     return true;
   }
 
@@ -2367,13 +2410,12 @@ async function createApplication(job){
   });
 
   if(error)throw error;
-  appliedJobIds.add(key);
+  rememberCandidateSeenJob(job.id);
   return false;
 }
 
-async function createSkip(job){
-  const key=String(job.id);
-  if(skippedJobIds.has(key)) return true;
+async function saveSkippedJob(job){
+  if(!job?.id)return true;
 
   const {data:existing,error:checkError}=await sb
     .from('skipped_jobs')
@@ -2382,74 +2424,73 @@ async function createSkip(job){
     .eq('job_id',job.id)
     .maybeSingle();
 
-  if(checkError)throw checkError;
+  if(checkError){
+    console.warn('Could not check skipped job:',checkError);
+  }
 
   if(existing){
-    skippedJobIds.add(key);
+    rememberCandidateSeenJob(job.id);
     return true;
   }
 
-  const {error}=await sb.from('skipped_jobs').insert({
-    candidate_id:session.user.id,
-    job_id:job.id
-  });
-
-  if(error)throw error;
-  skippedJobIds.add(key);
-  return false;
-}
-
-async function removeApplicationDecision(job){
-  const {error}=await sb
-    .from('applications')
-    .delete()
-    .eq('candidate_id',session.user.id)
-    .eq('job_id',job.id);
-  if(error)throw error;
-  appliedJobIds.delete(String(job.id));
-}
-
-async function removeSkipDecision(job){
   const {error}=await sb
     .from('skipped_jobs')
-    .delete()
-    .eq('candidate_id',session.user.id)
-    .eq('job_id',job.id);
+    .insert({
+      candidate_id:session.user.id,
+      job_id:job.id
+    });
+
   if(error)throw error;
-  skippedJobIds.delete(String(job.id));
+  rememberCandidateSeenJob(job.id);
+  return false;
 }
 
 async function animateSwipe(direction){
   setupTopCard();
   if(!activeCard)return;
 
-  const card=activeCard;
-  const job=jobs[Number(card.dataset.index)];
-  if(!job)return;
+  const job=jobs[Number(activeCard.dataset.index)];
+  activeCard.classList.add(direction==='right'?'swipe-right':'swipe-left');
 
-  // Save the decision first. This keeps navigation/reloads from resurrecting jobs.
-  try{
-    if(direction==='right'){
+  let persistenceCreated=false;
+
+  if(direction==='right'){
+    try{
       const alreadyExists=await createApplication(job);
-      if(!alreadyExists) applied++;
+      persistenceCreated=!alreadyExists;
+      if(!alreadyExists)applied++;
       showToast(alreadyExists?'Already applied':'Application submitted');
-    }else{
-      const alreadyExists=await createSkip(job);
-      if(!alreadyExists) skipped++;
-      showToast('Passed');
+    }catch(error){
+      console.error(error);
+      activeCard?.classList.remove('swipe-right');
+      renderCards();
+      showToast(error.message||'Could not apply');
+      return;
     }
-  }catch(error){
-    console.error(error);
-    showToast(error?.message || (direction==='right'?'Could not apply':'Could not pass this job'));
-    resetDecisionStamps(card);
-    card.style.transition='transform .2s ease';
-    card.style.transform='';
-    return;
+  }else{
+    try{
+      const alreadySkipped=await saveSkippedJob(job);
+      persistenceCreated=!alreadySkipped;
+      if(!alreadySkipped)skipped++;
+      showToast(alreadySkipped?'Already passed':'Passed');
+    }catch(error){
+      console.error(error);
+      activeCard?.classList.remove('swipe-left');
+      renderCards();
+      showToast(error.message||'Could not save pass');
+      return;
+    }
   }
 
-  card.classList.add(direction==='right'?'swipe-right':'swipe-left');
-  history.push({job,direction,index:currentIndex});
+  history.push({
+    job,
+    direction,
+    index:currentIndex,
+    persistenceCreated
+  });
+
   currentIndex++;
+
   setTimeout(renderCards,350);
 }
 
@@ -2469,24 +2510,45 @@ async function undo(){
     return;
   }
 
-  const last=history[history.length-1];
+  const last=history.pop();
+  const jobId=last.job?.id;
 
   try{
-    if(last.direction==='right'){
-      await removeApplicationDecision(last.job);
+    if(last.persistenceCreated && jobId){
+      if(last.direction==='right'){
+        const result=await sb
+          .from('applications')
+          .delete()
+          .eq('candidate_id',session.user.id)
+          .eq('job_id',jobId);
+
+        if(result.error)throw result.error;
+      }else{
+        const result=await sb
+          .from('skipped_jobs')
+          .delete()
+          .eq('candidate_id',session.user.id)
+          .eq('job_id',jobId);
+
+        if(result.error)throw result.error;
+      }
+
+      forgetCandidateSeenJob(jobId);
+    }
+
+    if(last.direction==='right' && last.persistenceCreated){
       applied=Math.max(0,applied-1);
-    }else{
-      await removeSkipDecision(last.job);
+    }else if(last.direction==='left' && last.persistenceCreated){
       skipped=Math.max(0,skipped-1);
     }
 
-    history.pop();
     currentIndex=last.index;
     renderCards();
     showToast('Undone');
   }catch(error){
-    console.error(error);
-    showToast(error?.message||'Could not undo');
+    console.error('Could not undo candidate action:',error);
+    history.push(last);
+    showToast(error.message||'Could not undo');
   }
 }
 
@@ -2512,25 +2574,63 @@ function showToast(message){
 }
 
 async function loadJobs(){
-  const {data,error}=await sb
-    .from('jobs')
-    .select('*')
-    .eq('status','active')
-    .order('created_at',{ascending:false});
-
-  if(error){
-    console.error(error);
-    showToast(error.message||'Could not load jobs');
+  const userId=session?.user?.id;
+  if(!userId){
     jobs=[];
     renderCards();
     return;
   }
 
-  jobs=(data||[])
-    .filter(job=>{
-      const key=String(job.id);
-      return !appliedJobIds.has(key) && !skippedJobIds.has(key);
-    })
+  const [jobsResult,applicationsResult,skippedResult]=await Promise.all([
+    sb
+      .from('jobs')
+      .select('*')
+      .eq('status','active')
+      .order('created_at',{ascending:false}),
+    sb
+      .from('applications')
+      .select('job_id')
+      .eq('candidate_id',userId),
+    sb
+      .from('skipped_jobs')
+      .select('job_id')
+      .eq('candidate_id',userId)
+  ]);
+
+  if(jobsResult.error){
+    console.error(jobsResult.error);
+    showToast(jobsResult.error.message||'Could not load jobs');
+    jobs=[];
+    renderCards();
+    return;
+  }
+
+  if(applicationsResult.error){
+    console.warn('Could not load prior applications for Discover filtering:',applicationsResult.error);
+  }
+
+  if(skippedResult.error){
+    console.warn('Could not load prior passed jobs for Discover filtering:',skippedResult.error);
+  }
+
+  const seenJobIds=readCandidateSeenJobs(userId);
+
+  (applicationsResult.data||[]).forEach(row=>{
+    if(row?.job_id)seenJobIds.add(String(row.job_id));
+  });
+
+  (skippedResult.data||[]).forEach(row=>{
+    if(row?.job_id)seenJobIds.add(String(row.job_id));
+  });
+
+  try{
+    localStorage.setItem(candidateSeenJobsKey(userId),JSON.stringify([...seenJobIds]));
+  }catch(_){}
+
+  skipped=(skippedResult.data||[]).length;
+
+  jobs=(jobsResult.data||[])
+    .filter(job=>job?.id && !seenJobIds.has(String(job.id)))
     .map(job=>{
       const result=calculateAlygnnScore(job);
       return {
@@ -2699,12 +2799,12 @@ function enforceCandidateNav(){
 
   document.getElementById('profile-button').textContent=initials(fullName);
 
-  try{
-    await loadCandidateDecisions();
-  }catch(decisionError){
-    console.error('Could not load candidate job decisions:',decisionError);
-    showToast('Could not restore your job history');
-  }
+  const {count}=await sb
+    .from('applications')
+    .select('*',{count:'exact',head:true})
+    .eq('candidate_id',session.user.id);
+
+  applied=count||0;
 
   try{
     await loadCandidateMatchingProfile();
@@ -2780,6 +2880,128 @@ function enforceCandidateNav(){
       .subscribe();
     window.addEventListener('pagehide',()=>{ try{ sb.removeChannel(channel); }catch(_){} },{once:true});
   }catch(_){}
+})();
+</script>
+
+
+<script id="alygnn-candidate-message-badge-persistence">
+(function(){
+  const badge=document.getElementById('candidate-message-badge');
+  if(!badge || typeof sb==='undefined')return;
+
+  const GLOBAL_KEY='alygnn_candidate_unread_messages_last';
+  let activeUserId='';
+
+  function scopedKey(userId){
+    return `alygnn_candidate_unread_messages:${String(userId||'unknown')}`;
+  }
+
+  function parseCount(value){
+    const count=Number(value);
+    return Number.isFinite(count)&&count>0?Math.floor(count):0;
+  }
+
+  function cachedCount(){
+    try{
+      return parseCount(
+        (activeUserId&&localStorage.getItem(scopedKey(activeUserId))) ||
+        localStorage.getItem(GLOBAL_KEY) ||
+        '0'
+      );
+    }catch(_){
+      return 0;
+    }
+  }
+
+  function paint(count,persist=true){
+    count=Math.max(0,Number(count)||0);
+    badge.textContent=count>99?'99+':String(count);
+    badge.hidden=count===0;
+
+    if(persist){
+      try{
+        localStorage.setItem(GLOBAL_KEY,String(count));
+        if(activeUserId){
+          localStorage.setItem(scopedKey(activeUserId),String(count));
+        }
+      }catch(_){}
+    }
+  }
+
+  const initial=cachedCount();
+  if(initial>0)paint(initial,false);
+
+  async function refreshPersistentCandidateBadge(){
+    try{
+      const {data,error}=await sb.auth.getSession();
+      if(error)throw error;
+
+      activeUserId=data?.session?.user?.id||'';
+      if(!activeUserId){
+        paint(0);
+        return;
+      }
+
+      const conversations=await sb
+        .from('application_conversations')
+        .select('id')
+        .eq('candidate_id',activeUserId);
+
+      if(conversations.error)throw conversations.error;
+
+      const ids=(conversations.data||[])
+        .map(row=>row.id)
+        .filter(Boolean);
+
+      if(!ids.length){
+        paint(0);
+        return;
+      }
+
+      const unread=await sb
+        .from('application_messages')
+        .select('id')
+        .in('conversation_id',ids)
+        .neq('sender_id',activeUserId)
+        .is('read_at',null);
+
+      if(unread.error)throw unread.error;
+      paint((unread.data||[]).length);
+    }catch(error){
+      console.warn('Persistent candidate message badge refresh failed:',error);
+      const count=cachedCount();
+      if(count>0)paint(count,false);
+    }
+  }
+
+  const observer=new MutationObserver(()=>{
+    if(badge.hidden){
+      const count=cachedCount();
+      if(count>0){
+        badge.textContent=count>99?'99+':String(count);
+        badge.hidden=false;
+      }
+    }
+  });
+
+  observer.observe(badge,{attributes:true,attributeFilter:['hidden']});
+
+  window.AlygnnRefreshCandidateMessageBadge=refreshPersistentCandidateBadge;
+  refreshPersistentCandidateBadge();
+  setTimeout(refreshPersistentCandidateBadge,250);
+  window.addEventListener('pageshow',refreshPersistentCandidateBadge);
+  window.addEventListener('focus',refreshPersistentCandidateBadge);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'){
+      refreshPersistentCandidateBadge();
+    }
+  });
+  window.addEventListener('storage',event=>{
+    if(event.key===GLOBAL_KEY || event.key===scopedKey(activeUserId)){
+      const count=cachedCount();
+      paint(count,false);
+    }
+  });
 })();
 </script>
 
