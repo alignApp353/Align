@@ -46,21 +46,183 @@ h1{font-family:'DM Serif Display';font-size:42px;font-weight:400;margin:8px 0 10
 .permission{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--border);padding:12px;border-radius:11px;background:white}.permission input{margin-top:3px}.permission strong{font-size:12px}.permission span{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-top:2px}
 .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}.message{display:none;margin-top:14px;padding:11px 12px;border-radius:11px;font-size:12px}.message.show{display:block}.message.error{background:#FAEEEE;color:#9B4A4A}.message.success{background:#EAF6EE;color:#356B49}
 @media(max-width:800px){.grid{grid-template-columns:1fr}.nav-links a:nth-child(1){display:none}.page{padding-top:100px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.person{align-items:flex-start;flex-wrap:wrap}.person-actions{width:100%}}
+
+/* Match employer-account.html navigation exactly */
+nav{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  width:100%;
+  z-index:1000;
+  height:64px;
+  padding:0 5%;
+  background:rgba(246,248,247,.92);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:0;
+}
+.logo{
+  font-family:'DM Serif Display',serif;
+  font-size:22px;
+  color:var(--brand);
+  letter-spacing:-.5px;
+  text-decoration:none;
+  flex:0 0 auto;
+}
+.logo span{color:var(--sage)}
+
+.account-nav-links{
+  display:flex;
+  gap:24px;
+  align-items:center;
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+}
+.account-nav-links a{
+  text-decoration:none;
+  color:var(--muted);
+  font-size:14px;
+  padding:6px 0;
+  border-bottom:2px solid transparent;
+  transition:color .2s,border-color .2s;
+  white-space:nowrap;
+}
+.account-nav-links a.active{
+  color:var(--text);
+  border-bottom-color:var(--brand);
+}
+.account-nav-links a:hover{color:var(--text)}
+.account-nav-links .nav-home:hover{color:var(--brand)}
+
+.nav-right{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  margin-left:auto;
+}
+.nav-name{
+  font-size:14px;
+  color:var(--muted);
+  max-width:170px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.notif-bell{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:36px;
+  height:36px;
+  padding:0;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--card);
+  color:var(--muted);
+  cursor:pointer;
+}
+.notif-bell:hover{
+  color:var(--brand);
+  border-color:var(--brand);
+}
+.notif-bell svg{
+  width:18px;
+  height:18px;
+}
+.nav-post-job{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  background:transparent;
+  color:var(--brand);
+  border:1.5px solid var(--brand);
+  border-radius:100px;
+  padding:8px 18px;
+  font-size:14px;
+  font-weight:500;
+  text-decoration:none;
+  white-space:nowrap;
+  transition:background .2s,color .2s;
+}
+.nav-post-job:hover{
+  background:var(--brand);
+  color:#fff;
+}
+.nav-cta{
+  background:var(--brand);
+  color:#fff;
+  border:none;
+  border-radius:100px;
+  padding:9px 22px;
+  font-size:14px;
+  font-family:'DM Sans',sans-serif;
+  font-weight:500;
+  cursor:pointer;
+  transition:opacity .2s;
+  text-decoration:none;
+}
+.nav-cta:hover{opacity:.88}
+.nav-signout{
+  font-size:13px;
+  color:var(--muted);
+  background:none;
+  border:1px solid var(--border);
+  border-radius:100px;
+  padding:6px 14px;
+  cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+  transition:all .2s;
+}
+.nav-signout:hover{
+  color:var(--text);
+  border-color:#bcc8d2;
+}
+
+/* Team page begins directly below the same 64px employer header */
+.page{padding-top:112px}
+
+@media(max-width:900px){
+  .account-nav-links{display:none}
+  .nav-right{gap:8px}
+  .nav-post-job{display:none}
+  .nav-name{max-width:110px}
+}
+
 </style>
 </head>
 <body>
 <nav>
-  <a class="logo" href="employers.html">Alygnn<span>.</span></a>
-  <div class="nav-links employer-actions">
-    <button class="notification-btn" type="button" onclick="location.href='employer-account.html#notifications'" aria-label="Notifications">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
-        <path d="M10 21h4"/>
+  <a href="employers.html" class="logo">Alygnn<span>.</span></a>
+
+  <div class="account-nav-links">
+    <a href="employers.html" class="nav-home">← Home</a>
+    <a href="employer-account.html" class="active">Account</a>
+  </div>
+
+  <div class="nav-right">
+    <button class="notif-bell" type="button"
+      onclick="location.href='employer-account.html#notifications'"
+      aria-label="Notifications">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
       </svg>
     </button>
-    <span class="company-name" id="header-company-name">Employer</span>
-    <button class="add-slot-btn" type="button" onclick="location.href='pricing.html?reason=job_slot'">+ Add a job slot</button>
-    <a href="employer-dashboard.html" class="nav-cta">Dashboard</a>
+
+    <span class="nav-name" id="header-company-name">Employer</span>
+
+    <a href="employer-dashboard.html#post"
+       class="nav-post-job">+ Add a job slot</a>
+
+    <button class="nav-cta" type="button"
+      onclick="location.href='employer-dashboard.html'">Dashboard</button>
+
     <button class="nav-signout" onclick="signOut()">Sign out</button>
   </div>
 </nav>
@@ -197,15 +359,14 @@ function renderRoster(){
 
 async function loadHeaderCompanyName(){
   try{
-    const ownerId=String(access?.owner_user_id||session?.user?.id||'');
     let name='';
+    const companyId=String(access?.company_id||'');
 
-    if(ownerId){
+    if(companyId){
       const {data}=await sb
         .from('companies')
         .select('company_name,name,legal_name')
-        .eq('owner_user_id',ownerId)
-        .limit(1)
+        .eq('id',companyId)
         .maybeSingle();
 
       name=
@@ -216,10 +377,27 @@ async function loadHeaderCompanyName(){
     }
 
     if(!name){
+      const ownerId=String(access?.owner_user_id||session?.user?.id||'');
+
+      if(ownerId){
+        const {data}=await sb
+          .from('companies')
+          .select('company_name,name,legal_name')
+          .eq('owner_user_id',ownerId)
+          .limit(1)
+          .maybeSingle();
+
+        name=
+          data?.company_name||
+          data?.name||
+          data?.legal_name||
+          '';
+      }
+    }
+
+    if(!name){
       name=
         session?.user?.user_metadata?.company_name||
-        session?.user?.user_metadata?.full_name||
-        String(session?.user?.email||'').split('@')[0]||
         'Employer';
     }
 
@@ -227,7 +405,6 @@ async function loadHeaderCompanyName(){
   }catch(_){
     $('header-company-name').textContent=
       session?.user?.user_metadata?.company_name||
-      String(session?.user?.email||'').split('@')[0]||
       'Employer';
   }
 }
