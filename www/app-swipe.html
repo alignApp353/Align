@@ -939,14 +939,6 @@ body.details-open{overflow:hidden}
 .details-pill{font-size:11px;font-weight:800;padding:8px 11px;border-radius:999px;border:1px solid var(--border);background:#F9FBFC;color:var(--text-muted)}
 .details-pill.pay{background:var(--brand-light);color:var(--brand-dark);border-color:rgba(93,127,163,.2)}
 .details-section{margin-top:14px;background:#fff;border:1px solid var(--border);border-radius:21px;padding:18px}
-.details-company-about{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.details-company-about-logo{width:56px;height:56px;border:1px solid #dbe5ee;border-radius:16px;overflow:hidden;display:grid;place-items:center;background:#eef4f8;color:#376da3;font-size:19px;font-weight:900;flex:0 0 auto}
-.details-company-about-logo img,.details-logo img{width:100%;height:100%;object-fit:contain;background:#fff;border-radius:inherit}
-.details-company-about-name{color:#162336;font-weight:900;font-size:16px}
-.details-company-about-meta{margin-top:4px;color:#718096;font-size:11px;font-weight:700}
-.details-company-links{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}
-.details-company-link{display:inline-flex;min-height:33px;align-items:center;padding:0 10px;border:1px solid #dbe5ee;border-radius:999px;color:#376da3;background:#fff;font-size:10px;font-weight:800;text-decoration:none}
-
 .details-section h2{font-size:16px;font-weight:900;margin-bottom:10px;color:var(--text)}
 .details-copy{font-size:14px;color:var(--text-muted);line-height:1.7;white-space:pre-wrap;word-break:break-word}
 .details-list{display:grid;gap:10px;list-style:none}
@@ -1507,6 +1499,8 @@ let candidateProfile={};
 let candidatePreferences={};
 let candidateResume={};
 let jobs=[];
+let appliedJobIds=new Set();
+let skippedJobIds=new Set();
 let currentIndex=0;
 const SWIPE_COMMIT_THRESHOLD=70;
 let applied=0;
@@ -1999,133 +1993,6 @@ function getJobLists(job){
   };
 }
 
-function candidateExternalUrl(value){
-  const raw=String(value||'').trim();
-  if(!raw)return '';
-  try{
-    const url=new URL(/^https?:\/\//i.test(raw)?raw:'https://'+raw);
-    return ['http:','https:'].includes(url.protocol)?url.href:'';
-  }catch(_error){
-    return '';
-  }
-}
-
-function candidateCompanyLogoHtml(job,company){
-  const logo=candidateExternalUrl(job.company_logo||job.logo_url);
-  if(!logo)return escapeHtml(initials(company));
-  return `<img src="${escapeHtml(logo)}" alt="${escapeHtml(company)} logo" onerror="this.remove();this.parentElement.textContent='${escapeHtml(initials(company))}'">`;
-}
-
-function candidateCompanyLinks(job){
-  let links=job?.company_links;
-
-  if(typeof links==='string'){
-    try{
-      links=JSON.parse(links);
-    }catch(_error){
-      links=[];
-    }
-  }
-
-  if(!Array.isArray(links)){
-    links=[];
-  }
-
-  const legacy=[
-    job?.company_linkedin_url,
-    job?.company_instagram_url,
-    job?.company_facebook_url,
-    job?.company_x_url
-  ];
-
-  const seen=new Set();
-
-  return [...links,...legacy]
-    .map(item=>
-      candidateExternalUrl(
-        typeof item==='string'
-          ?item
-          :item?.url
-      )
-    )
-    .filter(Boolean)
-    .filter(url=>{
-      const key=url
-        .replace(/\/+$/,'')
-        .toLowerCase();
-
-      if(seen.has(key))return false;
-      seen.add(key);
-      return true;
-    });
-}
-
-function candidateCompanyLinkType(value){
-  const url=candidateExternalUrl(value);
-  if(!url)return 'link';
-
-  const host=new URL(url).hostname
-    .toLowerCase()
-    .replace(/^www\./,'');
-
-  if(host==='facebook.com'||host.endsWith('.facebook.com')||host==='fb.com')return 'facebook';
-  if(host==='instagram.com'||host.endsWith('.instagram.com'))return 'instagram';
-  if(host==='linkedin.com'||host.endsWith('.linkedin.com'))return 'linkedin';
-  if(host==='x.com'||host.endsWith('.x.com')||host==='twitter.com'||host.endsWith('.twitter.com'))return 'x';
-  if(host==='tiktok.com'||host.endsWith('.tiktok.com'))return 'tiktok';
-  if(host==='youtube.com'||host.endsWith('.youtube.com')||host==='youtu.be')return 'youtube';
-  if(host==='threads.net'||host.endsWith('.threads.net'))return 'threads';
-
-  return 'website';
-}
-
-function candidateCompanyLinkLabel(value){
-  return {
-    facebook:'Facebook',
-    instagram:'Instagram',
-    linkedin:'LinkedIn',
-    x:'X',
-    tiktok:'TikTok',
-    youtube:'YouTube',
-    threads:'Threads',
-    website:'Website',
-    link:'Link'
-  }[candidateCompanyLinkType(value)]||'Link';
-}
-
-function candidateCompanyLinkIcon(value){
-  return {
-    facebook:'f',
-    instagram:'◎',
-    linkedin:'in',
-    x:'𝕏',
-    tiktok:'♪',
-    youtube:'▶',
-    threads:'@',
-    website:'↗',
-    link:'↗'
-  }[candidateCompanyLinkType(value)]||'↗';
-}
-
-function candidateCompanyLink(value){
-  const url=candidateExternalUrl(value);
-  if(!url)return '';
-
-  const label=candidateCompanyLinkLabel(url);
-
-  return `
-    <a
-      class="details-company-link"
-      href="${escapeHtml(url)}"
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="${escapeHtml(label)}">
-      <span aria-hidden="true">${escapeHtml(candidateCompanyLinkIcon(url))}</span>
-      <span>${escapeHtml(label)}</span>
-    </a>
-  `;
-}
-
 function openJobDetails(index){
   const job=jobs[Number(index)];
   if(!job)return;
@@ -2144,7 +2011,7 @@ function openJobDetails(index){
   document.getElementById('details-scroll').innerHTML=`
     <article class="details-hero">
       <div class="details-company-row">
-        <div class="details-logo">${candidateCompanyLogoHtml(job,company)}</div>
+        <div class="details-logo">${escapeHtml(initials(company))}</div>
         <div>
           <h1 class="details-title" id="details-job-title">${escapeHtml(job.title||'Job Opportunity')}</h1>
           <div class="details-company">${escapeHtml(company)}</div>
@@ -2184,23 +2051,7 @@ function openJobDetails(index){
 
     <section class="details-section">
       <h2>About ${escapeHtml(company)}</h2>
-
-      <div class="details-company-about">
-        <div class="details-company-about-logo">${candidateCompanyLogoHtml(job,company)}</div>
-        <div>
-          <div class="details-company-about-name">${escapeHtml(company)}</div>
-          <div class="details-company-about-meta">Verified employer on Alygnn</div>
-        </div>
-      </div>
-
       <div class="details-copy">${escapeHtml(companyAbout||'Company information has not been added yet.')}</div>
-
-      <div class="details-company-links">
-        ${candidateCompanyLink(job.company_website)}
-        ${candidateCompanyLinks(job)
-          .map(candidateCompanyLink)
-          .join('')}
-      </div>
     </section>
   `;
 
@@ -2452,7 +2303,45 @@ function dragEnd(e){
   }
 }
 
+async function loadCandidateDecisions(){
+  appliedJobIds=new Set();
+  skippedJobIds=new Set();
+
+  const applicationsResult=await sb
+    .from('applications')
+    .select('job_id')
+    .eq('candidate_id',session.user.id);
+
+  if(applicationsResult.error) throw applicationsResult.error;
+
+  for(const row of applicationsResult.data||[]){
+    if(row?.job_id!=null) appliedJobIds.add(String(row.job_id));
+  }
+
+  applied=(applicationsResult.data||[]).length;
+
+  const skippedResult=await sb
+    .from('skipped_jobs')
+    .select('job_id')
+    .eq('candidate_id',session.user.id);
+
+  if(skippedResult.error){
+    console.warn('Could not load passed jobs:',skippedResult.error);
+    skipped=0;
+    return;
+  }
+
+  for(const row of skippedResult.data||[]){
+    if(row?.job_id!=null) skippedJobIds.add(String(row.job_id));
+  }
+
+  skipped=skippedJobIds.size;
+}
+
 async function createApplication(job){
+  const key=String(job.id);
+  if(appliedJobIds.has(key)) return true;
+
   const {data:existing,error:checkError}=await sb
     .from('applications')
     .select('id')
@@ -2460,8 +2349,12 @@ async function createApplication(job){
     .eq('job_id',job.id)
     .maybeSingle();
 
-  if(checkError)console.warn(checkError);
-  if(existing)return true;
+  if(checkError)throw checkError;
+
+  if(existing){
+    appliedJobIds.add(key);
+    return true;
+  }
 
   const {error}=await sb.from('applications').insert({
     candidate_id:session.user.id,
@@ -2474,34 +2367,89 @@ async function createApplication(job){
   });
 
   if(error)throw error;
+  appliedJobIds.add(key);
   return false;
+}
+
+async function createSkip(job){
+  const key=String(job.id);
+  if(skippedJobIds.has(key)) return true;
+
+  const {data:existing,error:checkError}=await sb
+    .from('skipped_jobs')
+    .select('job_id')
+    .eq('candidate_id',session.user.id)
+    .eq('job_id',job.id)
+    .maybeSingle();
+
+  if(checkError)throw checkError;
+
+  if(existing){
+    skippedJobIds.add(key);
+    return true;
+  }
+
+  const {error}=await sb.from('skipped_jobs').insert({
+    candidate_id:session.user.id,
+    job_id:job.id
+  });
+
+  if(error)throw error;
+  skippedJobIds.add(key);
+  return false;
+}
+
+async function removeApplicationDecision(job){
+  const {error}=await sb
+    .from('applications')
+    .delete()
+    .eq('candidate_id',session.user.id)
+    .eq('job_id',job.id);
+  if(error)throw error;
+  appliedJobIds.delete(String(job.id));
+}
+
+async function removeSkipDecision(job){
+  const {error}=await sb
+    .from('skipped_jobs')
+    .delete()
+    .eq('candidate_id',session.user.id)
+    .eq('job_id',job.id);
+  if(error)throw error;
+  skippedJobIds.delete(String(job.id));
 }
 
 async function animateSwipe(direction){
   setupTopCard();
   if(!activeCard)return;
 
-  const job=jobs[Number(activeCard.dataset.index)];
-  activeCard.classList.add(direction==='right'?'swipe-right':'swipe-left');
+  const card=activeCard;
+  const job=jobs[Number(card.dataset.index)];
+  if(!job)return;
 
-  history.push({job,direction,index:currentIndex});
-
-  if(direction==='right'){
-    try{
+  // Save the decision first. This keeps navigation/reloads from resurrecting jobs.
+  try{
+    if(direction==='right'){
       const alreadyExists=await createApplication(job);
-      applied++;
+      if(!alreadyExists) applied++;
       showToast(alreadyExists?'Already applied':'Application submitted');
-    }catch(error){
-      console.error(error);
-      showToast(error.message||'Could not apply');
+    }else{
+      const alreadyExists=await createSkip(job);
+      if(!alreadyExists) skipped++;
+      showToast('Passed');
     }
-  }else{
-    skipped++;
-    showToast('Passed');
+  }catch(error){
+    console.error(error);
+    showToast(error?.message || (direction==='right'?'Could not apply':'Could not pass this job'));
+    resetDecisionStamps(card);
+    card.style.transition='transform .2s ease';
+    card.style.transform='';
+    return;
   }
 
+  card.classList.add(direction==='right'?'swipe-right':'swipe-left');
+  history.push({job,direction,index:currentIndex});
   currentIndex++;
-
   setTimeout(renderCards,350);
 }
 
@@ -2515,23 +2463,31 @@ function applyCurrent(){
   if(activeCard)animateSwipe('right');
 }
 
-function undo(){
+async function undo(){
   if(!history.length){
     showToast('Nothing to undo');
     return;
   }
 
-  const last=history.pop();
+  const last=history[history.length-1];
 
-  if(last.direction==='right'){
-    applied=Math.max(0,applied-1);
-  }else{
-    skipped=Math.max(0,skipped-1);
+  try{
+    if(last.direction==='right'){
+      await removeApplicationDecision(last.job);
+      applied=Math.max(0,applied-1);
+    }else{
+      await removeSkipDecision(last.job);
+      skipped=Math.max(0,skipped-1);
+    }
+
+    history.pop();
+    currentIndex=last.index;
+    renderCards();
+    showToast('Undone');
+  }catch(error){
+    console.error(error);
+    showToast(error?.message||'Could not undo');
   }
-
-  currentIndex=last.index;
-  renderCards();
-  showToast('Undone');
 }
 
 function updateStats(){
@@ -2571,6 +2527,10 @@ async function loadJobs(){
   }
 
   jobs=(data||[])
+    .filter(job=>{
+      const key=String(job.id);
+      return !appliedJobIds.has(key) && !skippedJobIds.has(key);
+    })
     .map(job=>{
       const result=calculateAlygnnScore(job);
       return {
@@ -2739,12 +2699,12 @@ function enforceCandidateNav(){
 
   document.getElementById('profile-button').textContent=initials(fullName);
 
-  const {count}=await sb
-    .from('applications')
-    .select('*',{count:'exact',head:true})
-    .eq('candidate_id',session.user.id);
-
-  applied=count||0;
+  try{
+    await loadCandidateDecisions();
+  }catch(decisionError){
+    console.error('Could not load candidate job decisions:',decisionError);
+    showToast('Could not restore your job history');
+  }
 
   try{
     await loadCandidateMatchingProfile();
