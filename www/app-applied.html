@@ -550,7 +550,6 @@ html[data-effective-theme="dark"] .bottom-nav .nav-item.active::before{
 .bottom-nav{grid-template-columns:repeat(5,1fr)!important}
 .actions.has-message{grid-template-columns:1fr 1fr}
 .actions .message-reply-btn{grid-column:1 / -1}
-.messaging-nav-badge[hidden]{display:none!important}
 .messaging-nav-badge{
   position:absolute;top:2px;right:calc(50% - 19px);min-width:15px;height:15px;padding:0 4px;
   border-radius:999px;background:#E64141;color:#fff;font-size:8px;font-weight:900;
@@ -566,7 +565,6 @@ html[data-effective-theme="dark"] .bottom-nav .nav-item.active::before{
 
   <div class="my-jobs-wordmark-wrap">
     <div class="my-jobs-wordmark">Alygnn<span>.</span></div>
-    <div class="my-jobs-candidate-name" id="my-jobs-candidate-name"></div>
   </div>
 
   <button
@@ -695,106 +693,6 @@ const fmt=value=>{
       }
     );
 };
-
-
-function candidateInitials(value){
-  const parts=String(value||'')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-
-  if(parts.length>=2){
-    return (
-      parts[0][0]+
-      parts[parts.length-1][0]
-    ).toUpperCase();
-  }
-
-  return (
-    parts[0]?.slice(0,2)||
-    'A'
-  ).toUpperCase();
-}
-
-async function loadCandidateHeaderIdentity(user){
-  const meta=user?.user_metadata||{};
-  const email=String(user?.email||'');
-
-  let profile=null;
-
-  try{
-    const result=await sb
-      .from('profiles')
-      .select('*')
-      .eq('id',user.id)
-      .maybeSingle();
-
-    if(!result.error){
-      profile=result.data||null;
-    }
-  }catch(error){
-    console.warn(
-      'Could not load candidate identity:',
-      error
-    );
-  }
-
-  const resume=
-    profile?.resume_data &&
-    typeof profile.resume_data==='object'
-      ?profile.resume_data
-      :{};
-
-  const personal=
-    resume?.personal &&
-    typeof resume.personal==='object'
-      ?resume.personal
-      :{};
-
-  const resumeName=
-    [
-      personal.first_name,
-      personal.last_name
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .trim();
-
-  const fullName=String(
-    profile?.full_name||
-    profile?.name||
-    meta.full_name||
-    meta.name||
-    resume?.name||
-    resumeName||
-    email.split('@')[0]||
-    'Candidate'
-  ).trim();
-
-  const button=
-    document.querySelector(
-      '.my-jobs-profile-button'
-    );
-
-  if(button){
-    button.textContent=
-      candidateInitials(fullName);
-
-    button.setAttribute(
-      'aria-label',
-      `Open ${fullName}'s profile`
-    );
-  }
-
-  const nameEl=
-    document.getElementById(
-      'my-jobs-candidate-name'
-    );
-
-  if(nameEl){
-    nameEl.textContent=fullName;
-  }
-}
 
 function normalizeStatusValue(value){
   return String(value||'')
@@ -1214,70 +1112,41 @@ async function loadStartedConversations(userId){
     await refreshCandidateMessageBadge(userId);
   }catch(error){
     console.warn('Candidate messaging unavailable:',error);
-    const badge=document.getElementById('candidate-message-badge');
-    if(badge) badge.hidden=true;
+    if(typeof window.AlygnnRefreshCandidateMessageBadge==='function'){
+      window.AlygnnRefreshCandidateMessageBadge();
+    }
   }
 }
 
 async function refreshCandidateMessageBadge(userId){
-  const badge=
-    document.getElementById(
-      'candidate-message-badge'
-    );
+  const badge=document.getElementById('candidate-message-badge');
+  if(!badge) return;
 
-  if(!badge)return;
+  const ids=[...startedConversations.values()]
+    .map(row=>row.id)
+    .filter(Boolean);
 
-  try{
-    const conversations=await sb
-      .from('application_conversations')
-      .select('id')
-      .eq('candidate_id',userId);
-
-    if(conversations.error){
-      throw conversations.error;
-    }
-
-    const ids=
-      (conversations.data||[])
-        .map(row=>row.id)
-        .filter(Boolean);
-
-    if(!ids.length){
-      badge.textContent='0';
-      badge.hidden=true;
-      return;
-    }
-
-    const unread=await sb
-      .from('application_messages')
-      .select('id')
-      .in('conversation_id',ids)
-      .neq('sender_id',userId)
-      .is('read_at',null);
-
-    if(unread.error){
-      throw unread.error;
-    }
-
-    const count=
-      (unread.data||[]).length;
-
-    badge.textContent=
-      count>99
-        ?'99+'
-        :String(count);
-
-    badge.hidden=
-      count===0;
-  }catch(error){
-    console.warn(
-      'Could not load candidate unread messages:',
-      error
-    );
-
-    badge.textContent='0';
+  if(!ids.length){
     badge.hidden=true;
+    badge.textContent='0';
+    return;
   }
+
+  const {data,error}=await sb
+    .from('application_messages')
+    .select('id,sender_id,read_at')
+    .in('conversation_id',ids)
+    .neq('sender_id',userId)
+    .is('read_at',null);
+
+  if(error){
+    console.warn('Could not load candidate unread messages:',error);
+    return;
+  }
+
+  const count=(data||[]).length;
+  badge.textContent=count>99?'99+':String(count);
+  badge.hidden=count===0;
 }
 
 async function loadSkippedJobs(userId){
@@ -1487,9 +1356,6 @@ window.addEventListener('pageshow',()=>{
   }
 
   currentUserId=data.session.user.id;
-  await loadCandidateHeaderIdentity(
-    data.session.user
-  );
 
   const requestedTab=
     new URLSearchParams(window.location.search)
@@ -1513,5 +1379,127 @@ window.addEventListener('pageshow',()=>{
   await loadMyJobs(currentUserId);
   startRealtimeSync(currentUserId);
 })();</script>
+
+<script id="alygnn-candidate-message-badge-persistence">
+(function(){
+  const badge=document.getElementById('candidate-message-badge');
+  if(!badge || typeof sb==='undefined')return;
+
+  const GLOBAL_KEY='alygnn_candidate_unread_messages_last';
+  let activeUserId='';
+
+  function scopedKey(userId){
+    return `alygnn_candidate_unread_messages:${String(userId||'unknown')}`;
+  }
+
+  function parseCount(value){
+    const count=Number(value);
+    return Number.isFinite(count)&&count>0?Math.floor(count):0;
+  }
+
+  function cachedCount(){
+    try{
+      return parseCount(
+        (activeUserId&&localStorage.getItem(scopedKey(activeUserId))) ||
+        localStorage.getItem(GLOBAL_KEY) ||
+        '0'
+      );
+    }catch(_){
+      return 0;
+    }
+  }
+
+  function paint(count,persist=true){
+    count=Math.max(0,Number(count)||0);
+    badge.textContent=count>99?'99+':String(count);
+    badge.hidden=count===0;
+
+    if(persist){
+      try{
+        localStorage.setItem(GLOBAL_KEY,String(count));
+        if(activeUserId){
+          localStorage.setItem(scopedKey(activeUserId),String(count));
+        }
+      }catch(_){}
+    }
+  }
+
+  const initial=cachedCount();
+  if(initial>0)paint(initial,false);
+
+  async function refreshPersistentCandidateBadge(){
+    try{
+      const {data,error}=await sb.auth.getSession();
+      if(error)throw error;
+
+      activeUserId=data?.session?.user?.id||'';
+      if(!activeUserId){
+        paint(0);
+        return;
+      }
+
+      const conversations=await sb
+        .from('application_conversations')
+        .select('id')
+        .eq('candidate_id',activeUserId);
+
+      if(conversations.error)throw conversations.error;
+
+      const ids=(conversations.data||[])
+        .map(row=>row.id)
+        .filter(Boolean);
+
+      if(!ids.length){
+        paint(0);
+        return;
+      }
+
+      const unread=await sb
+        .from('application_messages')
+        .select('id')
+        .in('conversation_id',ids)
+        .neq('sender_id',activeUserId)
+        .is('read_at',null);
+
+      if(unread.error)throw unread.error;
+      paint((unread.data||[]).length);
+    }catch(error){
+      console.warn('Persistent candidate message badge refresh failed:',error);
+      const count=cachedCount();
+      if(count>0)paint(count,false);
+    }
+  }
+
+  const observer=new MutationObserver(()=>{
+    if(badge.hidden){
+      const count=cachedCount();
+      if(count>0){
+        badge.textContent=count>99?'99+':String(count);
+        badge.hidden=false;
+      }
+    }
+  });
+
+  observer.observe(badge,{attributes:true,attributeFilter:['hidden']});
+
+  window.AlygnnRefreshCandidateMessageBadge=refreshPersistentCandidateBadge;
+  refreshPersistentCandidateBadge();
+  setTimeout(refreshPersistentCandidateBadge,250);
+  window.addEventListener('pageshow',refreshPersistentCandidateBadge);
+  window.addEventListener('focus',refreshPersistentCandidateBadge);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'){
+      refreshPersistentCandidateBadge();
+    }
+  });
+  window.addEventListener('storage',event=>{
+    if(event.key===GLOBAL_KEY || event.key===scopedKey(activeUserId)){
+      const count=cachedCount();
+      paint(count,false);
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
