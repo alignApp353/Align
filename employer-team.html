@@ -485,14 +485,8 @@ async function saveMember(){
 async function removeMember(){if(!editingMember||!confirm(`Remove ${editingMember.name||editingMember.email} from this workspace?`))return;try{const {error}=await sb.rpc('remove_company_team_member',{p_user_id:editingMember.user_id});if(error)throw error;closeInvite();await loadTeam();showMsg('page-message','Team member removed.','success')}catch(e){showMsg('modal-message',e.message||'Could not remove team member.')}}
 async function revokeInvite(id){if(!confirm('Revoke this pending invitation?'))return;try{const {error}=await sb.rpc('revoke_company_team_invite',{p_invite_id:id});if(error)throw error;await loadTeam();showMsg('page-message','Invitation revoked.','success')}catch(e){showMsg('page-message',e.message||'Could not revoke invitation.')}}
 async function resendInvite(id){try{const result=await sb.functions.invoke('send-team-invite',{body:{invite_id:id}});if(result.error)throw result.error;showMsg('page-message','Invitation email sent again.','success')}catch(e){showMsg('page-message',e.message||'Could not resend invitation.')}}
-async function buySeat(){
- const price=Number(access?.seat_price_cents||0);if(!price)return;
- if(!confirm(`Add one team seat for $${Math.round(price/100)}/month? It renews monthly until canceled.`))return;
- const b=$('primary-action'),old=b.textContent;b.disabled=true;b.textContent='Opening checkout…';
- try{
-  const res=await fetch('/api/create-checkout-session',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({product:'team_seat',billing:'monthly',purchase_type:'subscription',terms_accepted:true,terms_version:'team-seat-v1',source:'employer_web_team',success_url:'https://alygnn.com/employer-team.html?team_seat=success',cancel_url:'https://alygnn.com/employer-team.html?team_seat=cancelled'})});
-  const data=await res.json().catch(()=>({}));if(!res.ok||!data.url)throw new Error(data.error||'Could not open team-seat checkout.');location.href=data.url;
- }catch(e){showMsg('page-message',e.message||'Could not start checkout.');b.disabled=false;b.textContent=old}
+function buySeat(){
+  location.href='employer-team-payment.html';
 }
 function handlePrimary(){const a=$('primary-action').dataset.action;if(a==='invite')openInvite();else if(a==='buy')buySeat();else if(a==='upgrade')location.href='pricing.html?reason=team_members'}
 
