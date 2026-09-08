@@ -2201,6 +2201,18 @@ body[data-profile-complete="true"] #snapshot-section{display:none!important}
     </button>
   </section>
 
+  <section class="settings-card" id="candidate-workspace-mode-card" hidden>
+    <div class="settings-card-title">Workspace Mode</div>
+
+    <button class="settings-row" id="switch-employer-mode" type="button" onclick="switchToEmployerMode()">
+      <span class="settings-row-copy">
+        <strong>Switch to Recruiter Mode</strong>
+        <small>Manage jobs, candidates, company messages, and hiring activity</small>
+      </span>
+      <span class="settings-arrow">›</span>
+    </button>
+  </section>
+
   <section class="settings-card">
     <div class="settings-card-title">Account</div>
 
@@ -3569,6 +3581,47 @@ async function loadCandidateWorkspace(options={}){
   }
 }
 
+function switchToEmployerMode(){
+  try{
+    localStorage.setItem('alygnn_active_mode','employer');
+    sessionStorage.setItem('alygnn_active_mode','employer');
+  }catch(_){}
+
+  window.location.href='app-employer-dashboard.html?mode=employer';
+}
+
+async function configureWorkspaceModeSwitch(){
+  const card=$('candidate-workspace-mode-card');
+  if(!card || typeof sb==='undefined') return;
+
+  card.hidden=true;
+
+  try{
+    const sessionResult=await sb.auth.getSession();
+    const userId=sessionResult?.data?.session?.user?.id;
+    if(!userId) return;
+
+    const {data,error}=await sb.rpc('get_my_team_access');
+    if(error){
+      console.warn('Workspace mode check unavailable:',error);
+      return;
+    }
+
+    const access=data||{};
+    const canUseEmployerWorkspace=Boolean(
+      access.is_owner===true ||
+      access.company_id ||
+      access.owner_user_id ||
+      access.team_role ||
+      access.role
+    );
+
+    card.hidden=!canUseEmployerWorkspace;
+  }catch(error){
+    console.warn('Could not configure workspace mode switch:',error);
+  }
+}
+
 async function logoutUser(){
   try{
     await sb.auth.signOut({
@@ -3612,6 +3665,7 @@ $('dashboard-resume-input')?.addEventListener('change',event=>{
 });
 syncCandidateView();
 loadCandidateWorkspace();
+configureWorkspaceModeSwitch();
 
 // Android WebView may restore this page from the back/forward cache with the
 // old onboarding DOM still on screen. Re-read the saved candidate state every
