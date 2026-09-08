@@ -56,6 +56,8 @@ h1{font-size:38px;margin:8px 0 12px}h2{font-size:24px;margin:0 0 8px}
 .summary-line strong{font-size:14px}.summary-note{text-align:center;font-size:11px;color:var(--muted);margin-top:12px;line-height:1.45}
 .test-banner{margin-top:14px;border:1px solid #CFE5D8;background:#F0F8F3;color:#356B49;border-radius:12px;padding:12px;font-size:12px;line-height:1.5}
 .loading{min-height:300px;display:grid;place-items:center;color:var(--muted);font-size:14px}
+.loading[hidden]{display:none!important}
+#checkout[hidden]{display:none!important}
 @media(max-width:820px){.checkout-grid{grid-template-columns:1fr}.summary{position:static}.nav-center{display:none}.nav-name{display:none}}
 </style>
 </head>
@@ -197,7 +199,12 @@ function render(){
   }
 
   $('checkout-btn').disabled=!$('terms').checked || access?.can_purchase_seat!==true;
-  $('loading').hidden=true;
+  const loading=$('loading');
+  if(loading){
+    loading.hidden=true;
+    loading.style.display='none';
+    loading.setAttribute('aria-hidden','true');
+  }
   $('checkout').hidden=false;
 
   if(access?.can_purchase_seat!==true){
