@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team members — Alygnn</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;background:#F6F8F7;color:#1A2530;font-family:'DM Sans',Arial,sans-serif}
+:root{--brand:#5D7FA3;--sage:#8CB69B;--bg:#F6F8F7;--card:#FCFCFA;--text:#1A2530;--muted:#4A5968;--border:#DDE3E8;--mint:#6FBF8F;--rose:#D79A9A}
+nav{height:70px;position:fixed;top:0;left:0;right:0;z-index:20;background:rgba(246,248,247,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 5%;gap:30px}
+.logo{font-family:'DM Serif Display';font-size:26px;color:var(--brand);text-decoration:none}.logo span{color:var(--sage)}
+.nav-links{display:flex;align-items:center;gap:24px;margin-left:auto}.nav-links a{color:var(--muted);text-decoration:none;font-size:14px}.nav-links a.active{color:var(--text);font-weight:600}
+.nav-cta,.nav-signout,.primary,.secondary{border-radius:12px;padding:11px 18px;font:600 13px 'DM Sans';cursor:pointer}
+.nav-cta,.primary{background:var(--brand);border:1px solid var(--brand);color:white}.nav-signout,.secondary{background:white;border:1px solid var(--border);color:var(--text)}
+.page{max-width:1080px;margin:0 auto;padding:120px 24px 70px}.eyebrow{text-transform:uppercase;letter-spacing:2px;color:var(--brand);font-size:11px;font-weight:700}
+h1{font-family:'DM Serif Display';font-size:42px;font-weight:400;margin:8px 0 10px}.lead{color:var(--muted);max-width:670px;line-height:1.65;margin:0 0 30px}
+.grid{display:grid;grid-template-columns:1.25fr .75fr;gap:22px}.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px}
+.card h2{font-family:'DM Serif Display';font-weight:400;font-size:25px;margin:0 0 8px}.sub{color:var(--muted);font-size:13px;line-height:1.5}
+.plan-row,.member-row,.invite-row{display:flex;align-items:center;gap:14px}.plan-row{justify-content:space-between}.badge{padding:6px 10px;border-radius:999px;background:#EEF3F7;color:var(--brand);font-size:11px;font-weight:700}
+.seat-count{font-size:30px;font-family:'DM Serif Display';margin:20px 0 4px}.progress{height:8px;background:#EDF1F3;border-radius:999px;overflow:hidden;margin:14px 0}.progress span{display:block;height:100%;background:var(--brand);width:0}
+.plan-note{margin:15px 0 18px;padding:13px 14px;border:1px solid var(--border);background:#F7F9FA;border-radius:12px;color:var(--muted);font-size:12px;line-height:1.55}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap}
+.section-title{font-size:12px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-weight:700;margin:26px 0 10px}
+.list{display:flex;flex-direction:column;gap:10px}.person{border:1px solid var(--border);border-radius:14px;padding:14px;background:white;display:flex;align-items:center;gap:12px}
+.avatar{width:40px;height:40px;border-radius:12px;background:#EAF0F5;color:var(--brand);display:grid;place-items:center;font-weight:700;flex:0 0 auto}.person-main{min-width:0;flex:1}.person-main strong{display:block;font-size:14px}.person-main span{display:block;color:var(--muted);font-size:12px;margin-top:2px;overflow:hidden;text-overflow:ellipsis}
+.role{padding:5px 8px;border-radius:999px;background:#F2F5F6;color:#4A5968;font-size:10px;font-weight:700}.person-actions{display:flex;gap:7px}.mini{border:1px solid var(--border);background:white;color:var(--text);padding:7px 9px;border-radius:9px;font:600 11px 'DM Sans';cursor:pointer}
+.empty{padding:22px;border:1px dashed var(--border);border-radius:14px;color:var(--muted);text-align:center;font-size:13px}
+.role-guide{display:flex;flex-direction:column;gap:10px;margin-top:16px}.role-guide div{padding:13px;border:1px solid var(--border);border-radius:12px;background:white}.role-guide strong{font-size:13px}.role-guide span{display:block;color:var(--muted);font-size:11px;line-height:1.45;margin-top:4px}
+.overlay{position:fixed;inset:0;background:rgba(25,37,48,.35);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}.overlay.show{display:flex}
+.modal{width:min(100%,620px);max-height:90vh;overflow:auto;background:#FCFCFA;border-radius:22px;border:1px solid var(--border);padding:24px;box-shadow:0 28px 90px rgba(26,37,48,.18)}
+.modal-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.modal h2{font-family:'DM Serif Display';font-weight:400;font-size:28px;margin:0}.close{border:0;background:transparent;font-size:26px;color:var(--muted);cursor:pointer}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}.field{display:flex;flex-direction:column;gap:7px}.field.full{grid-column:1/-1}.field label{font-size:12px;font-weight:600}.field input,.field select{height:48px;border:1px solid var(--border);border-radius:11px;background:white;padding:0 12px;font:14px 'DM Sans';outline:none}.field input:focus,.field select:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,127,163,.1)}
+.permission{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--border);padding:12px;border-radius:11px;background:white}.permission input{margin-top:3px}.permission strong{font-size:12px}.permission span{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-top:2px}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}.message{display:none;margin-top:14px;padding:11px 12px;border-radius:11px;font-size:12px}.message.show{display:block}.message.error{background:#FAEEEE;color:#9B4A4A}.message.success{background:#EAF6EE;color:#356B49}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.nav-links a:nth-child(1){display:none}.page{padding-top:100px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.person{align-items:flex-start;flex-wrap:wrap}.person-actions{width:100%}}
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="employers.html">Alygnn<span>.</span></a>
+  <div class="nav-links">
+    <a href="employer-account.html">Account</a>
+    <a href="employer-team.html" class="active">Team</a>
+    <a href="pricing.html">Pricing</a>
+    <a href="employer-dashboard.html" class="nav-cta">Dashboard</a>
+    <button class="nav-signout" onclick="signOut()">Sign out</button>
+  </div>
+</nav>
+
+<main class="page">
+  <div class="eyebrow">Employer workspace</div>
+  <h1>Team members</h1>
+  <p class="lead">Invite recruiters, hiring managers, or admins to help manage your Alygnn hiring workspace. The company owner does not use a team-member seat.</p>
+
+  <div class="grid">
+    <section class="card">
+      <div class="plan-row"><div><h2 id="plan-title">Team access</h2><div class="sub" id="plan-sub">Checking your plan…</div></div><span class="badge" id="plan-badge">Plan</span></div>
+      <div class="seat-count" id="seat-count">—</div>
+      <div class="sub" id="seat-detail">Loading seats…</div>
+      <div class="progress"><span id="seat-progress"></span></div>
+      <div class="plan-note" id="plan-note">Checking team-member rules…</div>
+      <div class="toolbar">
+        <button class="primary" id="primary-action" onclick="handlePrimary()">Invite team member</button>
+        <button class="secondary" onclick="loadTeam()">Refresh</button>
+      </div>
+      <div id="page-message" class="message"></div>
+
+      <div class="section-title">Members</div>
+      <div class="list" id="members-list"><div class="empty">Loading team…</div></div>
+
+      <div id="invites-wrap">
+        <div class="section-title">Pending invitations</div>
+        <div class="list" id="invites-list"><div class="empty">No pending invitations.</div></div>
+      </div>
+    </section>
+
+    <aside class="card">
+      <h2>Roles</h2>
+      <div class="sub">You can customize access before sending the invitation.</div>
+      <div class="role-guide">
+        <div><strong>Recruiter</strong><span>Post and manage jobs, review candidates, and message applicants.</span></div>
+        <div><strong>Hiring Manager</strong><span>Recruiter access plus the ability to edit company hiring information.</span></div>
+        <div><strong>Admin</strong><span>Hiring Manager access plus billing visibility. The owner remains the only person with full account control by default.</span></div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<div class="overlay" id="invite-overlay" onclick="if(event.target===this)closeInvite()">
+  <div class="modal">
+    <div class="modal-head"><div><div class="eyebrow">Team access</div><h2 id="modal-title">Invite team member</h2></div><button class="close" onclick="closeInvite()">×</button></div>
+    <div class="form-grid">
+      <div class="field"><label>Name</label><input id="member-name" maxlength="120" placeholder="Team member name"></div>
+      <div class="field"><label>Email</label><input id="member-email" type="email" maxlength="254" placeholder="name@example.com"></div>
+      <div class="field full"><label>Role</label>
+        <select id="member-role" onchange="applyRolePreset()">
+          <option value="recruiter">Recruiter</option>
+          <option value="hiring_manager">Hiring Manager</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="field full"><label>Access</label><div id="permissions"></div></div>
+    </div>
+    <div id="modal-message" class="message"></div>
+    <div class="modal-actions">
+      <button class="secondary" id="remove-member" style="display:none;margin-right:auto" onclick="removeMember()">Remove member</button>
+      <button class="secondary" onclick="closeInvite()">Cancel</button>
+      <button class="primary" id="save-member" onclick="saveMember()">Send invite</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://auth.alygnn.com';
+const SUPABASE_ANON_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
+function alygnnAuthStorageKey(){let t=sessionStorage.getItem('alygnn_auth_tab_id');if(!t){t=crypto?.randomUUID?.()||`${Date.now()}-${Math.random()}`;sessionStorage.setItem('alygnn_auth_tab_id',t)}return `alygnn-auth-${t}`}
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{storage:sessionStorage,storageKey:alygnnAuthStorageKey(),persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+let session=null,access=null,roster=null,editingMember=null;
+const $=id=>document.getElementById(id);
+const PERMS=[
+ ['jobs_manage','Post & edit jobs','Create, edit, pause, close, and manage company job posts.'],
+ ['candidates_manage','Manage applicants','Review applicants and update candidate statuses.'],
+ ['messages_manage','Message candidates','Open employer conversations and reply to candidates.'],
+ ['company_edit','Edit company profile','Update company details and hiring information.'],
+ ['billing_view','View billing','See plan, billing dates, and payment information.'],
+ ['billing_manage','Manage billing','Purchase add-ons and change billing settings.'],
+ ['team_manage','Manage team','Invite, remove, and change access for other team members.']
+];
+const PRESETS={
+ recruiter:{jobs_manage:true,candidates_manage:true,messages_manage:true,company_edit:false,billing_view:false,billing_manage:false,team_manage:false},
+ hiring_manager:{jobs_manage:true,candidates_manage:true,messages_manage:true,company_edit:true,billing_view:false,billing_manage:false,team_manage:false},
+ admin:{jobs_manage:true,candidates_manage:true,messages_manage:true,company_edit:true,billing_view:true,billing_manage:false,team_manage:false}
+};
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function roleLabel(r){return ({owner:'Owner',admin:'Admin',hiring_manager:'Hiring Manager',recruiter:'Recruiter'})[String(r||'').toLowerCase()]||'Team Member'}
+function planLabel(p){return ({free:'Free',launch:'Launch',growth:'Growth',scale:'Scale'})[String(p||'free').toLowerCase()]||'Alygnn'}
+function initials(n,e){const v=String(n||String(e||'').split('@')[0]||'TM').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();return esc(v||'TM')}
+function showMsg(id,text,type='error'){const e=$(id);e.textContent=text;e.className=`message show ${type}`}
+function clearMsg(id){const e=$(id);e.textContent='';e.className='message'}
+function teamRule(a){const p=String(a?.plan||'free').toLowerCase();if(p==='launch')return 'Launch includes 0 teammates. You may add 1 teammate for $99/month.';if(p==='growth')return 'Growth includes 1 teammate. You may add 1 additional teammate for $75/month.';if(p==='scale')return 'Scale includes 2 teammates. You may add 1 additional teammate for $50/month.';return 'Team members are available on Launch, Growth, and Scale.'}
+function can(k){return access?.is_owner===true||access?.permissions?.[k]===true}
+function renderPermissions(value){const v=value||PRESETS[$('member-role').value]||PRESETS.recruiter;$('permissions').innerHTML=PERMS.map(([k,t,c])=>`<label class="permission"><input type="checkbox" data-perm="${k}" ${v[k]?'checked':''}><span><strong>${t}</strong><span>${c}</span></span></label>`).join('')}
+function applyRolePreset(){renderPermissions(PRESETS[$('member-role').value]||PRESETS.recruiter)}
+function currentPerms(){const v={};document.querySelectorAll('[data-perm]').forEach(x=>v[x.dataset.perm]=x.checked);return v}
+function renderAccess(){
+ const p=String(access?.plan||'free').toLowerCase(), used=Number(access?.used_seats||0), max=Number(access?.max_teammates||0), inc=Number(access?.included_seats||0), paid=Number(access?.paid_seats||0), avail=Number(access?.available_seats||0), price=Number(access?.seat_price_cents||0);
+ $('plan-title').textContent=`${planLabel(p)} team access`;$('plan-badge').textContent=planLabel(p);$('seat-count').textContent=p==='free'?'No team seats':`${used} of ${max} used`;
+ $('seat-detail').textContent=p==='free'?'Upgrade to a paid plan to add teammates.':`${inc} included · ${paid} paid seat${paid===1?'':'s'} · owner does not count`;
+ $('seat-progress').style.width=max?Math.min(100,Math.round(used/max*100))+'%':'0%';$('plan-note').textContent=teamRule(access);
+ const b=$('primary-action');b.disabled=false;
+ if(!can('team_manage')){b.textContent='Team access is view only';b.dataset.action='';b.disabled=true}
+ else if(p==='free'){b.textContent='Upgrade to Launch';b.dataset.action='upgrade'}
+ else if(avail>0){b.textContent='Invite team member';b.dataset.action='invite'}
+ else if(access?.can_purchase_seat===true&&price>0){b.textContent=`Add team seat — $${Math.round(price/100)}/mo`;b.dataset.action='buy'}
+ else {b.textContent=max&&used>=max?'Team capacity reached':'No team seat available';b.dataset.action='';b.disabled=true}
+}
+function renderRoster(){
+ const members=roster?.members||[], invites=roster?.invites||[];
+ $('members-list').innerHTML=members.length?members.map(m=>`<div class="person"><div class="avatar">${initials(m.name,m.email)}</div><div class="person-main"><strong>${esc(m.name||m.email)}</strong><span>${esc(m.email||'')}</span></div><span class="role">${esc(roleLabel(m.team_role))}</span>${m.team_role!=='owner'&&can('team_manage')?`<div class="person-actions"><button class="mini" onclick='editMember(${JSON.stringify(JSON.stringify(m))})'>Edit</button></div>`:''}</div>`).join(''):'<div class="empty">No team members yet.</div>';
+ $('invites-wrap').style.display=can('team_manage')?'block':'none';
+ $('invites-list').innerHTML=invites.length?invites.map(i=>`<div class="person"><div class="avatar">${initials(i.name,i.email)}</div><div class="person-main"><strong>${esc(i.name||i.email)}</strong><span>${esc(i.email)} · invitation pending</span></div><span class="role">${esc(roleLabel(i.team_role))}</span><div class="person-actions"><button class="mini" onclick="resendInvite('${esc(i.id)}')">Resend</button><button class="mini" onclick="revokeInvite('${esc(i.id)}')">Revoke</button></div></div>`).join(''):'<div class="empty">No pending invitations.</div>';
+}
+async function loadTeam(){
+ clearMsg('page-message');
+ try{
+  const {data:a,error:e1}=await sb.rpc('get_my_team_access');if(e1)throw e1;access=a||{};
+  const {data:r,error:e2}=await sb.rpc('get_my_team_roster');if(e2)throw e2;roster=r||{members:[],invites:[],access};if(r?.access)access=r.access;
+  renderAccess();renderRoster();
+ }catch(e){console.error(e);showMsg('page-message',e.message||'Could not load team access. Make sure the Alygnn team SQL has been installed.')}
+}
+function openInvite(){if(!can('team_manage'))return;editingMember=null;$('modal-title').textContent='Invite team member';$('member-name').value='';$('member-email').value='';$('member-email').readOnly=false;$('member-role').value='recruiter';$('remove-member').style.display='none';$('save-member').textContent='Send invite';applyRolePreset();clearMsg('modal-message');$('invite-overlay').classList.add('show')}
+function closeInvite(){$('invite-overlay').classList.remove('show')}
+function editMember(encoded){editingMember=JSON.parse(encoded);$('modal-title').textContent='Edit team member';$('member-name').value=editingMember.name||'';$('member-email').value=editingMember.email||'';$('member-email').readOnly=true;$('member-role').value=['admin','hiring_manager','recruiter'].includes(editingMember.team_role)?editingMember.team_role:'recruiter';$('remove-member').style.display='inline-block';$('save-member').textContent='Save access';renderPermissions(editingMember.permissions);clearMsg('modal-message');$('invite-overlay').classList.add('show')}
+async function saveMember(){
+ if(!can('team_manage'))return;const b=$('save-member');const name=$('member-name').value.trim(),email=$('member-email').value.trim().toLowerCase(),role=$('member-role').value,permissions=currentPerms();
+ if(name.length<2)return showMsg('modal-message','Enter the team member’s name.');
+ if(!editingMember&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return showMsg('modal-message','Enter a valid email address.');
+ b.disabled=true;
+ try{
+  if(editingMember){const {error}=await sb.rpc('update_company_team_member',{p_user_id:editingMember.user_id,p_team_role:role,p_permissions:permissions});if(error)throw error;showMsg('page-message','Team member access updated.','success')}
+  else{
+   const {data:invite,error}=await sb.rpc('create_company_team_invite',{p_email:email,p_member_name:name,p_team_role:role,p_permissions:permissions});if(error)throw error;
+   try{const result=await sb.functions.invoke('send-team-invite',{body:{invite_id:invite?.id}});if(result.error)throw result.error;showMsg('page-message','Invitation sent.','success')}catch(mail){console.warn(mail);showMsg('page-message','Invitation saved, but the email could not be sent.','error')}
+  }
+  closeInvite();await loadTeam();
+ }catch(e){showMsg('modal-message',e.message||'Could not save the team member.')}finally{b.disabled=false}
+}
+async function removeMember(){if(!editingMember||!confirm(`Remove ${editingMember.name||editingMember.email} from this workspace?`))return;try{const {error}=await sb.rpc('remove_company_team_member',{p_user_id:editingMember.user_id});if(error)throw error;closeInvite();await loadTeam();showMsg('page-message','Team member removed.','success')}catch(e){showMsg('modal-message',e.message||'Could not remove team member.')}}
+async function revokeInvite(id){if(!confirm('Revoke this pending invitation?'))return;try{const {error}=await sb.rpc('revoke_company_team_invite',{p_invite_id:id});if(error)throw error;await loadTeam();showMsg('page-message','Invitation revoked.','success')}catch(e){showMsg('page-message',e.message||'Could not revoke invitation.')}}
+async function resendInvite(id){try{const result=await sb.functions.invoke('send-team-invite',{body:{invite_id:id}});if(result.error)throw result.error;showMsg('page-message','Invitation email sent again.','success')}catch(e){showMsg('page-message',e.message||'Could not resend invitation.')}}
+async function buySeat(){
+ const price=Number(access?.seat_price_cents||0);if(!price)return;
+ if(!confirm(`Add one team seat for $${Math.round(price/100)}/month? It renews monthly until canceled.`))return;
+ const b=$('primary-action'),old=b.textContent;b.disabled=true;b.textContent='Opening checkout…';
+ try{
+  const res=await fetch('/api/create-checkout-session',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({product:'team_seat',billing:'monthly',purchase_type:'subscription',terms_accepted:true,terms_version:'team-seat-v1',source:'employer_web_team',success_url:'https://alygnn.com/employer-team.html?team_seat=success',cancel_url:'https://alygnn.com/employer-team.html?team_seat=cancelled'})});
+  const data=await res.json().catch(()=>({}));if(!res.ok||!data.url)throw new Error(data.error||'Could not open team-seat checkout.');location.href=data.url;
+ }catch(e){showMsg('page-message',e.message||'Could not start checkout.');b.disabled=false;b.textContent=old}
+}
+function handlePrimary(){const a=$('primary-action').dataset.action;if(a==='invite')openInvite();else if(a==='buy')buySeat();else if(a==='upgrade')location.href='pricing.html?reason=team_members'}
+async function signOut(){await sb.auth.signOut();location.href='login.html?role=employer'}
+(async()=>{
+ const {data:{session:s}}=await sb.auth.getSession();if(!s){location.replace('login.html?role=employer');return}session=s;
+ try{await sb.rpc('accept_my_pending_team_invite')}catch(_){}
+ await loadTeam();
+ const q=new URLSearchParams(location.search);if(q.get('team_seat')==='success')showMsg('page-message','Team seat activated. You can invite another teammate now.','success');
+})();
+</script>
+</body>
+</html>
