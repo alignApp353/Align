@@ -17,6 +17,14 @@ nav{height:70px;position:fixed;top:0;left:0;right:0;z-index:20;background:rgba(2
 .nav-links{display:flex;align-items:center;gap:24px;margin-left:auto}.nav-links a{color:var(--muted);text-decoration:none;font-size:14px}.nav-links a.active{color:var(--text);font-weight:600}
 .nav-cta,.nav-signout,.primary,.secondary{border-radius:12px;padding:11px 18px;font:600 13px 'DM Sans';cursor:pointer}
 .nav-cta,.primary{background:var(--brand);border:1px solid var(--brand);color:white}.nav-signout,.secondary{background:white;border:1px solid var(--border);color:var(--text)}
+
+.employer-actions{gap:14px}
+.notification-btn{width:39px;height:39px;border:1px solid var(--border);background:white;border-radius:11px;display:grid;place-items:center;cursor:pointer;color:#4A5968;padding:0}
+.notification-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.company-name{font-size:14px;font-weight:500;color:var(--muted);max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.add-slot-btn{height:40px;border-radius:999px;border:1.5px solid var(--brand);background:white;color:var(--brand);padding:0 20px;font:600 13px 'DM Sans';cursor:pointer}
+.add-slot-btn:hover{background:#F1F5F8}
+
 .page{max-width:1080px;margin:0 auto;padding:120px 24px 70px}.eyebrow{text-transform:uppercase;letter-spacing:2px;color:var(--brand);font-size:11px;font-weight:700}
 h1{font-family:'DM Serif Display';font-size:42px;font-weight:400;margin:8px 0 10px}.lead{color:var(--muted);max-width:670px;line-height:1.65;margin:0 0 30px}
 .grid{display:grid;grid-template-columns:1.25fr .75fr;gap:22px}.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px}
@@ -43,9 +51,15 @@ h1{font-family:'DM Serif Display';font-size:42px;font-weight:400;margin:8px 0 10
 <body>
 <nav>
   <a class="logo" href="employers.html">Alygnn<span>.</span></a>
-  <div class="nav-links">
-    <a href="employer-account.html" class="active">Account</a>
-    <a href="pricing.html">Pricing</a>
+  <div class="nav-links employer-actions">
+    <button class="notification-btn" type="button" onclick="location.href='employer-account.html#notifications'" aria-label="Notifications">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+        <path d="M10 21h4"/>
+      </svg>
+    </button>
+    <span class="company-name" id="header-company-name">Employer</span>
+    <button class="add-slot-btn" type="button" onclick="location.href='pricing.html?reason=job_slot'">+ Add a job slot</button>
     <a href="employer-dashboard.html" class="nav-cta">Dashboard</a>
     <button class="nav-signout" onclick="signOut()">Sign out</button>
   </div>
@@ -180,12 +194,50 @@ function renderRoster(){
  $('invites-wrap').style.display=can('team_manage')?'block':'none';
  $('invites-list').innerHTML=invites.length?invites.map(i=>`<div class="person"><div class="avatar">${initials(i.name,i.email)}</div><div class="person-main"><strong>${esc(i.name||i.email)}</strong><span>${esc(i.email)} · invitation pending</span></div><span class="role">${esc(roleLabel(i.team_role))}</span><div class="person-actions"><button class="mini" onclick="resendInvite('${esc(i.id)}')">Resend</button><button class="mini" onclick="revokeInvite('${esc(i.id)}')">Revoke</button></div></div>`).join(''):'<div class="empty">No pending invitations.</div>';
 }
+
+async function loadHeaderCompanyName(){
+  try{
+    const ownerId=String(access?.owner_user_id||session?.user?.id||'');
+    let name='';
+
+    if(ownerId){
+      const {data}=await sb
+        .from('companies')
+        .select('company_name,name,legal_name')
+        .eq('owner_user_id',ownerId)
+        .limit(1)
+        .maybeSingle();
+
+      name=
+        data?.company_name||
+        data?.name||
+        data?.legal_name||
+        '';
+    }
+
+    if(!name){
+      name=
+        session?.user?.user_metadata?.company_name||
+        session?.user?.user_metadata?.full_name||
+        String(session?.user?.email||'').split('@')[0]||
+        'Employer';
+    }
+
+    $('header-company-name').textContent=name;
+  }catch(_){
+    $('header-company-name').textContent=
+      session?.user?.user_metadata?.company_name||
+      String(session?.user?.email||'').split('@')[0]||
+      'Employer';
+  }
+}
+
 async function loadTeam(){
  clearMsg('page-message');
  try{
   const {data:a,error:e1}=await sb.rpc('get_my_team_access');if(e1)throw e1;access=a||{};
   const {data:r,error:e2}=await sb.rpc('get_my_team_roster');if(e2)throw e2;roster=r||{members:[],invites:[],access};if(r?.access)access=r.access;
-  renderAccess();renderRoster();
+  renderAccess();renderRoster();await loadHeaderCompanyName();
  }catch(e){console.error(e);showMsg('page-message',e.message||'Could not load team access. Make sure the Alygnn team SQL has been installed.')}
 }
 function openInvite(){if(!can('team_manage'))return;editingMember=null;$('modal-title').textContent='Invite team member';$('member-name').value='';$('member-email').value='';$('member-email').readOnly=false;$('member-role').value='recruiter';$('remove-member').style.display='none';$('save-member').textContent='Send invite';applyRolePreset();clearMsg('modal-message');$('invite-overlay').classList.add('show')}
