@@ -5580,7 +5580,11 @@
       teamAccess:null,
       teamRoster:null,
       editingTeamMember:null,
-      editingTeamInvite:null
+      editingTeamInvite:null,
+      sharedCompanyAiProfile:{},
+      sharedCompanyOnboardingProfile:{},
+      sharedCompanyAiProfileComplete:false,
+      workspaceMemberName:''
     };
 
     const THEME_STORAGE_KEY = 'alygnnEmployerTheme';
@@ -7080,6 +7084,7 @@
       const context = getEmployerTimeContext();
 
       const name =
+        state.workspaceMemberName ||
         state.session?.user?.user_metadata?.full_name ||
         state.session?.user?.user_metadata?.name ||
         state.session?.user?.email?.split('@')[0] ||
@@ -10800,6 +10805,72 @@
       }
     }
 
+
+    async function loadSharedCompanyContext(){
+      try{
+        const {data,error}=await sb.rpc(
+          'get_my_company_shared_context'
+        );
+
+        if(error){
+          console.warn(
+            'Shared company context unavailable:',
+            error
+          );
+          return null;
+        }
+
+        if(!data){
+          return null;
+        }
+
+        state.workspaceMemberName=
+          String(
+            data.member_name||
+            ''
+          ).trim();
+
+        state.sharedCompanyAiProfile=
+          data.ai_profile &&
+          typeof data.ai_profile==='object'
+            ?data.ai_profile
+            :{};
+
+        state.sharedCompanyOnboardingProfile=
+          data.onboarding_profile &&
+          typeof data.onboarding_profile==='object'
+            ?data.onboarding_profile
+            :{};
+
+        state.sharedCompanyAiProfileComplete=
+          data.ai_profile_complete===true;
+
+        if(
+          state.teamAccess?.is_owner!==true
+        ){
+          state.aiProfileComplete=
+            state.sharedCompanyAiProfileComplete;
+
+          if(
+            data.company_verification_status
+          ){
+            state.verificationStatus=
+              String(
+                data.company_verification_status
+              );
+          }
+        }
+
+        return data;
+      }catch(error){
+        console.warn(
+          'Could not load shared company context:',
+          error
+        );
+        return null;
+      }
+    }
+
     async function loadTeamRoster(){
       const {data,error}=await sb.rpc(
         'get_my_team_roster'
@@ -13232,19 +13303,34 @@
 
       const currentCompanyName=companyView.name==='Your Company'?'':companyView.name;
 
-      const saved=scopedCompanyProfile(
-        meta.employer_ai_profile,
-        currentCompanyId,
-        currentCompanyName,
-        user.id
-      );
+      const isTeamMember=
+        state.teamAccess?.is_owner===false;
 
-      const setup=scopedCompanyProfile(
-        meta.onboarding_company_profile,
-        currentCompanyId,
-        currentCompanyName,
-        user.id
-      );
+      const saved=
+        isTeamMember
+          ?(
+              state.sharedCompanyAiProfile||
+              {}
+            )
+          :scopedCompanyProfile(
+              meta.employer_ai_profile,
+              currentCompanyId,
+              currentCompanyName,
+              user.id
+            );
+
+      const setup=
+        isTeamMember
+          ?(
+              state.sharedCompanyOnboardingProfile||
+              {}
+            )
+          :scopedCompanyProfile(
+              meta.onboarding_company_profile,
+              currentCompanyId,
+              currentCompanyName,
+              user.id
+            );
 
       const scopedVerification=scopedCompanyProfile(
         verification,
@@ -13275,10 +13361,19 @@
         return String(value||'').trim().length>0;
       }).length;
 
+      const sharedComplete=
+        state.teamAccess?.is_owner===false &&
+        state.sharedCompanyAiProfileComplete===true;
+
       return {
         completed,
         total:values.length,
-        percent:state.aiProfileComplete?100:Math.round((completed/values.length)*100)
+        percent:
+          (state.aiProfileComplete||sharedComplete)
+            ?100
+            :Math.round(
+                (completed/values.length)*100
+              )
       };
     }
 
@@ -13713,6 +13808,8 @@
 
         await loadEmployerCompanyData();
         await loadTeamAccess();
+        await loadSharedCompanyContext();
+        greeting();
         await loadWorkspaceSwitcherVisibility();
 
         /*
