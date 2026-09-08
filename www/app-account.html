@@ -2204,20 +2204,6 @@ body[data-profile-complete="true"] #snapshot-section{display:none!important}
   <section class="settings-card">
     <div class="settings-card-title">Account</div>
 
-    <button
-      class="settings-row"
-      id="candidate-employer-switch"
-      type="button"
-      hidden
-      onclick="openAcceptedEmployerWorkspace()"
-    >
-      <span class="settings-row-copy">
-        <strong id="candidate-employer-switch-title">Switch to Recruiter Mode</strong>
-        <small id="candidate-employer-switch-copy">Employer workspace</small>
-      </span>
-      <span class="settings-arrow">›</span>
-    </button>
-
     <button class="settings-row" type="button" onclick="openPreferencesFromSettings()">
       <span class="settings-row-copy">
         <strong>Job Preferences</strong>
@@ -2570,197 +2556,6 @@ async function saveProfileEdits(){
   }
 }
 
-
-let candidateAcceptedEmployerWorkspace=null;
-let candidateWorkspaceUserId='';
-
-function candidateEmployerModeLabel(role){
-  const normalized=
-    String(role||'')
-      .trim()
-      .toLowerCase();
-
-  if(normalized==='recruiter'){
-    return 'Recruiter';
-  }
-
-  if(normalized==='hiring_manager'){
-    return 'Hiring Manager';
-  }
-
-  if(normalized==='admin'){
-    return 'Admin';
-  }
-
-  return 'Employer';
-}
-
-async function loadAcceptedEmployerSwitch(){
-  const button=
-    $('candidate-employer-switch');
-
-  if(!button){
-    return;
-  }
-
-  /*
-   * Important:
-   * Keep this hidden by default. Pending invitations do NOT unlock
-   * employer/recruiter mode. Only an accepted active company membership
-   * returned in employer_workspaces may show this control.
-   */
-  button.hidden=true;
-  candidateAcceptedEmployerWorkspace=null;
-
-  try{
-    const {
-      data:sessionData,
-      error:sessionError
-    }=await sb.auth.getSession();
-
-    if(sessionError){
-      throw sessionError;
-    }
-
-    candidateWorkspaceUserId=
-      sessionData?.session?.user?.id||
-      '';
-
-    const {
-      data,
-      error
-    }=await sb.rpc(
-      'get_my_workspace_context'
-    );
-
-    if(error){
-      throw error;
-    }
-
-    const employerWorkspaces=
-      Array.isArray(
-        data?.employer_workspaces
-      )
-        ?data.employer_workspaces
-        :[];
-
-    /*
-     * Candidate switch mode is specifically for accepted team invitations.
-     * Company owners are not surfaced here as "accepted invitations".
-     */
-    const acceptedMemberships=
-      employerWorkspaces.filter(
-        workspace=>
-          workspace &&
-          workspace.is_owner!==true &&
-          Boolean(workspace.company_id)
-      );
-
-    if(!acceptedMemberships.length){
-      return;
-    }
-
-    const workspace=
-      acceptedMemberships[0];
-
-    candidateAcceptedEmployerWorkspace=
-      workspace;
-
-    const roleLabel=
-      candidateEmployerModeLabel(
-        workspace.team_role
-      );
-
-    const companyName=
-      String(
-        workspace.company_name||
-        'Employer workspace'
-      ).trim();
-
-    const title=
-      $('candidate-employer-switch-title');
-
-    const copy=
-      $('candidate-employer-switch-copy');
-
-    if(title){
-      title.textContent=
-        `Switch to ${roleLabel} Mode`;
-    }
-
-    if(copy){
-      copy.textContent=
-        `${companyName} · Employer workspace`;
-    }
-
-    button.hidden=false;
-  }catch(error){
-    /*
-     * Do not accidentally reveal the switch button if membership lookup
-     * fails. The safe state is Candidate-only.
-     */
-    console.warn(
-      'Candidate employer workspace switch unavailable:',
-      error
-    );
-
-    button.hidden=true;
-    candidateAcceptedEmployerWorkspace=null;
-  }
-}
-
-function openAcceptedEmployerWorkspace(){
-  const workspace=
-    candidateAcceptedEmployerWorkspace;
-
-  if(
-    !workspace||
-    !workspace.company_id
-  ){
-    return;
-  }
-
-  const companyId=
-    String(
-      workspace.company_id
-    );
-
-  localStorage.setItem(
-    'alygnn_last_workspace',
-    `employer:${companyId}`
-  );
-
-  localStorage.setItem(
-    'alygnn_account_type',
-    'employer'
-  );
-
-  localStorage.setItem(
-    'alygnn_company_id',
-    companyId
-  );
-
-  if(candidateWorkspaceUserId){
-    localStorage.setItem(
-      `alygnn_company_id_${candidateWorkspaceUserId}`,
-      companyId
-    );
-  }
-
-  const verificationStatus=
-    String(
-      workspace.verification_status||
-      'pending_review'
-    )
-      .trim()
-      .toLowerCase();
-
-  window.location.href=
-    verificationStatus==='approved'
-      ?'app-employer-dashboard.html'
-      :'app-employer-verification-status.html';
-}
-
 function syncCandidateView(){
   const settingsOpen=window.location.hash==='#settings';
   const profileView=$('profile-view');
@@ -2785,7 +2580,6 @@ function syncCandidateView(){
 
   if(settingsOpen){
     refreshCandidateSettingsUI();
-    loadAcceptedEmployerSwitch();
   }
 
   window.scrollTo({top:0,left:0,behavior:'auto'});
@@ -3817,7 +3611,6 @@ $('dashboard-resume-input')?.addEventListener('change',event=>{
   event.target.value='';
 });
 syncCandidateView();
-loadAcceptedEmployerSwitch();
 loadCandidateWorkspace();
 
 // Android WebView may restore this page from the back/forward cache with the
@@ -3909,6 +3702,128 @@ setInterval(()=>{
       .subscribe();
     window.addEventListener('pagehide',()=>{ try{ sb.removeChannel(channel); }catch(_){} },{once:true});
   }catch(_){}
+})();
+</script>
+
+
+<script id="alygnn-candidate-message-badge-persistence">
+(function(){
+  const badge=document.getElementById('candidate-message-badge');
+  if(!badge || typeof sb==='undefined')return;
+
+  const GLOBAL_KEY='alygnn_candidate_unread_messages_last';
+  let activeUserId='';
+
+  function scopedKey(userId){
+    return `alygnn_candidate_unread_messages:${String(userId||'unknown')}`;
+  }
+
+  function parseCount(value){
+    const count=Number(value);
+    return Number.isFinite(count)&&count>0?Math.floor(count):0;
+  }
+
+  function cachedCount(){
+    try{
+      return parseCount(
+        (activeUserId&&localStorage.getItem(scopedKey(activeUserId))) ||
+        localStorage.getItem(GLOBAL_KEY) ||
+        '0'
+      );
+    }catch(_){
+      return 0;
+    }
+  }
+
+  function paint(count,persist=true){
+    count=Math.max(0,Number(count)||0);
+    badge.textContent=count>99?'99+':String(count);
+    badge.hidden=count===0;
+
+    if(persist){
+      try{
+        localStorage.setItem(GLOBAL_KEY,String(count));
+        if(activeUserId){
+          localStorage.setItem(scopedKey(activeUserId),String(count));
+        }
+      }catch(_){}
+    }
+  }
+
+  const initial=cachedCount();
+  if(initial>0)paint(initial,false);
+
+  async function refreshPersistentCandidateBadge(){
+    try{
+      const {data,error}=await sb.auth.getSession();
+      if(error)throw error;
+
+      activeUserId=data?.session?.user?.id||'';
+      if(!activeUserId){
+        paint(0);
+        return;
+      }
+
+      const conversations=await sb
+        .from('application_conversations')
+        .select('id')
+        .eq('candidate_id',activeUserId);
+
+      if(conversations.error)throw conversations.error;
+
+      const ids=(conversations.data||[])
+        .map(row=>row.id)
+        .filter(Boolean);
+
+      if(!ids.length){
+        paint(0);
+        return;
+      }
+
+      const unread=await sb
+        .from('application_messages')
+        .select('id')
+        .in('conversation_id',ids)
+        .neq('sender_id',activeUserId)
+        .is('read_at',null);
+
+      if(unread.error)throw unread.error;
+      paint((unread.data||[]).length);
+    }catch(error){
+      console.warn('Persistent candidate message badge refresh failed:',error);
+      const count=cachedCount();
+      if(count>0)paint(count,false);
+    }
+  }
+
+  const observer=new MutationObserver(()=>{
+    if(badge.hidden){
+      const count=cachedCount();
+      if(count>0){
+        badge.textContent=count>99?'99+':String(count);
+        badge.hidden=false;
+      }
+    }
+  });
+
+  observer.observe(badge,{attributes:true,attributeFilter:['hidden']});
+
+  window.AlygnnRefreshCandidateMessageBadge=refreshPersistentCandidateBadge;
+  refreshPersistentCandidateBadge();
+  setTimeout(refreshPersistentCandidateBadge,250);
+  window.addEventListener('pageshow',refreshPersistentCandidateBadge);
+  window.addEventListener('focus',refreshPersistentCandidateBadge);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'){
+      refreshPersistentCandidateBadge();
+    }
+  });
+  window.addEventListener('storage',event=>{
+    if(event.key===GLOBAL_KEY || event.key===scopedKey(activeUserId)){
+      const count=cachedCount();
+      paint(count,false);
+    }
+  });
 })();
 </script>
 
