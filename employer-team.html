@@ -148,7 +148,23 @@ function applyRolePreset(){renderPermissions(PRESETS[$('member-role').value]||PR
 function currentPerms(){const v={};document.querySelectorAll('[data-perm]').forEach(x=>v[x.dataset.perm]=x.checked);return v}
 function renderAccess(){
  const p=String(access?.plan||'free').toLowerCase(), used=Number(access?.used_seats||0), max=Number(access?.max_teammates||0), inc=Number(access?.included_seats||0), paid=Number(access?.paid_seats||0), avail=Number(access?.available_seats||0), price=Number(access?.seat_price_cents||0);
- $('plan-title').textContent=`${planLabel(p)} team access`;$('plan-badge').textContent=planLabel(p);$('seat-count').textContent=p==='free'?'No team seats':`${used} of ${max} used`;
+ $('plan-title').textContent=`${planLabel(p)} team access`;
+ $('plan-badge').textContent=planLabel(p);
+
+ // Replace the loading copy as soon as the team-access RPC returns.
+ if(p==='free'){
+   $('plan-sub').textContent='Free employer account · no teammate seats included';
+ }else if(p==='launch'){
+   $('plan-sub').textContent='Launch plan · add 1 teammate for $99/month';
+ }else if(p==='growth'){
+   $('plan-sub').textContent='Growth plan · 1 teammate included';
+ }else if(p==='scale'){
+   $('plan-sub').textContent='Scale plan · 2 teammates included';
+ }else{
+   $('plan-sub').textContent=`${planLabel(p)} employer plan`;
+ }
+
+ $('seat-count').textContent=p==='free'?'No team seats':`${used} of ${max} used`;
  $('seat-detail').textContent=p==='free'?'Upgrade to a paid plan to add teammates.':`${inc} included · ${paid} paid seat${paid===1?'':'s'} · owner does not count`;
  $('seat-progress').style.width=max?Math.min(100,Math.round(used/max*100))+'%':'0%';$('plan-note').textContent=teamRule(access);
  const b=$('primary-action');b.disabled=false;
