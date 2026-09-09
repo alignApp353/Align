@@ -592,34 +592,44 @@ async function sendTeamInviteEmail(inviteId){
     throw new Error('Your Alygnn session expired. Please sign in again.');
   }
 
-  const response=await fetch(TEAM_INVITE_FUNCTION_URL,{
-    method:'POST',
+  const controller=new AbortController();
+  const timeoutId=setTimeout(()=>controller.abort(),15000);
 
-    // text/plain keeps this request CORS-safelisted and avoids the browser
-    // preflight problem that was causing "Failed to send a request to the Edge Function".
-    headers:{
-      'Content-Type':'text/plain;charset=UTF-8'
-    },
-
-    body:JSON.stringify({
-      invite_id:String(inviteId||''),
-      access_token:session.access_token
-    })
-  });
-
-  let data={};
   try{
-    data=await response.json();
-  }catch(_){}
+    const response=await fetch(TEAM_INVITE_FUNCTION_URL,{
+      method:'POST',
+      signal:controller.signal,
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${session.access_token}`,
+        'apikey':SUPABASE_ANON_KEY
+      },
+      body:JSON.stringify({
+        invite_id:String(inviteId||'')
+      })
+    });
 
-  if(!response.ok || data?.success!==true){
-    throw new Error(
-      data?.error ||
-      `Invitation email service returned ${response.status}.`
-    );
+    let data={};
+    try{
+      data=await response.json();
+    }catch(_){}
+
+    if(!response.ok||data?.success!==true){
+      throw new Error(
+        data?.error||
+        `Invitation email service returned ${response.status}.`
+      );
+    }
+
+    return data;
+  }catch(error){
+    if(error?.name==='AbortError'){
+      throw new Error('The invitation email service took too long to respond. Please try Resend again.');
+    }
+    throw error;
+  }finally{
+    clearTimeout(timeoutId);
   }
-
-  return data;
 }
 
 async function saveMember(){
@@ -702,7 +712,7 @@ async function saveMember(){
       throw new Error('The invitation was created but Alygnn did not receive an invitation ID. Refresh Team Members and try again.');
     }
 
-    showMsg('modal-message','Invitation saved. Sending the email now…','info');
+    showMsg('modal-message','Invitation saved. Sending the email now… Please keep this window open.','info');
 
     try{
       await sendTeamInviteEmail(inviteId);
