@@ -347,17 +347,7 @@
     overflow-y:auto; background:var(--card); border:1px solid var(--border);
     border-radius:14px; box-shadow:0 12px 32px rgba(0,0,0,0.12); z-index:1200;
   }
-  .notif-dropdown-header {
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
-    font-size:13px; font-weight:600; color:var(--text); padding:14px 16px 8px;
-  }
-  .notif-mark-all {
-    border:0; background:transparent; color:var(--brand);
-    font-family:'DM Sans',sans-serif; font-size:11px; font-weight:500;
-    cursor:pointer; padding:0; white-space:nowrap;
-  }
-  .notif-mark-all:hover { opacity:.8; }
-  .notif-mark-all:disabled { opacity:.5; cursor:default; }
+  .notif-dropdown-header { font-size:13px; font-weight:600; color:var(--text); padding:14px 16px 8px; }
   .notif-empty { font-size:13px; color:var(--muted); padding:20px 16px; text-align:center; }
   .notif-item { display:block; padding:10px 16px; border-top:1px solid var(--border); text-decoration:none; color:inherit; }
   .notif-item:hover { background:var(--brand-light); }
@@ -461,10 +451,7 @@
         <span class="notif-badge" id="notif-badge" style="display:none">0</span>
       </button>
       <div class="notif-dropdown" id="notif-dropdown" style="display:none">
-        <div class="notif-dropdown-header">
-          <span>Notifications</span>
-          <button class="notif-mark-all" id="notif-mark-all-btn" type="button" onclick="markAllEmployerNotificationsRead(event)">Mark all read</button>
-        </div>
+        <div class="notif-dropdown-header">Notifications</div>
         <div id="notif-list"><div class="notif-empty">No notifications yet.</div></div>
       </div>
     </div>
@@ -550,6 +537,15 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 let currentUser=null;
 let currentProfile=null;
 let candidateAccessLocked=false;
+let teamAccess=null;
+let teamRuntime=null;
+let isTeamMember=false;
+let workspaceOwnerId=null;
+
+function candidateTeamCan(permission){
+  if(!isTeamMember)return true;
+  return teamAccess?.permissions?.[permission]===true;
+}
 let candidateAccessLockReason='';
 let jobs=[];
 let candidates=[];
@@ -677,7 +673,7 @@ async function fetchCandidatePageUnreadMessages(){
     const {data:threads,error:threadsError}=await sb
       .from('message_threads')
       .select('id,job_id,candidate_id,employer_id')
-      .eq('employer_id',currentUser.id);
+      .eq('employer_id',workspaceOwnerId);
 
     if(threadsError) throw threadsError;
 
@@ -897,54 +893,6 @@ async function handleCandidatePageMessageNotification(event,id){
   if(dropdown) dropdown.style.display='none';
 
   window.location.href=n.link||'messages.html';
-}
-
-async function markAllEmployerNotificationsRead(event){
-  if(event){
-    event.preventDefault();
-    event.stopPropagation();
-  }
-
-  const btn=document.getElementById('notif-mark-all-btn');
-  if(btn){
-    btn.disabled=true;
-    btn.textContent='Marking…';
-  }
-
-  const now=new Date().toISOString();
-  const regularIds=candidatePageNotificationItems
-    .filter(item=>item.source!=='message'&&!item.read_at&&item.id)
-    .map(item=>item.id);
-  const messageIds=candidatePageNotificationItems
-    .filter(item=>item.source==='message'&&item.message_id)
-    .map(item=>item.message_id);
-
-  try{
-    if(regularIds.length){
-      const {error}=await sb
-        .from('notifications')
-        .update({read_at:now})
-        .in('id',regularIds);
-      if(error) console.warn('Could not mark employer notifications read:',error);
-    }
-
-    if(messageIds.length&&currentUser?.id){
-      const {error}=await sb
-        .from('messages')
-        .update({read_at:now})
-        .in('id',messageIds)
-        .neq('sender_id',currentUser.id)
-        .is('read_at',null);
-      if(error) console.warn('Could not mark employer message notifications read:',error);
-    }
-
-    await refreshCandidatePageNotifications();
-  }finally{
-    if(btn){
-      btn.disabled=false;
-      btn.textContent='Mark all read';
-    }
-  }
 }
 
 async function refreshCandidatePageNotifications(){
@@ -1259,38 +1207,81 @@ async function loadData(){
     location.replace('login.html?role=employer');
     return;
   }
+
   currentUser=session.user;
+  workspaceOwnerId=currentUser.id;
   syncSidebarPostLabel();
 
-  const {data:profile,error:profileError}=await sb
-    .from('profiles')
-    .select('id,role,company_name,full_name')
-    .eq('id',currentUser.id)
-    .maybeSingle();
+  const runtimeResult=await sb.rpc('get_my_team_operational_state');
+  if(!runtimeResult.error&&runtimeResult.data?.has_company){
+    teamRuntime=runtimeResult.data;
+    teamAccess=runtimeResult.data.access||null;
+    isTeamMember=teamAccess?.is_owner===false;
+    workspaceOwnerId=runtimeResult.data.owner_user_id||teamAccess?.owner_user_id||currentUser.id;
+  }
 
-  if(profileError){
-    console.error(profileError);
-    location.replace('login.html?role=employer');
-    return;
+  let profile=null;
+
+  if(isTeamMember){
+    if(!candidateTeamCan('candidates_manage')){
+      document.getElementById('jobs-groups').innerHTML='<div class="empty"><div class="empty-title">Candidate access not included</div>Your company role does not include applicant management.</div>';
+      document.body.classList.add('auth-ready');
+      return;
+    }
+
+    profile=teamRuntime?.owner_profile||{};
+    currentProfile=profile;
+    document.getElementById('nav-user-name').textContent=profile?.company_name||'Company';
+
+    const postLink=document.querySelector('a[href="employer-dashboard.html#post"]');
+    if(postLink&&!candidateTeamCan('jobs_manage'))postLink.style.display='none';
+
+    const accountLink=document.querySelector('a[href="employer-account.html"]');
+    if(accountLink&&!(
+      candidateTeamCan('company_edit')||
+      candidateTeamCan('billing_view')||
+      candidateTeamCan('billing_manage')||
+      candidateTeamCan('team_manage')
+    ))accountLink.style.display='none';
+  }else{
+    const {data:ownerProfile,error:profileError}=await sb
+      .from('profiles')
+      .select('id,role,company_name,full_name')
+      .eq('id',currentUser.id)
+      .maybeSingle();
+
+    if(profileError){
+      console.error(profileError);
+      location.replace('login.html?role=employer');
+      return;
+    }
+
+    if(String(ownerProfile?.role||currentUser.user_metadata?.role||'').toLowerCase()!=='employer'){
+      location.replace('login.html?role=employer');
+      return;
+    }
+
+    profile=ownerProfile||{};
+    currentProfile=profile;
+    document.getElementById('nav-user-name').textContent=
+      profile?.company_name||profile?.full_name||currentUser.user_metadata?.company_name||'';
   }
-  if(String(profile?.role||currentUser.user_metadata?.role||'').toLowerCase()!=='employer'){
-    location.replace('login.html?role=employer');
-    return;
-  }
-  currentProfile=profile||{};
-  document.getElementById('nav-user-name').textContent=
-    profile?.company_name||profile?.full_name||currentUser.user_metadata?.company_name||'';
 
   // Candidate access is intentionally stricter than job-slot access. During a
   // past-due paid-plan retry/grace period the employer keeps its jobs/slot
   // capacity, but candidate profiles and hiring actions stay locked until Stripe
   // confirms a successful payment.
-  const {data:postingAccess,error:postingAccessError}=await sb.rpc('get_employer_posting_access');
-  if(postingAccessError){
-    console.warn('Could not verify candidate billing access:',postingAccessError);
+  if(isTeamMember){
+    candidateAccessLocked=teamRuntime?.entitlement?.candidate_access_locked===true;
+    candidateAccessLockReason=String(teamRuntime?.entitlement?.candidate_access_lock_reason||'');
   }else{
-    candidateAccessLocked=postingAccess?.candidate_access_locked===true;
-    candidateAccessLockReason=String(postingAccess?.candidate_access_lock_reason||'');
+    const {data:postingAccess,error:postingAccessError}=await sb.rpc('get_employer_posting_access');
+    if(postingAccessError){
+      console.warn('Could not verify candidate billing access:',postingAccessError);
+    }else{
+      candidateAccessLocked=postingAccess?.candidate_access_locked===true;
+      candidateAccessLockReason=String(postingAccess?.candidate_access_lock_reason||'');
+    }
   }
 
   if(candidateAccessLocked){
@@ -1303,7 +1294,7 @@ async function loadData(){
   const {data:jobsData,error:jobsError}=await sb
     .from('jobs')
     .select('*')
-    .eq('employer_id',currentUser.id)
+    .eq('employer_id',workspaceOwnerId)
     .order('created_at',{ascending:false});
 
   if(jobsError){
