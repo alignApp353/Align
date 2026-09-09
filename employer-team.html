@@ -39,12 +39,85 @@ h1{font-family:'DM Serif Display';font-size:42px;font-weight:400;margin:8px 0 10
 .role{padding:5px 8px;border-radius:999px;background:#F2F5F6;color:#4A5968;font-size:10px;font-weight:700}.person-actions{display:flex;gap:7px}.mini{border:1px solid var(--border);background:white;color:var(--text);padding:7px 9px;border-radius:9px;font:600 11px 'DM Sans';cursor:pointer}
 .empty{padding:22px;border:1px dashed var(--border);border-radius:14px;color:var(--muted);text-align:center;font-size:13px}
 .role-guide{display:flex;flex-direction:column;gap:10px;margin-top:16px}.role-guide div{padding:13px;border:1px solid var(--border);border-radius:12px;background:white}.role-guide strong{font-size:13px}.role-guide span{display:block;color:var(--muted);font-size:11px;line-height:1.45;margin-top:4px}
-.overlay{position:fixed;inset:0;background:rgba(25,37,48,.35);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}.overlay.show{display:flex}
-.modal{width:min(100%,620px);max-height:90vh;overflow:auto;background:#FCFCFA;border-radius:22px;border:1px solid var(--border);padding:24px;box-shadow:0 28px 90px rgba(26,37,48,.18)}
-.modal-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.modal h2{font-family:'DM Serif Display';font-weight:400;font-size:28px;margin:0}.close{border:0;background:transparent;font-size:26px;color:var(--muted);cursor:pointer}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}.field{display:flex;flex-direction:column;gap:7px}.field.full{grid-column:1/-1}.field label{font-size:12px;font-weight:600}.field input,.field select{height:48px;border:1px solid var(--border);border-radius:11px;background:white;padding:0 12px;font:14px 'DM Sans';outline:none}.field input:focus,.field select:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,127,163,.1)}
-.permission{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--border);padding:12px;border-radius:11px;background:white}.permission input{margin-top:3px}.permission strong{font-size:12px}.permission span{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-top:2px}
-.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}.message{display:none;margin-top:14px;padding:11px 12px;border-radius:11px;font-size:12px}.message.show{display:block}.message.error{background:#FAEEEE;color:#9B4A4A}.message.success{background:#EAF6EE;color:#356B49}
+.overlay{
+  position:fixed;
+  left:0;
+  right:0;
+  top:64px;
+  bottom:0;
+  background:rgba(25,37,48,.35);
+  display:none;
+  align-items:flex-start;
+  justify-content:center;
+  padding:24px 20px;
+  overflow-y:auto;
+  z-index:900;
+}
+.overlay.show{display:flex}
+.modal{
+  width:min(100%,660px);
+  max-height:calc(100vh - 64px - 48px);
+  overflow:auto;
+  overscroll-behavior:contain;
+  background:#FCFCFA;
+  border-radius:22px;
+  border:1px solid var(--border);
+  padding:0 24px;
+  box-shadow:0 28px 90px rgba(26,37,48,.18);
+}
+.modal-head{
+  position:sticky;
+  top:0;
+  z-index:4;
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  align-items:flex-start;
+  background:#FCFCFA;
+  padding:22px 0 16px;
+  border-bottom:1px solid rgba(221,227,232,.75);
+}
+.modal h2{font-family:'DM Serif Display';font-weight:400;font-size:28px;margin:0}
+.close{border:0;background:transparent;font-size:26px;color:var(--muted);cursor:pointer}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field.full{grid-column:1/-1}
+.field label{font-size:12px;font-weight:600}
+.field input,.field select{height:48px;border:1px solid var(--border);border-radius:11px;background:white;padding:0 12px;font:14px 'DM Sans';outline:none}
+.field input:focus,.field select:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(93,127,163,.1)}
+.permission{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--border);padding:12px;border-radius:11px;background:white}
+.permission input{margin-top:3px}
+.permission strong{font-size:12px}
+.permission span{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-top:2px}
+#modal-message{
+  position:sticky;
+  top:91px;
+  z-index:3;
+  margin:12px 0 0;
+}
+.modal-actions{
+  position:sticky;
+  bottom:0;
+  z-index:4;
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin:20px -24px 0;
+  padding:16px 24px 20px;
+  background:linear-gradient(to bottom,rgba(252,252,250,.94),#FCFCFA 28%);
+  border-top:1px solid var(--border);
+}
+.message{display:none;margin-top:14px;padding:11px 12px;border-radius:11px;font-size:12px;line-height:1.45}
+.message.show{display:block}
+.message.error{background:#FAEEEE;color:#9B4A4A}
+.message.success{background:#EAF6EE;color:#356B49}
+.message.info{background:#EEF4F8;color:#45647F}
+#save-member:disabled{opacity:.58;cursor:not-allowed}
+@media(max-width:680px){
+  .overlay{padding:12px 10px}
+  .modal{max-height:calc(100vh - 64px - 24px);padding:0 16px;border-radius:18px}
+  .modal-actions{margin-left:-16px;margin-right:-16px;padding-left:16px;padding-right:16px}
+}
 @media(max-width:800px){.grid{grid-template-columns:1fr}.nav-links a:nth-child(1){display:none}.page{padding-top:100px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.person{align-items:flex-start;flex-wrap:wrap}.person-actions{width:100%}}
 
 /* Match employer-account.html navigation exactly */
@@ -317,6 +390,7 @@ nav{
 <div class="overlay" id="invite-overlay" onclick="if(event.target===this)closeInvite()">
   <div class="modal">
     <div class="modal-head"><div><div class="eyebrow">Team access</div><h2 id="modal-title">Invite team member</h2></div><button class="close" onclick="closeInvite()">×</button></div>
+    <div id="modal-message" class="message"></div>
     <div class="form-grid">
       <div class="field"><label>Name</label><input id="member-name" maxlength="120" placeholder="Team member name"></div>
       <div class="field"><label>Email</label><input id="member-email" type="email" maxlength="254" placeholder="name@example.com"></div>
@@ -329,7 +403,6 @@ nav{
       </div>
       <div class="field full"><label>Access</label><div id="permissions"></div></div>
     </div>
-    <div id="modal-message" class="message"></div>
     <div class="modal-actions">
       <button class="secondary" id="remove-member" style="display:none;margin-right:auto" onclick="removeMember()">Remove member</button>
       <button class="secondary" onclick="closeInvite()">Cancel</button>
@@ -466,9 +539,53 @@ async function loadTeam(){
   renderAccess();renderRoster();await loadHeaderCompanyName();
  }catch(e){console.error(e);showMsg('page-message',e.message||'Could not load team access. Make sure the Alygnn team SQL has been installed.')}
 }
-function openInvite(){if(!can('team_manage'))return;editingMember=null;$('modal-title').textContent='Invite team member';$('member-name').value='';$('member-email').value='';$('member-email').readOnly=false;$('member-role').value='recruiter';$('remove-member').style.display='none';$('save-member').textContent='Send invite';applyRolePreset();clearMsg('modal-message');$('invite-overlay').classList.add('show')}
-function closeInvite(){$('invite-overlay').classList.remove('show')}
-function editMember(encoded){editingMember=JSON.parse(encoded);$('modal-title').textContent='Edit team member';$('member-name').value=editingMember.name||'';$('member-email').value=editingMember.email||'';$('member-email').readOnly=true;$('member-role').value=['admin','hiring_manager','recruiter'].includes(editingMember.team_role)?editingMember.team_role:'recruiter';$('remove-member').style.display='inline-block';$('save-member').textContent='Save access';renderPermissions(editingMember.permissions);clearMsg('modal-message');$('invite-overlay').classList.add('show')}
+function openInvite(){
+ if(!can('team_manage')){
+   showMsg('page-message','You do not have permission to invite team members.','error');
+   return;
+ }
+ editingMember=null;
+ $('modal-title').textContent='Invite team member';
+ $('member-name').value='';
+ $('member-email').value='';
+ $('member-email').readOnly=false;
+ $('member-role').value='recruiter';
+ $('remove-member').style.display='none';
+ $('save-member').disabled=false;
+ $('save-member').textContent='Send invite';
+ applyRolePreset();
+ clearMsg('modal-message');
+ const overlay=$('invite-overlay');
+ overlay.classList.add('show');
+ overlay.scrollTop=0;
+ const modal=overlay.querySelector('.modal');
+ if(modal)modal.scrollTop=0;
+ document.body.style.overflow='hidden';
+ setTimeout(()=>$('member-name')?.focus(),60);
+}
+function closeInvite(){
+ $('invite-overlay').classList.remove('show');
+ document.body.style.overflow='';
+}
+function editMember(encoded){
+ editingMember=JSON.parse(encoded);
+ $('modal-title').textContent='Edit team member';
+ $('member-name').value=editingMember.name||'';
+ $('member-email').value=editingMember.email||'';
+ $('member-email').readOnly=true;
+ $('member-role').value=['admin','hiring_manager','recruiter'].includes(editingMember.team_role)?editingMember.team_role:'recruiter';
+ $('remove-member').style.display='inline-block';
+ $('save-member').disabled=false;
+ $('save-member').textContent='Save access';
+ renderPermissions(editingMember.permissions);
+ clearMsg('modal-message');
+ const overlay=$('invite-overlay');
+ overlay.classList.add('show');
+ overlay.scrollTop=0;
+ const modal=overlay.querySelector('.modal');
+ if(modal)modal.scrollTop=0;
+ document.body.style.overflow='hidden';
+}
 
 async function sendTeamInviteEmail(inviteId){
   if(!session?.access_token){
@@ -506,28 +623,126 @@ async function sendTeamInviteEmail(inviteId){
 }
 
 async function saveMember(){
- if(!can('team_manage'))return;const b=$('save-member');const name=$('member-name').value.trim(),email=$('member-email').value.trim().toLowerCase(),role=$('member-role').value,permissions=currentPerms();
- if(name.length<2)return showMsg('modal-message','Enter the team member’s name.');
- if(!editingMember&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return showMsg('modal-message','Enter a valid email address.');
- b.disabled=true;
- try{
-  if(editingMember){const {error}=await sb.rpc('update_company_team_member',{p_user_id:editingMember.user_id,p_team_role:role,p_permissions:permissions});if(error)throw error;showMsg('page-message','Team member access updated.','success')}
-  else{
-   const {data:invite,error}=await sb.rpc('create_company_team_invite',{p_email:email,p_member_name:name,p_team_role:role,p_permissions:permissions});if(error)throw error;
-   try{
-     await sendTeamInviteEmail(invite?.id);
-     showMsg('page-message','Invitation sent.','success');
-   }catch(mail){
-     console.warn('Team invite email failed:',mail);
-     showMsg(
-       'page-message',
-       mail?.message||'Invitation saved, but the email could not be sent.',
-       'error'
-     );
-   }
+  if(!can('team_manage')){
+    showMsg('modal-message','You do not have permission to manage team members.','error');
+    return;
   }
-  closeInvite();await loadTeam();
- }catch(e){showMsg('modal-message',e.message||'Could not save the team member.')}finally{b.disabled=false}
+
+  const button=$('save-member');
+  const name=$('member-name').value.trim();
+  const email=$('member-email').value.trim().toLowerCase();
+  const role=$('member-role').value;
+  const permissions=currentPerms();
+
+  clearMsg('modal-message');
+
+  if(name.length<2){
+    showMsg('modal-message','Enter the team member’s name.','error');
+    $('member-name').focus();
+    return;
+  }
+
+  if(!editingMember&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    showMsg('modal-message','Enter a valid email address.','error');
+    $('member-email').focus();
+    return;
+  }
+
+  button.disabled=true;
+  const originalLabel=button.textContent;
+  button.textContent=editingMember?'Saving…':'Sending invite…';
+
+  try{
+    if(editingMember){
+      const {error}=await sb.rpc('update_company_team_member',{
+        p_user_id:editingMember.user_id,
+        p_team_role:role,
+        p_permissions:permissions
+      });
+      if(error)throw error;
+
+      closeInvite();
+      await loadTeam();
+      showMsg('page-message','Team member access updated.','success');
+      return;
+    }
+
+    let inviteId='';
+
+    const {data:invite,error:createError}=await sb.rpc('create_company_team_invite',{
+      p_email:email,
+      p_member_name:name,
+      p_team_role:role,
+      p_permissions:permissions
+    });
+
+    if(createError){
+      const message=String(createError.message||'');
+
+      // If a pending invite already exists, treat Send Invite as Resend.
+      // This is much friendlier than making the button appear to do nothing.
+      if(/pending invite already exists/i.test(message)){
+        const existing=(roster?.invites||[]).find(
+          item=>String(item.email||'').trim().toLowerCase()===email
+        );
+
+        if(existing?.id){
+          inviteId=existing.id;
+        }else{
+          throw new Error('A pending invitation already exists for this email. Close this window and use Resend under Pending Invitations.');
+        }
+      }else{
+        throw createError;
+      }
+    }else{
+      inviteId=invite?.id||'';
+    }
+
+    if(!inviteId){
+      throw new Error('The invitation was created but Alygnn did not receive an invitation ID. Refresh Team Members and try again.');
+    }
+
+    showMsg('modal-message','Invitation saved. Sending the email now…','info');
+
+    try{
+      await sendTeamInviteEmail(inviteId);
+    }catch(mailError){
+      // Keep the modal open so the owner immediately sees what failed.
+      await loadTeam();
+      throw new Error(
+        mailError?.message||
+        'The invitation was saved, but the email could not be sent. You can use Resend under Pending Invitations.'
+      );
+    }
+
+    closeInvite();
+    await loadTeam();
+    showMsg('page-message','Invitation sent successfully.','success');
+
+  }catch(error){
+    console.error('saveMember failed:',error);
+
+    let message=String(
+      error?.message||
+      'Could not send the invitation.'
+    );
+
+    if(/already connected to another employer workspace/i.test(message)){
+      message='This Alygnn login is already connected to another employer workspace. Use a different email or remove that account from its existing employer workspace first.';
+    }else if(/already on this company team/i.test(message)){
+      message='This person is already on your company team.';
+    }else if(/no team seat is available/i.test(message)){
+      message='There is no available team seat for this plan.';
+    }
+
+    showMsg('modal-message',message,'error');
+
+    const modal=$('invite-overlay')?.querySelector('.modal');
+    if(modal)modal.scrollTo({top:0,behavior:'smooth'});
+  }finally{
+    button.disabled=false;
+    button.textContent=editingMember?'Save access':originalLabel;
+  }
 }
 async function removeMember(){if(!editingMember||!confirm(`Remove ${editingMember.name||editingMember.email} from this workspace?`))return;try{const {error}=await sb.rpc('remove_company_team_member',{p_user_id:editingMember.user_id});if(error)throw error;closeInvite();await loadTeam();showMsg('page-message','Team member removed.','success')}catch(e){showMsg('modal-message',e.message||'Could not remove team member.')}}
 async function revokeInvite(id){if(!confirm('Revoke this pending invitation?'))return;try{const {error}=await sb.rpc('revoke_company_team_invite',{p_invite_id:id});if(error)throw error;await loadTeam();showMsg('page-message','Invitation revoked.','success')}catch(e){showMsg('page-message',e.message||'Could not revoke invitation.')}}
@@ -890,6 +1105,12 @@ const escapeHtml = esc;
   }
 
 async function signOut(){await sb.auth.signOut();location.href='login.html?role=employer'}
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&$('invite-overlay')?.classList.contains('show')){
+    closeInvite();
+  }
+});
+
 (async()=>{
  const {data:{session:s}}=await sb.auth.getSession();if(!s){location.replace('login.html?role=employer');return}session=s;
  currentUserId=s.user.id;
