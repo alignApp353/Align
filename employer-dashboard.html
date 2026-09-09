@@ -577,20 +577,20 @@
 
 <div class="layout">
   <aside class="sidebar">
-    <div class="sidebar-label">Employer</div>
+    <div class="sidebar-label" id="sidebar-role-label">Employer</div>
     <button class="nav-item active" onclick="showPanel('jobs', this)">
       <span class="nav-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7"/><path d="M3 11h18"/><path d="M10 11v2h4v-2"/></svg>
       </span>
       My Jobs
     </button>
-    <a class="nav-item" href="candidates.html">
+    <a class="nav-item" id="sidebar-candidates-link" href="candidates.html">
       <span class="nav-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.3"/><path d="M15.5 14.5a4.5 4.5 0 0 1 5 4.5"/></svg>
       </span>
       Candidates
     </a>
-    <a class="nav-item" href="messages.html">
+    <a class="nav-item" id="sidebar-messages-link" href="messages.html">
       <span class="nav-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M4 5h16v12H8l-4 3V5z"/><path d="m7 9 5 4 5-4"/></svg>
       </span>
@@ -602,8 +602,8 @@
       </span>
       <span id="sidebar-post-job-label">Post a Job</span>
     </button>
-<hr class="nav-divider">
-    <a href="employer-account.html" class="nav-item">
+    <hr class="nav-divider">
+    <a href="employer-account.html" class="nav-item" id="sidebar-account-link">
       <span class="nav-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M10 6 4 12l6 6"/><path d="M4 12h16"/></svg>
       </span>
@@ -965,6 +965,62 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   let employerVerified = false;
   let currentProfile = null;
   let currentUser = null;
+  let teamAccess = null;
+  let teamRuntime = null;
+  let isTeamMember = false;
+  let workspaceOwnerId = null;
+
+  function blankTeamPermissions(){
+    return {
+      jobs_manage:false,
+      candidates_manage:false,
+      messages_manage:false,
+      company_edit:false,
+      billing_view:false,
+      billing_manage:false,
+      team_manage:false
+    };
+  }
+
+  function teamCan(permission){
+    if(!isTeamMember) return true;
+    const permissions = teamAccess?.permissions && typeof teamAccess.permissions === 'object'
+      ? teamAccess.permissions
+      : blankTeamPermissions();
+    return permissions?.[permission] === true;
+  }
+
+  function teamRoleLabel(role){
+    return ({
+      recruiter:'Recruiter',
+      hiring_manager:'Hiring Manager',
+      admin:'Admin'
+    })[String(role||'').toLowerCase()] || 'Team member';
+  }
+
+  function applyTeamPermissionUI(){
+    if(!isTeamMember) return;
+
+    const candidatesLink=document.getElementById('sidebar-candidates-link');
+    const messagesLink=document.getElementById('sidebar-messages-link');
+    const postButton=document.getElementById('sidebar-post-job-btn');
+    const accountLink=document.getElementById('sidebar-account-link');
+    const roleLabel=document.getElementById('sidebar-role-label');
+
+    if(roleLabel) roleLabel.textContent=teamRoleLabel(teamAccess?.role);
+
+    if(candidatesLink&&!teamCan('candidates_manage')) candidatesLink.style.display='none';
+    if(messagesLink&&!teamCan('messages_manage')) messagesLink.style.display='none';
+    if(postButton&&!teamCan('jobs_manage')) postButton.style.display='none';
+
+    const canOpenAccount=
+      teamCan('company_edit')||
+      teamCan('billing_view')||
+      teamCan('billing_manage')||
+      teamCan('team_manage');
+
+    if(accountLink&&!canOpenAccount) accountLink.style.display='none';
+  }
   let editingJobId = null;
 
   // Billing is server-owned. The browser may READ this row, but paid access
@@ -1923,76 +1979,118 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const authedUser = data && data.user;
 
     if (error || !authedUser) {
-      window.location.replace('login.html');
-      return;
-    }
-
-    currentUser = authedUser;
-
-    const { data: profile, error: profileError } = await sb
-      .from('profiles')
-      .select('role, company_name, full_name, employer_verified, verification_status, hiring_blueprint')
-      .eq('id', authedUser.id)
-      .maybeSingle();
-
-    if (profileError) {
-      console.error('Failed to load employer profile:', profileError);
-    }
-
-    // A session merely proves someone is logged in — it says nothing about
-    // whether they're an employer. This previously only excluded sessions
-    // explicitly marked 'seeker'/'job_seeker', which let ANY other
-    // session through (including one with no role set at all) straight
-    // into the employer dashboard. Now it requires a positive employer
-    // match from either profiles.role (set once onboarding completes) or
-    // user_metadata.role (set at signup, before onboarding finishes).
-    const role = String(profile?.role || authedUser.user_metadata?.role || '').toLowerCase();
-    if (role !== 'employer') {
       window.location.replace('login.html?role=employer');
       return;
     }
 
-    // Onboarding is complete only when the employer has actually saved a
-    // Hiring Blueprint. Do not use verification_status by itself: a newly
-    // created employer can already have a profile/status before completing
-    // guided setup, and that must not skip onboarding.
-    const blueprint = profile?.hiring_blueprint;
-    const hasCompletedOnboarding =
-      !!blueprint &&
-      typeof blueprint === 'object' &&
-      Object.keys(blueprint).length > 0;
+    currentUser = authedUser;
+    workspaceOwnerId = authedUser.id;
 
-    if (!hasCompletedOnboarding) {
-      window.location.replace('employer-onboarding.html');
-      return;
+    // Resolve owner-vs-team-member BEFORE applying the normal employer
+    // onboarding gate. A teammate joins an existing company and must never
+    // be sent through company onboarding as if they owned a second company.
+    const runtimeResult = await sb.rpc('get_my_team_operational_state');
+
+    if (!runtimeResult.error && runtimeResult.data?.has_company) {
+      teamRuntime = runtimeResult.data;
+      teamAccess = runtimeResult.data.access || null;
+      isTeamMember = teamAccess?.is_owner === false;
+      workspaceOwnerId = runtimeResult.data.owner_user_id || teamAccess?.owner_user_id || authedUser.id;
+    } else if (runtimeResult.error) {
+      console.warn('Team workspace runtime unavailable:', runtimeResult.error);
     }
 
-    currentProfile = profile || {};
-    employerVerified =
-      profile?.employer_verified === true &&
-      profile?.verification_status === 'approved';
+    let profile = null;
 
-    const displayName =
-      profile?.company_name ||
-      profile?.full_name ||
-      authedUser.user_metadata?.full_name ||
-      authedUser.user_metadata?.name ||
-      authedUser.email || '';
+    if (isTeamMember) {
+      profile = teamRuntime?.owner_profile || {};
+      currentProfile = profile;
 
-    document.getElementById('nav-user-name').textContent = displayName;
+      employerVerified =
+        profile?.employer_verified === true &&
+        String(profile?.verification_status || '').toLowerCase() === 'approved';
 
-    const companyInput = document.getElementById('f-company');
-    if (companyInput && profile?.company_name) {
-      companyInput.value = profile.company_name;
+      const displayName =
+        profile?.company_name ||
+        teamAccess?.company_name ||
+        'Company';
+
+      document.getElementById('nav-user-name').textContent = displayName;
+
+      const companyInput = document.getElementById('f-company');
+      if (companyInput && profile?.company_name) {
+        companyInput.value = profile.company_name;
+      }
+
+      applyTeamPermissionUI();
+    } else {
+      const { data: ownerProfile, error: profileError } = await sb
+        .from('profiles')
+        .select('role, company_name, full_name, employer_verified, verification_status, hiring_blueprint')
+        .eq('id', authedUser.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Failed to load employer profile:', profileError);
+      }
+
+      const role = String(ownerProfile?.role || authedUser.user_metadata?.role || '').toLowerCase();
+      if (role !== 'employer') {
+        window.location.replace('login.html?role=employer');
+        return;
+      }
+
+      const blueprint = ownerProfile?.hiring_blueprint;
+      const hasCompletedOnboarding =
+        !!blueprint &&
+        typeof blueprint === 'object' &&
+        Object.keys(blueprint).length > 0;
+
+      if (!hasCompletedOnboarding) {
+        window.location.replace('employer-onboarding.html');
+        return;
+      }
+
+      profile = ownerProfile || {};
+      currentProfile = profile;
+
+      employerVerified =
+        profile?.employer_verified === true &&
+        profile?.verification_status === 'approved';
+
+      const displayName =
+        profile?.company_name ||
+        profile?.full_name ||
+        authedUser.user_metadata?.full_name ||
+        authedUser.user_metadata?.name ||
+        authedUser.email || '';
+
+      document.getElementById('nav-user-name').textContent = displayName;
+
+      const companyInput = document.getElementById('f-company');
+      if (companyInput && profile?.company_name) {
+        companyInput.value = profile.company_name;
+      }
     }
 
     renderSelectedChips('req');
     renderSelectedChips('benefit');
 
     updateVerificationUI();
-    await activatePendingJobsIfApproved();
+
+    if (!isTeamMember || teamCan('jobs_manage')) {
+      await activatePendingJobsIfApproved();
+    }
+
     await loadJobs();
-    await loadCandidates();
+
+    if (!isTeamMember || teamCan('candidates_manage')) {
+      await loadCandidates();
+    } else {
+      candidates = [];
+      candidatesLoaded = true;
+    }
+
     await loadBillingEntitlement();
     renderJobs();
     updatePostingAccessUI();
@@ -2000,10 +2098,18 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     const initialPanel = getPanelFromHash();
 
-    // IMPORTANT: keep the dashboard hidden until the slot entitlement check is
-    // finished. If someone follows employer-dashboard.html#post with every
-    // slot already occupied, send them straight to Pricing without briefly
-    // painting the Post a Job panel first.
+    if (
+      initialPanel === 'post' &&
+      isTeamMember &&
+      !teamCan('jobs_manage')
+    ) {
+      showToast('Your team role does not include job posting access.');
+      document.body.classList.add('auth-ready');
+      applyPanelVisual('jobs');
+      loadPanelData('jobs');
+      return;
+    }
+
     if (initialPanel === 'post' && !editingJobId && !canCreateNewJob()) {
       redirectToPricing(getPostingAccess().reason);
       return;
@@ -2015,8 +2121,6 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
     const requestedAction = new URLSearchParams(window.location.search).get('action');
     if (requestedAction === 'boost') {
-      // Open after the dashboard is visible so Pricing → Boost lands directly
-      // in the job picker instead of silently looking like the normal Jobs tab.
       requestAnimationFrame(() => openBoostPicker());
     }
 
@@ -2038,6 +2142,13 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       url.searchParams.delete('job');
       url.searchParams.delete('days');
       history.replaceState({}, '', url.pathname + url.search + (window.location.hash || '#jobs'));
+    }
+
+    if(new URLSearchParams(location.search).get('team_joined')==='1'){
+      showToast(`You joined ${currentProfile?.company_name||'the company'} as ${teamRoleLabel(teamAccess?.role)}.`);
+      const clean=new URL(location.href);
+      clean.searchParams.delete('team_joined');
+      history.replaceState({},'',clean.pathname+clean.search+(location.hash||'#jobs'));
     }
   }
 
@@ -2087,12 +2198,23 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         : null
     });
 
+    if (isTeamMember && teamRuntime?.entitlement) {
+      const runtimeEntitlement = {
+        ...teamRuntime.entitlement,
+        slot_limit: Math.max(1, Number(teamRuntime.effective_slot_limit || 1)),
+        server_access_loaded: false
+      };
+      billingEntitlement = normalizeEntitlement(runtimeEntitlement);
+      billingReady = true;
+      return;
+    }
+
     try {
       // New schema used by Launch / Growth / Scale / Weekly and test-mode access.
       let result = await sb
         .from('employer_entitlements')
         .select('plan, subscription_status, current_period_end, free_job_used, paid_job_credits, slot_limit, billing_period, test_mode, test_plan, urgently_hiring, addon_slot_count, addon_slots_expires_at, candidate_access_locked, candidate_access_lock_reason')
-        .eq('employer_id', currentUser.id)
+        .eq('employer_id', workspaceOwnerId)
         .maybeSingle();
 
       // Keep the site usable before the new SQL migration is installed.
@@ -2100,7 +2222,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         result = await sb
           .from('employer_entitlements')
           .select('plan, subscription_status, current_period_end, free_job_used, paid_job_credits')
-          .eq('employer_id', currentUser.id)
+          .eq('employer_id', workspaceOwnerId)
           .maybeSingle();
       }
 
@@ -2269,6 +2391,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   async function openDashboardBillingPortal(button) {
+    if (isTeamMember && !teamCan('billing_manage')) {
+      showToast('Only the company owner or a billing manager can change payment settings.');
+      return;
+    }
     const original=button?.textContent||'Update payment method';
     if(button){button.disabled=true;button.textContent='Opening billing…';}
     try {
@@ -2290,6 +2416,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   function redirectToPricing(reason = 'job-limit') {
+    if (isTeamMember && !teamCan('billing_manage')) {
+      showToast('Your company has no available job slot. Ask the company owner or a billing admin to add capacity.');
+      return;
+    }
     const q = new URLSearchParams();
     q.set('reason', reason);
     window.location.href = 'pricing.html?' + q.toString();
@@ -2327,7 +2457,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       .from('jobs')
       .update({ urgently_hiring: next, updated_at: new Date().toISOString() })
       .eq('id', jobId)
-      .eq('employer_id', currentUser.id);
+      .eq('employer_id', workspaceOwnerId);
 
     if (error) {
       console.error('Failed to toggle Urgently Hiring:', error);
@@ -2405,6 +2535,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   function openPostJob() {
+    if (isTeamMember && !teamCan('jobs_manage')) {
+      showToast('Your team role does not include job posting access.');
+      return;
+    }
     // Business verification does not block creating the listing. If the
     // employer is not approved yet, postJob() saves it as pending instead.
     if (!billingReady) {
@@ -2746,7 +2880,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       const { data: threads, error: threadsError } = await sb
         .from('message_threads')
         .select('id,job_id,candidate_id,employer_id')
-        .eq('employer_id', currentUser.id);
+        .eq('employer_id', workspaceOwnerId);
 
       if (threadsError) throw threadsError;
 
@@ -3142,7 +3276,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const { error } = await sb
       .from('jobs')
       .update({ status: 'active', updated_at: new Date().toISOString() })
-      .eq('employer_id', currentUser.id)
+      .eq('employer_id', workspaceOwnerId)
       .eq('status', 'pending');
 
     if (error) {
@@ -3156,7 +3290,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     const { data, error } = await sb
       .from('jobs')
       .select('*')
-      .eq('employer_id', currentUser.id)
+      .eq('employer_id', workspaceOwnerId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -3570,6 +3704,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   async function updateApplicationStatus(applicationId, status) {
+    if (isTeamMember && !teamCan('candidates_manage')) {
+      showToast('Your team role does not include candidate status changes.');
+      return;
+    }
     if (billingEntitlement.candidate_access_locked === true) {
       showToast('Candidate actions are paused until your payment is updated.');
       return;
@@ -3619,6 +3757,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   function openBoostPicker() {
+    if (isTeamMember && !teamCan('billing_manage')) {
+      showToast('Only the owner or a billing manager can purchase a Job Boost.');
+      return;
+    }
     const overlay = document.getElementById('boost-modal-overlay');
     const box = document.getElementById('boost-modal-box');
     if (!overlay || !box) return;
@@ -4158,6 +4300,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   // correctly.
 
   async function postJob() {
+    if (isTeamMember && !teamCan('jobs_manage')) {
+      showToast('Your team role does not include job posting access.');
+      return;
+    }
     // Verification determines whether a NEW listing is active or pending.
     // It no longer sends the employer back through onboarding.
 
@@ -4188,7 +4334,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           updated_at: new Date().toISOString()
         })
         .eq('id', editingJobId)
-        .eq('employer_id', currentUser.id);
+        .eq('employer_id', workspaceOwnerId);
 
       if (error) {
         console.error('Failed to update job:', error);
@@ -4202,7 +4348,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       const { error } = await sb
         .from('jobs')
         .insert({
-          employer_id: currentUser.id,
+          employer_id: workspaceOwnerId,
           ...job,
           status: employerVerified ? 'active' : 'pending'
         });
@@ -4261,6 +4407,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   function editJob(jobId) {
+    if (isTeamMember && !teamCan('jobs_manage')) {
+      showToast('Your team role does not include job editing access.');
+      return;
+    }
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
 
@@ -4286,6 +4436,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   async function reopenJob(jobId) {
+    if (isTeamMember && !teamCan('jobs_manage')) {
+      showToast('Your team role does not include job editing access.');
+      return;
+    }
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
 
@@ -4312,7 +4466,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         updated_at: new Date().toISOString()
       })
       .eq('id', jobId)
-      .eq('employer_id', currentUser.id);
+      .eq('employer_id', workspaceOwnerId);
 
     if (error) {
       console.error('Failed to reopen job:', error);
@@ -4334,6 +4488,10 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 
   async function deleteJob(jobId) {
+    if (isTeamMember && !teamCan('jobs_manage')) {
+      showToast('Your team role does not include job deletion access.');
+      return;
+    }
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
 
@@ -4343,7 +4501,7 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       .from('jobs')
       .delete()
       .eq('id', jobId)
-      .eq('employer_id', currentUser.id);
+      .eq('employer_id', workspaceOwnerId);
 
     if (error) {
       console.error('Failed to delete job:', error);
