@@ -1148,4 +1148,1762 @@ createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   const PROFILE_UPDATE_FIELDS = {
     company_name:{label:'Company name',elementId:'company-name',documentRequired:true},
     company_headline:{label:'About the company',elementId:'company-headline',documentRequired:false},
-    company_website:{label:'Website',elementId:'company-
+    company_website:{label:'Website',elementId:'company-website',documentRequired:false},
+    company_phone:{label:'Business phone',elementId:'company-phone',documentRequired:false},
+    business_email:{label:'Business email',elementId:'business-email',documentRequired:false},
+    business_address:{label:'Business address',elementId:'business-address',documentRequired:true}
+  };
+
+  function profileUpdateCurrentValue(fieldKey){
+    const config=PROFILE_UPDATE_FIELDS[fieldKey];
+    const el=config?document.getElementById(config.elementId):null;
+    if(!el) return '';
+    return String(('value' in el?el.value:el.textContent)||'').trim();
+  }
+
+  function profileUpdateFieldLabel(fieldKey){
+    return PROFILE_UPDATE_FIELDS[fieldKey]?.label||'Company profile';
+  }
+
+  function profileUpdateEscape(value){
+    const div=document.createElement('div');
+    div.textContent=String(value??'');
+    return div.innerHTML;
+  }
+
+  function showProfileUpdateMessage(kind,message){
+    const errorBox=document.getElementById('profile-update-error');
+    const successBox=document.getElementById('profile-update-success');
+    errorBox.className='profile-update-error';
+    successBox.className='profile-update-success';
+    errorBox.textContent='';
+    successBox.textContent='';
+    if(kind==='error'){
+      errorBox.textContent=message;
+      errorBox.classList.add('show');
+    }else if(kind==='success'){
+      successBox.textContent=message;
+      successBox.classList.add('show');
+    }
+  }
+
+  async function loadProfileUpdateRequests(){
+    if(!currentUserId) return [];
+    const {data,error}=await sb
+      .from('employer_profile_update_requests')
+      .select('id,field_key,current_value,requested_value,reason,status,admin_note,created_at,reviewed_at')
+      .eq('employer_id',currentUserId)
+      .order('created_at',{ascending:false})
+      .limit(20);
+
+    if(error){
+      console.warn('Company profile update requests are not available yet:',error);
+      pendingProfileUpdateRequests=[];
+      updateProfileUpdateStatus();
+      return [];
+    }
+
+    pendingProfileUpdateRequests=(data||[]).filter(item=>item.status==='pending');
+    updateProfileUpdateStatus();
+    renderPendingProfileUpdates();
+    return data||[];
+  }
+
+  function updateProfileUpdateStatus(){
+    const box=document.getElementById('profile-update-status');
+    if(!box) return;
+    const count=pendingProfileUpdateRequests.length;
+    if(!count){
+      box.style.display='none';
+      box.textContent='';
+      return;
+    }
+    box.style.display='block';
+    box.textContent=count===1
+      ? '1 company profile update is pending Alygnn review. Your verified information stays unchanged until it is approved.'
+      : `${count} company profile updates are pending Alygnn review. Your verified information stays unchanged until they are approved.`;
+  }
+
+  function renderPendingProfileUpdates(){
+    const wrap=document.getElementById('profile-update-pending');
+    const list=document.getElementById('profile-update-pending-list');
+    if(!wrap||!list) return;
+
+    if(!pendingProfileUpdateRequests.length){
+      wrap.style.display='none';
+      list.innerHTML='';
+      return;
+    }
+
+    wrap.style.display='block';
+    list.innerHTML=pendingProfileUpdateRequests.map(item=>`
+      <div class="profile-update-pending-item">
+        <span><strong>${profileUpdateEscape(profileUpdateFieldLabel(item.field_key))}</strong><br>${profileUpdateEscape(item.requested_value||'')}</span>
+        <span>Pending review</span>
+      </div>
+    `).join('');
+  }
+
+  function handleProfileUpdateFieldChange(){
+    const fieldKey=document.getElementById('profile-update-field')?.value||'company_name';
+    const config=PROFILE_UPDATE_FIELDS[fieldKey];
+    const currentBox=document.getElementById('profile-update-current');
+    const newValue=document.getElementById('profile-update-new-value');
+    const required=document.getElementById('profile-update-document-required');
+    const note=document.getElementById('profile-update-file-note');
+    const submit=document.getElementById('profile-update-submit');
+
+    if(currentBox) currentBox.textContent=profileUpdateCurrentValue(fieldKey)||'Not provided';
+    if(newValue){
+      newValue.value='';
+      newValue.maxLength=fieldKey==='company_headline'?200:500;
+      newValue.placeholder=`Enter the new ${String(config?.label||'information').toLowerCase()}`;
+    }
+
+    if(config?.documentRequired){
+      required.textContent='(required)';
+      note.textContent='Required for this identity-sensitive change. PDF, JPG, or PNG up to 10 MB.';
+    }else{
+      required.textContent='(optional)';
+      note.textContent='Optional for this change. PDF, JPG, or PNG up to 10 MB.';
+    }
+
+    const alreadyPending=pendingProfileUpdateRequests.some(item=>item.field_key===fieldKey);
+    if(submit){
+      submit.disabled=alreadyPending;
+      submit.textContent=alreadyPending?'Already pending':'Submit request';
+    }
+
+    showProfileUpdateMessage('','');
+  }
+
+  async function openProfileUpdateModal(event){
+    if(event) event.preventDefault();
+    await loadProfileUpdateRequests();
+
+    const reason=document.getElementById('profile-update-reason');
+    const file=document.getElementById('profile-update-document');
+    if(reason) reason.value='';
+    if(file) file.value='';
+
+    handleProfileUpdateFieldChange();
+    renderPendingProfileUpdates();
+    document.getElementById('profile-update-overlay')?.classList.add('show');
+    document.body.style.overflow='hidden';
+  }
+
+  function closeProfileUpdateModal(){
+    document.getElementById('profile-update-overlay')?.classList.remove('show');
+    document.body.style.overflow='';
+    showProfileUpdateMessage('','');
+  }
+
+  function safeProfileUpdateFileName(name){
+    return String(name||'document')
+      .replace(/[^a-zA-Z0-9._-]+/g,'-')
+      .replace(/^-+|-+$/g,'')
+      .slice(-120)||'document';
+  }
+
+  async function uploadProfileUpdateDocument(fieldKey,file){
+    if(!file) return null;
+    if(file.size>10*1024*1024) throw new Error('Supporting documents must be 10 MB or smaller.');
+    const allowed=['application/pdf','image/jpeg','image/png'];
+    if(!allowed.includes(file.type)) throw new Error('Upload a PDF, JPG, or PNG supporting document.');
+
+    const path=`${currentUserId}/${fieldKey}/${Date.now()}-${safeProfileUpdateFileName(file.name)}`;
+    const {error}=await sb.storage
+      .from(PROFILE_UPDATE_BUCKET)
+      .upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
+    if(error) throw error;
+    return path;
+  }
+
+  async function submitProfileUpdateRequest(){
+    if(!currentUserId) return;
+
+    const fieldKey=document.getElementById('profile-update-field')?.value||'';
+    const config=PROFILE_UPDATE_FIELDS[fieldKey];
+    const requestedValue=document.getElementById('profile-update-new-value')?.value.trim()||'';
+    const reason=document.getElementById('profile-update-reason')?.value.trim()||'';
+    const file=document.getElementById('profile-update-document')?.files?.[0]||null;
+    const submit=document.getElementById('profile-update-submit');
+
+    if(!config) return showProfileUpdateMessage('error','Choose what you want to change.');
+    if(!requestedValue) return showProfileUpdateMessage('error','Enter the new information you want Alygnn to review.');
+    if(requestedValue===profileUpdateCurrentValue(fieldKey)) return showProfileUpdateMessage('error','That information already matches your current company profile.');
+    if(reason.length<5) return showProfileUpdateMessage('error','Add a short reason for the change.');
+    if(config.documentRequired&&!file) return showProfileUpdateMessage('error',`Upload a supporting document for the ${config.label.toLowerCase()} change.`);
+
+    let uploadedPath=null;
+    submit.disabled=true;
+    submit.textContent='Submitting…';
+    showProfileUpdateMessage('','');
+
+    try{
+      uploadedPath=await uploadProfileUpdateDocument(fieldKey,file);
+
+      const {error}=await sb.rpc('submit_employer_profile_update_request',{
+        p_field_key:fieldKey,
+        p_requested_value:requestedValue,
+        p_reason:reason,
+        p_supporting_document_path:uploadedPath
+      });
+
+      if(error) throw error;
+
+      showProfileUpdateMessage('success','Request submitted. Your current verified information will stay unchanged while Alygnn reviews it.');
+      await loadProfileUpdateRequests();
+      handleProfileUpdateFieldChange();
+
+      setTimeout(closeProfileUpdateModal,1200);
+    }catch(error){
+      console.error('Company profile update request failed:',error);
+      if(uploadedPath){
+        try{ await sb.storage.from(PROFILE_UPDATE_BUCKET).remove([uploadedPath]); }catch(_){}
+      }
+      showProfileUpdateMessage('error',error.message||'Could not submit this request. Please try again.');
+      submit.disabled=false;
+      submit.textContent='Submit request';
+    }
+  }
+
+  async function waitForSession(maxWaitMs = 5000) {
+    const started = Date.now();
+    let result = await sb.auth.getSession();
+    let session = result.data.session;
+    while (!session && Date.now() - started < maxWaitMs) {
+      await new Promise(resolve => setTimeout(resolve, 400));
+      result = await sb.auth.getSession();
+      session = result.data.session;
+    }
+    return session;
+  }
+
+  function getInitials(name) {
+    if (!name) return 'C';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  }
+
+  async function handlePhotoUpload(event){
+    const file = event.target.files[0];
+    if (!file || !currentUserId) return;
+
+    const allowed = ['image/png','image/jpeg','image/webp'];
+    if (!allowed.includes(file.type)) {
+      alert('Use a PNG, JPG, or WEBP company logo.');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Company logo must be 5 MB or smaller.');
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+      const storagePath = `${currentUserId}/company-logo-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await sb.storage
+        .from('company-logos')
+        .upload(storagePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: file.type
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicData } = sb.storage
+        .from('company-logos')
+        .getPublicUrl(storagePath);
+
+      const logoUrl = publicData?.publicUrl || '';
+      if (!logoUrl) throw new Error('Could not create the company logo URL.');
+
+      const saved = await saveEmployerProfile({ company_logo_url: logoUrl });
+      if (!saved) throw new Error('Could not save the company logo.');
+
+      currentProfile = { ...(currentProfile || {}), company_logo_url: logoUrl };
+      localStorage.setItem('companyLogo:' + currentUserId, logoUrl);
+      showPhoto(logoUrl);
+
+      updateVerificationBanner();
+    } catch (error) {
+      console.error('Company logo upload failed:', error);
+      alert('We could not save your company logo. Please try again.');
+    } finally {
+      event.target.value = '';
+    }
+  }
+
+  function showPhoto(dataUrl){
+    document.getElementById('avatar-img').src = dataUrl;
+    document.getElementById('avatar-img').style.display = 'block';
+    document.getElementById('avatar-initials').style.display = 'none';
+  }
+
+  function isValidCompanyName(value) {
+    const cleaned = value.trim();
+    return cleaned.length >= 2 && /[a-zA-Z]/.test(cleaned);
+  }
+
+  function isValidWebsite(value) {
+    const cleaned = value.trim();
+
+    try {
+      const url = new URL(cleaned);
+      const hostname = url.hostname.toLowerCase();
+
+      return (
+        url.protocol === 'https:' &&
+        hostname.includes('.') &&
+        !hostname.includes(' ') &&
+        !hostname.endsWith('.')
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  function isValidPhone(value) {
+    const numbersOnly = value.replace(/\D/g, '');
+    return numbersOnly.length >= 10 && numbersOnly.length <= 15;
+  }
+
+  function isValidBusinessEmail(value) {
+    const cleaned = value.trim();
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleaned);
+  }
+
+  function isValidAddress(value) {
+    const cleaned = value.trim();
+    return cleaned.length >= 5;
+  }
+
+  function getDomainFromWebsite(value) {
+    try {
+      const url = new URL(value.trim());
+      return url.hostname.toLowerCase().replace(/^www\./, '');
+    } catch {
+      return '';
+    }
+  }
+
+  function getDomainFromEmail(value) {
+    const cleaned = value.trim().toLowerCase();
+    const parts = cleaned.split('@');
+    return parts.length === 2 ? parts[1] : '';
+  }
+
+  // Two domains only "match" if both are actually present — two empty
+  // strings are not a match. Used by both the real auto-verification
+  // logic and the on-page checklist so they never disagree.
+  function domainsActuallyMatch(websiteValue, emailValue) {
+    const websiteDomain = getDomainFromWebsite(websiteValue);
+    const emailDomain = getDomainFromEmail(emailValue);
+    return !!websiteDomain && !!emailDomain && websiteDomain === emailDomain;
+  }
+
+  async function saveEmployerProfile(payload){
+    if (!currentUserId) return false;
+
+    const { data: updatedRows, error: updateError } = await sb
+      .from('profiles')
+      .update(payload)
+      .eq('id', currentUserId)
+      .select('id');
+
+    if (!updateError && updatedRows && updatedRows.length > 0) return true;
+
+    if (updateError) console.error('Profile update failed:', updateError);
+
+    const { error: insertError } = await sb
+      .from('profiles')
+      .insert({
+        id: currentUserId,
+        role: 'employer',
+        ...payload
+      });
+
+    if (insertError) {
+      console.error('Profile insert failed:', insertError);
+      alert('Something went wrong saving your changes. Please try again in a moment, or contact support if this keeps happening.');
+      return false;
+    }
+
+    return true;
+  }
+
+  function normalizeOptionalCompanyLink(value){
+    const cleaned = String(value || '').trim();
+    if (!cleaned) return '';
+
+    try {
+      const url = new URL(cleaned);
+      if (url.protocol !== 'https:') return null;
+      return url.toString();
+    } catch {
+      return null;
+    }
+  }
+
+  async function saveCompanyPublicLinks(){
+    if (!currentUserId) return;
+
+    const messageEl = document.getElementById('company-public-links-message');
+    const fieldMap = {
+      linkedin_url: document.getElementById('linkedin-url'),
+      instagram_url: document.getElementById('instagram-url'),
+      facebook_url: document.getElementById('facebook-url')
+    };
+
+    const payload = {};
+    for (const [column, input] of Object.entries(fieldMap)) {
+      const normalized = normalizeOptionalCompanyLink(input?.value);
+      if (normalized === null) {
+        if (messageEl) {
+          messageEl.textContent = 'Please use a valid https:// link.';
+          messageEl.className = 'company-public-links-message error';
+        }
+        input?.focus();
+        return;
+      }
+      payload[column] = normalized;
+    }
+
+    if (messageEl) {
+      messageEl.textContent = 'Saving…';
+      messageEl.className = 'company-public-links-message';
+    }
+
+    const saved = await saveEmployerProfile(payload);
+    if (!saved) {
+      if (messageEl) {
+        messageEl.textContent = 'Could not save company links.';
+        messageEl.className = 'company-public-links-message error';
+      }
+      return;
+    }
+
+    currentProfile = { ...(currentProfile || {}), ...payload };
+
+    if (messageEl) {
+      messageEl.textContent = 'Saved';
+      messageEl.className = 'company-public-links-message success';
+    }
+  }
+
+  // Checks all fields, decides approval, and writes verification status to Supabase
+  async function runAutoVerification(){
+    if (!currentUserId) return;
+
+    const profile = getCurrentBusinessProfileFromPage();
+
+    const allFieldsValid =
+      isValidCompanyName(profile.company_name) &&
+      isValidWebsite(profile.company_website) &&
+      isValidPhone(profile.company_phone) &&
+      isValidBusinessEmail(profile.business_email) &&
+      isValidAddress(profile.business_address);
+
+    // Alygnn no longer auto-approves based on domain matching — every
+    // completed profile goes to manual review on the admin verification
+    // page. If an admin has already approved or denied this account, later
+    // edits here (e.g. company name) must NOT re-run and overwrite that
+    // decision — only a brand-new, not-yet-submitted account moves to
+    // 'pending' once its fields become complete.
+    const currentStatus = currentProfile?.verification_status || 'not_submitted';
+    if (currentStatus !== 'not_submitted') return;
+
+    if (!allFieldsValid) return;
+
+    const employer_verified = false;
+    const verification_status = 'pending';
+
+    const { error } = await sb
+      .from('profiles')
+      .update({ employer_verified, verification_status })
+      .eq('id', currentUserId);
+
+    if (error) {
+      console.error('Auto-verification update failed:', error);
+      return;
+    }
+
+    currentProfile = { ...currentProfile, employer_verified, verification_status };
+  }
+
+  // Saves contenteditable fields (company name, headline)
+  async function saveField(key, el){
+    const value = el.textContent.trim();
+    if (!currentUserId) return;
+
+    if (key === 'companyName' && !isValidCompanyName(value)) {
+      alert('Please enter a valid company name with at least 2 letters.');
+      updateVerificationBanner();
+      return;
+    }
+
+    const column = key === 'companyName' ? 'company_name' : 'company_headline';
+    const saved = await saveEmployerProfile({ [column]: value });
+
+    if (!saved) return;
+
+    if (key === 'companyName') {
+      document.getElementById('avatar-initials').textContent = getInitials(value);
+      document.getElementById('nav-name').textContent = value;
+    }
+
+    await runAutoVerification();
+    updateVerificationBanner();
+  }
+
+  // Website, phone, business email, and business address are set during
+  // employer onboarding/verification and are read-only on this page (see
+  // the "Contact support" note above those fields) — there is no
+  // saveInputField handler here anymore, since nothing on this page can
+  // write to those columns.
+
+  function clearPlaceholder(el){ el.classList.remove('headline-empty'); }
+
+  function limitLength(el, max){
+    el.addEventListener('input', function(){
+      if (el.textContent.length > max){
+        el.textContent = el.textContent.slice(0, max);
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    });
+  }
+
+  limitLength(document.getElementById('company-name'), 60);
+  limitLength(document.getElementById('company-headline'), 200);
+
+  function getCurrentBusinessProfileFromPage() {
+    return {
+      company_name: document.getElementById('company-name')?.textContent.trim() || '',
+      company_headline: document.getElementById('company-headline')?.textContent.trim() || '',
+      company_website: document.getElementById('company-website')?.value.trim() || '',
+      company_phone: document.getElementById('company-phone')?.value.trim() || '',
+      business_email: document.getElementById('business-email')?.value.trim() || '',
+      business_address: document.getElementById('business-address')?.value.trim() || ''
+    };
+  }
+
+  // Shows the verification banner based on field validation and auto-approval status.
+  // Once approved, the big banner is hidden entirely and a small quiet badge
+  // next to the company name takes its place instead.
+  function updateVerificationBanner(){
+    const profile = getCurrentBusinessProfileFromPage();
+
+    const banner  = document.getElementById('verify-banner');
+    const icon    = document.getElementById('verify-icon');
+    const title   = document.getElementById('verify-title');
+    const steps   = document.getElementById('verify-steps');
+    const badge   = document.getElementById('verified-badge');
+    const dashboardBtn = document.getElementById('dashboard-btn');
+
+    const fields = [
+      { label: 'Company name', done: isValidCompanyName(profile.company_name) },
+      { label: 'Website', done: isValidWebsite(profile.company_website) },
+      { label: 'Phone number', done: isValidPhone(profile.company_phone) },
+      { label: 'Business email', done: isValidBusinessEmail(profile.business_email) },
+      { label: 'Business address', done: isValidAddress(profile.business_address) }
+    ];
+
+    const approved = currentProfile?.employer_verified === true;
+    const status = currentProfile?.verification_status || 'not_submitted';
+
+    if (approved) {
+      // Hide the big banner now that there's nothing left to do — show the
+      // small quiet badge next to the company name instead. The note about
+      // how auto-approval works is also no longer relevant at this point.
+      banner.style.display = 'none';
+      if (badge) badge.classList.add('show');
+      const note = document.getElementById('verification-note');
+      if (note) note.style.display = 'none';
+      return;
+    }
+
+    const note = document.getElementById('verification-note');
+    if (note) note.style.display = '';
+    if (badge) badge.classList.remove('show');
+    banner.style.display = 'flex';
+    banner.className = 'verify-banner incomplete';
+    icon.textContent = fields.every(f => f.done) ? '⏳' : '⚠️';
+    title.className = 'verify-title incomplete';
+    title.textContent = fields.every(f => f.done)
+      ? 'Business verification pending — Alygnn review in progress'
+      : 'Complete your business profile to unlock posting';
+
+    steps.innerHTML = `<span class="verify-step todo">○ Status: ${status}</span>`;
+
+    const cta = document.getElementById('verify-cta');
+    if (cta) cta.style.display = fields.every(f => f.done) ? 'none' : '';
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function accountEntitlementNotExpired(entitlement) {
+    if (!entitlement?.current_period_end) return true;
+    const periodEnd = new Date(entitlement.current_period_end).getTime();
+    return Number.isNaN(periodEnd) || periodEnd > Date.now();
+  }
+
+  function accountActiveSlotCount() {
+    return employerJobs.filter(job => {
+      const status = String(job.status || 'active').toLowerCase();
+      return status === 'active' || status === 'pending';
+    }).length;
+  }
+
+  function accountPaidLimit(entitlement) {
+    const plan = String(entitlement?.test_plan || entitlement?.plan || '').toLowerCase();
+
+    // Current Alygnn plan capacity always wins over stale saved values.
+    // Launch = 3 paid + 1 permanent free = 4
+    // Growth = 5 paid + 1 permanent free = 6
+    // Scale  = 8 paid + 1 permanent free = 9
+    if (plan === 'launch' || plan === 'business') return 4;
+    if (plan === 'growth' || plan === 'enterprise') return 6;
+    if (plan === 'scale') return 9;
+
+    const serverLimit = Math.max(0, Number(entitlement?.slot_limit || 0));
+    if (serverLimit > 0) return serverLimit;
+    return 1;
+  }
+
+  async function loadAccountPostingAccess() {
+    if (!currentUserId) return null;
+
+    let result = await sb
+      .from('employer_entitlements')
+      .select('plan, subscription_status, current_period_end, slot_limit, billing_period, test_mode, test_plan, candidate_access_locked, candidate_access_lock_reason')
+      .eq('employer_id', currentUserId)
+      .maybeSingle();
+
+    // Backward-compatible fallback if the newer entitlement columns are not
+    // installed yet.
+    if (result.error && /slot_limit|billing_period|test_mode|test_plan|candidate_access/i.test(String(result.error.message || ''))) {
+      result = await sb
+        .from('employer_entitlements')
+        .select('plan, subscription_status, current_period_end')
+        .eq('employer_id', currentUserId)
+        .maybeSingle();
+    }
+
+    const ent = result.data || {};
+    const status = String(ent.subscription_status || 'inactive').toLowerCase();
+    const plan = String(ent.test_plan || ent.plan || 'free').toLowerCase();
+    const activePaid =
+      ['active', 'trialing', 'past_due'].includes(status) &&
+      (status === 'past_due' || accountEntitlementNotExpired(ent)) &&
+      (
+        (ent.test_mode === true && Number(ent.slot_limit || 0) > 0) ||
+        ['launch','growth','scale','weekly_slot','business','enterprise'].includes(plan)
+      );
+
+    let limit = activePaid ? accountPaidLimit(ent) : 1;
+    const used = accountActiveSlotCount();
+
+    // Unified server capacity includes temporary Weekly slots as add-ons.
+    const accessResult = await sb.rpc('get_employer_posting_access');
+    let serverAllowed = null;
+    let serverReason = null;
+    if (!accessResult.error && accessResult.data) {
+      const serverLimit = Math.max(0, Number(accessResult.data.slot_limit || limit));
+
+      // Test packages must reflect the current canonical plan, not stale
+      // temporary/add-on capacity from an older test configuration.
+      limit = ent.test_mode === true && ['launch','growth','scale','business','enterprise'].includes(plan)
+        ? accountPaidLimit(ent)
+        : serverLimit;
+
+      serverAllowed = typeof accessResult.data.can_post === 'boolean' ? accessResult.data.can_post : null;
+      serverReason = accessResult.data.reason || null;
+      accountCandidateAccessLocked = accessResult.data.candidate_access_locked === true;
+      accountCandidateAccessLockReason = String(accessResult.data.candidate_access_lock_reason || '');
+    } else {
+      accountCandidateAccessLocked = ent.candidate_access_locked === true || status === 'past_due';
+      accountCandidateAccessLockReason = String(ent.candidate_access_lock_reason || '');
+    }
+
+    accountPostingAccess = {
+      allowed: serverAllowed === null ? used < limit : serverAllowed,
+      used,
+      limit,
+      reason: serverReason || (used < limit ? 'slot-available' : 'slot-limit')
+    };
+
+    updateAccountPostingButtons();
+    return accountPostingAccess;
+  }
+
+  function updateAccountPostingButtons() {
+    if (!accountPostingAccess) return;
+
+    const full = !accountPostingAccess.allowed;
+    const top = document.getElementById('account-post-job-btn');
+    const section = document.getElementById('account-post-job-link');
+
+    if (top) {
+      top.textContent = full ? '+ Add a job slot' : '+ Post a job';
+      top.href = full
+        ? 'pricing.html?reason=slot-limit'
+        : 'employer-dashboard.html#post';
+      top.title = full
+        ? `All ${accountPostingAccess.limit} job ${accountPostingAccess.limit === 1 ? 'slot is' : 'slots are'} in use.`
+        : `${accountPostingAccess.limit - accountPostingAccess.used} job slot${accountPostingAccess.limit - accountPostingAccess.used === 1 ? '' : 's'} available.`;
+    }
+
+    if (section) {
+      section.textContent = full ? 'Add a job slot →' : 'Post a job →';
+      section.href = full
+        ? 'pricing.html?reason=slot-limit'
+        : 'employer-dashboard.html#post';
+    }
+  }
+
+  async function handleAccountPostJob(event) {
+    if (event) event.preventDefault();
+
+    // Re-check before navigating so the decision is fresh even if another tab
+    // just posted/deleted a job or changed the employer's package.
+    const access = await loadAccountPostingAccess();
+
+    if (access && !access.allowed) {
+      window.location.href = 'pricing.html?reason=slot-limit';
+      return;
+    }
+
+    window.location.href = 'employer-dashboard.html#post';
+  }
+
+  function toggleBillingPanel(forceOpen){
+    const panel=document.getElementById('billing-section');
+    const card=document.getElementById('billing-settings-card');
+    if(!panel)return;
+    const shouldOpen=typeof forceOpen==='boolean' ? forceOpen : !panel.classList.contains('open');
+    panel.classList.toggle('open',shouldOpen);
+    if(card)card.setAttribute('aria-expanded',shouldOpen?'true':'false');
+    if(shouldOpen)panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+
+  function billingMoney(cents){
+    return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format((Number(cents)||0)/100);
+  }
+
+  function billingPlanName(plan){
+    const key=String(plan||'free').toLowerCase();
+    return ({free:'Free',launch:'Launch',growth:'Growth',scale:'Scale',business:'Launch',enterprise:'Growth'})[key]||key;
+  }
+
+  const ACCOUNT_PLAN_PRICES={
+    monthly:{launch:29900,growth:44900,scale:64900},
+    quarterly:{launch:75000,growth:114000,scale:170000}
+  };
+  const ACCOUNT_PLAN_RANK={launch:1,growth:2,scale:3};
+
+  function billingActionMessage(message,type='info'){
+    const card=document.getElementById('billing-card');
+    if(!card)return;
+    let el=card.querySelector('.billing-message');
+    if(!el){el=document.createElement('div');el.className='billing-message';card.appendChild(el);}
+    el.textContent=message;
+    el.style.background=type==='error'?'#FFF8F7':'rgba(93,127,163,.08)';
+    el.style.color=type==='error'?'#914848':'var(--brand)';
+  }
+
+  async function accountBillingAction(payload,button){
+    const original=button?.textContent||'';
+    if(button){button.disabled=true;button.textContent='Working…';}
+    try{
+      const {data:{session}}=await sb.auth.getSession();
+      if(!session?.access_token)throw new Error('Your session expired. Please sign in again.');
+      const response=await fetch('/api/create-checkout-session',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+        body:JSON.stringify(payload)
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.error||'Billing change could not be completed.');
+      return data;
+    }finally{
+      if(button){button.disabled=false;button.textContent=original;}
+    }
+  }
+
+  async function changeAccountPlan(target,button){
+    const summary=accountBillingSummary||{};
+    const current=String(summary.current_plan||'').toLowerCase();
+    const billing=String(summary.billing_period||'').toLowerCase();
+    const currentPrice=ACCOUNT_PLAN_PRICES[billing]?.[current];
+    const targetPrice=ACCOUNT_PLAN_PRICES[billing]?.[target];
+    if(!currentPrice||!targetPrice)return;
+
+    const upgrade=ACCOUNT_PLAN_RANK[target]>ACCOUNT_PLAN_RANK[current];
+    const difference=Math.max(0,targetPrice-currentPrice);
+    const targetName=billingPlanName(target);
+    const prompt=upgrade
+      ? `Upgrade to ${targetName}? Alygnn will charge the fixed ${billingMoney(difference)} plan difference now. Your extra slots become available after payment succeeds, and your next ${billing==='quarterly'?'3-month':'monthly'} renewal will be ${billingMoney(targetPrice)}.`
+      : `Downgrade to ${targetName}? You keep your current capacity through this paid period. The lower plan and ${billingMoney(targetPrice)} renewal take effect at your next renewal.`;
+    if(!window.confirm(prompt))return;
+
+    try{
+      const data=await accountBillingAction({action:'change_plan',target_plan:target},button);
+      if(data.hosted_invoice_url && data.change==='upgrade_payment_required'){
+        location.href=data.hosted_invoice_url;
+        return;
+      }
+      billingActionMessage(
+        data.change==='downgrade_scheduled'
+          ? `${targetName} is scheduled for your next renewal.`
+          : `${targetName} is now active.`
+      );
+      await loadAccountPostingAccess();
+      await loadBillingSummary();
+    }catch(error){
+      console.error(error);
+      billingActionMessage(error?.message||'Could not change your plan.','error');
+    }
+  }
+
+  async function cancelAccountPlan(button){
+    if(!window.confirm('Cancel this paid plan at renewal? You keep your current plan and capacity through the paid period. After it ends, Alygnn returns the account to its permanent Free slot and preserves your data.'))return;
+    try{
+      await accountBillingAction({action:'cancel_plan'},button);
+      billingActionMessage('Cancellation scheduled for the end of the current paid period.');
+      await loadBillingSummary();
+    }catch(error){billingActionMessage(error?.message||'Could not schedule cancellation.','error');}
+  }
+
+  async function resumeAccountPlan(button){
+    try{
+      await accountBillingAction({action:'resume_plan'},button);
+      billingActionMessage('Plan renewal restored.');
+      await loadBillingSummary();
+    }catch(error){billingActionMessage(error?.message||'Could not restore renewal.','error');}
+  }
+
+  async function cancelSecondSlot(button){
+    if(!window.confirm('Cancel the $150/month Second Job Slot at renewal? It remains available through the current paid period.'))return;
+    try{await accountBillingAction({action:'cancel_second_slot'},button);await loadBillingSummary();}
+    catch(error){billingActionMessage(error?.message||'Could not schedule Second Job Slot cancellation.','error');}
+  }
+
+  async function resumeSecondSlot(button){
+    try{await accountBillingAction({action:'resume_second_slot'},button);await loadBillingSummary();}
+    catch(error){billingActionMessage(error?.message||'Could not restore the Second Job Slot.','error');}
+  }
+
+  function billingDate(value){
+    if(!value)return '';
+    const d=new Date(value);
+    return Number.isNaN(d.getTime())?'':d.toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'});
+  }
+
+  async function openAccountBillingPortal(button){
+    const original=button?.textContent||'Manage payment method';
+    if(button){button.disabled=true;button.textContent='Opening billing…';}
+    try{
+      const {data:{session}}=await sb.auth.getSession();
+      if(!session?.access_token)throw new Error('Your session expired. Please sign in again.');
+      const response=await fetch('/api/create-checkout-session',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+        body:JSON.stringify({action:'billing_portal',return_url:location.origin+'/employer-account.html?billing=return'})
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.url)throw new Error(data.error||'Could not open billing settings.');
+      location.href=data.url;
+    }catch(error){
+      console.error(error);
+      const card=document.getElementById('billing-card');
+      if(card){
+        const oldAlert=card.querySelector('.billing-inline-error');
+        if(oldAlert)oldAlert.remove();
+        const alert=document.createElement('div');
+        alert.className='billing-alert billing-inline-error';
+        alert.textContent=error?.message||'Could not open billing settings.';
+        card.appendChild(alert);
+      }
+      if(button){button.disabled=false;button.textContent=original;}
+    }
+  }
+
+
+  async function renderBillingEntitlementFallback(originalError){
+    const card=document.getElementById('billing-card');
+    if(!card)return false;
+
+    try{
+      const {data:{session}}=await sb.auth.getSession();
+      if(!session?.user?.id)throw originalError || new Error('Your session expired.');
+
+      let result=await sb
+        .from('employer_entitlements')
+        .select('plan, test_plan, test_mode, subscription_status, current_period_end, billing_period, slot_limit, addon_slot_count, candidate_access_locked, candidate_access_lock_reason')
+        .eq('employer_id',session.user.id)
+        .maybeSingle();
+
+      // Backward-compatible fallback if one of the newer columns is not installed.
+      if(result.error && /test_plan|test_mode|slot_limit|addon_slot_count|candidate_access/i.test(String(result.error.message||''))){
+        result=await sb
+          .from('employer_entitlements')
+          .select('plan, subscription_status, current_period_end, billing_period')
+          .eq('employer_id',session.user.id)
+          .maybeSingle();
+      }
+      if(result.error)throw result.error;
+
+      const ent=result.data||{};
+      let planKey=String(ent.test_plan||ent.plan||'free').toLowerCase();
+      if(planKey==='business')planKey='launch';
+      if(planKey==='enterprise')planKey='growth';
+      if(!['launch','growth','scale'].includes(planKey))planKey='free';
+
+      const status=String(ent.subscription_status||'inactive').toLowerCase();
+      const paidPlan=['launch','growth','scale'].includes(planKey) && ['active','trialing','past_due'].includes(status);
+      const secondActive=!paidPlan && Number(ent.addon_slot_count||0)>0;
+      const lock=accountCandidateAccessLocked || ent.candidate_access_locked===true || status==='past_due';
+      const slots=accountPostingAccess?.limit || (paidPlan ? ({launch:4,growth:6,scale:9}[planKey]||1) : secondActive ? 2 : 1);
+      const displayPlan=secondActive ? 'Free + Second Job Slot' : billingPlanName(planKey);
+      const billing=String(ent.billing_period||'').toLowerCase();
+      const periodEnd=ent.current_period_end?billingDate(ent.current_period_end):'';
+      const testMode=ent.test_mode===true;
+
+      const settingsBillingSub=document.getElementById('billing-settings-sub');
+      if(settingsBillingSub){
+        settingsBillingSub.textContent=lock
+          ? 'Payment past due · update billing'
+          : `${displayPlan} · ${slots} total job slot${slots===1?'':'s'}`;
+      }
+
+      const meta=paidPlan
+        ? `${slots} total reusable job slots${billing ? ' · '+billing.charAt(0).toUpperCase()+billing.slice(1) : ''}${periodEnd ? ' · Current period ends '+periodEnd : ''}`
+        : secondActive
+          ? `2 total reusable job slots · Second Job Slot $150/month`
+          : `1 permanent reusable free job slot · up to 25 candidates on the free slot`;
+
+      const statusLabel=lock
+        ? 'Payment past due'
+        : testMode && paidPlan
+          ? 'Test plan active'
+          : paidPlan
+            ? 'Active plan'
+            : secondActive
+              ? 'Second slot active'
+              : 'Free account';
+      const statusClass=lock?'warning':(paidPlan||secondActive)?'':'neutral';
+
+      card.innerHTML=`
+        <div class="billing-top">
+          <div>
+            <div class="billing-eyebrow">Current access</div>
+            <div class="billing-plan">${escapeHtml(displayPlan)}</div>
+            <div class="billing-meta">${escapeHtml(meta)}</div>
+          </div>
+          <span class="billing-status ${statusClass}">${escapeHtml(statusLabel)}</span>
+        </div>
+        ${lock ? `<div class="billing-alert"><strong>Candidate access is paused.</strong> We couldn’t process your latest plan payment. Your jobs, applications, messages, and history are preserved.</div>` : ''}
+        ${testMode ? `<div class="billing-message">Developer test entitlement is active. Alygnn is reading this plan directly from Supabase; no Stripe charge is attached to this test entitlement.</div>` : `<div class="billing-message">Your plan is active. Detailed payment controls could not be loaded right now, but your Alygnn hiring capacity is still recognized.</div>`}
+        <div class="billing-actions">
+          <a class="billing-btn secondary" href="pricing.html">Compare plans</a>
+        </div>`;
+      return true;
+    }catch(fallbackError){
+      console.error('Billing entitlement fallback failed:',fallbackError);
+      return false;
+    }
+  }
+
+  async function loadBillingSummary(){
+    const card=document.getElementById('billing-card');
+    if(!card)return;
+    try{
+      const {data:{session}}=await sb.auth.getSession();
+      if(!session?.access_token)throw new Error('Your session expired.');
+      const response=await fetch('/api/create-checkout-session',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+        body:JSON.stringify({action:'summary'})
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.summary)throw new Error(data.error||'Could not load billing details.');
+      accountBillingSummary=data.summary;
+      const summary=data.summary;
+      const second=summary.second_job_slot||{};
+      const plan=billingPlanName(summary.current_plan);
+      const paidPlan=['launch','growth','scale','business','enterprise'].includes(String(summary.current_plan||'').toLowerCase());
+      const secondActive=!paidPlan && ['active','trialing','past_due'].includes(String(second.subscription_status||'').toLowerCase());
+      const displayPlan=secondActive && plan==='Free' ? 'Free + Second Job Slot' : plan;
+      const status=String(summary.subscription_status||'free').toLowerCase();
+      const testMode=summary.test_mode===true;
+      const lock=accountCandidateAccessLocked || status==='past_due';
+      const statusLabel=lock
+        ? 'Payment past due'
+        : testMode && paidPlan
+          ? 'Test plan active'
+          : paidPlan
+            ? 'Active plan'
+            : secondActive
+              ? 'Second slot active'
+              : 'Free account';
+      const statusClass=lock?'warning':(paidPlan||secondActive)?'':'neutral';
+      const billing=String(summary.billing_period||'').toLowerCase();
+
+      // The API summary is the canonical base-plan total. Do not let an old
+      // posting-access value (for example Scale=14 from a prior test package)
+      // override the current Scale=9 plan capacity in Billing & plan.
+      const slots=Number(summary.slot_limit||accountPostingAccess?.limit||1);
+      const renewal=summary.current_period_end?billingDate(summary.current_period_end):'';
+      const amount=Number(summary.amount_cents||0);
+      const recurringMeta=paidPlan
+        ? `${slots} total reusable job slots${billing ? ' · '+billing.charAt(0).toUpperCase()+billing.slice(1) : ''}${amount ? ' · '+billingMoney(amount) : ''}${renewal ? ' · Current period ends '+renewal : ''}`
+        : secondActive
+          ? `2 total reusable job slots · Second Job Slot $150/month`
+          : `1 permanent reusable free job slot · up to 25 candidates on the free slot`;
+      const settingsBillingSub=document.getElementById('billing-settings-sub');
+      if(settingsBillingSub){
+        settingsBillingSub.textContent=lock
+          ? 'Payment past due · update billing'
+          : `${displayPlan} · ${slots} total job slot${slots===1?'':'s'}`;
+      }
+
+      card.innerHTML=`
+        <div class="billing-top">
+          <div>
+            <div class="billing-eyebrow">Current access</div>
+            <div class="billing-plan">${escapeHtml(displayPlan)}</div>
+            <div class="billing-meta">${escapeHtml(recurringMeta)}</div>
+          </div>
+          <span class="billing-status ${statusClass}">${escapeHtml(statusLabel)}</span>
+        </div>
+        ${lock ? `<div class="billing-alert"><strong>Candidate access is paused.</strong> We couldn’t process your latest plan payment. Your jobs, applications, messages, and history are preserved. Update your payment method to restore candidate profiles, resumes, matching details, and hiring actions.</div>` : ''}
+        ${testMode ? `<div class="billing-message">Developer test entitlement is active. No Stripe payment method or invoice is attached to this test plan.</div>` : ''}
+        ${summary.pending_plan ? `<div class="billing-meta" style="margin-top:14px">Scheduled change: ${escapeHtml(billingPlanName(summary.pending_plan))}${summary.pending_plan_effective_at ? ' on '+escapeHtml(billingDate(summary.pending_plan_effective_at)) : ''}.</div>` : ''}
+        <div class="billing-actions">
+          ${(paidPlan||secondActive||testMode||summary.billing_account?.stripe_customer_count>0) ? `<a class="billing-btn primary" href="employer-billing.html">${lock?'Update payment method':'Payment method & invoices'}</a>` : ''}
+          ${paidPlan ? (summary.cancel_at_period_end ? `<button class="billing-btn secondary" type="button" onclick="resumeAccountPlan(this)">Keep current plan</button>` : `<button class="billing-btn secondary" type="button" onclick="cancelAccountPlan(this)">Cancel at renewal</button>`) : ''}
+          ${secondActive ? (second.cancel_at_period_end ? `<button class="billing-btn secondary" type="button" onclick="resumeSecondSlot(this)">Keep Second Job Slot</button>` : `<button class="billing-btn secondary" type="button" onclick="cancelSecondSlot(this)">Cancel Second Job Slot</button>`) : ''}
+          <a class="billing-btn secondary" href="pricing.html">Compare plans</a>
+        </div>`;
+    }catch(error){
+      console.error('Failed to load Stripe billing summary:',error);
+      const rendered=await renderBillingEntitlementFallback(error);
+      if(!rendered){
+        card.innerHTML=`<div class="billing-meta">Billing details could not be loaded right now.</div><div class="billing-actions"><a class="billing-btn secondary" href="pricing.html">View plans</a></div>`;
+      }
+    }
+  }
+
+  async function loadEmployerJobs() {
+    if (!currentUserId) return;
+
+    const jobsBox = document.getElementById('posted-jobs-list');
+    if (!jobsBox) return;
+
+    const { data: jobs, error } = await sb
+      .from('jobs')
+      .select('id, title, location, job_type, work_style, salary, status, created_at, urgently_hiring')
+      .eq('employer_id', currentUserId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to load employer jobs:', error);
+      jobsBox.innerHTML = '<div class="empty-state">Could not load jobs right now. Open the console for the Supabase error.</div>';
+      return;
+    }
+
+    if (!jobs || jobs.length === 0) {
+      employerJobs = [];
+      jobsBox.innerHTML = '<div class="empty-state">No jobs posted yet. Once you post a role, it\'ll show up here.</div>';
+      return;
+    }
+
+    employerJobs = jobs;
+
+    const PREVIEW_COUNT = 3;
+    const visibleJobs = jobs.slice(0, PREVIEW_COUNT);
+    const remaining = jobs.length - visibleJobs.length;
+
+    const rowsHtml = visibleJobs.map(job => `
+      <div class="account-job-row">
+        <div class="account-job-dot"></div>
+        <div class="account-job-info">
+          <div class="account-job-title-row">
+            <div class="account-job-title">${escapeHtml(job.title)}</div>
+            ${job.urgently_hiring === true ? '<span class="account-job-urgent">Urgently Hiring</span>' : ''}
+          </div>
+          <div class="account-job-meta">${escapeHtml(job.job_type || '')} · ${escapeHtml(job.work_style || '')}${job.location ? ' · ' + escapeHtml(job.location) : ''}${job.salary ? ' · ' + escapeHtml(job.salary) : ''}</div>
+        </div>
+        <a href="employer-dashboard.html" class="section-link">Manage →</a>
+      </div>
+    `).join('');
+
+    const moreHtml = remaining > 0
+      ? `<a class="account-candidates-more" href="employer-dashboard.html">… view all ${jobs.length} posted jobs →</a>`
+      : '';
+
+    jobsBox.innerHTML = rowsHtml + moreHtml;
+  }
+
+  let accountCandidates = [];
+
+  async function loadCandidates() {
+    const listEl = document.getElementById('account-candidates-list');
+    if (!currentUserId || !listEl) return;
+
+    if (accountCandidateAccessLocked) {
+      accountCandidates = [];
+      listEl.innerHTML = `<div class="candidate-lock-empty"><strong>Candidate access paused</strong>We couldn’t process your latest plan payment. Candidate profiles and hiring actions are locked, but your applications, messages, jobs, and history are still stored. <a href="#billing-section" style="color:var(--brand);font-weight:500">Update billing to restore access →</a></div>`;
+      return;
+    }
+
+    if (employerJobs.length === 0) {
+      accountCandidates = [];
+      listEl.innerHTML = '<div class="empty-state">No candidates yet. Once people apply to your jobs, you\'ll see them here.</div>';
+      return;
+    }
+
+    const jobIds = employerJobs.map(j => j.id);
+
+    const { data: apps, error: appsError } = await sb
+      .from('applications')
+      .select('id, job_id, candidate_id, status, applied_at')
+      .in('job_id', jobIds)
+      .order('applied_at', { ascending: false });
+
+    if (appsError) {
+      console.error('Failed to load applications:', appsError);
+      listEl.innerHTML = '<div class="empty-state">Could not load candidates right now. Open the console for the Supabase error.</div>';
+      return;
+    }
+
+    if (!apps || apps.length === 0) {
+      accountCandidates = [];
+      listEl.innerHTML = '<div class="empty-state">No candidates yet. Once people apply to your jobs, you\'ll see them here.</div>';
+      return;
+    }
+
+    const candidateIds = [...new Set(apps.map(a => a.candidate_id))];
+
+    // Includes resume_file_path/resume_data (unlike the earlier compact-only
+    // version) since the modal needs the full profile to show skills,
+    // experience, education, and a resume link.
+    const { data: profilesData, error: profilesError } = await sb
+      .from('profiles')
+      .select('id, full_name, resume_file_path, resume_data')
+      .in('id', candidateIds);
+
+    if (profilesError) {
+      console.error('Failed to load candidate profiles:', profilesError);
+    }
+
+    const profileMap = {};
+    (profilesData || []).forEach(p => { profileMap[p.id] = p; });
+
+    const jobMap = {};
+    employerJobs.forEach(j => { jobMap[j.id] = j; });
+
+    accountCandidates = apps
+      .map(app => ({
+        applicationId: app.id,
+        status: app.status || 'applied',
+        job: jobMap[app.job_id] || null,
+        profile: profileMap[app.candidate_id] || null
+      }))
+      // Only show applications where we could actually load the candidate's
+      // profile — if this filters everyone out, the "Employers can view
+      // profiles of their applicants" RLS policy on profiles is missing.
+      .filter(c => c.profile);
+
+    renderAccountCandidates();
+  }
+
+  // Shows just the first 3 candidates on the account page (full list with
+  // Accept/Pass/filters lives on employer-dashboard.html) — with a "View
+  // all N candidates" link beneath if there are more than 3.
+  function renderAccountCandidates() {
+    const listEl = document.getElementById('account-candidates-list');
+    if (!listEl) return;
+
+    if (accountCandidates.length === 0) {
+      listEl.innerHTML = '<div class="empty-state">No candidates yet. Once people apply to your jobs, you\'ll see them here.</div>';
+      return;
+    }
+
+    const PREVIEW_COUNT = 3;
+    const visible = accountCandidates.slice(0, PREVIEW_COUNT);
+    const remaining = accountCandidates.length - visible.length;
+
+    const rowsHtml = visible.map(c => {
+      const name = c.profile.full_name || 'Candidate';
+      const jobTitle = c.job ? c.job.title : 'a job';
+      const statusClass = c.status === 'accepted' ? 'status-accepted'
+        : c.status === 'rejected' ? 'status-rejected' : '';
+      const statusLabel = c.status === 'accepted' ? 'Accepted'
+        : c.status === 'rejected' ? 'Passed' : 'New applicant';
+
+      return `
+        <div class="account-candidate-row" onclick="openCandidateModal('${c.applicationId}')">
+          <div class="account-candidate-avatar">${escapeHtml(getInitials(name))}</div>
+          <div class="account-candidate-info">
+            <div class="account-candidate-name">${escapeHtml(name)}</div>
+            <div class="account-candidate-role">Applied to ${escapeHtml(jobTitle)}</div>
+          </div>
+          <span class="account-candidate-status ${statusClass}">${statusLabel}</span>
+        </div>
+      `;
+    }).join('');
+
+    const moreHtml = remaining > 0
+      ? `<a class="account-candidates-more" href="employer-dashboard.html">… view all ${accountCandidates.length} candidates →</a>`
+      : '';
+
+    listEl.innerHTML = rowsHtml + moreHtml;
+  }
+
+  // ---- Candidate full-profile modal — ported directly from
+  // employer-dashboard.html so clicking a candidate here shows the same
+  // info without navigating away. ----
+  function openCandidateModal(applicationId) {
+    const c = accountCandidates.find(cand => cand.applicationId === applicationId);
+    if (!c) return;
+
+    document.getElementById('candidate-modal-box').innerHTML = renderCandidateModal(c);
+    document.getElementById('candidate-modal-overlay').classList.add('show');
+  }
+
+  function closeCandidateModal() {
+    document.getElementById('candidate-modal-overlay').classList.remove('show');
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeCandidateModal();
+  });
+
+  function renderCandidateModal(c) {
+    const profile = c.profile;
+    const name = profile.full_name || 'Candidate';
+    const initials = getInitials(name);
+    const jobTitle = c.job ? c.job.title : 'a job';
+    const resumePath = profile.resume_file_path;
+    const isDecided = c.status === 'accepted' || c.status === 'rejected';
+
+    let resumeData = null;
+    try {
+      resumeData = typeof profile.resume_data === 'string'
+        ? JSON.parse(profile.resume_data)
+        : (profile.resume_data || null);
+    } catch (e) {
+      resumeData = null;
+    }
+
+    const skills = Array.isArray(resumeData?.skills) ? resumeData.skills : [];
+    const experience = Array.isArray(resumeData?.experience) ? resumeData.experience : [];
+    const education = Array.isArray(resumeData?.education) ? resumeData.education : [];
+    const summary = typeof resumeData?.summary === 'string' ? resumeData.summary : '';
+    const email = resumeData?.email || '';
+    const phone = resumeData?.phone || '';
+
+    const skillsHtml = skills.length
+      ? `<div class="modal-tags">${skills.map(s => `<span class="tag">${escapeHtml(s)}</span>`).join('')}</div>`
+      : `<div class="modal-empty">No skills listed.</div>`;
+
+    const experienceHtml = experience.length
+      ? `<ul class="modal-list">${experience.map(exp => {
+          const label = typeof exp === 'string'
+            ? exp
+            : [exp.title, exp.company, exp.dates].filter(Boolean).join(' — ');
+          return `<li>${escapeHtml(label)}</li>`;
+        }).join('')}</ul>`
+      : `<div class="modal-empty">No work experience listed.</div>`;
+
+    const educationHtml = education.length
+      ? `<ul class="modal-list">${education.map(ed => {
+          const label = typeof ed === 'string'
+            ? ed
+            : [ed.degree, ed.school, ed.dates].filter(Boolean).join(' — ');
+          return `<li>${escapeHtml(label)}</li>`;
+        }).join('')}</ul>`
+      : `<div class="modal-empty">No education listed.</div>`;
+
+    const contactLine = [email, phone].filter(Boolean).map(escapeHtml).join(' · ');
+
+    return `
+      <button type="button" class="modal-close" onclick="closeCandidateModal()" aria-label="Close">✕</button>
+      <div class="modal-top">
+        <div class="modal-avatar">${escapeHtml(initials)}</div>
+        <div>
+          <div class="modal-name">${escapeHtml(name)}</div>
+          <div class="modal-role">Applied to ${escapeHtml(jobTitle)}</div>
+        </div>
+      </div>
+
+      ${contactLine ? `<div class="modal-contact" style="margin-top:6px;">${contactLine}</div>` : ''}
+
+      ${summary ? `<div class="modal-section-title">Summary</div><div class="modal-text">${escapeHtml(summary)}</div>` : ''}
+
+      <div class="modal-section-title">Skills</div>
+      ${skillsHtml}
+
+      <div class="modal-section-title">Experience</div>
+      ${experienceHtml}
+
+      <div class="modal-section-title">Education</div>
+      ${educationHtml}
+
+      ${resumePath
+        ? `<div class="modal-section-title">Resume</div><button type="button" class="modal-resume-btn" onclick="openResume('${escapeHtml(resumePath)}', this)">📄 View resume</button>`
+        : `<div class="modal-section-title">Resume</div><div class="modal-empty">This candidate hasn't uploaded a resume.</div>`}
+
+      <div class="modal-actions">
+        <button class="btn-accept" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'accepted'); closeCandidateModal();">Accept</button>
+        <button class="btn-pass" ${isDecided ? 'disabled' : ''} onclick="updateApplicationStatus('${c.applicationId}', 'rejected'); closeCandidateModal();">Pass</button>
+      </div>
+    `;
+  }
+
+  async function openResume(path, btn) {
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Opening…';
+
+    try {
+      const { data, error } = await sb.storage
+        .from('resumes')
+        .createSignedUrl(path, 60);
+
+      if (error || !data?.signedUrl) {
+        console.error('Failed to create signed resume URL:', error);
+        showToast('Could not open this resume. It may not exist, or you may not have access to it.');
+        return;
+      }
+
+      window.open(data.signedUrl, '_blank', 'noopener');
+    } catch (err) {
+      console.error('openResume error:', err);
+      showToast('Could not open this resume.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  }
+
+  async function updateApplicationStatus(applicationId, status) {
+    const { error } = await sb
+      .from('applications')
+      .update({ status })
+      .eq('id', applicationId);
+
+    if (error) {
+      console.error('Failed to update application status:', error);
+      showToast('Could not update candidate status. You may need the employer UPDATE policy on applications.');
+      return;
+    }
+
+    showToast(status === 'accepted' ? 'Candidate accepted.' : 'Candidate passed.');
+    await loadCandidates();
+  }
+
+  let accountToastTimer;
+  function showToast(msg) {
+    let t = document.getElementById('account-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'account-toast';
+      t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:white;padding:10px 20px;border-radius:100px;font-size:13px;font-weight:500;transition:transform .3s ease;z-index:400;white-space:nowrap;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(accountToastTimer);
+    accountToastTimer = setTimeout(() => { t.style.transform = 'translateX(-50%) translateY(80px)'; }, 2600);
+  }
+
+  function goToDashboard() {
+    // The dashboard itself now shows the pending/locked state for
+    // unverified employers (see updateVerificationUI() in
+    // employer-dashboard.html) instead of being gatekept from here.
+    window.location.href = 'employer-dashboard.html';
+  }
+
+  async function signOut() {
+    await sb.auth.signOut({ scope: 'local' });
+    window.location.href = 'index.html';
+  }
+
+  // ---- Notifications ----
+
+  function timeAgo(iso) {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(iso).toLocaleDateString();
+  }
+
+  async function fetchNotifications() {
+    if (!currentUserId) return [];
+
+    const { data, error } = await sb
+      .from('notifications')
+      .select('id, type, title, body, link, read_at, created_at')
+      .eq('recipient_id', currentUserId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error('Failed to load notifications:', error);
+      return [];
+    }
+    return data || [];
+  }
+
+  function renderNotifDropdown(items) {
+    const badge = document.getElementById('notif-badge');
+    const list = document.getElementById('notif-list');
+    const unreadCount = items.filter(n => !n.read_at).length;
+
+    if (unreadCount > 0) {
+      badge.style.display = 'flex';
+      badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
+    } else {
+      badge.style.display = 'none';
+    }
+
+    if (items.length === 0) {
+      list.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
+      return;
+    }
+
+    list.innerHTML = items.slice(0, 6).map(n => `
+      <a class="notif-item ${n.read_at ? '' : 'unread'}" href="${n.link ? escapeHtml(n.link) : '#'}" onclick="markNotificationRead('${n.id}')">
+        <div class="notif-item-title">${escapeHtml(n.title)}</div>
+        ${n.body ? `<div class="notif-item-body">${escapeHtml(n.body)}</div>` : ''}
+        <div class="notif-item-time">${timeAgo(n.created_at)}</div>
+      </a>
+    `).join('');
+  }
+
+  async function markNotificationRead(id) {
+    if (!currentUserId) return;
+
+    await sb
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('recipient_id', currentUserId);
+  }
+
+  async function refreshNotifications() {
+    const items = await fetchNotifications();
+    renderNotifDropdown(items);
+  }
+
+  function initNotifications() {
+    refreshNotifications();
+
+    const bell = document.getElementById('notif-bell');
+    const dropdown = document.getElementById('notif-dropdown');
+
+    bell.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = dropdown.style.display !== 'none';
+      dropdown.style.display = isOpen ? 'none' : 'block';
+      if (!isOpen) refreshNotifications();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!document.getElementById('notif-wrap').contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    });
+
+    // Live updates: new applications should light up the bell without a refresh.
+    sb.channel('notifications-' + currentUserId)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'notifications',
+        filter: `recipient_id=eq.${currentUserId}`
+      }, () => refreshNotifications())
+      .subscribe();
+  }
+
+
+  let currentCompanyId = '';
+
+  async function loadCompanyId(){
+    const valueEl = document.getElementById('company-id-value');
+    const copyBtn = document.getElementById('company-id-copy');
+    if(!currentUserId || !valueEl) return;
+
+    try{
+      let companyId = '';
+
+      const { data: company, error: companyError } = await sb
+        .from('companies')
+        .select('id')
+        .eq('owner_user_id', currentUserId)
+        .maybeSingle();
+
+      if(!companyError && company?.id){
+        companyId = company.id;
+      }else{
+        const { data: verification } = await sb
+          .from('employer_verifications')
+          .select('company_id')
+          .eq('user_id', currentUserId)
+          .maybeSingle();
+
+        companyId = verification?.company_id || '';
+      }
+
+      currentCompanyId = companyId;
+
+      if(companyId){
+        valueEl.textContent = companyId;
+        valueEl.title = companyId;
+        if(copyBtn) copyBtn.disabled = false;
+      }else{
+        valueEl.textContent = 'Not available';
+        if(copyBtn) copyBtn.disabled = true;
+      }
+    }catch(error){
+      console.warn('Could not load company ID:', error);
+      valueEl.textContent = 'Not available';
+      if(copyBtn) copyBtn.disabled = true;
+    }
+  }
+
+  async function copyCompanyId(){
+    if(!currentCompanyId) return;
+
+    try{
+      await navigator.clipboard.writeText(currentCompanyId);
+      const button = document.getElementById('company-id-copy');
+      if(button){
+        const original = button.textContent;
+        button.textContent = 'Copied';
+        setTimeout(() => { button.textContent = original; }, 1200);
+      }
+    }catch(error){
+      console.warn('Could not copy company ID:', error);
+    }
+  }
+
+  async function initEmployerAccountPage(){
+    const session = await waitForSession();
+    if (!session) { window.location.replace('login.html?role=employer'); return; }
+
+    currentUserId = session.user.id;
+
+    // IMPORTANT:
+    // Do not make the normal owner Account page wait on the team-workspace RPC.
+    // If that RPC is missing, slow, or being updated, the old version could sit
+    // forever on "Loading…". First load the signed-in profile and determine
+    // whether this user actually OWNS a company.
+    //
+    // Owners continue immediately. Only a non-owner needs the team-runtime
+    // lookup, and even that lookup has a short timeout so this page can never
+    // be trapped behind it.
+    const { data: profile, error } = await sb
+      .from('profiles')
+      .select('role, company_name, company_headline, company_website, company_phone, business_email, business_address, verification_status, employer_verified, full_name, public_website_url, linkedin_url, instagram_url, facebook_url, media_kit_url, company_logo_url')
+      .eq('id', currentUserId)
+      .single();
+
+    let ownsCompany = false;
+    try {
+      const ownershipResult = await Promise.race([
+        sb
+          .from('companies')
+          .select('id')
+          .eq('owner_user_id', currentUserId)
+          .limit(1)
+          .maybeSingle(),
+        new Promise(resolve =>
+          setTimeout(() => resolve({ data: null, error: { message: 'ownership lookup timed out' } }), 2500)
+        )
+      ]);
+
+      ownsCompany = !!ownershipResult?.data?.id;
+    } catch (ownershipError) {
+      console.warn('Could not verify company ownership:', ownershipError);
+    }
+
+    // A teammate is connected to the owner's workspace but must never see the
+    // owner's Account settings. Only perform the team lookup for users who do
+    // not own a company themselves.
+    if (!ownsCompany) {
+      try {
+        const runtimeResult = await Promise.race([
+          sb.rpc('get_my_team_operational_state'),
+          new Promise(resolve =>
+            setTimeout(() => resolve({ data: null, error: { message: 'team runtime lookup timed out' } }), 2500)
+          )
+        ]);
+
+        const teamRuntime = runtimeResult?.data;
+        const teamRuntimeError = runtimeResult?.error;
+
+        if (
+          !teamRuntimeError &&
+          teamRuntime?.has_company &&
+          teamRuntime?.access?.is_owner === false
+        ) {
+          window.location.replace('employer-dashboard.html?team_account_limited=1');
+          return;
+        }
+      } catch (teamRuntimeError) {
+        console.warn('Could not check team workspace access:', teamRuntimeError);
+      }
+    }
+
+    // Old unscoped key could have leaked another employer's logo into this
+    // browser's localStorage — remove it so it never gets shown again.
+    try { localStorage.removeItem('companyLogo'); } catch {}
+    const savedLogo = localStorage.getItem('companyLogo:' + currentUserId);
+    if (savedLogo) showPhoto(savedLogo);
+
+    // A genuine load failure (network hiccup, an RLS policy issue, etc.)
+    // must NEVER be treated as "this employer hasn't submitted their
+    // business profile yet" — that silently sent already-verified
+    // employers back through onboarding whenever this query happened to
+    // fail for any reason, which is both wrong and needlessly disruptive.
+    // Show a real error and stop here instead of guessing their status.
+    if (error && error.code !== 'PGRST116') {
+      console.error('Failed to load employer profile', error);
+      const loadingEl = document.getElementById('auth-loading');
+      loadingEl.innerHTML = `
+        <div style="text-align:center; max-width:360px; padding:0 20px;">
+          <div style="font-size:14px; color:var(--text); margin-bottom:6px;">Could not load your account</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:16px; word-break:break-word;">${escapeHtml(error.message || 'Unknown error.')}</div>
+          <button onclick="location.reload()" style="background:var(--brand); color:#fff; border:none; border-radius:100px; padding:9px 20px; font-size:13px; font-family:inherit; cursor:pointer;">Retry</button>
+        </div>`;
+      return;
+    }
+
+    // A role check happens above this fetch already, so by this point we
+    // know profile is either a real row or genuinely absent (PGRST116) —
+    // not the product of a failed query.
+    const role = String(profile?.role || session.user.user_metadata?.role || '').toLowerCase();
+    if (role !== 'employer') { window.location.replace('login.html?role=employer'); return; }
+
+    currentProfile = profile || {
+      employer_verified: false,
+      verification_status: 'not_submitted'
+    };
+
+    const verifiedForProfileUpdates =
+      currentProfile?.employer_verified === true ||
+      String(currentProfile?.verification_status || '').toLowerCase() === 'approved';
+
+    // A brand-new employer (never submitted a business profile) shouldn't
+    // land on the account page at all — send them straight into guided
+    // onboarding instead of showing the half-empty account view.
+    if ((currentProfile.verification_status || 'not_submitted') === 'not_submitted') {
+      window.location.replace('employer-onboarding.html');
+      return;
+    }
+
+    document.body.classList.add('auth-ready');
+
+    const companyNameEl = document.getElementById('company-name');
+    const headlineEl    = document.getElementById('company-headline');
+    const websiteEl     = document.getElementById('company-website');
+    const phoneEl       = document.getElementById('company-phone');
+    const businessEmailEl = document.getElementById('business-email');
+    const businessAddressEl = document.getElementById('business-address');
+    const linkedInEl = document.getElementById('linkedin-url');
+    const instagramEl = document.getElementById('instagram-url');
+    const facebookEl = document.getElementById('facebook-url');
+
+    const companyName = profile?.company_name || session.user.user_metadata?.company_name || '';
+    const displayName = companyName || profile?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+
+    if (companyName) {
+      companyNameEl.textContent = companyName;
+      document.getElementById('avatar-initials').textContent = getInitials(companyName);
+    }
+    if (profile?.company_headline) {
+      headlineEl.textContent = profile.company_headline;
+      headlineEl.classList.remove('headline-empty');
+    }
+
+    headlineEl.contentEditable = verifiedForProfileUpdates ? 'false' : 'true';
+    headlineEl.title = verifiedForProfileUpdates
+      ? 'Verified company profile changes require Alygnn review.'
+      : '';
+    if (profile?.company_website) websiteEl.value = profile.company_website;
+    if (profile?.company_phone)   phoneEl.value   = profile.company_phone;
+    if (profile?.business_email) businessEmailEl.value = profile.business_email;
+    if (profile?.business_address) businessAddressEl.value = profile.business_address;
+
+    if (linkedInEl) linkedInEl.value = profile?.linkedin_url || '';
+    if (instagramEl) instagramEl.value = profile?.instagram_url || '';
+    if (facebookEl) facebookEl.value = profile?.facebook_url || '';
+
+    const persistedLogoUrl = String(profile?.company_logo_url || '').trim();
+    if (persistedLogoUrl) {
+      showPhoto(persistedLogoUrl);
+      localStorage.setItem('companyLogo:' + currentUserId, persistedLogoUrl);
+    }
+
+    document.getElementById('nav-name').textContent = displayName;
+
+    updateVerificationBanner();
+    await loadCompanyId();
+    await loadProfileUpdateRequests();
+    await loadEmployerJobs();
+    await loadAccountPostingAccess();
+    await loadBillingSummary();
+    await loadCandidates();
+    initNotifications();
+  }
+
+  // Last-resort UI fail-safe. A JavaScript/network problem should never leave
+  // employers staring at an endless blank "Loading…" page.
+  const employerAccountLoadingFailSafe = setTimeout(() => {
+    if (!document.body.classList.contains('auth-ready')) {
+      const loadingEl = document.getElementById('auth-loading');
+      if (loadingEl && /Loading/i.test(loadingEl.textContent || '')) {
+        loadingEl.innerHTML = `
+          <div style="text-align:center;max-width:380px;padding:0 20px;">
+            <div style="font-size:14px;color:var(--text);margin-bottom:7px;">Account is taking too long to load</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Refresh the page to reconnect your Alygnn session.</div>
+            <button onclick="location.reload()" style="background:var(--brand);color:#fff;border:0;border-radius:100px;padding:9px 20px;font:600 13px 'DM Sans',sans-serif;cursor:pointer;">Refresh account</button>
+          </div>`;
+      }
+    }
+  }, 9000);
+
+  initEmployerAccountPage().finally(() => {
+    clearTimeout(employerAccountLoadingFailSafe);
+  });
+</script>
+
+<div class="mini-footer">
+  <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>
+</div>
+
+</body>
+</html>
