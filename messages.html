@@ -75,6 +75,7 @@
   .chat-panel{min-width:0;display:flex;flex-direction:column;background:white}.chat-head{height:78px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 20px}
   .chat-person{display:flex;align-items:center;gap:11px;min-width:0}.chat-head-name{font-size:13px;font-weight:700;margin-bottom:2px}.chat-head-job{font-size:10.5px;color:var(--muted)}
   .context-pill{display:inline-flex;align-items:center;min-height:30px;padding:0 11px;border-radius:999px;background:var(--brand-light);color:var(--brand);font-size:10.5px;font-weight:700;text-decoration:none;white-space:nowrap}
+  .chat-head-actions{display:flex;align-items:center;gap:8px}.delete-conversation{min-height:30px;border:1px solid #E8BABA;border-radius:999px;background:#FFF3F3;color:#B64242;padding:0 11px;font:700 10.5px 'DM Sans',sans-serif;cursor:pointer}.delete-conversation:hover{background:#FCE8E8}
   .messages{flex:1;overflow-y:auto;padding:22px 22px 14px;background:radial-gradient(circle at top left,rgba(140,182,155,.055),transparent 34%),white}
   .date-divider{text-align:center;font-size:9px;color:#8A96A0;margin:2px 0 18px}.msg-row{display:flex;margin-bottom:11px}.msg-row.mine{justify-content:flex-end}
   .bubble{max-width:min(72%,560px);border:1px solid var(--border);border-radius:15px 15px 15px 5px;padding:10px 12px;background:white;font-size:12px;line-height:1.55;color:var(--text)}
@@ -183,390 +184,6 @@
     body.candidate-role .candidate-nav-links a{font-size:12px}
     body.candidate-role .candidate-nav-signout{font-size:12px;padding:6px 11px}
   }
-
-  /* Employer desktop shell:
-     The header and left navigation stay in place. The sidebar is not a
-     separate scroll container; wheel/trackpad scrolling continues the page. */
-  @media (min-width: 901px) {
-    body:not(.candidate-role) nav {
-      position: sticky !important;
-      top: 0;
-      z-index: 100;
-    }
-    body:not(.candidate-role) .sidebar {
-      position: sticky;
-      top: 64px;
-      align-self: start;
-      height: calc(100vh - 64px);
-      overflow: hidden;
-      overscroll-behavior: none;
-    }
-  }
-
-
-  /* Employer Messages uses the exact same fixed shell as Employer Dashboard.
-     Candidate Messages keeps its existing candidate navigation. */
-  @media (min-width: 901px) {
-    body:not(.candidate-role) nav {
-      position: fixed !important;
-      top: 0; left: 0; right: 0;
-      width: 100%;
-      height: 64px;
-      z-index: 1000;
-      padding: 0 5%;
-      background: rgba(246,248,247,.95);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    body:not(.candidate-role) .layout {
-      display:block !important;
-      min-height:100vh !important;
-      padding-top:64px;
-    }
-
-    body:not(.candidate-role) .sidebar {
-      position:fixed !important;
-      top:64px !important;
-      left:0 !important;
-      width:240px !important;
-      height:calc(100vh - 64px) !important;
-      padding:32px 20px !important;
-      overflow:hidden !important;
-      overscroll-behavior:none;
-      background:var(--card);
-      border-right:1px solid var(--border);
-      z-index:90;
-    }
-
-    body:not(.candidate-role) main {
-      margin-left:240px !important;
-      max-width:none !important;
-      padding:36px 5% 70px !important;
-    }
-  }
-
-  body:not(.candidate-role) #employer-nav-right {
-    display:flex;
-    align-items:center;
-    gap:16px;
-  }
-  .employer-workspace-bell {
-    position:relative; display:flex; align-items:center; justify-content:center;
-    width:36px; height:36px; border-radius:10px; border:1px solid var(--border);
-    background:var(--card); color:var(--muted); cursor:pointer;
-  }
-  .employer-workspace-bell:hover { color:var(--brand); border-color:var(--brand); }
-  .employer-workspace-bell svg { width:18px; height:18px; }
-
-  /* Employer notifications — same dropdown behavior as My Jobs. */
-  .notif-wrap{position:relative}
-  .notif-bell{
-    position:relative;display:flex;align-items:center;justify-content:center;
-    width:36px;height:36px;border-radius:10px;border:1px solid var(--border);
-    background:var(--card);color:var(--muted);cursor:pointer
-  }
-  .notif-bell:hover{color:var(--brand);border-color:var(--brand)}
-  .notif-bell svg{width:18px;height:18px}
-  .notif-badge{
-    position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 4px;
-    background:var(--rose);color:white;font-size:10px;font-weight:700;
-    border-radius:999px;display:flex;align-items:center;justify-content:center;line-height:1
-  }
-  .notif-dropdown{
-    position:absolute;top:calc(100% + 10px);right:0;width:340px;max-height:420px;
-    overflow-y:auto;background:var(--card);border:1px solid var(--border);
-    border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.12);z-index:1200
-  }
-  .notif-dropdown-header{
-    display:flex;align-items:center;justify-content:space-between;gap:12px;
-    font-size:13px;font-weight:600;color:var(--text);padding:14px 16px 8px
-  }
-  .notif-mark-all{
-    border:0;background:transparent;color:var(--brand);font-family:'DM Sans',sans-serif;
-    font-size:11px;font-weight:500;cursor:pointer;padding:0;white-space:nowrap
-  }
-  .notif-mark-all:hover{opacity:.8}
-  .notif-mark-all:disabled{opacity:.5;cursor:default}
-  .notif-empty{font-size:13px;color:var(--muted);padding:20px 16px;text-align:center}
-  .notif-item{display:block;padding:10px 16px;border-top:1px solid var(--border);text-decoration:none;color:inherit}
-  .notif-item:hover{background:var(--brand-light)}
-  .notif-item.unread{background:var(--brand-light)}
-  .notif-item-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
-  .notif-item-body{font-size:12px;color:var(--muted);line-height:1.4}
-  .notif-item-time{font-size:11px;color:var(--muted);margin-top:4px}
-  .employer-workspace-signout {
-    font-size:13px; color:var(--muted); background:none;
-    border:1px solid var(--border); border-radius:8px; padding:6px 14px;
-    cursor:pointer; font-family:'DM Sans',sans-serif;
-  }
-  .employer-workspace-signout:hover { border-color:var(--rose); color:var(--rose); }
-
-  body:not(.candidate-role) .sidebar-label {
-    font-size:10px !important; letter-spacing:2px !important;
-    color:var(--muted) !important; font-weight:500; padding:0 8px;
-    margin-bottom:10px !important;
-  }
-  body:not(.candidate-role) .side-link {
-    padding:10px 12px !important;
-    font-size:14px !important;
-    font-weight:400 !important;
-    margin-bottom:2px !important;
-  }
-  body:not(.candidate-role) .side-link.active { font-weight:500 !important; }
-
-
-  /* Width correction for the fixed employer sidebar.
-     Keep candidate Messages unchanged; this only affects employer mode. */
-  html, body {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-
-  @media (min-width: 901px) {
-    body:not(.candidate-role) .layout {
-      width: 100% !important;
-      max-width: 100% !important;
-      overflow-x: clip !important;
-    }
-
-    body:not(.candidate-role) main {
-      box-sizing: border-box !important;
-      margin-left: 240px !important;
-      width: calc(100% - 240px) !important;
-      max-width: calc(100% - 240px) !important;
-      min-width: 0 !important;
-      overflow-x: hidden !important;
-    }
-
-    body:not(.candidate-role) main > * {
-      max-width: 100%;
-      min-width: 0;
-    }
-
-    body:not(.candidate-role) .chat-shell {
-      width: 100% !important;
-      max-width: 100% !important;
-      min-width: 0 !important;
-    }
-  }
-
-
-  /* Keep the message composer fully inside the chat card.
-     Flex children default to min-height:auto, which let a long message history
-     push the composer below the visible chat-shell. */
-  .chat-panel {
-    min-height: 0 !important;
-    overflow: hidden;
-  }
-
-  .messages {
-    min-height: 0 !important;
-    overflow-y: auto;
-  }
-
-  .composer {
-    flex: 0 0 auto;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 2;
-  }
-
-  .composer textarea {
-    min-width: 0;
-  }
-
-  .conversations {
-    min-height: 0;
-  }
-
-  .conversation-list {
-    min-height: 0;
-  }
-
-
-  /* Single-screen Messages workspace.
-     The browser page itself does not scroll. The chat history is the primary
-     vertical scroll area; the conversation list can still handle overflow
-     without adding a second visible scrollbar. */
-  html, body {
-    width: 100%;
-    height: 100%;
-    max-width: 100%;
-    overflow: hidden !important;
-  }
-
-  body {
-    min-height: 0 !important;
-  }
-
-  nav {
-    position: fixed !important;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    z-index: 1000;
-  }
-
-  .layout {
-    height: 100vh !important;
-    min-height: 0 !important;
-    padding-top: 64px;
-    overflow: hidden !important;
-  }
-
-  main {
-    height: calc(100vh - 64px) !important;
-    min-height: 0 !important;
-    overflow: hidden !important;
-    display: flex;
-    flex-direction: column;
-    padding-top: 22px !important;
-    padding-bottom: 10px !important;
-  }
-
-  .page-kicker,
-  h1,
-  .page-sub,
-  #setup-note,
-  .messages-legal {
-    flex: 0 0 auto;
-  }
-
-  .page-sub {
-    margin-bottom: 14px !important;
-  }
-
-  .chat-shell {
-    flex: 1 1 auto;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-  }
-
-  .conversations,
-  .chat-panel {
-    min-height: 0 !important;
-  }
-
-  .conversation-list {
-    min-height: 0 !important;
-    overflow-y: auto;
-    scrollbar-width: none;
-  }
-
-  .conversation-list::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-  }
-
-  .messages {
-    min-height: 0 !important;
-    overflow-y: auto !important;
-    overscroll-behavior: contain;
-  }
-
-  .messages-legal {
-    min-height: 26px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 7px;
-    padding-top: 8px;
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  .messages-legal a {
-    color: var(--muted);
-    text-decoration: none;
-  }
-
-  .messages-legal a:hover {
-    color: var(--brand);
-  }
-
-  .chat-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-
-  .delete-chat-btn {
-    min-height: 30px;
-    padding: 0 11px;
-    border-radius: 999px;
-    border: 1px solid rgba(215,154,154,.48);
-    background: rgba(215,154,154,.10);
-    color: #a05858;
-    font: 700 10.5px 'DM Sans', sans-serif;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .delete-chat-btn:hover {
-    background: rgba(215,154,154,.18);
-    border-color: var(--rose);
-  }
-
-  .delete-chat-btn:disabled {
-    opacity: .55;
-    cursor: not-allowed;
-  }
-
-  @media (max-width: 680px) {
-    html, body {
-      overflow: auto !important;
-      height: auto;
-      min-height: 100%;
-    }
-
-    nav {
-      position: sticky !important;
-    }
-
-    .layout {
-      height: auto !important;
-      min-height: calc(100vh - 64px) !important;
-      padding-top: 0;
-      overflow: visible !important;
-    }
-
-    main {
-      height: auto !important;
-      min-height: 0 !important;
-      overflow: visible !important;
-    }
-
-    .messages-legal {
-      padding-bottom: 8px;
-    }
-
-    .delete-chat-btn {
-      font-size: 10px;
-      padding: 0 9px;
-    }
-  }
-
-
-  /* Candidate workspace header: fixed on every candidate Messages view.
-     Only the page/chat content can move; this top navigation never scrolls. */
-  body.candidate-role nav {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-    z-index: 1000 !important;
-  }
-
-  body.candidate-role .layout {
-    padding-top: 64px !important;
-  }
-
 </style>
 </head>
 <body>
@@ -587,21 +204,9 @@
   </div>
 
   <div class="nav-right" id="employer-nav-right">
-    <div class="notif-wrap" id="notif-wrap">
-      <button class="notif-bell" id="notif-bell" type="button" aria-label="Notifications">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <span class="notif-badge" id="notif-badge" style="display:none">0</span>
-      </button>
-      <div class="notif-dropdown" id="notif-dropdown" style="display:none">
-        <div class="notif-dropdown-header">
-          <span>Notifications</span>
-          <button class="notif-mark-all" id="notif-mark-all-btn" type="button" onclick="markAllEmployerNotificationsRead(event)">Mark all read</button>
-        </div>
-        <div id="notif-list"><div class="notif-empty">No notifications yet.</div></div>
-      </div>
-    </div>
     <span class="nav-name" id="nav-name"></span>
-    <button class="employer-workspace-signout" type="button" onclick="candidateSignOut()">Sign out</button>
+    <a class="nav-btn" id="account-link" href="employer-account.html">My account</a>
+    <a class="nav-btn primary" id="dashboard-link" href="employer-dashboard.html">Dashboard</a>
   </div>
 </nav>
 <script>
@@ -644,19 +249,12 @@
     </section>
 
     <div class="error-note" id="setup-note" style="display:none"></div>
-
-    <div class="messages-legal" aria-label="Legal links">
-      <a href="privacy.html">Privacy</a>
-      <span>·</span>
-      <a href="terms.html">Terms</a>
-    </div>
   </main>
 </div>
 
 <script>
 const SUPABASE_URL='https://auth.alygnn.com';
 const SUPABASE_ANON_KEY='sb_publishable_3l8krRh6WCyvKfNumWDBDw_C6CKr7rG';
-
 
 function alygnnAuthStorageKey() {
   let tabId = window.sessionStorage.getItem('alygnn_auth_tab_id');
@@ -700,6 +298,16 @@ function syncCandidateSwipeNav(matchingReady) {
 let currentUser=null;
 let currentProfile=null;
 let currentRole='';
+let teamAccess=null;
+let teamRuntime=null;
+let isTeamMember=false;
+let workspaceOwnerId=null;
+
+function messageTeamCan(permission){
+  if(!isTeamMember)return true;
+  return teamAccess?.permissions?.[permission]===true;
+}
+
 let threads=[];
 let threadDetails=new Map();
 let activeThreadId=null;
@@ -785,7 +393,9 @@ function setSidebar(){
         </span>
         My account
       </a>`;
-
+    document.getElementById('account-link').href='employer-account.html';
+    document.getElementById('dashboard-link').href='employer-dashboard.html';
+    document.getElementById('dashboard-link').textContent='Dashboard';
   }else{
     document.body.classList.remove('employer-role');
     document.body.classList.add('candidate-role');
@@ -805,43 +415,10 @@ function setSidebar(){
       <a href="messages.html" class="side-link active"><span class="side-icon">✉</span><span class="side-label-text">Messages</span></a>
       <hr>
       <a href="account.html" class="side-link"><span class="side-icon">←</span><span class="side-label-text">My account</span></a>`;
+    document.getElementById('account-link').href='account.html';
+    document.getElementById('dashboard-link').href='swipe.html';
+    document.getElementById('dashboard-link').textContent='Discover';
   }
-}
-
-
-function parseProfileResumeData(value){
-  if(!value)return {};
-  if(typeof value==='object'&&!Array.isArray(value))return value;
-  if(typeof value==='string'){
-    try{
-      const parsed=JSON.parse(value);
-      return parsed&&typeof parsed==='object'?parsed:{};
-    }catch(_){
-      return {};
-    }
-  }
-  return {};
-}
-
-function candidateNameFromProfile(profile){
-  const p=profile||{};
-  const resume=parseProfileResumeData(p.resume_data);
-  const personal=(resume?.personal&&typeof resume.personal==='object')
-    ?resume.personal
-    :{};
-
-  const resumePersonalName=[
-    personal.first_name,
-    personal.last_name
-  ].filter(Boolean).join(' ').trim();
-
-  return String(
-    p.full_name ||
-    resume.name ||
-    resume.full_name ||
-    resumePersonalName ||
-    'Candidate'
-  ).trim();
 }
 
 async function loadRequestedApplicationContext(){
@@ -871,7 +448,7 @@ async function loadRequestedApplicationContext(){
       .eq('id',jobId)
       .maybeSingle(),
     sb.from('profiles')
-      .select('id,full_name,company_name,resume_data')
+      .select('id,full_name,company_name')
       .eq('id',application.candidate_id)
       .maybeSingle()
   ]);
@@ -883,7 +460,7 @@ async function loadRequestedApplicationContext(){
   const candidate=candidateResult.data||{id:application.candidate_id,full_name:'Candidate'};
 
   // Validate that the signed-in user is actually part of the application.
-  const isEmployer=currentUser.id===job.employer_id;
+  const isEmployer=(currentRole==='employer'&&workspaceOwnerId===job.employer_id);
   const isCandidate=currentUser.id===application.candidate_id;
   if(!isEmployer&&!isCandidate){
     showSetup('You do not have access to this conversation.');
@@ -904,24 +481,34 @@ async function getOrCreateRequestedThread(){
   const applicationId=requestedApplicationId||new URLSearchParams(location.search).get('application');
   if(!applicationId)return null;
 
-  const {data,error}=await sb.rpc('get_or_create_application_thread',{p_application_id:applicationId});
+  // Employer-first messaging: an empty conversation is never created from the
+  // website. Only return an existing employer-started conversation here.
+  const hiddenField=currentRole==='employer'?'employer_hidden_at':'candidate_hidden_at';
+  const {data,error}=await sb
+    .from('application_conversations')
+    .select('id,employer_hidden_at,candidate_hidden_at')
+    .eq('application_id',String(applicationId))
+    .is(hiddenField,null)
+    .maybeSingle();
+
   if(error){
-    console.error('Could not create/open message thread:',error);
-    showSetup('This application loaded, but the private message thread could not be created. Run the updated Alygnn messaging SQL in Supabase, then refresh.');
+    console.error('Could not open application conversation:',error);
     return null;
   }
-  return typeof data==='string'?data:(data?.id||data?.thread_id||null);
+  return data?.id||null;
 }
 
 async function loadThreads(){
+  const hiddenField=currentRole==='employer'?'employer_hidden_at':'candidate_hidden_at';
   const {data,error}=await sb
-    .from('message_threads')
-    .select('id,application_id,job_id,employer_id,candidate_id,created_at,updated_at,last_message_at,employer_deleted_at,candidate_deleted_at')
+    .from('application_conversations')
+    .select('id,application_id,job_id,employer_id,candidate_id,candidate_name,job_title,company_name,employer_started_at,created_at,last_message_at,employer_hidden_at,candidate_hidden_at')
+    .is(hiddenField,null)
     .order('last_message_at',{ascending:false,nullsFirst:false});
 
   if(error){
     console.error(error);
-    showSetup('Messaging tables are not available yet. Run the Alygnn messaging SQL in Supabase once, then refresh.');
+    showSetup('Messages could not be loaded. Make sure the employer-first messaging SQL is installed in Supabase.');
     threads=[];
     return;
   }
@@ -933,52 +520,53 @@ async function loadThreadDetails(){
   if(!threads.length)return;
 
   const jobIds=[...new Set(threads.map(t=>t.job_id).filter(Boolean))];
-  const userIds=[...new Set(threads.flatMap(t=>[t.employer_id,t.candidate_id]).filter(Boolean))];
+  const conversationIds=threads.map(t=>t.id).filter(Boolean);
 
-  const [jobsResult,profilesResult,lastMessagesResult]=await Promise.all([
+  const [jobsResult,lastMessagesResult]=await Promise.all([
     jobIds.length
-      ? sb.from('jobs').select('id,title,status,location,company').in('id',jobIds)
+      ? sb.from('jobs').select('*').in('id',jobIds)
       : Promise.resolve({data:[]}),
-    userIds.length
-      ? sb.from('profiles').select('id,full_name,company_name,resume_data').in('id',userIds)
-      : Promise.resolve({data:[]}),
-    threads.length
-      ? sb.from('messages').select('id,thread_id,sender_id,body,created_at,read_at').in('thread_id',threads.map(t=>t.id)).order('created_at',{ascending:false})
+    conversationIds.length
+      ? sb.from('application_messages')
+          .select('id,conversation_id,sender_id,body,created_at,read_at')
+          .in('conversation_id',conversationIds)
+          .order('created_at',{ascending:false})
       : Promise.resolve({data:[]})
   ]);
 
   if(jobsResult.error)console.error(jobsResult.error);
-  if(profilesResult.error)console.error(profilesResult.error);
   if(lastMessagesResult.error)console.error(lastMessagesResult.error);
 
-  const jobsMap=Object.fromEntries((jobsResult.data||[]).map(j=>[j.id,j]));
-  const profilesMap=Object.fromEntries((profilesResult.data||[]).map(p=>[p.id,p]));
-
+  const jobsMap=Object.fromEntries((jobsResult.data||[]).map(j=>[String(j.id),j]));
   const newestByThread={};
   const unreadByThread={};
+
   for(const m of (lastMessagesResult.data||[])){
-    if(!newestByThread[m.thread_id])newestByThread[m.thread_id]=m;
-    if(m.sender_id!==currentUser.id&&!m.read_at){
-      unreadByThread[m.thread_id]=(unreadByThread[m.thread_id]||0)+1;
+    const id=String(m.conversation_id);
+    if(!newestByThread[id])newestByThread[id]=m;
+    if(String(m.sender_id)!==String(currentUser.id)&&!m.read_at){
+      unreadByThread[id]=(unreadByThread[id]||0)+1;
     }
   }
 
   for(const t of threads){
-    const otherId=currentUser.id===t.employer_id?t.candidate_id:t.employer_id;
-    const other=profilesMap[otherId]||{};
-    const job=jobsMap[t.job_id]||{};
+    const job=jobsMap[String(t.job_id)]||{};
+    const candidateName=String(t.candidate_name||'').trim();
+    const companyName=String(t.company_name||job.company_name||job.company||job.employer_name||'').trim();
     const displayName=currentRole==='employer'
-      ? candidateNameFromProfile(other)
-      : (job.company||other.company_name||other.full_name||'Company');
+      ? (candidateName||'Candidate')
+      : (companyName||'Company');
+    const jobTitle=String(t.job_title||job.title||'Job application').trim();
+    const mergedJob={...job,title:jobTitle};
 
     threadDetails.set(t.id,{
       thread:t,
-      otherId,
+      otherId:currentRole==='employer'?t.candidate_id:t.employer_id,
       name:displayName,
       initials:initials(displayName),
-      job,
-      lastMessage:newestByThread[t.id]||null,
-      unread:unreadByThread[t.id]||0
+      job:mergedJob,
+      lastMessage:newestByThread[String(t.id)]||null,
+      unread:unreadByThread[String(t.id)]||0
     });
   }
 }
@@ -1018,7 +606,7 @@ function renderConversationList(){
         <div class="conversation-copy">
           <div class="conversation-top">
             <div class="conversation-name">${escapeHtml(d.name||'Conversation')}</div>
-            <div class="conversation-time">${escapeHtml(timeLabel(last?.created_at||t.last_message_at||t.updated_at))}</div>
+            <div class="conversation-time">${escapeHtml(timeLabel(last?.created_at||t.last_message_at||t.created_at))}</div>
           </div>
           <div class="conversation-job">${escapeHtml(d.job?.title||'Job')}</div>
           <div class="conversation-preview">${escapeHtml(last?.body||'Start the conversation')}</div>
@@ -1028,14 +616,36 @@ function renderConversationList(){
   }).join('');
 }
 
+async function deleteConversationForMe(threadId){
+  if(!threadId)return;
+  const d=threadDetails.get(threadId)||{};
+  const label=d.name||'this conversation';
+  if(!confirm(`Delete the conversation with ${label} from your Messages?\n\nThis removes it only from your side. The other person will still keep the conversation. If they send you a new message later, it will appear again.`))return;
+
+  try{
+    let result=await sb.rpc('hide_application_conversation',{p_conversation_id:threadId});
+    if(result.error&&String(result.error.message||'').toLowerCase().includes('function')){
+      result=await sb.rpc('delete_application_conversation',{p_conversation_id:threadId});
+    }
+    if(result.error)throw result.error;
+
+    if(messageChannel){sb.removeChannel(messageChannel);messageChannel=null;}
+    if(activeThreadId===threadId){activeThreadId=null;activeMessages=[];}
+    showSetup('Conversation removed from your Messages.');
+    await refreshAll(true);
+  }catch(error){
+    console.error(error);
+    showSetup(error?.message||'Conversation could not be removed.');
+  }
+}
+
 async function markThreadRead(threadId){
-  const {error}=await sb
-    .from('messages')
-    .update({read_at:new Date().toISOString()})
-    .eq('thread_id',threadId)
-    .neq('sender_id',currentUser.id)
-    .is('read_at',null);
-  if(error)console.warn('Could not mark messages read:',error);
+  try{
+    const {error}=await sb.rpc('mark_application_conversation_read',{p_conversation_id:threadId});
+    if(error)console.warn('Could not mark messages read:',error);
+  }catch(error){
+    console.warn('Could not mark messages read:',error);
+  }
 }
 
 async function openThread(threadId){
@@ -1045,16 +655,15 @@ async function openThread(threadId){
   const d=threadDetails.get(threadId);
   if(d)d.unread=0;
   renderConversationList();
-  if(currentRole==='employer')refreshEmployerNotifications();
   renderChat();
   subscribeToMessages(threadId);
 }
 
 async function loadMessages(threadId){
   const {data,error}=await sb
-    .from('messages')
-    .select('id,thread_id,sender_id,body,created_at,read_at')
-    .eq('thread_id',threadId)
+    .from('application_messages')
+    .select('id,conversation_id,sender_id,body,created_at,read_at')
+    .eq('conversation_id',threadId)
     .order('created_at',{ascending:true});
   if(error){
     console.error(error);
@@ -1075,7 +684,7 @@ function activeConversationDetails(){
   if(requestedApplicationContext){
     const c=requestedApplicationContext;
     const otherName=currentRole==='employer'
-      ? candidateNameFromProfile(c.candidate)
+      ? (c.candidate?.full_name||'Candidate')
       : (c.job?.company||'Company');
 
     return {
@@ -1128,13 +737,11 @@ function renderChat(){
           <div class="chat-head-job">${currentRole==='employer'?'Applied for':'Conversation about'} ${escapeHtml(d.job?.title||'this job')}${jobClosed?' · Closed':''}</div>
         </div>
       </div>
-      <div class="chat-actions">
+      <div class="chat-head-actions">
         ${currentRole==='employer'
           ? `<a class="context-pill" href="candidates.html?job=${encodeURIComponent(d.thread?.job_id||'')}&application=${encodeURIComponent(d.thread?.application_id||'')}">View candidate</a>`
-          : `<a class="context-pill" href="job-details.html?job=${encodeURIComponent(d.thread?.job_id||d.job?.id||'')}&app=${encodeURIComponent(d.thread?.application_id||'')}&from=messages">View application</a>`}
-        ${d.thread?.id
-          ? `<button type="button" class="delete-chat-btn" onclick="deleteCurrentConversation()">Delete chat</button>`
-          : ''}
+          : `<a class="context-pill" href="my-jobs.html">View application</a>`}
+        ${d.thread?.id?`<button class="delete-conversation" type="button" onclick="deleteConversationForMe('${escapeHtml(d.thread.id)}')">Delete</button>`:''}
       </div>
     </div>
 
@@ -1150,8 +757,8 @@ function renderChat(){
              </div>`).join('')}`
         : `<div class="empty-chat" style="min-height:100%">
              <div class="empty-chat-icon">✉</div>
-             <div class="empty-chat-title">Start the conversation</div>
-             <div class="empty-chat-copy">This thread is connected to ${escapeHtml(d.job?.title||'the application')}.</div>
+             <div class="empty-chat-title">${currentRole==='employer'?'Start the conversation':'Conversation opened'}</div>
+             <div class="empty-chat-copy">${currentRole==='employer'?'Send the first message to this applicant.':'The employer opened this conversation about '+escapeHtml(d.job?.title||'your application')+'.'}</div>
            </div>`}
     </div>
 
@@ -1164,73 +771,6 @@ function renderChat(){
     const messages=document.getElementById('messages');
     if(messages)messages.scrollTop=messages.scrollHeight;
   });
-}
-
-
-async function deleteCurrentConversation(){
-  if(!activeThreadId)return;
-
-  const d=threadDetails.get(activeThreadId);
-  const personName=String(d?.name||'this conversation').trim();
-
-  const confirmed=window.confirm(
-    `Delete your chat with ${personName}? This removes it from your Alygnn inbox. The other participant keeps their copy.`
-  );
-  if(!confirmed)return;
-
-  const deleteButton=document.querySelector('.delete-chat-btn');
-  if(deleteButton){
-    deleteButton.disabled=true;
-    deleteButton.textContent='Deleting…';
-  }
-
-  const threadToDelete=activeThreadId;
-
-  const {error}=await sb.rpc('delete_message_thread_for_me',{
-    p_thread_id:threadToDelete
-  });
-
-  if(error){
-    console.error('Could not delete conversation:',error);
-    if(deleteButton){
-      deleteButton.disabled=false;
-      deleteButton.textContent='Delete chat';
-    }
-    showSetup(error.message||'Could not delete this conversation. Run the updated messaging SQL, then try again.');
-    return;
-  }
-
-  if(messageChannel){
-    sb.removeChannel(messageChannel);
-    messageChannel=null;
-  }
-
-  requestedApplicationId=null;
-  requestedApplicationContext=null;
-  activeThreadId=null;
-  activeMessages=[];
-
-  try{
-    const cleanUrl=new URL(window.location.href);
-    cleanUrl.searchParams.delete('thread');
-    cleanUrl.searchParams.delete('application');
-    cleanUrl.searchParams.delete('job');
-    history.replaceState({},'',cleanUrl.pathname+cleanUrl.search);
-  }catch(_){}
-
-  await loadThreads();
-  await loadThreadDetails();
-
-  activeThreadId=threads[0]?.id||null;
-
-  if(activeThreadId){
-    await markThreadRead(activeThreadId);
-    await loadMessages(activeThreadId);
-    subscribeToMessages(activeThreadId);
-  }
-
-  renderConversationList();
-  renderChat();
 }
 
 function handleComposerKey(event){
@@ -1248,33 +788,63 @@ async function sendMessage(){
   if(!body)return;
 
   btn.disabled=true;
+  showSetup('');
+  document.getElementById('setup-note').style.display='none';
 
-  // A brand-new application may not have a thread until the first chat is
-  // opened. Create/fetch it now rather than leaving the employer on an empty page.
+  // No existing conversation means this must be the employer's first message.
+  // Candidates are never allowed to create/start a thread.
   if(!activeThreadId&&requestedApplicationId){
-    activeThreadId=await getOrCreateRequestedThread();
-    if(activeThreadId){
-      await loadThreads();
-      await loadThreadDetails();
+    if(currentRole!=='employer'){
+      btn.disabled=false;
+      showSetup('The employer must start the conversation before you can reply.');
+      return;
     }
+
+    const ctx=requestedApplicationContext||{};
+    const candidateName=ctx.candidate?.full_name||ctx.candidate?.name||'Candidate';
+    const jobTitle=ctx.job?.title||'Job application';
+
+    const {data,error}=await sb.rpc('start_application_conversation_v3',{
+      p_application_id:String(requestedApplicationId),
+      p_body:body,
+      p_candidate_name:candidateName,
+      p_job_title:jobTitle
+    });
+
+    btn.disabled=false;
+    if(error){
+      console.error(error);
+      showSetup(error.message||'Could not start this conversation.');
+      return;
+    }
+
+    input.value='';
+    activeThreadId=data?.conversation_id||null;
+    await loadThreads();
+    await loadThreadDetails();
+    if(activeThreadId)await loadMessages(activeThreadId);
+    renderConversationList();
+    renderChat();
+    if(activeThreadId)subscribeToMessages(activeThreadId);
+    return;
   }
 
   if(!activeThreadId){
     btn.disabled=false;
-    showSetup('Could not start this conversation. Run the updated Alygnn messaging SQL in Supabase, then try again.');
+    showSetup('No employer-started conversation is available yet.');
     return;
   }
 
   const {data,error}=await sb
-    .from('messages')
-    .insert({thread_id:activeThreadId,sender_id:currentUser.id,body})
-    .select('id,thread_id,sender_id,body,created_at,read_at')
+    .from('application_messages')
+    .insert({conversation_id:activeThreadId,sender_id:currentUser.id,body})
+    .select('id,conversation_id,sender_id,body,created_at,read_at')
     .single();
 
   btn.disabled=false;
   if(error){
     console.error(error);
-    showSetup('Could not send the message. Check the messaging SQL/RLS setup.');
+    showSetup(error.message||'Could not send the message.');
     return;
   }
 
@@ -1289,14 +859,14 @@ async function sendMessage(){
 function subscribeToMessages(threadId){
   if(messageChannel)sb.removeChannel(messageChannel);
 
-  messageChannel=sb.channel('messages-thread-'+threadId)
+  messageChannel=sb.channel('application-messages-thread-'+threadId)
     .on('postgres_changes',{
-      event:'INSERT',schema:'public',table:'messages',
-      filter:`thread_id=eq.${threadId}`
+      event:'INSERT',schema:'public',table:'application_messages',
+      filter:`conversation_id=eq.${threadId}`
     },async payload=>{
       const m=payload.new;
       if(!activeMessages.some(x=>x.id===m.id))activeMessages.push(m);
-      if(m.sender_id!==currentUser.id)await markThreadRead(threadId);
+      if(String(m.sender_id)!==String(currentUser.id))await markThreadRead(threadId);
       const d=threadDetails.get(threadId);
       if(d){d.lastMessage=m;d.unread=0}
       renderConversationList();
@@ -1308,16 +878,16 @@ function subscribeToMessages(threadId){
 function subscribeToThreads(){
   if(threadChannel)sb.removeChannel(threadChannel);
 
-  threadChannel=sb.channel('message-threads-'+currentUser.id)
+  threadChannel=sb.channel('application-conversations-'+currentUser.id)
     .on('postgres_changes',{
-      event:'*',schema:'public',table:'message_threads'
+      event:'*',schema:'public',table:'application_conversations'
     },async ()=>{
       await refreshAll(false);
     })
     .on('postgres_changes',{
-      event:'INSERT',schema:'public',table:'messages'
+      event:'INSERT',schema:'public',table:'application_messages'
     },async payload=>{
-      if(payload.new.thread_id===activeThreadId)return;
+      if(payload.new.conversation_id===activeThreadId)return;
       await refreshAll(false);
     })
     .subscribe();
@@ -1341,6 +911,11 @@ async function refreshAll(chooseFirst=true){
 }
 
 async function resolveEmployerCompanyName(profile, sessionUser){
+  // Primary source: the same profiles.company_name used by the employer
+  // dashboard/account pages.
+  const fromProfile = String(profile?.company_name || '').trim();
+  if(fromProfile) return fromProfile;
+
   // Google/email metadata may already contain the company name.
   const fromMetadata = String(sessionUser?.user_metadata?.company_name || '').trim();
   if(fromMetadata) return fromMetadata;
@@ -1365,356 +940,82 @@ async function resolveEmployerCompanyName(profile, sessionUser){
   return String(profile?.full_name || sessionUser?.user_metadata?.full_name || sessionUser?.user_metadata?.name || 'Company').trim();
 }
 
-
-// ---- Employer notifications — same behavior as My Jobs ----
-let employerNotificationItemsCache=[];
-let employerNotificationChannel=null;
-let employerNotificationMessageChannel=null;
-let employerNotificationPollTimer=null;
-let employerNotificationRefreshBusy=false;
-
-function employerNotificationTimeAgo(iso){
-  if(!iso)return '';
-  const diffMs=Date.now()-new Date(iso).getTime();
-  const mins=Math.floor(diffMs/60000);
-  if(mins<1)return 'just now';
-  if(mins<60)return `${mins}m ago`;
-  const hrs=Math.floor(mins/60);
-  if(hrs<24)return `${hrs}h ago`;
-  const days=Math.floor(hrs/24);
-  if(days<7)return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
-}
-
-async function fetchEmployerMessageNotifications(){
-  if(currentRole!=='employer'||!currentUser?.id||!threads.length)return [];
-
-  try{
-    const threadIds=threads.map(t=>t.id).filter(Boolean);
-    if(!threadIds.length)return [];
-
-    const {data,error}=await sb
-      .from('messages')
-      .select('id,thread_id,sender_id,body,created_at,read_at')
-      .in('thread_id',threadIds)
-      .neq('sender_id',currentUser.id)
-      .is('read_at',null)
-      .order('created_at',{ascending:false})
-      .limit(20);
-
-    if(error)throw error;
-
-    return (data||[]).map(message=>{
-      const d=threadDetails.get(message.thread_id)||{};
-      const name=String(d.name||'Candidate').trim();
-      const jobTitle=String(d.job?.title||'your job').trim();
-      const preview=String(message.body||'').trim().replace(/\s+/g,' ');
-      const shortPreview=preview.length>90?preview.slice(0,87)+'…':preview;
-
-      return{
-        id:`message-${message.id}`,
-        source:'message',
-        message_id:message.id,
-        thread_id:message.thread_id,
-        type:'message',
-        title:`New message from ${name}`,
-        body:shortPreview?`${jobTitle}: ${shortPreview}`:`New reply about ${jobTitle}.`,
-        link:`messages.html?thread=${encodeURIComponent(message.thread_id)}`,
-        read_at:null,
-        created_at:message.created_at
-      };
-    });
-  }catch(error){
-    console.warn('Could not load employer message notifications:',error);
-    return [];
-  }
-}
-
-async function fetchEmployerNotifications(){
-  if(currentRole!=='employer'||!currentUser?.id)return [];
-
-  const [{data,error},messageItems]=await Promise.all([
-    sb
-      .from('notifications')
-      .select('id,type,title,body,link,read_at,created_at')
-      .eq('recipient_id',currentUser.id)
-      .order('created_at',{ascending:false})
-      .limit(20),
-    fetchEmployerMessageNotifications()
-  ]);
-
-  if(error)console.warn('Could not load employer notifications:',error);
-
-  return [...messageItems,...(error?[]:(data||[]))]
-    .sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0))
-    .slice(0,20);
-}
-
-function normalizedEmployerNotificationTitle(n){
-  const title=String(n?.title||'').trim();
-  const match=title.match(/^new applicant for\s+(.+)$/i);
-  if(match)return `${match[1]} — New applicant`;
-  return title||'Notification';
-}
-
-function renderEmployerNotifications(items){
-  employerNotificationItemsCache=items||[];
-
-  const badge=document.getElementById('notif-badge');
-  const list=document.getElementById('notif-list');
-  if(!badge||!list)return;
-
-  const unread=employerNotificationItemsCache.filter(n=>!n.read_at).length;
-  if(unread>0){
-    badge.style.display='flex';
-    badge.textContent=unread>9?'9+':String(unread);
-  }else{
-    badge.style.display='none';
-  }
-
-  if(!employerNotificationItemsCache.length){
-    list.innerHTML='<div class="notif-empty">No notifications yet.</div>';
-    return;
-  }
-
-  list.innerHTML=employerNotificationItemsCache.slice(0,6).map(n=>{
-    if(n.source==='message'){
-      return `
-        <a class="notif-item unread" href="${escapeHtml(n.link||'#')}"
-           onclick="handleEmployerMessageNotification(event,'${n.id}')">
-          <div class="notif-item-title">${escapeHtml(n.title)}</div>
-          ${n.body?`<div class="notif-item-body">${escapeHtml(n.body)}</div>`:''}
-          <div class="notif-item-time">${employerNotificationTimeAgo(n.created_at)}</div>
-        </a>`;
-    }
-
-    return `
-      <a class="notif-item ${n.read_at?'':'unread'}" href="${n.link?escapeHtml(n.link):'#'}"
-         onclick="handleEmployerRegularNotification(event,'${n.id}')">
-        <div class="notif-item-title">${escapeHtml(normalizedEmployerNotificationTitle(n))}</div>
-        ${n.body?`<div class="notif-item-body">${escapeHtml(n.body)}</div>`:''}
-        <div class="notif-item-time">${employerNotificationTimeAgo(n.created_at)}</div>
-      </a>`;
-  }).join('');
-}
-
-async function handleEmployerRegularNotification(event,id){
-  if(event)event.preventDefault();
-  const n=employerNotificationItemsCache.find(item=>item.id===id);
-  if(!n)return;
-
-  await sb
-    .from('notifications')
-    .update({read_at:new Date().toISOString()})
-    .eq('id',id)
-    .eq('recipient_id',currentUser.id);
-
-  const dropdown=document.getElementById('notif-dropdown');
-  if(dropdown)dropdown.style.display='none';
-
-  const destination=String(n.link||'').trim();
-  if(destination){
-    location.href=destination;
-  }else if(String(n.title||'').toLowerCase().includes('applicant')||String(n.body||'').toLowerCase().includes('applied')){
-    location.href='candidates.html';
-  }else{
-    await refreshEmployerNotifications();
-  }
-}
-
-async function handleEmployerMessageNotification(event,id){
-  if(event)event.preventDefault();
-  const n=employerNotificationItemsCache.find(item=>item.id===id);
-  if(!n)return;
-
-  if(n.message_id){
-    const {error}=await sb
-      .from('messages')
-      .update({read_at:new Date().toISOString()})
-      .eq('id',n.message_id)
-      .neq('sender_id',currentUser.id)
-      .is('read_at',null);
-    if(error)console.warn('Could not mark employer message notification read:',error);
-  }
-
-  const dropdown=document.getElementById('notif-dropdown');
-  if(dropdown)dropdown.style.display='none';
-  location.href=n.link||'messages.html';
-}
-
-async function markAllEmployerNotificationsRead(event){
-  if(event){
-    event.preventDefault();
-    event.stopPropagation();
-  }
-
-  const btn=document.getElementById('notif-mark-all-btn');
-  if(btn){
-    btn.disabled=true;
-    btn.textContent='Marking…';
-  }
-
-  const now=new Date().toISOString();
-  const regularIds=employerNotificationItemsCache
-    .filter(item=>item.source!=='message'&&!item.read_at&&item.id)
-    .map(item=>item.id);
-  const messageIds=employerNotificationItemsCache
-    .filter(item=>item.source==='message'&&item.message_id)
-    .map(item=>item.message_id);
-
-  try{
-    if(regularIds.length){
-      const {error}=await sb
-        .from('notifications')
-        .update({read_at:now})
-        .in('id',regularIds)
-        .eq('recipient_id',currentUser.id);
-      if(error)console.warn('Could not mark employer notifications read:',error);
-    }
-
-    if(messageIds.length){
-      const {error}=await sb
-        .from('messages')
-        .update({read_at:now})
-        .in('id',messageIds)
-        .neq('sender_id',currentUser.id)
-        .is('read_at',null);
-      if(error)console.warn('Could not mark employer message notifications read:',error);
-    }
-
-    await loadThreadDetails();
-    renderConversationList();
-    await refreshEmployerNotifications();
-  }finally{
-    if(btn){
-      btn.disabled=false;
-      btn.textContent='Mark all read';
-    }
-  }
-}
-
-async function refreshEmployerNotifications(){
-  if(currentRole!=='employer')return;
-  const items=await fetchEmployerNotifications();
-  renderEmployerNotifications(items);
-}
-
-function initEmployerNotifications(){
-  if(currentRole!=='employer'||!currentUser?.id)return;
-
-  const bell=document.getElementById('notif-bell');
-  const dropdown=document.getElementById('notif-dropdown');
-  const wrap=document.getElementById('notif-wrap');
-  if(!bell||!dropdown||!wrap)return;
-
-  refreshEmployerNotifications();
-
-  bell.addEventListener('click',event=>{
-    event.stopPropagation();
-    const isOpen=dropdown.style.display!=='none';
-    dropdown.style.display=isOpen?'none':'block';
-    if(!isOpen)refreshEmployerNotifications();
-  });
-
-  document.addEventListener('click',event=>{
-    if(!wrap.contains(event.target))dropdown.style.display='none';
-  });
-
-  employerNotificationChannel=sb
-    .channel('messages-page-employer-notifications-'+currentUser.id)
-    .on('postgres_changes',{
-      event:'INSERT',schema:'public',table:'notifications',
-      filter:`recipient_id=eq.${currentUser.id}`
-    },()=>refreshEmployerNotifications())
-    .subscribe();
-
-  employerNotificationMessageChannel=sb
-    .channel('messages-page-employer-message-notifications-'+currentUser.id)
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},async payload=>{
-      if(payload?.new?.sender_id===currentUser.id)return;
-      if(employerNotificationRefreshBusy)return;
-      employerNotificationRefreshBusy=true;
-      try{
-        await loadThreadDetails();
-        renderConversationList();
-        await refreshEmployerNotifications();
-      }finally{
-        employerNotificationRefreshBusy=false;
-      }
-    })
-    .subscribe();
-
-  if(!employerNotificationPollTimer){
-    employerNotificationPollTimer=window.setInterval(()=>{
-      if(document.visibilityState==='visible')refreshEmployerNotifications();
-    },5000);
-  }
-
-  document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible')refreshEmployerNotifications();
-  });
-  window.addEventListener('focus',()=>refreshEmployerNotifications());
-}
-
-
 async function init(){
-  let {data:{session},error}=await sb.auth.getSession();
-
-  if(!session && !error){
-    await new Promise(resolve=>setTimeout(resolve,120));
-    const retry=await sb.auth.getSession();
-    session=retry.data?.session||null;
-    error=retry.error||null;
-  }
-
+  const {data:{session},error}=await sb.auth.getSession();
   if(error||!session){
     location.replace('login.html');
     return;
   }
 
   currentUser=session.user;
+  workspaceOwnerId=currentUser.id;
+
+  const runtimeResult=await sb.rpc('get_my_team_operational_state');
+  if(!runtimeResult.error&&runtimeResult.data?.has_company){
+    teamRuntime=runtimeResult.data;
+    teamAccess=runtimeResult.data.access||null;
+    isTeamMember=teamAccess?.is_owner===false;
+    workspaceOwnerId=runtimeResult.data.owner_user_id||teamAccess?.owner_user_id||currentUser.id;
+  }
 
   const {data:profile,error:profileError}=await sb
     .from('profiles')
-    .select('id,role,full_name,resume_file_path,resume_data,preferences')
+    .select('id,role,full_name,company_name,resume_file_path,resume_data,preferences')
     .eq('id',currentUser.id)
     .maybeSingle();
 
-  if(profileError){
-    console.error('Could not load Alygnn profile for Messages:', profileError);
+  if(profileError&&profileError.code!=='PGRST116'){
+    console.error(profileError);
+    location.replace('login.html');
+    return;
   }
 
   currentProfile=profile||{};
-  currentRole=String(
-    profile?.role ||
-    currentUser.user_metadata?.role ||
-    currentUser.app_metadata?.role ||
-    'candidate'
-  ).toLowerCase();
 
-  // Older candidate accounts may use "seeker" / "jobseeker" instead of
-  // "candidate". They are all candidate-side accounts.
-  if(currentRole==='seeker'||currentRole==='jobseeker'){
-    currentRole='candidate';
-  }
+  if(isTeamMember){
+    if(!messageTeamCan('messages_manage')){
+      currentRole='employer';
+      setSidebar();
+      showSetup('Your company role does not include candidate messaging.');
+      return;
+    }
 
-  // Candidate Swipe stays unavailable until both onboarding pieces exist,
-  // but the whole candidate nav resolves at once so Swipe never pops in late.
-  if(currentRole!=='employer'){
-    const hasResume=!!(profile?.resume_file_path||profile?.resume_data);
-    const hasPreferences=!!profile?.preferences;
-    syncCandidateSwipeNav(hasResume && hasPreferences);
-  }
-
-  if(currentRole==='employer'){
+    currentRole='employer';
     document.getElementById('nav-name').textContent=
-      await resolveEmployerCompanyName(profile,currentUser);
+      teamRuntime?.owner_profile?.company_name||
+      'Company';
+
+    setSidebar();
+
+    const postLink=document.querySelector('a[href="employer-dashboard.html#post"]');
+    if(postLink&&!messageTeamCan('jobs_manage'))postLink.style.display='none';
+
+    const accountLink=document.querySelector('a[href="employer-account.html"]');
+    if(accountLink&&!(
+      messageTeamCan('company_edit')||
+      messageTeamCan('billing_view')||
+      messageTeamCan('billing_manage')||
+      messageTeamCan('team_manage')
+    ))accountLink.style.display='none';
   }else{
-    document.getElementById('nav-name').textContent=
-      profile?.full_name||currentUser.user_metadata?.full_name||currentUser.user_metadata?.name||'Candidate';
-  }
+    currentRole=String(profile?.role||currentUser.user_metadata?.role||'candidate').toLowerCase();
 
-  setSidebar();
+    if(currentRole!=='employer'){
+      const hasResume=!!(profile?.resume_file_path||profile?.resume_data);
+      const hasPreferences=!!profile?.preferences;
+      syncCandidateSwipeNav(hasResume && hasPreferences);
+    }
+
+    if(currentRole==='employer'){
+      document.getElementById('nav-name').textContent=
+        await resolveEmployerCompanyName(profile,currentUser);
+    }else{
+      document.getElementById('nav-name').textContent=
+        profile?.full_name||currentUser.user_metadata?.full_name||currentUser.user_metadata?.name||'Candidate';
+    }
+
+    setSidebar();
+  }
 
   // If arriving from Candidates → Message, resolve that exact application
   // first so the correct candidate/job chat appears immediately.
@@ -1748,7 +1049,6 @@ async function init(){
   renderChat();
   subscribeToThreads();
   if(activeThreadId)subscribeToMessages(activeThreadId);
-  if(currentRole==='employer')initEmployerNotifications();
 
   document.body.classList.add('ready');
 }
@@ -1756,9 +1056,6 @@ async function init(){
 window.addEventListener('beforeunload',()=>{
   if(messageChannel)sb.removeChannel(messageChannel);
   if(threadChannel)sb.removeChannel(threadChannel);
-  if(employerNotificationChannel)sb.removeChannel(employerNotificationChannel);
-  if(employerNotificationMessageChannel)sb.removeChannel(employerNotificationMessageChannel);
-  if(employerNotificationPollTimer)clearInterval(employerNotificationPollTimer);
 });
 
 init();
