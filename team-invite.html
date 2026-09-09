@@ -185,9 +185,12 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
   }
 });
 
-const inviteId=new URLSearchParams(location.search).get('invite')||'';
+const inviteParams=new URLSearchParams(location.search);
+const inviteId=inviteParams.get('invite')||'';
+const autoJoin=inviteParams.get('auto')==='1';
 let invite=null;
 let session=null;
+let autoJoinStarted=false;
 const $=id=>document.getElementById(id);
 
 const PERMISSION_LABELS={
@@ -291,6 +294,7 @@ async function refreshSession(){
   const invitedEmail=String(invite?.email||'').toLowerCase();
 
   $('signed-in-email').textContent=session.user?.email||'';
+
   if(signedEmail!==invitedEmail){
     $('signed-in-copy').textContent=`This invitation belongs to ${invite?.email}.`;
     $('accept-btn').disabled=true;
@@ -299,10 +303,24 @@ async function refreshSession(){
       `You are signed in as ${session.user?.email}. Sign out and use ${invite?.email} to accept this invitation.`,
       'error'
     );
-  }else{
-    $('signed-in-copy').textContent='Email matches this team invitation.';
-    $('accept-btn').disabled=false;
-    clearMessage('accept-message');
+    return;
+  }
+
+  $('signed-in-copy').textContent='Email confirmed for this team invitation.';
+  $('accept-btn').disabled=false;
+  clearMessage('accept-message');
+
+  // The email button is itself the confirmation step for an existing user.
+  // The one-time Magic Link has already authenticated the exact invited
+  // email, so complete the company membership automatically.
+  if(autoJoin&&!autoJoinStarted){
+    autoJoinStarted=true;
+    showMessage(
+      'accept-message',
+      `Email confirmed. Connecting you to ${invite?.company_name||'the company'}…`,
+      'info'
+    );
+    await acceptInvite(true);
   }
 }
 
@@ -392,7 +410,7 @@ async function createLogin(){
   button.textContent='Verification email sent';
 }
 
-async function acceptInvite(){
+async function acceptInvite(autoRedirect=false){
   const button=$('accept-btn');
   clearMessage('accept-message');
 
@@ -407,6 +425,7 @@ async function acceptInvite(){
     showMessage('accept-message',error.message||'Could not accept this invitation.');
     button.disabled=false;
     button.textContent='Accept invitation';
+    autoJoinStarted=false;
     return;
   }
 
@@ -414,11 +433,18 @@ async function acceptInvite(){
     showMessage('accept-message','This invitation could not be accepted.');
     button.disabled=false;
     button.textContent='Accept invitation';
+    autoJoinStarted=false;
     return;
   }
 
   $('signed-in-view').hidden=true;
   $('complete-view').hidden=false;
+
+  if(autoRedirect){
+    setTimeout(()=>{
+      location.replace('employer-dashboard.html?team_joined=1');
+    },900);
+  }
 }
 
 async function declineInvite(){
